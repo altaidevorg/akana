@@ -414,13 +414,13 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbTense,
                 suffix_type: SuffixType::TenseFut,
-                surface_templates: &["ecek", "acak", "yecek", "yacak"],
+                surface_templates: &["ecek", "acak", "yecek", "yacak", "eceğ", "acağ", "yeceğ", "yacağ"],
             },
             SuffixTransition {
                 from_state: MorphState::VerbNegation,
                 to_state: MorphState::VerbTense,
                 suffix_type: SuffixType::TenseFut,
-                surface_templates: &["yecek", "yacak"],
+                surface_templates: &["yecek", "yacak", "yeceğ", "yacağ"],
             },
             // Aorist
             SuffixTransition {

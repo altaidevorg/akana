@@ -8,6 +8,8 @@ pub mod analyzer;
 pub mod generator;
 pub mod disambiguator;
 pub mod compound;
+pub mod stopwords;
+pub mod stemmer;
 
 pub use pos::*;
 pub use dictionary::*;
@@ -17,3 +19,5 @@ pub use analyzer::*;
 pub use generator::*;
 pub use disambiguator::*;
 pub use compound::*;
+pub use stopwords::*;
+pub use stemmer::*;

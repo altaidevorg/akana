@@ -1,8 +1,9 @@
-//! High-speed Turkish Spell Checker with StringZilla SIMD edit distance acceleration.
+//! High-speed Turkish Spell Checker with StringZilla SIMD edit distance acceleration and morphology engine.
 
 use std::collections::HashSet;
 use stringzilla::StringZilla;
 use serde::{Deserialize, Serialize};
+use crate::morphology::TurkishMorphology;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpellSuggestion {
@@ -14,6 +15,7 @@ pub struct SpellSuggestion {
 pub struct TurkishSpellChecker {
     vocabulary: HashSet<String>,
     vocab_list: Vec<String>,
+    morphology: TurkishMorphology,
 }
 
 impl Default for TurkishSpellChecker {
@@ -27,6 +29,7 @@ impl TurkishSpellChecker {
         let mut checker = Self {
             vocabulary: HashSet::new(),
             vocab_list: Vec::new(),
+            morphology: TurkishMorphology::new(),
         };
         checker.load_default_vocabulary();
         checker
@@ -44,29 +47,22 @@ impl TurkishSpellChecker {
         Self {
             vocabulary: set,
             vocab_list: list,
+            morphology: TurkishMorphology::new(),
         }
     }
 
     fn load_default_vocabulary(&mut self) {
-        let default_words = [
-            "ve", "bir", "bu", "da", "de", "için", "ile", "o", "ne", "çok",
-            "gibi", "daha", "en", "kadar", "olan", "olarak", "var", "yok",
-            "ben", "sen", "biz", "siz", "onlar", "bana", "sana", "bize", "size", "onlara",
-            "türkiye", "türkçe", "türk", "insan", "çocuk", "zaman", "gün", "yıl", "ev",
-            "kitap", "dünya", "büyük", "küçük", "iyi", "güzel", "yeni", "eski", "doğru",
-            "gelmek", "gitmek", "yapmak", "etmek", "olmak", "almak", "vermek", "bilmek",
-            "görmek", "bakmak", "çalışmak", "istemek", "söylemek", "yazmak", "okumak",
-            "akıl", "aklı", "burun", "burnu", "şehri", "şehir", "hakkı", "hak",
-            "ağaç", "ağacı", "ağaçlar", "kitaplar", "evler", "günler", "yollar",
-            "hızlı", "hızlıca", "kolay", "zor", "başarı", "başarılı", "yazılım",
-            "dil", "edebiyat", "bilim", "sanat", "tarih", "coğrafya", "matematik",
-            "ankara", "istanbul", "izmir", "bursa", "antalya", "adana", "trabzon"
-        ];
-
-        for &w in &default_words {
-            let lower = super::super::phonology::to_turkish_lower(w);
-            if self.vocabulary.insert(lower.clone()) {
-                self.vocab_list.push(lower);
+        let lex_str = include_str!("../morphology/zemberek_lexicon.txt");
+        for line in lex_str.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            if let Some(first_word) = line.split_whitespace().next() {
+                let lower = super::super::phonology::to_turkish_lower(first_word);
+                if self.vocabulary.insert(lower.clone()) {
+                    self.vocab_list.push(lower);
+                }
             }
         }
     }
@@ -79,17 +75,20 @@ impl TurkishSpellChecker {
         }
     }
 
-    /// Checks if a word is correctly spelled.
+    /// Checks if a word is correctly spelled (either in root dictionary or recognized by morphological analyzer).
     #[inline]
     pub fn is_correct(&self, word: &str) -> bool {
         let lower = super::super::phonology::to_turkish_lower(word);
-        self.vocabulary.contains(&lower)
+        if self.vocabulary.contains(&lower) {
+            return true;
+        }
+        !self.morphology.analyze(&lower).is_empty()
     }
 
     /// Suggests correctly spelled words using StringZilla SIMD-accelerated edit distance.
     pub fn suggest(&self, word: &str, max_distance: usize, max_suggestions: usize) -> Vec<SpellSuggestion> {
         let lower = super::super::phonology::to_turkish_lower(word);
-        if self.vocabulary.contains(&lower) {
+        if self.is_correct(&lower) {
             return vec![SpellSuggestion {
                 word: lower,
                 distance: 0,

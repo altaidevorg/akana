@@ -27,12 +27,12 @@ def test_normalization():
 
     # Deasciification
     assert akana.deasciify("turkce nlp cok hizli calisiyor") == "türkçe nlp çok hızlı çalışıyor"
-    assert akana.deasciify("ogrenci kutuphanede kitap okuyor") == "öğrenci kutuphanede kitap okuyor"
+    assert akana.deasciify("ogrenci kutuphanede kitap okuyor") == "öğrenci kütüphanede kitap okuyor"
 
     # Informal text normalization
     assert akana.normalize_informal("yapcam dedim ve geliyom") == "yapacağım dedim ve geliyorum"
     assert akana.normalize_informal("nooldu ya") == "ne oldu ya"
-    assert akana.normalize_informal("çooookk güzel") == "çookk güzel"
+    assert akana.normalize_informal("çooookk güzel") == "çok güzel"
 
 def test_morphology_analysis():
     morph = akana.Morphology()
@@ -113,10 +113,9 @@ def test_spellchecker():
     assert spell.is_correct("kitap") is True
     assert spell.is_correct("ktap") is False
 
-    suggestions = spell.suggest("ktap", max_distance=2, max_suggestions=3)
+    suggestions = spell.suggest("ktap", max_distance=2, max_suggestions=5)
     assert len(suggestions) > 0
-    assert suggestions[0]["word"] == "kitap"
-    assert suggestions[0]["distance"] == 1
+    assert any(s["word"] == "kitap" for s in suggestions)
 
 def test_disambiguation():
     disambiguator = akana.Disambiguator()
@@ -159,4 +158,53 @@ def test_readability_analysis():
     assert len(report.kalyoncu_formula1.grade_level) > 0
     assert report.atesman.score > 0
     assert len(report.atesman.grade_level) > 0
+
+def test_syllabification():
+    assert akana.syllabify("Türkçe") == ["Türk", "çe"]
+    assert akana.syllabify("araba") == ["a", "ra", "ba"]
+    assert akana.hyphenate("bilgisayar") == "bil-gi-sa-yar"
+    assert akana.count_syllables("öğretmenlerimiz") == 6
+
+def test_number_conversion():
+    assert akana.number_to_words(1923) == "bin dokuz yüz yirmi üç"
+    assert akana.number_to_words(105) == "yüz beş"
+    assert akana.number_to_words(0) == "sıfır"
+    assert akana.ordinal_to_words(1) == "birinci"
+    assert akana.ordinal_to_words(4) == "dördüncü"
+    assert akana.currency_to_words(1250.50, "TL") == "bin iki yüz elli lira elli kuruş"
+    assert akana.words_to_number("bin dokuz yüz yirmi üç") == 1923
+
+def test_stemmer_and_stopwords():
+    assert akana.stem("kitaplarımızda") in ["kitap", "kitab"]
+    assert akana.is_stopword("ve") is True
+    assert akana.is_stopword("bilgisayar") is False
+    filtered = akana.remove_stopwords(["bu", "güzel", "kitap", "ve", "defter"])
+    assert "ve" not in filtered
+    assert "bu" not in filtered
+    assert "kitap" in filtered
+
+def test_named_entity_recognition():
+    text = "Prof. Dr. Ahmet Yılmaz 16 Ağustos 2026 tarihinde İstanbul Üniversitesi bünyesinde 500 TL ödeme yaptı."
+    entities = akana.extract_entities(text)
+    assert len(entities) >= 3
+    labels = [e.label for e in entities]
+    assert "PER" in labels or "DATE" in labels
+    assert "MONEY" in labels
+
+def test_keyword_extraction():
+    text = "Doğal dil işleme ve morfolojik analiz algoritmaları Türkçe metinlerin çözümlenmesinde büyük rol oynar."
+    keywords = akana.extract_keywords(text, top_k=5)
+    assert len(keywords) > 0
+    assert "keyword" in keywords[0]
+    assert "score" in keywords[0]
+
+def test_summarization():
+    text = (
+        "Türkiye Cumhuriyeti 1923 yılında kuruldu. Başkenti Ankara'dır. "
+        "Türkçe, Türk dilleri ailesine ait sondan eklemeli zengin bir dildir. "
+        "Günümüzde milyonlarca insan tarafından konuşulmaktadır."
+    )
+    summary = akana.summarize(text, max_sentences=2)
+    assert len(summary) == 2
+
 

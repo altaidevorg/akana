@@ -68,7 +68,7 @@ lazy_static! {
     static ref MENTION_REGEX: Regex = Regex::new(r"^@[a-zA-Z0-9_çğıöşüÇĞİÖŞÜ]+").unwrap();
     static ref TIME_REGEX: Regex = Regex::new(r"^\d{1,2}[:.]\d{2}([:.]\d{2})?").unwrap();
     static ref DATE_REGEX: Regex = Regex::new(r"^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}").unwrap();
-    static ref NUMBER_REGEX: Regex = Regex::new(r"^[-+]?(\d{1,3}(\.\d{3})*|\d+)(,\d+)?%?").unwrap();
+    static ref NUMBER_REGEX: Regex = Regex::new(r"^[-+]?(?:\d+(?:[.,]\d+)*)%?").unwrap();
 }
 
 pub struct TurkishTokenizer;

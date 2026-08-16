@@ -23,9 +23,32 @@ try:
         DependencyParser,
         analyze_document_json,
         analyze_readability_json,
+        syllabify,
+        hyphenate,
+        count_syllables,
+        number_to_words,
+        ordinal_to_words,
+        currency_to_words,
+        words_to_number,
+        stem,
+        is_stopword,
+        remove_stopwords,
+        extract_entities_json,
+        extract_keywords_json,
+        summarize,
     )
 except ImportError:
     pass
+
+class NamedEntity:
+    def __init__(self, raw: Dict[str, Any]):
+        self.text: str = raw.get("text", "")
+        self.label: str = raw.get("label", "")
+        self.start: int = raw.get("start", 0)
+        self.end: int = raw.get("end", 0)
+
+    def __repr__(self) -> str:
+        return f"<NamedEntity: '{self.text}' [{self.label}] ({self.start}:{self.end})>"
 
 class Document:
     def __init__(self, raw_data: Dict[str, Any]):
@@ -113,6 +136,17 @@ def decompose_compound(word: str) -> List[Dict[str, Any]]:
     decomposer = CompoundDecomposer()
     return decomposer.decompose(word)
 
+def extract_entities(text: str) -> List[NamedEntity]:
+    """Extracts Named Entities (PER, LOC, ORG, DATE, MONEY, PERCENT) from Turkish text."""
+    json_str = extract_entities_json(text)
+    data = json.loads(json_str)
+    return [NamedEntity(e) for e in data]
+
+def extract_keywords(text: str, top_k: int = 10) -> List[Dict[str, Any]]:
+    """Extracts top keywords and keyphrases using Turkish RAKE and morphology."""
+    json_str = extract_keywords_json(text, top_k)
+    return json.loads(json_str)
+
 __version__ = "0.2.0"
 __all__ = [
     "to_turkish_lower",
@@ -132,8 +166,22 @@ __all__ = [
     "DependencyParser",
     "analyze",
     "analyze_readability",
+    "syllabify",
+    "hyphenate",
+    "count_syllables",
+    "number_to_words",
+    "ordinal_to_words",
+    "currency_to_words",
+    "words_to_number",
+    "stem",
+    "is_stopword",
+    "remove_stopwords",
+    "extract_entities",
+    "extract_keywords",
+    "summarize",
     "Document",
     "Sentence",
+    "NamedEntity",
     "ReadabilityReport",
     "TextStatistics",
     "FormulaResult",

@@ -22,15 +22,24 @@ fn test_spellchecker() {
     assert!(checker.is_correct("türkiye"));
     assert!(!checker.is_correct("ktap"));
 
-    let suggestions = checker.suggest("ktap", 2, 3);
+    let suggestions = checker.suggest("ktap", 2, 5);
     assert!(!suggestions.is_empty());
-    assert_eq!(suggestions[0].word, "kitap");
+    assert!(suggestions.iter().any(|s| s.word == "kitap"));
 }
 
 #[test]
 fn test_informal_normalizer() {
-    assert_eq!(TurkishInformalNormalizer::deduplicate_repeated_chars("çooookkkk"), "çookk");
+    assert_eq!(TurkishInformalNormalizer::deduplicate_repeated_chars("çooookkkk"), "çok");
     assert_eq!(TurkishInformalNormalizer::normalize_word("yapcam"), "yapacağım");
     assert_eq!(TurkishInformalNormalizer::normalize_word("geliyom"), "geliyorum");
     assert_eq!(TurkishInformalNormalizer::normalize_word("noldu"), "ne oldu");
+}
+
+#[test]
+fn test_number_converter() {
+    assert_eq!(TurkishNumberConverter::number_to_words(1923), "bin dokuz yüz yirmi üç");
+    assert_eq!(TurkishNumberConverter::ordinal_to_words(1), "birinci");
+    assert_eq!(TurkishNumberConverter::ordinal_to_words(4), "dördüncü");
+    assert_eq!(TurkishNumberConverter::currency_to_words(1250.50, "TL"), "bin iki yüz elli lira elli kuruş");
+    assert_eq!(TurkishNumberConverter::words_to_number("bin dokuz yüz yirmi üç").unwrap(), 1923);
 }

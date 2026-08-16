@@ -1,45 +1,23 @@
-//! Restores Turkish diacritics to ASCII Turkish text (De-asciifier).
+//! High-accuracy Turkish De-asciifier powered by morphological candidate validation and phonetic heuristics.
 
-use std::collections::HashMap;
+use crate::morphology::TurkishMorphology;
+use crate::phonology::{to_turkish_lower, to_turkish_upper, to_turkish_title};
 use lazy_static::lazy_static;
 
 lazy_static! {
-    /// Common Turkish word mappings for accurate de-asciification
-    static ref DEASCII_DICT: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
+    static ref GLOBAL_MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
+
+    static ref FREQUENT_DEASCII: std::collections::HashMap<&'static str, &'static str> = {
+        let mut m = std::collections::HashMap::new();
         let entries = [
-            ("turkce", "türkçe"), ("turk", "türk"), ("turkiye", "türkiye"),
-            ("cok", "çok"), ("az", "az"), ("daha", "daha"),
-            ("agac", "ağaç"), ("agaci", "ağacı"), ("agaclar", "ağaçlar"),
-            ("cocuk", "çocuk"), ("cocuklar", "çocuklar"),
-            ("guzel", "güzel"), ("guzellik", "güzellik"),
-            ("ogrenci", "öğrenci"), ("ogretmen", "öğretmen"), ("ogretmenler", "öğretmenler"),
-            ("kitap", "kitap"), ("kitaplar", "kitaplar"), ("kitabi", "kitabı"),
-            ("okul", "okul"), ("okullar", "okullar"),
-            ("hizli", "hızlı"), ("hizlica", "hızlıca"),
-            ("caliskan", "çalışkan"), ("calismak", "çalışmak"), ("calisiyor", "çalışıyor"),
-            ("yazi", "yazı"), ("yazilim", "yazılım"),
-            ("degil", "değil"), ("dunya", "dünya"), ("gun", "gün"), ("gunler", "günler"),
-            ("gunes", "güneş"), ("ay", "ay"), ("yildiz", "yıldız"),
-            ("goz", "göz"), ("gozluk", "gözlük"), ("kulak", "kulak"),
-            ("yurek", "yürek"), ("gonul", "gönül"), ("sevgi", "sevgi"),
-            ("arkadas", "arkadaş"), ("kardes", "kardeş"),
-            ("birlik", "birlik"), ("beraberlik", "beraberlik"),
-            ("buyuk", "büyük"), ("kucuk", "küçük"),
-            ("saglik", "sağlık"), ("yasam", "yaşam"), ("hayat", "hayat"),
-            ("cagdas", "çağdaş"), ("bilim", "bilim"), ("sanat", "sanat"),
-            ("edebiyat", "edebiyat"), ("dil", "dil"), ("tarih", "tarih"),
-            ("cogur", "çoğur"), ("cogul", "çoğul"), ("tekil", "tekil"),
-            ("kosul", "koşul"), ("durum", "durum"), ("olay", "olay"),
-            ("yol", "yol"), ("yolcu", "yolcu"), ("yolculuk", "yolculuk"),
-            ("deniz", "deniz"), ("gok", "gök"), ("yer", "yer"),
-            ("sehir", "şehir"), ("ulke", "ülke"), ("devlet", "devlet"),
-            ("insan", "insan"), ("insanlar", "insanlar"),
-            ("yapilmis", "yapılmış"), ("olmus", "olmuş"), ("gelmis", "gelmiş"),
-            ("gitti", "gitti"), ("geldi", "geldi"), ("gordu", "gördü"),
-            ("bakar", "bakar"), ("yapar", "yapar"), ("eder", "eder"),
-            ("icin", "için"), ("cunku", "çünkü"), ("eger", "eğer"),
-            ("belki", "belki"), ("simdi", "şimdi"), ("sonra", "sonra"), ("once", "önce")
+            ("cok", "çok"), ("icin", "için"), ("cunku", "çünkü"), ("eger", "eğer"),
+            ("simdi", "şimdi"), ("hizli", "hızlı"), ("turkce", "türkçe"), ("turkiye", "türkiye"),
+            ("guzel", "güzel"), ("kucuk", "küçük"), ("buyuk", "büyük"), ("ogrenci", "öğrenci"),
+            ("ogretmen", "öğretmen"), ("saglik", "sağlık"), ("yasam", "yaşam"), ("cagdas", "çağdaş"),
+            ("yazi", "yazı"), ("yazilim", "yazılım"), ("degil", "değil"), ("dunya", "dünya"),
+            ("gun", "gün"), ("gunes", "güneş"), ("goz", "göz"), ("yurek", "yürek"),
+            ("gonul", "gönül"), ("arkadas", "arkadaş"), ("kardes", "kardeş"), ("sehir", "şehir"),
+            ("ulke", "ülke"), ("caliskan", "çalışkan"), ("calismak", "çalışmak"), ("calisiyor", "çalışıyor"),
         ];
         for (k, v) in entries {
             m.insert(k, v);
@@ -65,27 +43,103 @@ impl TurkishDeasciifier {
                 continue;
             }
 
-            let lower = alphabetic_part.to_lowercase();
-
-            if let Some(&correct) = DEASCII_DICT.get(lower.as_str()) {
-                let is_upper = alphabetic_part.chars().next().map_or(false, |c| c.is_uppercase());
-                let is_all_upper = alphabetic_part.len() > 1 && alphabetic_part.chars().all(|c| c.is_uppercase());
-
-                let restored = if is_all_upper {
-                    super::super::phonology::to_turkish_upper(correct)
-                } else if is_upper {
-                    super::super::phonology::to_turkish_title(correct)
-                } else {
-                    correct.to_string()
-                };
-
-                result.push_str(&restored);
-                result.push_str(&non_alphabetic_part);
-            } else {
-                result.push_str(token);
-            }
+            let restored = Self::deasciify_word(&alphabetic_part);
+            result.push_str(&restored);
+            result.push_str(&non_alphabetic_part);
         }
 
         result
+    }
+
+    /// Deasciifies a single word.
+    pub fn deasciify_word(word: &str) -> String {
+        if word.is_empty() {
+            return String::new();
+        }
+
+        let is_upper = word.chars().next().map_or(false, |c| c.is_uppercase());
+        let is_all_upper = word.len() > 1 && word.chars().all(|c| c.is_uppercase());
+
+        let lower = to_turkish_lower(word);
+
+        if let Some(&freq) = FREQUENT_DEASCII.get(lower.as_str()) {
+            return if is_all_upper {
+                to_turkish_upper(freq)
+            } else if is_upper {
+                to_turkish_title(freq)
+            } else {
+                freq.to_string()
+            };
+        }
+
+        // Check if the word as-is is already a valid Turkish word
+        let direct_parses = GLOBAL_MORPHOLOGY.analyze(&lower);
+        
+        // Find candidate letter substitutions: c->ç, g->ğ, s->ş, o->ö, u->ü, i->ı
+        let mut ambiguous_positions: Vec<(usize, Vec<char>)> = Vec::new();
+        for (idx, ch) in lower.chars().enumerate() {
+            match ch {
+                'c' => ambiguous_positions.push((idx, vec!['c', 'ç'])),
+                'g' => ambiguous_positions.push((idx, vec!['g', 'ğ'])),
+                's' => ambiguous_positions.push((idx, vec!['s', 'ş'])),
+                'o' => ambiguous_positions.push((idx, vec!['o', 'ö'])),
+                'u' => ambiguous_positions.push((idx, vec!['u', 'ü'])),
+                'i' => ambiguous_positions.push((idx, vec!['i', 'ı'])),
+                _ => {}
+            }
+        }
+
+        if ambiguous_positions.is_empty() {
+            return word.to_string();
+        }
+
+        // Limit permutation search to at most 6 ambiguous chars (2^6 = 64 branches) to guarantee speed
+        if ambiguous_positions.len() > 6 {
+            ambiguous_positions.truncate(6);
+        }
+
+        let mut candidates: Vec<String> = vec![lower.clone()];
+
+        for (idx, replacements) in &ambiguous_positions {
+            let mut new_candidates = Vec::new();
+            for cand in &candidates {
+                let chars: Vec<char> = cand.chars().collect();
+                for &rep in replacements {
+                    let mut modified = chars.clone();
+                    modified[*idx] = rep;
+                    new_candidates.push(modified.into_iter().collect::<String>());
+                }
+            }
+            candidates = new_candidates;
+        }
+
+        // Score candidates with morphological validation
+        let mut best_word = lower.clone();
+        let mut best_score = if direct_parses.is_empty() { -1.0 } else { 0.5 };
+
+        for cand in candidates {
+            if cand == lower && !direct_parses.is_empty() {
+                continue;
+            }
+            let parses = GLOBAL_MORPHOLOGY.analyze(&cand);
+            if !parses.is_empty() {
+                let diacritic_count = cand.chars().filter(|&c| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı')).count();
+                // Higher score for candidate matching morphotactics with more proper Turkish characters
+                let score = 1.0 + (diacritic_count as f32 * 0.2) + parses[0].score;
+                if score > best_score {
+                    best_score = score;
+                    best_word = cand;
+                }
+            }
+        }
+
+        // Reapply casing
+        if is_all_upper {
+            to_turkish_upper(&best_word)
+        } else if is_upper {
+            to_turkish_title(&best_word)
+        } else {
+            best_word
+        }
     }
 }

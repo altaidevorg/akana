@@ -59,6 +59,42 @@ enum Commands {
         /// Text to analyze
         text: String,
     },
+    /// Syllabify and hyphenate a Turkish word
+    Syllabify {
+        /// Word to syllabify
+        word: String,
+    },
+    /// Convert number to Turkish written words
+    Number {
+        /// Number to convert
+        num: i64,
+    },
+    /// Extract Named Entities (PER, LOC, ORG, DATE, MONEY, PERCENT)
+    Ner {
+        /// Text to analyze
+        text: String,
+    },
+    /// Extract top keywords from Turkish text
+    Keywords {
+        /// Text to extract keywords from
+        text: String,
+        /// Top K keywords
+        #[arg(short, long, default_value_t = 10)]
+        top_k: usize,
+    },
+    /// Extractive text summarization
+    Summarize {
+        /// Text to summarize
+        text: String,
+        /// Maximum number of sentences
+        #[arg(short, long, default_value_t = 3)]
+        sentences: usize,
+    },
+    /// Find morphological root / stem of a word
+    Stem {
+        /// Word to stem
+        word: String,
+    },
 }
 
 fn main() {
@@ -109,6 +145,36 @@ fn main() {
         Commands::Readability { text } => {
             let report = readability::analyze_readability(&text);
             println!("{}", serde_json::to_string_pretty(&report).unwrap());
+        }
+        Commands::Syllabify { word } => {
+            let syllables = phonology::TurkishSyllabifier::syllabify(&word);
+            let hyphenated = phonology::TurkishSyllabifier::hyphenate(&word, "-");
+            println!("Syllables: {:?} (Count: {}, Hyphenated: {})", syllables, syllables.len(), hyphenated);
+        }
+        Commands::Number { num } => {
+            let words = normalization::TurkishNumberConverter::number_to_words(num);
+            let ordinal = normalization::TurkishNumberConverter::ordinal_to_words(num);
+            println!("Cardinal: {}\nOrdinal:  {}", words, ordinal);
+        }
+        Commands::Ner { text } => {
+            let entities = ner::TurkishNER::extract_entities(&text);
+            println!("{}", serde_json::to_string_pretty(&entities).unwrap());
+        }
+        Commands::Keywords { text, top_k } => {
+            let extractor = analysis::TurkishKeywordExtractor::new();
+            let kw = extractor.extract_keywords(&text, top_k);
+            println!("{}", serde_json::to_string_pretty(&kw).unwrap());
+        }
+        Commands::Summarize { text, sentences } => {
+            let summarizer = analysis::TurkishSummarizer::new();
+            let summary = summarizer.summarize(&text, sentences);
+            for (idx, sent) in summary.iter().enumerate() {
+                println!("{}. {}", idx + 1, sent);
+            }
+        }
+        Commands::Stem { word } => {
+            let stemmer = morphology::TurkishStemmer::new();
+            println!("Stem: {}", stemmer.stem(&word));
         }
     }
 }

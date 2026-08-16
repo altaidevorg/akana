@@ -255,6 +255,86 @@ fn analyze_readability_json(text: &str) -> PyResult<String> {
     serde_json::to_string(&report).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
 }
 
+#[pyfunction]
+fn syllabify(word: &str) -> Vec<String> {
+    akana_core::phonology::TurkishSyllabifier::syllabify(word)
+}
+
+#[pyfunction]
+#[pyo3(signature = (word, delimiter=None))]
+fn hyphenate(word: &str, delimiter: Option<&str>) -> String {
+    let delim = delimiter.unwrap_or("-");
+    akana_core::phonology::TurkishSyllabifier::hyphenate(word, delim)
+}
+
+#[pyfunction]
+fn count_syllables(word: &str) -> usize {
+    akana_core::phonology::TurkishSyllabifier::count_syllables(word)
+}
+
+#[pyfunction]
+fn number_to_words(n: i64) -> String {
+    akana_core::normalization::TurkishNumberConverter::number_to_words(n)
+}
+
+#[pyfunction]
+fn ordinal_to_words(n: i64) -> String {
+    akana_core::normalization::TurkishNumberConverter::ordinal_to_words(n)
+}
+
+#[pyfunction]
+#[pyo3(signature = (amount, currency=None))]
+fn currency_to_words(amount: f64, currency: Option<&str>) -> String {
+    let curr = currency.unwrap_or("TL");
+    akana_core::normalization::TurkishNumberConverter::currency_to_words(amount, curr)
+}
+
+#[pyfunction]
+fn words_to_number(text: &str) -> PyResult<i64> {
+    akana_core::normalization::TurkishNumberConverter::words_to_number(text)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))
+}
+
+#[pyfunction]
+fn stem(word: &str) -> String {
+    let stemmer = akana_core::morphology::TurkishStemmer::new();
+    stemmer.stem(word)
+}
+
+#[pyfunction]
+fn is_stopword(word: &str) -> bool {
+    let sw = akana_core::morphology::TurkishStopwords::new();
+    sw.is_stopword(word)
+}
+
+#[pyfunction]
+fn remove_stopwords(tokens: Vec<String>) -> Vec<String> {
+    let sw = akana_core::morphology::TurkishStopwords::new();
+    let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
+    sw.filter_tokens(&token_refs).into_iter().map(|s| s.to_string()).collect()
+}
+
+#[pyfunction]
+fn extract_entities_json(text: &str) -> PyResult<String> {
+    let entities = akana_core::ner::TurkishNER::extract_entities(text);
+    serde_json::to_string(&entities).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (text, top_k=None))]
+fn extract_keywords_json(text: &str, top_k: Option<usize>) -> PyResult<String> {
+    let extractor = akana_core::analysis::TurkishKeywordExtractor::new();
+    let keywords = extractor.extract_keywords(text, top_k.unwrap_or(10));
+    serde_json::to_string(&keywords).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (text, max_sentences=None))]
+fn summarize(text: &str, max_sentences: Option<usize>) -> Vec<String> {
+    let summarizer = akana_core::analysis::TurkishSummarizer::new();
+    summarizer.summarize(text, max_sentences.unwrap_or(3))
+}
+
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -268,6 +348,19 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(tokenize_words, m)?)?;
     m.add_function(wrap_pyfunction!(analyze_document_json, m)?)?;
     m.add_function(wrap_pyfunction!(analyze_readability_json, m)?)?;
+    m.add_function(wrap_pyfunction!(syllabify, m)?)?;
+    m.add_function(wrap_pyfunction!(hyphenate, m)?)?;
+    m.add_function(wrap_pyfunction!(count_syllables, m)?)?;
+    m.add_function(wrap_pyfunction!(number_to_words, m)?)?;
+    m.add_function(wrap_pyfunction!(ordinal_to_words, m)?)?;
+    m.add_function(wrap_pyfunction!(currency_to_words, m)?)?;
+    m.add_function(wrap_pyfunction!(words_to_number, m)?)?;
+    m.add_function(wrap_pyfunction!(stem, m)?)?;
+    m.add_function(wrap_pyfunction!(is_stopword, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_stopwords, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_entities_json, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_keywords_json, m)?)?;
+    m.add_function(wrap_pyfunction!(summarize, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PyCompoundDecomposer>()?;
