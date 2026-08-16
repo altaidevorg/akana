@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/akana-core",
+    "crates/akana-py",
+    "crates/akana-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Akana NLP Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ailabs/akana"
+homepage = "https://github.com/ailabs/akana"
+description = "Modern and blazingly fast Turkish NLP toolkit in Rust & Python (PyO3)"
+keywords = ["turkish", "nlp", "morphology", "tokenization", "stringzilla"]
+categories = ["text-processing", "natural-language-processing"]
+
+[workspace.dependencies]
+stringzilla = "3.11"
+regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ahash = "0.8"
+bitflags = "2.4"
+smallvec = "1.13"
+thiserror = "1.0"
+lazy_static = "1.4"
+clap = { version = "4.4", features = ["derive"] }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }

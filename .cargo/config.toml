@@ -1,0 +1,8 @@
+[build]
+jobs = 1
+
+[profile.dev]
+incremental = false
+
+[profile.release]
+incremental = false

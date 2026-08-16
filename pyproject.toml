@@ -1,0 +1,38 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "akana"
+version = "0.1.0"
+description = "Modern and blazingly fast Turkish NLP toolkit in Rust & Python (PyO3) with StringZilla SIMD acceleration"
+readme = "README.md"
+authors = [
+    { name = "Akana NLP Contributors" }
+]
+license = { text = "MIT OR Apache-2.0" }
+requires-python = ">=3.8"
+keywords = ["turkish", "nlp", "morphology", "tokenization", "lemmatization", "stringzilla", "rust"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: Turkish",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = []
+
+[tool.maturin]
+manifest-path = "crates/akana-py/Cargo.toml"
+module-name = "akana._core"
+python-source = "python"
+features = ["pyo3/extension-module"]

@@ -1,0 +1,21 @@
+[package]
+name = "akana-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core Rust library for Akana Turkish NLP toolkit"
+
+[dependencies]
+stringzilla = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+ahash = { workspace = true }
+bitflags = { version = "2.4", features = ["serde"] }
+smallvec = { workspace = true }
+thiserror = { workspace = true }
+lazy_static = { workspace = true }
+
+[dev-dependencies]
+criterion = "0.5"

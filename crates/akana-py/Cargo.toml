@@ -1,0 +1,17 @@
+[package]
+name = "akana-py"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "PyO3 Python bindings for Akana Turkish NLP toolkit"
+
+[lib]
+name = "_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+akana-core = { path = "../akana-core" }
+pyo3 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
