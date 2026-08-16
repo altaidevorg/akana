@@ -18,6 +18,7 @@ try:
         tokenize_words,
         SpellChecker,
         Morphology,
+        CompoundDecomposer,
         Disambiguator,
         DependencyParser,
         analyze_document_json,
@@ -50,7 +51,12 @@ def analyze(text: str) -> Document:
     data = json.loads(json_str)
     return Document(data)
 
-__version__ = "0.1.0"
+def decompose_compound(word: str) -> List[Dict[str, Any]]:
+    """Decomposes a Turkish compound word into its constituents."""
+    decomposer = CompoundDecomposer()
+    return decomposer.decompose(word)
+
+__version__ = "0.2.0"
 __all__ = [
     "to_turkish_lower",
     "to_turkish_upper",
@@ -63,6 +69,8 @@ __all__ = [
     "tokenize_words",
     "SpellChecker",
     "Morphology",
+    "CompoundDecomposer",
+    "decompose_compound",
     "Disambiguator",
     "DependencyParser",
     "analyze",

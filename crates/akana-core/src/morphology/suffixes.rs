@@ -1,4 +1,4 @@
-//! Suffix definitions and morpheme representations for Turkish.
+//! Suffix definitions, clitics, and morpheme representations for Turkish.
 
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +21,11 @@ pub enum SuffixType {
     CaseInst,       // -la, -le, -yla, -yle
     CaseEqu,        // -ca, -ce, -ça, -çe
 
+    // Clitics & Diminutives
+    CliticKi,       // -ki (relative clitic: evdeki, masadaki)
+    CliticMi,       // -mi, -mı, -mu, -mü (question clitic)
+    DiminutiveCik,  // -cik, -cık, -cuk, -cük, -çik, -çık, -çuk, -çük (evcik, kedicik, azıcık)
+
     // Predicative / Copula
     CopulaPres1Sg,  // -(y)ım, -(y)im, -(y)um, -(y)üm
     CopulaPres2Sg,  // -sın, -sin, -sun, -sün
@@ -35,6 +40,7 @@ pub enum SuffixType {
     // Verbal Inflectional
     VerbNeg,        // -ma, -me
     VerbAbility,    // -(y)abil, -(y)ebil
+    VerbNegAbility, // -(y)eme, -(y)ama (gidemem, yapamam)
     TensePast,      // -dı, -di, -du, -dü, -tı, -ti, -tu, -tü
     TenseEvid,      // -mış, -miş, -muş, -müş
     TenseProg,      // -(ı)yor, -(i)yor, -(u)yor, -(ü)yor
@@ -52,14 +58,25 @@ pub enum SuffixType {
     Verb2Pl,        // -nız, -niz, -nuz, -nüz, -sınız, -siniz...
     Verb3Pl,        // -lar, -ler
 
-    // Derivational
+    // Derivational (Noun -> Noun / Adj)
     DerivNess,      // -lık, -lik, -luk, -lük (Noun -> Noun/Adj)
     DerivWith,      // -lı, -li, -lu, -lü (Noun -> Adj)
     DerivWithout,   // -sız, -siz, -suz, -süz (Noun -> Neg Adj)
     DerivAgent,     // -cı, -ci, -cu, -cü, -çı, -çi, -çu, -çü (Noun -> Noun)
+
+    // Derivational (Noun -> Verb)
+    DerivLe,        // -le, -la (gözle, başla)
+    DerivLes,       // -leş, -laş (birleş, güzelleş)
+    DerivLendir,    // -lendir, -landır (güçlendir, canlandır)
+
+    // Derivational (Verb -> Noun / Adj)
     DerivInfinitive,// -mak, -mek (Verb -> Noun)
     DerivActNoun,   // -ma, -me (Verb -> Noun)
     DerivManner,    // -(y)ış, -(y)iş, -(y)uş, -(y)üş (Verb -> Noun)
+    DerivIm,        // -(ı)m, -(i)m, -(u)m, -(ü)m (seçim, bölüm, verim)
+    DerivGi,        // -gi, -gı, -gu, -gü, -ki, -kı, -ku, -kü (sevgi, bilgi, saygı, atkı)
+    DerivGin,       // -gin, -gın, -gun, -gün, -kin, -kın, -kun, -kün (kızgın, yorgun, şaşkın)
+    DerivGen,       // -gen, -gan, -kan, -ken (çalışkan, unutkan, çekingen)
     DerivPresPart,  // -(y)an, -(y)en (Verb -> Adj)
     DerivPastPart,  // -dık, -dik, -duk, -dük, -tık... (Verb -> Adj)
     DerivFutPart,   // -(y)acak, -(y)ecek (Verb -> Adj)
@@ -88,6 +105,9 @@ impl SuffixType {
             SuffixType::CaseGen => "Gen",
             SuffixType::CaseInst => "Ins",
             SuffixType::CaseEqu => "Equ",
+            SuffixType::CliticKi => "RelClitic",
+            SuffixType::CliticMi => "QuesClitic",
+            SuffixType::DiminutiveCik => "Dim",
             SuffixType::CopulaPres1Sg => "CopPres1sg",
             SuffixType::CopulaPres2Sg => "CopPres2sg",
             SuffixType::CopulaPres3Sg => "CopPres3sg",
@@ -99,6 +119,7 @@ impl SuffixType {
             SuffixType::CopulaCond => "CopCond",
             SuffixType::VerbNeg => "Neg",
             SuffixType::VerbAbility => "Abil",
+            SuffixType::VerbNegAbility => "NegAbil",
             SuffixType::TensePast => "Past",
             SuffixType::TenseEvid => "Evid",
             SuffixType::TenseProg => "Prog",
@@ -117,9 +138,16 @@ impl SuffixType {
             SuffixType::DerivWith => "With",
             SuffixType::DerivWithout => "Without",
             SuffixType::DerivAgent => "Agt",
+            SuffixType::DerivLe => "NounToVerb",
+            SuffixType::DerivLes => "BecomeVerb",
+            SuffixType::DerivLendir => "CausVerb",
             SuffixType::DerivInfinitive => "Inf",
             SuffixType::DerivActNoun => "ActN",
             SuffixType::DerivManner => "Manner",
+            SuffixType::DerivIm => "DevN",
+            SuffixType::DerivGi => "DevGi",
+            SuffixType::DerivGin => "DevGin",
+            SuffixType::DerivGen => "DevGen",
             SuffixType::DerivPresPart => "PresPart",
             SuffixType::DerivPastPart => "PastPart",
             SuffixType::DerivFutPart => "FutPart",

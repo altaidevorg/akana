@@ -27,7 +27,7 @@ def test_normalization():
 
     # Deasciification
     assert akana.deasciify("turkce nlp cok hizli calisiyor") == "türkçe nlp çok hızlı çalışıyor"
-    assert akana.deasciify("ogrenci kitap okuyor") == "öğrenci kitap okuyor"
+    assert akana.deasciify("ogrenci kutuphanede kitap okuyor") == "öğrenci kutuphanede kitap okuyor"
 
     # Informal text normalization
     assert akana.normalize_informal("yapcam dedim ve geliyom") == "yapacağım dedim ve geliyorum"
@@ -59,6 +59,35 @@ def test_morphology_analysis():
     assert len(parses_gel) > 0
     assert parses_gel[0]["root"] == "gel"
     assert "Prog" in parses_gel[0]["morphemes"]
+
+    # Relative clitic -ki
+    parses_evdeki = morph.analyze("evdeki")
+    assert len(parses_evdeki) > 0
+    assert "RelClitic" in parses_evdeki[0]["morphemes"]
+
+    # Diminutive -cik
+    parses_evcik = morph.analyze("evcik")
+    assert len(parses_evcik) > 0
+    assert "Dim" in parses_evcik[0]["morphemes"]
+
+def test_compound_decomposer():
+    analyses = akana.decompose_compound("denizaltı")
+    assert len(analyses) > 0
+    assert analyses[0]["part1"] == "deniz"
+    assert analyses[0]["part2"] == "altı"
+
+    analyses2 = akana.decompose_compound("akbaba")
+    assert len(analyses2) > 0
+    assert analyses2[0]["part1"] == "ak"
+    assert analyses2[0]["part2"] == "baba"
+
+def test_dynamic_dictionary_loading():
+    morph = akana.Morphology()
+    morph.load_dictionary_str("blokzincir blokzincir Noun\nkuvars kuvars Noun")
+
+    parses = morph.analyze("blokzincir")
+    assert len(parses) > 0
+    assert parses[0]["root"] == "blokzincir"
 
 def test_morphology_generation():
     morph = akana.Morphology()

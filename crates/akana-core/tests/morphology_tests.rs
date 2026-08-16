@@ -43,6 +43,47 @@ fn test_nominal_morphology_analysis() {
 }
 
 #[test]
+fn test_relative_clitic_ki() {
+    let morph = TurkishMorphology::new();
+
+    // Relative clitic -ki: evdeki, masadaki
+    let parses_evdeki = morph.analyze("evdeki");
+    assert!(!parses_evdeki.is_empty());
+    assert_eq!(parses_evdeki[0].root, "ev");
+    assert!(parses_evdeki.iter().any(|p| p.morpheme_tags.contains(&"RelClitic".to_string())));
+}
+
+#[test]
+fn test_diminutives() {
+    let morph = TurkishMorphology::new();
+
+    // Diminutive: evcik, kedicik, küçücük
+    let parses_evcik = morph.analyze("evcik");
+    assert!(!parses_evcik.is_empty());
+    assert_eq!(parses_evcik[0].root, "ev");
+    assert!(parses_evcik.iter().any(|p| p.morpheme_tags.contains(&"Dim".to_string())));
+
+    let parses_kucucuk = morph.analyze("küçücük");
+    assert!(!parses_kucucuk.is_empty());
+    assert_eq!(parses_kucucuk[0].root, "küçük");
+}
+
+#[test]
+fn test_compound_decomposition() {
+    let decomposer = CompoundDecomposer::new();
+
+    let decomp_denizalti = decomposer.decompose("denizaltı");
+    assert!(!decomp_denizalti.is_empty());
+    assert_eq!(decomp_denizalti[0].part1, "deniz");
+    assert_eq!(decomp_denizalti[0].part2, "altı");
+
+    let decomp_akbaba = decomposer.decompose("akbaba");
+    assert!(!decomp_akbaba.is_empty());
+    assert_eq!(decomp_akbaba[0].part1, "ak");
+    assert_eq!(decomp_akbaba[0].part2, "baba");
+}
+
+#[test]
 fn test_verbal_morphology_analysis() {
     let morph = TurkishMorphology::new();
 
@@ -75,7 +116,7 @@ fn test_verbal_morphology_analysis() {
 fn test_derivational_morphology() {
     let morph = TurkishMorphology::new();
 
-    // Derivations: kitaplık, gözlük, şekerci, denizci
+    // Derivations: kitaplık, gözlük
     let parses_kitaplik = morph.analyze("kitaplık");
     assert!(!parses_kitaplik.is_empty());
     assert_eq!(parses_kitaplik[0].root, "kitap");
@@ -85,6 +126,30 @@ fn test_derivational_morphology() {
     let parses_yolcu = morph.analyze("yolcu");
     assert!(!parses_yolcu.is_empty());
     assert_eq!(parses_yolcu[0].root, "yol");
+
+    // Verb -> Noun (-gi): sevgi, bilgi
+    let parses_sevgi = morph.analyze("sevgi");
+    assert!(!parses_sevgi.is_empty());
+    assert_eq!(parses_sevgi[0].root, "sev");
+
+    // Verb -> Adj (-gen): çalışkan
+    let parses_caliskan = morph.analyze("çalışkan");
+    assert!(!parses_caliskan.is_empty());
+    assert_eq!(parses_caliskan[0].root, "çalış");
+}
+
+#[test]
+fn test_dynamic_dictionary_loading() {
+    let mut morph = TurkishMorphology::new();
+    morph.load_dictionary_str("kuvars kuvars Noun\nblokzincir blokzincir Noun");
+
+    let parses_kuvars = morph.analyze("kuvars");
+    assert!(!parses_kuvars.is_empty());
+    assert_eq!(parses_kuvars[0].root, "kuvars");
+
+    let parses_blok = morph.analyze("blokzincir");
+    assert!(!parses_blok.is_empty());
+    assert_eq!(parses_blok[0].root, "blokzincir");
 }
 
 #[test]

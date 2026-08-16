@@ -50,6 +50,21 @@ impl TurkishMorphology {
         }
     }
 
+    /// Adds a dictionary item to the morphological analyzer at runtime.
+    pub fn add_item(&mut self, item: DictionaryItem) {
+        self.lexicon.add_item(item);
+    }
+
+    /// Loads custom dictionary definitions from a file at runtime.
+    pub fn load_dictionary_file<P: AsRef<std::path::Path>>(&mut self, path: P) -> std::io::Result<()> {
+        self.lexicon.load_from_file(path)
+    }
+
+    /// Loads custom dictionary definitions from a multiline string.
+    pub fn load_dictionary_str(&mut self, text: &str) {
+        self.lexicon.load_from_str(text);
+    }
+
     /// Analyzes a surface word and returns all valid morphological parses.
     pub fn analyze(&self, word: &str) -> Vec<MorphParse> {
         let clean = word.trim();
@@ -94,7 +109,6 @@ impl TurkishMorphology {
         }
 
         // 2. Multi-affix morphological traversal
-        // Candidate prefixes (stems)
         let char_count = lower.chars().count();
         for stem_len in 1..=char_count {
             let candidate_stem: String = lower.chars().take(stem_len).collect();
@@ -104,7 +118,6 @@ impl TurkishMorphology {
                 continue;
             }
 
-            // Check if candidate stem matches a dictionary root directly or via phonological mutations:
             // a) Direct match
             self.match_and_traverse(&candidate_stem, &suffix_part, clean, &mut results, false, false, false);
 
@@ -125,6 +138,10 @@ impl TurkishMorphology {
             if let Some(undoubled_root) = undoubled {
                 self.match_and_traverse(&undoubled_root, &suffix_part, clean, &mut results, false, false, true);
             }
+
+            // e) Diminutive k-drop (e.g. "küçü" from "küçük", "mini" from "minik", "sıca" from "sıcak")
+            let with_k = format!("{}k", candidate_stem);
+            self.match_and_traverse(&with_k, &suffix_part, clean, &mut results, false, false, false);
         }
 
         // Deduplicate results
@@ -156,7 +173,6 @@ impl TurkishMorphology {
         if len < 2 {
             return Vec::new();
         }
-        // Insert candidate close vowel (ı, i, u, ü) before the final consonant
         let mut candidates = Vec::new();
         let last = chars[len - 1];
         let prev = chars[len - 2];
@@ -227,6 +243,7 @@ impl TurkishMorphology {
                     original_surface,
                     &mut current_tags,
                     results,
+                    0,
                 );
             }
         }
@@ -240,9 +257,13 @@ impl TurkishMorphology {
         original_surface: &str,
         tags: &mut Vec<String>,
         results: &mut Vec<MorphParse>,
+        depth: usize,
     ) {
+        if depth > 10 {
+            return;
+        }
+
         if remaining_suffix.is_empty() {
-            // Valid end state
             let formatted = format!("[{}:{}] {}:{}", item.lemma, item.primary_pos.as_str(), item.root, tags.join("+"));
             results.push(MorphParse {
                 surface: original_surface.to_string(),
@@ -272,6 +293,7 @@ impl TurkishMorphology {
                             original_surface,
                             tags,
                             results,
+                            depth + 1,
                         );
 
                         tags.pop();

@@ -135,6 +135,56 @@ impl PyMorphology {
         let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
         generator.generate(lemma, &tag_refs)
     }
+
+    fn load_dictionary_file(&mut self, path: &str) -> PyResult<()> {
+        self.inner.load_dictionary_file(path).map_err(|e| {
+            pyo3::exceptions::PyIOError::new_err(e.to_string())
+        })
+    }
+
+    fn load_dictionary_str(&mut self, text: &str) {
+        self.inner.load_dictionary_str(text);
+    }
+}
+
+#[pyclass(name = "CompoundDecomposer")]
+struct PyCompoundDecomposer {
+    inner: akana_core::morphology::CompoundDecomposer,
+}
+
+#[pymethods]
+impl PyCompoundDecomposer {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: akana_core::morphology::CompoundDecomposer::new(),
+        }
+    }
+
+    fn decompose<'py>(&self, py: Python<'py>, word: &str) -> PyResult<Bound<'py, PyList>> {
+        let analyses = self.inner.decompose(word);
+        let list = PyList::empty_bound(py);
+
+        for a in analyses {
+            let dict = PyDict::new_bound(py);
+            dict.set_item("surface", a.surface)?;
+            dict.set_item("part1", a.part1)?;
+            dict.set_item("part2", a.part2)?;
+
+            let parse1 = PyDict::new_bound(py);
+            parse1.set_item("root", a.parse1.root)?;
+            parse1.set_item("pos", a.parse1.primary_pos.as_str())?;
+            dict.set_item("parse1", parse1)?;
+
+            let parse2 = PyDict::new_bound(py);
+            parse2.set_item("root", a.parse2.root)?;
+            parse2.set_item("pos", a.parse2.primary_pos.as_str())?;
+            dict.set_item("parse2", parse2)?;
+
+            list.append(dict)?;
+        }
+        Ok(list)
+    }
 }
 
 #[pyclass(name = "Disambiguator")]
@@ -213,6 +263,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(analyze_document_json, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
+    m.add_class::<PyCompoundDecomposer>()?;
     m.add_class::<PyDisambiguator>()?;
     m.add_class::<PyDependencyParser>()?;
     Ok(())
