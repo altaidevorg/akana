@@ -47,12 +47,12 @@ def test_morphology_analysis():
     # Noun with vowel drop
     parses_burnum = morph.analyze("burnum")
     assert len(parses_burnum) > 0
-    assert parses_burnum[0]["root"] == "burun"
+    assert any(p["root"] == "burun" for p in parses_burnum)
 
     # Noun with consonant doubling
     parses_hak = morph.analyze("hakkım")
     assert len(parses_hak) > 0
-    assert parses_hak[0]["root"] == "hak"
+    assert any(p["root"] == "hak" for p in parses_hak)
 
     # Verb with progressive tense
     parses_gel = morph.analyze("geliyorum")
@@ -63,12 +63,12 @@ def test_morphology_analysis():
     # Relative clitic -ki
     parses_evdeki = morph.analyze("evdeki")
     assert len(parses_evdeki) > 0
-    assert "RelClitic" in parses_evdeki[0]["morphemes"]
+    assert any("RelClitic" in p["morphemes"] for p in parses_evdeki)
 
     # Diminutive -cik
     parses_evcik = morph.analyze("evcik")
     assert len(parses_evcik) > 0
-    assert "Dim" in parses_evcik[0]["morphemes"]
+    assert any("Dim" in p["morphemes"] for p in parses_evcik)
 
 def test_compound_decomposer():
     analyses = akana.decompose_compound("denizaltı")

@@ -144,8 +144,8 @@ impl TurkishMorphology {
             self.match_and_traverse(&with_k, &suffix_part, clean, &mut results, false, false, false);
         }
 
-        // Deduplicate results
-        results.sort_by(|a, b| a.formatted.cmp(&b.formatted));
+        // Deduplicate results and sort by score descending
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.formatted.cmp(&b.formatted)));
         results.dedup_by(|a, b| a.formatted == b.formatted);
 
         results
@@ -265,6 +265,13 @@ impl TurkishMorphology {
 
         if remaining_suffix.is_empty() {
             let formatted = format!("[{}:{}] {}:{}", item.lemma, item.primary_pos.as_str(), item.root, tags.join("+"));
+            let is_upper = original_surface.chars().next().map_or(false, |c| c.is_uppercase());
+            let score = if item.secondary_pos == SecondaryPos::ProperNoun {
+                if is_upper { 0.98 } else { 0.6 }
+            } else {
+                0.95
+            };
+
             results.push(MorphParse {
                 surface: original_surface.to_string(),
                 lemma: item.lemma.clone(),
@@ -273,7 +280,7 @@ impl TurkishMorphology {
                 secondary_pos: item.secondary_pos,
                 morpheme_tags: tags.clone(),
                 formatted,
-                score: 0.9,
+                score,
             });
             return;
         }

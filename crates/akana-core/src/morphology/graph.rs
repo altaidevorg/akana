@@ -249,13 +249,18 @@ impl TurkishMorphotactics {
                 surface_templates: &["la", "le", "yla", "yle"],
             },
 
-            // Relational Clitic (-ki) from Locative / Genitive
-            // e.g. ev-de-ki, masa-da-ki, biz-im-ki, okul-un-ki
+            // Relational Clitic (-ki) from Locative / Genitive or directly from Temporal Nouns (akşamki, dünkü)
             SuffixTransition {
                 from_state: MorphState::NounCase,
                 to_state: MorphState::NounRoot,
                 suffix_type: SuffixType::CliticKi,
                 surface_templates: &["ki", "kü"], // dünkü, bugünkü
+            },
+            SuffixTransition {
+                from_state: MorphState::NounRoot,
+                to_state: MorphState::NounRoot,
+                suffix_type: SuffixType::CliticKi,
+                surface_templates: &["ki", "kü"], // akşamki, dünkü, bugünkü, yarınki
             },
 
             // Nominal Predicative / Copula
