@@ -5,10 +5,11 @@ Example 05: Modern Turkish Readability Analysis (Kalyoncu 2025 vs Classic Metric
 import akana
 
 def display_report(title: str, text: str):
-    print("=" * 70)
+    print("=" * 75)
     print(f"  {title.upper()}")
-    print("=" * 70)
-    print(f"Sample Text:\n\"{text.strip()}\"\n")
+    print("=" * 75)
+    preview = text.strip()[:220] + "..." if len(text.strip()) > 220 else text.strip()
+    print(f"Sample Text Preview:\n\"{preview}\"\n")
 
     report = akana.analyze_readability(text)
     s = report.statistics
@@ -37,34 +38,44 @@ def display_report(title: str, text: str):
     print("\n")
 
 def main():
-    # 1. Primary School Level Children's Story
-    children_story = """
-    Küçük çocuk bahçede neşeyle koşuyordu. Güneş pırıl pırıl parlıyor, 
-    kuşlar ağaçların dallarında cıvıldıyordu. Annesi onu eve çağırdı ancak 
-    çocuk oyuna devam etmek istedi. Bütün gün arkadaşlarıyla oynadıktan 
-    sonra yorgun bir şekilde eve döndü ve mutlu bir uykuya daldı.
+    # 1. Primary School Fable (Thesis Benchmark Text: İki Horoz - 3. & 4. Sınıf Düzeyi)
+    iki_horoz_story = """
+    Bir ormanın kıyısında, büyük bir çiftlik varmış. Bu çiftlikte pek çok hayvan yetiştirilirmiş. 
+    Atlar, eşekler, inekler ve kümesteki tüm hayvanlar dostça geçinirlermiş. Birbirleriyle hiç kavga etmezlermiş. 
+    Kümesteki hayvanların başkanı yaşlı bir horozmuş. Bu horoz çok adaletliymiş. Tüm hayvanlara dostça davranırmış. 
+    Herkesin hakkına saygı gösterir, kimseyi incitmezmiş. Çiftliğin sahibi bir sabah kümesin kapısını açmış. 
+    Yanında yeni bir horoz varmış. Diğerlerinin meraklı bakışları arasında onu kümese bırakmış. 
+    Herkes yeni gelenin çevresinde toplanmış. Ona “Aramıza hoş geldin.” demişler. Ancak yeni horoz çok kibirliymiş. 
+    Kendini diğer hayvanlardan üstün görürmüş. Kimseyle konuşmaz, kimseye selam vermezmiş. 
+    Eski horoz onun bu davranışlarına çok üzülmüş. Yanına gidip tatlı bir dille konuşmak istemiş. 
+    Ona dostluğun ve paylaşmanın önemini anlatmış. Kibirli horoz bu sözlere hiç aldırmamış. 
+    Zaman geçtikçe çiftlikteki hayvanlar kibirli horozdan uzaklaşmışlar. Sonunda yalnız kalan horoz hatasını anlamış.
     """
 
-    # 2. Academic / Scientific Thesis Abstract
-    academic_abstract = """
-    Türkçenin morfolojik karmaşıklığı ve sondan eklemeli yapısı, doğal dil işleme 
-    modellerinde sözcük kökü ile biçimbirim dizilimlerinin derinlemesine ayrıştırılmasını 
-    zorunlu kılmaktadır. Bu bağlamda geliştirilen algoritmalar, bağlamsal çokanlamlılığı 
-    giderme süreçlerinde olasılıksal geçiş matrisleri ve sentaktik bağımlılık ağaçlarından 
-    istifade etmektedir. İstatiksel modelleme neticesinde elde edilen parametreler, metinlerin 
-    okunabilirlik düzeylerinin tayininde yüksek belirleyicilik sergilemektedir.
+    # 2. Academic / Scientific Article (Lisans & Lisansüstü Düzeyi)
+    academic_paper = """
+    Türkçenin morfolojik karmaşıklığı ve sondan eklemeli yapısı, doğal dil işleme modellerinde 
+    sözcük kökü ile biçimbirim dizilimlerinin derinlemesine ayrıştırılmasını zorunlu kılmaktadır. 
+    Bu bağlamda geliştirilen algoritmalar, bağlamsal çokanlamlılığı giderme süreçlerinde 
+    olasılıksal geçiş matrisleri ve sentaktik bağımlılık ağaçlarından istifade etmektedir. 
+    Geleneksel eğitim anlayışında eğiticinin anlattıklarını ya da gösterdiklerini öğrenmekle 
+    yükümlü olan öğrenci, günümüzde bilgiye kendisi erişen ve bilgiyi yapılandıran bir profile dönüşmüştür. 
+    Bu epistemolojik dönüşüm, metinlerin okunabilirlik ve anlaşılabilirlik düzeylerinin belirlenmesinde 
+    çok değişkenli istatistiksel parametrelerin kullanılmasını zorunlu hale getirmiştir.
     """
 
-    # 3. News / Journalistic Text
-    news_text = """
-    Ulaştırma Bakanlığı, yüksek hızlı tren hatlarının genişletilmesi amacıyla yeni bir 
-    altyapı projesini duyurdu. Yapılan açıklamaya göre Ankara ile İzmir arasındaki seyahat süresi 
-    üç buçuk saate inecek. Projenin önümüzdeki yıl tamamlanarak halkın hizmetine sunulması planlanıyor.
+    # 3. Daily News & Journalistic Report (Orta Düzey / 7-8. Sınıf)
+    news_report = """
+    Ulaştırma ve Altyapı Bakanlığı, şehirler arası demiryolu ağını modernize etmek amacıyla 
+    hazırlanan yeni yatırım programını kamuoyuna açıkladı. Proje kapsamında mevcut demiryolu hatları 
+    yenilenecek ve yüksek hızlı tren seferleri artırılacak. Yapılan açıklamada Ankara ve İzmir 
+    arasındaki seyahat süresinin önemli ölçüde kısalacağı vurgulandı. Çalışmaların belirlenen takvime 
+    uygun olarak devam ettiği ve projenin önümüzdeki yıl tamamlanacağı bildirildi.
     """
 
-    display_report("Sample 1: Children's Story (İlkokul / Ortaokul Düzeyi)", children_story)
-    display_report("Sample 2: Academic Paper (Lisans / Lisansüstü Düzeyi)", academic_abstract)
-    display_report("Sample 3: Daily News Article (Genel Okur Düzeyi)", news_text)
+    display_report("Sample 1: Primary School Story (İki Horoz - 3 ve 4. Sınıf)", iki_horoz_story)
+    display_report("Sample 2: Academic Paper (Lisans & Lisansüstü Düzeyi)", academic_paper)
+    display_report("Sample 3: News Report (Genel Okur & Ortaokul Düzeyi)", news_report)
 
 if __name__ == "__main__":
     main()

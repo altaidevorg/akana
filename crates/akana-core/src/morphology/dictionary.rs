@@ -552,5 +552,29 @@ impl RootLexicon {
         for (lemma, root, primary, sec, attr) in words {
             self.add_item(DictionaryItem::new(lemma, root, primary, sec, attr));
         }
+
+        // Ingest the comprehensive 4,598 modern Turkish word lexicon
+        let kalyoncu_lex = include_str!("../readability/kalyoncu_words.txt");
+        for line in kalyoncu_lex.lines() {
+            let w = line.trim();
+            if w.is_empty() {
+                continue;
+            }
+            if w.ends_with("mak") || w.ends_with("mek") {
+                let stem = &w[..w.len() - 3];
+                let mut attr = RootAttr::NONE;
+                if stem.ends_with('t') || stem.ends_with('k') || stem.ends_with('p') || stem.ends_with('ç') {
+                    attr |= RootAttr::VOICING;
+                }
+                self.add_item(DictionaryItem::new(w, stem, PrimaryPos::Verb, SecondaryPos::None, attr));
+                self.add_item(DictionaryItem::new(stem, stem, PrimaryPos::Verb, SecondaryPos::None, attr));
+            } else {
+                let mut attr = RootAttr::NONE;
+                if w.ends_with('k') || w.ends_with('p') || w.ends_with('ç') || w.ends_with('t') {
+                    attr |= RootAttr::VOICING;
+                }
+                self.add_item(DictionaryItem::new(w, w, PrimaryPos::Noun, SecondaryPos::None, attr));
+            }
+        }
     }
 }
