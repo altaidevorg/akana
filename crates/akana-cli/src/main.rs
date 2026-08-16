@@ -54,6 +54,11 @@ enum Commands {
         /// Sentence to parse
         sentence: String,
     },
+    /// Calculate modern and classical Turkish readability metrics
+    Readability {
+        /// Text to analyze
+        text: String,
+    },
 }
 
 fn main() {
@@ -100,6 +105,10 @@ fn main() {
             let parser = parser::TurkishDependencyParser::new();
             let tree = parser.parse(&tokens);
             println!("{}", tree.to_conllu());
+        }
+        Commands::Readability { text } => {
+            let report = readability::analyze_readability(&text);
+            println!("{}", serde_json::to_string_pretty(&report).unwrap());
         }
     }
 }

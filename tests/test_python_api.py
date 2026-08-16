@@ -145,3 +145,18 @@ def test_document_pipeline():
     assert "Ak" in doc.sentences[0].tokens
     assert "kitap" in doc.sentences[1].tokens
     assert len(doc.sentences[0].parses) > 0
+
+def test_readability_analysis():
+    sample_text = (
+        "Küçük çocuk bahçede neşeyle koşuyordu. Güneş pırıl pırıl parlıyor, "
+        "kuşlar ağaçların dallarında cıvıldıyordu. Annesi onu eve çağırdı ancak "
+        "çocuk oyuna devam etmek istedi."
+    )
+    report = akana.analyze_readability(sample_text)
+    assert report.statistics.total_sentences >= 2
+    assert report.statistics.total_words >= 15
+    assert report.kalyoncu_formula1.score > 0
+    assert len(report.kalyoncu_formula1.grade_level) > 0
+    assert report.atesman.score > 0
+    assert len(report.atesman.grade_level) > 0
+

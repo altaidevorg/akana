@@ -5,12 +5,14 @@ pub mod tokenization;
 pub mod normalization;
 pub mod morphology;
 pub mod parser;
+pub mod readability;
 
 pub use phonology::*;
 pub use tokenization::*;
 pub use normalization::*;
 pub use morphology::*;
 pub use parser::*;
+pub use readability::*;
 
 /// High-level document model for Turkish NLP analysis.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

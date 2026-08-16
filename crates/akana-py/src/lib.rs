@@ -249,6 +249,12 @@ fn analyze_document_json(text: &str) -> PyResult<String> {
     serde_json::to_string(&doc).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
 }
 
+#[pyfunction]
+fn analyze_readability_json(text: &str) -> PyResult<String> {
+    let report = akana_core::readability::analyze_readability(text);
+    serde_json::to_string(&report).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -261,6 +267,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(normalize_informal, m)?)?;
     m.add_function(wrap_pyfunction!(tokenize_words, m)?)?;
     m.add_function(wrap_pyfunction!(analyze_document_json, m)?)?;
+    m.add_function(wrap_pyfunction!(analyze_readability_json, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PyCompoundDecomposer>()?;

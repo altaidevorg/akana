@@ -85,7 +85,17 @@ print(akana.deasciify("turkce nlp cok hizli calisiyor"))
 print(akana.normalize_informal("nooldu ya yapcam dedim"))
 # -> ne oldu ya yapacağım dedim
 
-# 5. Full End-to-End Document Analysis
+# 5. Compound Word Decomposition
+compounds = akana.decompose_compound("denizaltı")
+print(compounds)
+# -> [{'surface': 'denizaltı', 'part1': 'deniz', 'part2': 'altı', ...}]
+
+# 6. Modern Turkish Readability Analysis (Kalyoncu 2025 & Classic)
+report = akana.analyze_readability("Küçük çocuk bahçede neşeyle koşuyordu.")
+print(f"Kalyoncu F1: {report.kalyoncu_formula1.score} ({report.kalyoncu_formula1.grade_level})")
+print(f"Ateşman: {report.atesman.score} ({report.atesman.grade_level})")
+
+# 7. Full End-to-End Document Analysis
 doc = akana.analyze("Ak Ana, Türk mitolojisinde deniz tanrıçasıdır. Prof. Dr. Ayşe Hanım geldi.")
 for sentence in doc.sentences:
     print("Sentence:", sentence.text)
@@ -97,6 +107,9 @@ for sentence in doc.sentences:
 ## CLI Usage
 
 ```bash
+# Readability analysis
+cargo run -p akana-cli -- readability "Küçük çocuk bahçede neşeyle koşuyordu."
+
 # Tokenization
 cargo run -p akana-cli -- tokenize "Prof. Dr. Ahmet İstanbul'a gitti."
 
