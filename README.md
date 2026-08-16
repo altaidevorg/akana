@@ -19,10 +19,15 @@
   - **Asciifier** & **De-asciifier** for Turkish diacritics restoration.
   - **SIMD Spell Checker**: Accelerated with **StringZilla** hardware instructions for fast Levenshtein / edit distance candidate scoring.
   - **Informal Text Normalizer**: Spoken Turkish colloquialisms reduction (`yapcam` $\rightarrow$ `yapacağım`, `geliyom` $\rightarrow$ `geliyorum`, `noldu` $\rightarrow$ `ne oldu`) and letter elongation deduping (`çooook` $\rightarrow$ `çok`).
-- **Morphology (Morphological Analyzer & Generator)**:
-  - Finite-State Morphotactics Graph covering nominal cases, plurals, possessives, verbal tenses, moods, aspects, person agreements, copulas, and derivational suffixes.
+- **Morphology (Morphological Analyzer, Generator & Compound Decomposer)**:
+  - **93,000+ Root Lexicon**: Complete Turkish vocabulary ingested from Zemberek, TDK, location gazetteers, and modern corpus lexicons.
+  - Finite-State Morphotactics Graph covering nominal cases, plurals, possessives, verbal tenses, compound tenses, voices (passive/causative), participles, diminutives, relative `-ki` chains, and derivations.
+  - **Compound Word Decomposer**: Deconstructs compound nouns (`denizaltı` $\rightarrow$ `deniz + altı`, `akbaba` $\rightarrow$ `ak + baba`).
   - Morphological Generator for synthesizing words from lemmas and tags (`generate("kitap", ["Noun", "A3sg", "P1sg", "Dat"])` $\rightarrow$ `"kitabıma"`).
   - Morphological Disambiguator for context-aware best-parse selection.
+- **Modern Turkish Readability Suite**:
+  - **Kalyoncu (2025) Formula Suite**: Multi-regression equations (Formulas 1–4, $R^2$ up to 0.99) with embedded 4,600-word familiarity lexicon and exact grade-level mapping (*3. Sınıf Öncesi* to *Lisansüstü*).
+  - **Classical Formulas**: Ateşman (1997), Çetinkaya-Uzun (2010), and Bezirci-Yılmaz (2010).
 - **Syntax & Dependency Parsing**:
   - Transition-based parser outputting Universal Dependencies (UD) format and CoNLL-U trees.
 - **High-Performance Architecture**:
@@ -34,13 +39,15 @@
 
 ## Performance Benchmarks (Akana vs Zeyrek / Zemberek)
 
-Tested on 10,000 Turkish words on identical hardware:
+Tested on 10,500 real morphological queries using the complete 93,000-word Turkish root lexicon (`benchmarks/benchmark_vs_zeyrek.py`):
 
 | Benchmark Metric | Zeyrek (Python Zemberek Port) | Akana (Rust + PyO3) | Improvement |
 | :--- | :--- | :--- | :--- |
-| **Startup / Init Time** | `2,082.95 ms` (~2.1s) | **`0.14 ms`** | **15,259x faster** |
-| **Throughput (10k words)** | `229 words/sec` (43.7s total) | **`84,203 words/sec`** (0.11s total) | **367.9x faster** |
-| **Memory Footprint** | ~150 – 250 MB | **< 15 MB** | **>10x lighter** |
+| **Active Vocabulary** | ~90,000 roots | **93,167 roots** | **Full Coverage** |
+| **Startup / Lexicon Init** | `2,733.8 ms` (~2.7s) | **`200.2 ms`** | **13.6x faster** |
+| **Full Morphological Parse (10.5k queries)** | `55,349.7 ms` (55.3s) | **`989.7 ms`** (0.98s) | **55.9x faster** |
+| **Parsing Throughput** | `189.7 words/sec` | **`10,609.0 words/sec`** | **55.9x higher** |
+| **Tokenization & Normalization** | ~230 words/sec | **>84,000 words/sec** | **>360x faster** |
 | **String Acceleration** | Pure Python loops / Regex | **StringZilla SIMD (AVX/NEON)** | **Hardware Accelerated** |
 
 ---
