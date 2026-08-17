@@ -3,7 +3,7 @@
 [![PyPI Version](https://img.shields.io/pypi/v/akana.svg)](https://pypi.org/project/akana/)
 [![License: MIT / Apache-2.0](https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-blue.svg)](LICENSE-MIT)
 [![Rust: >= 1.75](https://img.shields.io/badge/rust-%3E%3D1.75-orange.svg)](https://www.rust-lang.org)
-[![Python: >= 3.8](https://img.shields.io/badge/python-%3E%3D3.8-blue.svg)](https://www.python.org)
+[![Python: >= 3.10](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org)
 
 **Akana** (named after *Ak Ana*, the primordial creator goddess in Turkic mythology) is a modern, blazingly fast Turkish Natural Language Processing toolkit written in **Rust** with seamless **Python bindings via PyO3** and native hardware SIMD acceleration via **StringZilla**.
 
@@ -231,46 +231,9 @@ fn main() {
 
 ---
 
-## Building & Publishing with `uv` & `maturin`
+## Developer Guide & Publishing
 
-Akana is structured as a dual-language workspace (Rust workspace + PyO3 Python package) built using `maturin` and `uv`.
-
-### 1. Local Development Build
-```bash
-# Install maturin in your uv environment
-uv pip install maturin
-
-# Build and install release package in editable mode
-uv run maturin develop --release
-
-# Run unit tests
-uv run pytest
-uv run cargo test -p akana-core -p akana-cli
-```
-
-### 2. Build Python Wheels (for PyPI distribution)
-```bash
-# Build multi-platform abi3 wheels into dist/
-uv run maturin build --release --out dist/
-```
-
-### 3. Publish to PyPI
-```bash
-# Set your PyPI token (or use ~/.pypirc)
-export MATURIN_PYPI_TOKEN="pypi-..."
-
-# Publish via maturin
-uv run maturin publish --out dist/
-
-# Or publish via uv publish
-uv publish dist/*
-```
-
-### 4. Publish Rust Crates to crates.io
-```bash
-cargo publish -p akana-core
-cargo publish -p akana-cli
-```
+For local development setup, testing, running benchmarks, compiling native wheels, and publishing releases to PyPI & crates.io, see the [Developer & Maintainer Guide](developer-guide.md).
 
 ---
 

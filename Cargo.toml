@@ -28,4 +28,4 @@ smallvec = "1.13"
 thiserror = "1.0"
 lazy_static = "1.4"
 clap = { version = "4.4", features = ["derive"] }
-pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py310"] }

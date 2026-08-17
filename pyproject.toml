@@ -11,7 +11,7 @@ authors = [
     { name = "Akana NLP Contributors" }
 ]
 license = { text = "MIT OR Apache-2.0" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = ["turkish", "nlp", "morphology", "tokenization", "lemmatization", "stringzilla", "rust"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,11 +22,10 @@ classifiers = [
     "Natural Language :: Turkish",
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = []
