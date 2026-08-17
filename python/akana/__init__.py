@@ -18,6 +18,7 @@ try:
         tokenize_words,
         SpellChecker,
         Morphology,
+        SyntacticMorphology,
         CompoundDecomposer,
         Disambiguator,
         DependencyParser,
@@ -181,6 +182,36 @@ def humanize_prompt(text: str, register: str = "blog") -> str:
     """Generates an actionable LLM rewrite prompt to humanize Turkish text."""
     return generate_humanizer_prompt(text, register)
 
+class InflectionalGroup:
+    def __init__(self, raw: Dict[str, Any]):
+        self.pos: str = raw.get("pos", "")
+        self.derivation: Optional[str] = raw.get("derivation")
+        self.features: Dict[str, str] = raw.get("features", {})
+
+    def __repr__(self) -> str:
+        deriv = f"-{self.derivation}" if self.derivation else ""
+        return f"<IG [{self.pos}{deriv}] {self.features}>"
+
+class SyntacticParse:
+    def __init__(self, raw: Dict[str, Any]):
+        self.surface: str = raw.get("surface", "")
+        self.root: str = raw.get("root", "")
+        self.root_pos: str = raw.get("root_pos", "")
+        self.is_proper: bool = raw.get("is_proper", False)
+        self.formatted: str = raw.get("formatted", "")
+        self.inflectional_groups: List[InflectionalGroup] = [
+            InflectionalGroup(ig) for ig in raw.get("inflectional_groups", [])
+        ]
+
+    def __repr__(self) -> str:
+        return f"<SyntacticParse: {self.formatted}>"
+
+def syntactic_analyze(word: str) -> List[SyntacticParse]:
+    """Performs two-level Google-style syntactic morphological analysis (FSMNLP 2019) with Inflectional Groups."""
+    analyzer = SyntacticMorphology()
+    raw_parses = analyzer.analyze(word)
+    return [SyntacticParse(p) for p in raw_parses]
+
 __version__ = "0.2.0"
 __all__ = [
     "to_turkish_lower",
@@ -194,6 +225,10 @@ __all__ = [
     "tokenize_words",
     "SpellChecker",
     "Morphology",
+    "SyntacticMorphology",
+    "SyntacticParse",
+    "InflectionalGroup",
+    "syntactic_analyze",
     "CompoundDecomposer",
     "decompose_compound",
     "Disambiguator",

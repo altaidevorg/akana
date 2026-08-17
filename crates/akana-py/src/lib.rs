@@ -147,6 +147,48 @@ impl PyMorphology {
     }
 }
 
+#[pyclass(name = "SyntacticMorphology")]
+struct PySyntacticMorphology {
+    inner: akana_core::syntactic_morphology::TurkishSyntacticMorphology,
+}
+
+#[pymethods]
+impl PySyntacticMorphology {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: akana_core::syntactic_morphology::TurkishSyntacticMorphology::new(),
+        }
+    }
+
+    fn analyze<'py>(&self, py: Python<'py>, word: &str) -> PyResult<Bound<'py, PyList>> {
+        let parses = self.inner.analyze(word);
+        let list = PyList::empty_bound(py);
+
+        for p in parses {
+            let dict = PyDict::new_bound(py);
+            dict.set_item("surface", p.surface)?;
+            dict.set_item("root", p.root)?;
+            dict.set_item("root_pos", p.root_pos)?;
+            dict.set_item("is_proper", p.is_proper)?;
+            dict.set_item("formatted", p.formatted)?;
+
+            let ig_list = PyList::empty_bound(py);
+            for ig in p.inflectional_groups {
+                let ig_dict = PyDict::new_bound(py);
+                ig_dict.set_item("pos", ig.pos)?;
+                ig_dict.set_item("derivation", ig.derivation)?;
+                ig_dict.set_item("features", ig.features)?;
+                ig_list.append(ig_dict)?;
+            }
+            dict.set_item("inflectional_groups", ig_list)?;
+
+            list.append(dict)?;
+        }
+        Ok(list)
+    }
+}
+
 #[pyclass(name = "CompoundDecomposer")]
 struct PyCompoundDecomposer {
     inner: akana_core::morphology::CompoundDecomposer,
@@ -379,6 +421,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(generate_humanizer_prompt, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
+    m.add_class::<PySyntacticMorphology>()?;
     m.add_class::<PyCompoundDecomposer>()?;
     m.add_class::<PyDisambiguator>()?;
     m.add_class::<PyDependencyParser>()?;

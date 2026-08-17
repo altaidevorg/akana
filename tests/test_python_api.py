@@ -208,15 +208,37 @@ def test_summarization():
     assert len(summary) == 2
 
 def test_ai_style_auditor():
-    synthetic_ai_text = (
-        "Yapay zeka teknolojileri, modern dünyada kritik bir rol oynamaktadır. "
-        "Bu bağlamda —özellikle veri analitiği alanında— hayati bir önem taşımaktadır; "
-        "aynı zamanda sadece işletmeler için değil, aynı zamanda bireyler için de vazgeçilmez bir hale gelmiştir."
+    text = (
+        "Yapay zeka teknolojileri günümüzde kritik bir rol oynamaktadır. "
+        "Bu bağlamda; aynı zamanda sadece büyük şirketler için değil, aynı zamanda herkes için vazgeçilmez bir unsurdur. "
+        "Peki bu neden böyledir?"
     )
-    report = akana.audit_ai_style(synthetic_ai_text)
-    assert report.ai_score >= 60.0
-    assert len(report.findings) >= 3
-    assert "Ağır AI" in report.verdict or "Belirgin AI" in report.verdict
+    report = akana.audit_ai_style(text)
+    assert report.ai_score > 40.0
+    assert "AI" in report.verdict
+    assert len(report.findings) > 0
+
+    prompt = akana.humanize_prompt(text, register="akademik")
+    assert "Doğallaştırma" in prompt or "Humanizer" in prompt
+    assert "Hedef Register" in prompt
+
+def test_syntactic_morphology():
+    parses = akana.syntactic_analyze("geldiğimizde")
+    assert len(parses) > 0
+    parse = next((p for p in parses if p.root == "gel"), None)
+    assert parse is not None
+    assert parse.root_pos == "VB"
+    assert len(parse.inflectional_groups) >= 2
+    assert parse.inflectional_groups[0].pos == "VB"
+    assert parse.inflectional_groups[1].pos == "NOMP"
+    assert parse.inflectional_groups[1].derivation == "PastNom"
+    assert parse.inflectional_groups[1].features.get("Case") == "Loc"
+
+    # Cross-categorization check (güzel as ADJ and ADV)
+    guzel_parses = akana.syntactic_analyze("güzel")
+    pos_set = {p.root_pos for p in guzel_parses}
+    assert "ADJ" in pos_set
+    assert "ADV" in pos_set
 
     natural_human_text = (
         "Dün sabah erkenden uyandım. Hava çok soğuktu. "

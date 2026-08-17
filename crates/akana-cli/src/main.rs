@@ -20,8 +20,13 @@ enum Commands {
         #[arg(short, long)]
         file: Option<PathBuf>,
     },
-    /// Perform morphological analysis on a word
+    /// Perform morphological analysis on a word (Zemberek-compatible format)
     Analyze {
+        /// Word to analyze
+        word: String,
+    },
+    /// Perform Google-style syntactic morphological analysis with Inflectional Groups (FSMNLP 2019)
+    SyntacticAnalyze {
         /// Word to analyze
         word: String,
     },
@@ -168,6 +173,11 @@ fn main() {
         }
         Commands::Analyze { word } => {
             let morph = morphology::TurkishMorphology::new();
+            let parses = morph.analyze(&word);
+            println!("{}", serde_json::to_string_pretty(&parses).unwrap());
+        }
+        Commands::SyntacticAnalyze { word } => {
+            let morph = syntactic_morphology::TurkishSyntacticMorphology::new();
             let parses = morph.analyze(&word);
             println!("{}", serde_json::to_string_pretty(&parses).unwrap());
         }

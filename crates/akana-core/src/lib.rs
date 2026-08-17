@@ -9,6 +9,7 @@ pub mod readability;
 pub mod ner;
 pub mod analysis;
 pub mod style;
+pub mod syntactic_morphology;
 
 pub use phonology::*;
 pub use tokenization::*;
@@ -19,6 +20,7 @@ pub use readability::*;
 pub use ner::*;
 pub use analysis::*;
 pub use style::*;
+pub use syntactic_morphology::*;
 
 /// High-level document model for Turkish NLP analysis.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

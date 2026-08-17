@@ -303,6 +303,48 @@ impl TurkishMorphotactics {
                 surface_templates: &["cı", "ci", "cu", "cü", "çı", "çi", "çu", "çü"],
             },
             SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::DerivedNoun,
+                suffix_type: SuffixType::DerivAgent,
+                surface_templates: &["cı", "ci", "cu", "cü", "çı", "çi", "çu", "çü"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::NounCase,
+                suffix_type: SuffixType::CaseDat,
+                surface_templates: &["e", "a", "ye", "ya"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::NounCase,
+                suffix_type: SuffixType::CaseLoc,
+                surface_templates: &["de", "da", "te", "ta"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::NounCase,
+                suffix_type: SuffixType::CaseAbl,
+                surface_templates: &["den", "dan", "ten", "tan"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::NounCase,
+                suffix_type: SuffixType::CaseAcc,
+                surface_templates: &["i", "ı", "u", "ü", "yi", "yı", "yu", "yü"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::NounCase,
+                suffix_type: SuffixType::CaseGen,
+                surface_templates: &["in", "ın", "un", "ün", "nin", "nın", "nun", "nün"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedNoun,
+                to_state: MorphState::NounPlural,
+                suffix_type: SuffixType::Plural,
+                surface_templates: &["ler", "lar"],
+            },
+            SuffixTransition {
                 from_state: MorphState::NounRoot,
                 to_state: MorphState::DerivedAdj,
                 suffix_type: SuffixType::DerivWith,
@@ -348,25 +390,62 @@ impl TurkishMorphotactics {
                 suffix_type: SuffixType::VerbAbility,
                 surface_templates: &["ebil", "abil", "yebil", "yabil"],
             },
+            SuffixTransition {
+                from_state: MorphState::VerbAbility,
+                to_state: MorphState::VerbTense,
+                suffix_type: SuffixType::TenseProg,
+                surface_templates: &["iyor", "ıyor", "uyor", "üyor", "yor", "mekte", "makta"],
+            },
+            SuffixTransition {
+                from_state: MorphState::VerbAbility,
+                to_state: MorphState::VerbTense,
+                suffix_type: SuffixType::TenseAorist,
+                surface_templates: &["ir", "ır", "ur", "ür", "er", "ar"],
+            },
+            SuffixTransition {
+                from_state: MorphState::VerbAbility,
+                to_state: MorphState::VerbTense,
+                suffix_type: SuffixType::TenseFut,
+                surface_templates: &["ecek", "acak"],
+            },
+            SuffixTransition {
+                from_state: MorphState::VerbAbility,
+                to_state: MorphState::VerbTense,
+                suffix_type: SuffixType::TensePast,
+                surface_templates: &["di", "dı", "du", "dü"],
+            },
+            // Passive and Causative recursive verb derivation
+            SuffixTransition {
+                from_state: MorphState::VerbRoot,
+                to_state: MorphState::VerbRoot,
+                suffix_type: SuffixType::DerivPassive,
+                surface_templates: &["il", "ıl", "ul", "ül", "in", "ın", "un", "ün", "nil", "nıl"],
+            },
+            SuffixTransition {
+                from_state: MorphState::VerbRoot,
+                to_state: MorphState::VerbRoot,
+                suffix_type: SuffixType::DerivCausative,
+                surface_templates: &["dir", "dır", "dur", "dür", "tir", "tır", "tur", "tür", "t", "it", "ıt", "ut", "üt"],
+            },
             // VerbRoot -> Negation
             SuffixTransition {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbNegation,
                 suffix_type: SuffixType::VerbNeg,
-                surface_templates: &["me", "ma"],
+                surface_templates: &["me", "ma", "mi", "mı", "mu", "mü"],
             },
-            // VerbRoot -> Negative Ability (-(y)eme / -(y)ama : gidemem, yapamam)
+            // VerbRoot -> Negative Ability (-(y)eme / -(y)ama : gidemem, yapamam, gidemiyor)
             SuffixTransition {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbNegation,
                 suffix_type: SuffixType::VerbNegAbility,
-                surface_templates: &["eme", "ama", "yeme", "yama"],
+                surface_templates: &["eme", "ama", "yeme", "yama", "yemi", "yamı", "emi", "amı"],
             },
             SuffixTransition {
                 from_state: MorphState::VerbAbility,
                 to_state: MorphState::VerbNegation,
                 suffix_type: SuffixType::VerbNeg,
-                surface_templates: &["me", "ma"],
+                surface_templates: &["me", "ma", "mi", "mı", "mu", "mü"],
             },
 
             // VerbRoot / VerbNegation -> Tense
@@ -381,7 +460,7 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbNegation,
                 to_state: MorphState::VerbTense,
                 suffix_type: SuffixType::TensePast,
-                surface_templates: &["di", "dı"],
+                surface_templates: &["di", "dı", "du", "dü"],
             },
             // Evidential / Reported Past
             SuffixTransition {
@@ -394,20 +473,20 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbNegation,
                 to_state: MorphState::VerbTense,
                 suffix_type: SuffixType::TenseEvid,
-                surface_templates: &["miş", "mış"],
+                surface_templates: &["miş", "mış", "muş", "müş"],
             },
             // Progressive
             SuffixTransition {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbTense,
                 suffix_type: SuffixType::TenseProg,
-                surface_templates: &["iyor", "ıyor", "uyor", "üyor", "yor"],
+                surface_templates: &["iyor", "ıyor", "uyor", "üyor", "yor", "mekte", "makta"],
             },
             SuffixTransition {
                 from_state: MorphState::VerbNegation,
                 to_state: MorphState::VerbTense,
                 suffix_type: SuffixType::TenseProg,
-                surface_templates: &["mıyor", "miyor", "muyor", "müyor"],
+                surface_templates: &["yor", "mıyor", "miyor", "muyor", "müyor"],
             },
             // Future
             SuffixTransition {
@@ -545,6 +624,18 @@ impl TurkishMorphotactics {
                 surface_templates: &["en", "an", "yen", "yan"],
             },
             SuffixTransition {
+                from_state: MorphState::VerbNegation,
+                to_state: MorphState::DerivedAdj,
+                suffix_type: SuffixType::DerivPresPart,
+                surface_templates: &["yen", "yan", "en", "an"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounPlural,
+                suffix_type: SuffixType::Plural,
+                surface_templates: &["lar", "ler"],
+            },
+            SuffixTransition {
                 from_state: MorphState::DerivedAdj,
                 to_state: MorphState::NounRoot,
                 suffix_type: SuffixType::Plural,
@@ -554,7 +645,23 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::DerivedAdj,
                 suffix_type: SuffixType::DerivPastPart,
-                surface_templates: &["dik", "dık", "duk", "dük", "tik", "tık", "tuk", "tük", "ceğ", "cağ", "eceğ", "acağ"],
+                surface_templates: &[
+                    "dik", "dık", "duk", "dük", "tik", "tık", "tuk", "tük",
+                    "diğ", "dığ", "duğ", "düğ", "tiğ", "tığ", "tuğ", "tüğ",
+                    "ceğ", "cağ", "eceğ", "acağ"
+                ],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounPossessive,
+                suffix_type: SuffixType::Possessive1Sg,
+                surface_templates: &["im", "ım", "um", "üm"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounPossessive,
+                suffix_type: SuffixType::Possessive2Sg,
+                surface_templates: &["in", "ın", "un", "ün"],
             },
             SuffixTransition {
                 from_state: MorphState::DerivedAdj,
@@ -564,12 +671,42 @@ impl TurkishMorphotactics {
             },
             SuffixTransition {
                 from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounPossessive,
+                suffix_type: SuffixType::Possessive1Pl,
+                surface_templates: &["imiz", "ımız", "umuz", "ümüz"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounPossessive,
+                suffix_type: SuffixType::Possessive2Pl,
+                surface_templates: &["iniz", "ınız", "unuz", "ünüz"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounPossessive,
+                suffix_type: SuffixType::Possessive3Pl,
+                surface_templates: &["leri", "ları"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
+                to_state: MorphState::NounCase,
+                suffix_type: SuffixType::CaseLoc,
+                surface_templates: &["de", "da", "te", "ta"],
+            },
+            SuffixTransition {
+                from_state: MorphState::DerivedAdj,
                 to_state: MorphState::NounCase,
                 suffix_type: SuffixType::CaseAbl,
                 surface_templates: &["tan", "ten", "dan", "den"],
             },
 
-            // Compound Tense / Copula on Verbs (geliyordu, yapmıştı, gidecekti, oynuyorlardı)
+            // Compound Tense / Copula on Verbs (geliyordu, yapmıştı, gidecekti, yapılabilmektedir)
+            SuffixTransition {
+                from_state: MorphState::VerbTense,
+                to_state: MorphState::NounCopula,
+                suffix_type: SuffixType::CopulaPres3Sg,
+                surface_templates: &["dur", "dür", "dır", "dir", "tur", "tür", "tır", "tir"],
+            },
             SuffixTransition {
                 from_state: MorphState::VerbTense,
                 to_state: MorphState::NounCopula,
