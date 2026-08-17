@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "akana"
-version = "0.1.1"
+version = "0.1.2"
 description = "Modern and blazingly fast Turkish NLP toolkit in Rust & Python (PyO3) with StringZilla SIMD acceleration"
 readme = "README.md"
 authors = [
