@@ -36,9 +36,33 @@ try:
         extract_entities_json,
         extract_keywords_json,
         summarize,
+        audit_ai_style_json,
+        generate_humanizer_prompt,
     )
 except ImportError:
     pass
+
+class DiagnosticFinding:
+    def __init__(self, raw: Dict[str, Any]):
+        self.category: str = raw.get("category", "")
+        self.severity: str = raw.get("severity", "")
+        self.message: str = raw.get("message", "")
+        self.suggestion: Optional[str] = raw.get("suggestion")
+        self.start: int = raw.get("start", 0)
+        self.end: int = raw.get("end", 0)
+
+    def __repr__(self) -> str:
+        return f"<DiagnosticFinding [{self.severity}]: {self.category} - '{self.message}'>"
+
+class StyleAuditReport:
+    def __init__(self, raw: Dict[str, Any]):
+        self.ai_score: float = raw.get("ai_score", 0.0)
+        self.verdict: str = raw.get("verdict", "")
+        self.findings: List[DiagnosticFinding] = [DiagnosticFinding(f) for f in raw.get("findings", [])]
+        self.metrics: Dict[str, Any] = raw.get("metrics", {})
+
+    def __repr__(self) -> str:
+        return f"<StyleAuditReport: Score={self.ai_score}/100 ({self.verdict}), {len(self.findings)} findings>"
 
 class NamedEntity:
     def __init__(self, raw: Dict[str, Any]):
@@ -147,6 +171,16 @@ def extract_keywords(text: str, top_k: int = 10) -> List[Dict[str, Any]]:
     json_str = extract_keywords_json(text, top_k)
     return json.loads(json_str)
 
+def audit_ai_style(text: str) -> StyleAuditReport:
+    """Audits Turkish text for AI writing signatures, punctuation inflation, and clichés."""
+    json_str = audit_ai_style_json(text)
+    data = json.loads(json_str)
+    return StyleAuditReport(data)
+
+def humanize_prompt(text: str, register: str = "blog") -> str:
+    """Generates an actionable LLM rewrite prompt to humanize Turkish text."""
+    return generate_humanizer_prompt(text, register)
+
 __version__ = "0.2.0"
 __all__ = [
     "to_turkish_lower",
@@ -179,10 +213,14 @@ __all__ = [
     "extract_entities",
     "extract_keywords",
     "summarize",
+    "audit_ai_style",
+    "humanize_prompt",
     "Document",
     "Sentence",
     "NamedEntity",
     "ReadabilityReport",
     "TextStatistics",
     "FormulaResult",
+    "StyleAuditReport",
+    "DiagnosticFinding",
 ]

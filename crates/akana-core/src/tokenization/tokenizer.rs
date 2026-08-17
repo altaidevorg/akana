@@ -1,4 +1,4 @@
-//! Fast, zero-copy, rule-based Turkish tokenizer with StringZilla acceleration.
+//! Fast, zero-copy, rule-based Turkish tokenizer with SIMD and character-level fast dispatch.
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -81,9 +81,10 @@ impl TurkishTokenizer {
         let mut idx = 0;
 
         while idx < len {
-            // Skip whitespaces fast
             let remaining = &text[idx..];
             let first_char = remaining.chars().next().unwrap();
+
+            // Skip whitespace fast
             if first_char.is_whitespace() {
                 idx += first_char.len_utf8();
                 continue;
@@ -91,84 +92,93 @@ impl TurkishTokenizer {
 
             let start_idx = idx;
 
-            // Check URL
-            if let Some(mat) = URL_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                tokens.push(Token::new(token_text, TokenType::Url, start_idx, start_idx + token_text.len()));
-                idx += token_text.len();
-                continue;
-            }
-
-            // Check Email
-            if let Some(mat) = EMAIL_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                tokens.push(Token::new(token_text, TokenType::Email, start_idx, start_idx + token_text.len()));
-                idx += token_text.len();
-                continue;
-            }
-
-            // Check Hashtag
-            if let Some(mat) = HASHTAG_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                tokens.push(Token::new(token_text, TokenType::Hashtag, start_idx, start_idx + token_text.len()));
-                idx += token_text.len();
-                continue;
-            }
-
-            // Check Mention
-            if let Some(mat) = MENTION_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                tokens.push(Token::new(token_text, TokenType::Mention, start_idx, start_idx + token_text.len()));
-                idx += token_text.len();
-                continue;
-            }
-
-            // Check Date
-            if let Some(mat) = DATE_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                tokens.push(Token::new(token_text, TokenType::Date, start_idx, start_idx + token_text.len()));
-                idx += token_text.len();
-                continue;
-            }
-
-            // Check Time
-            if let Some(mat) = TIME_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                tokens.push(Token::new(token_text, TokenType::Time, start_idx, start_idx + token_text.len()));
-                idx += token_text.len();
-                continue;
-            }
-
-            // Check Number
-            if let Some(mat) = NUMBER_REGEX.find(remaining) {
-                let token_text = mat.as_str();
-                // Avoid matching single dot/comma as number
-                if token_text.chars().any(|c| c.is_ascii_digit()) {
-                    tokens.push(Token::new(token_text, TokenType::Number, start_idx, start_idx + token_text.len()));
+            // 1. Hashtag (#)
+            if first_char == '#' {
+                if let Some(mat) = HASHTAG_REGEX.find(remaining) {
+                    let token_text = mat.as_str();
+                    tokens.push(Token::new(token_text, TokenType::Hashtag, start_idx, start_idx + token_text.len()));
                     idx += token_text.len();
                     continue;
                 }
             }
 
-            // Check Words (including Turkish letters, apostrophe for proper nouns, or abbreviations)
+            // 2. Mention (@)
+            if first_char == '@' {
+                if let Some(mat) = MENTION_REGEX.find(remaining) {
+                    let token_text = mat.as_str();
+                    tokens.push(Token::new(token_text, TokenType::Mention, start_idx, start_idx + token_text.len()));
+                    idx += token_text.len();
+                    continue;
+                }
+            }
+
+            // 3. URL (http, https, www)
+            if first_char == 'h' || first_char == 'H' || first_char == 'w' || first_char == 'W' {
+                if let Some(mat) = URL_REGEX.find(remaining) {
+                    let token_text = mat.as_str();
+                    tokens.push(Token::new(token_text, TokenType::Url, start_idx, start_idx + token_text.len()));
+                    idx += token_text.len();
+                    continue;
+                }
+            }
+
+            // 4. Digits, Numbers, Dates, Times (+/- numbers)
+            if first_char.is_ascii_digit() || first_char == '+' || first_char == '-' {
+                if let Some(mat) = DATE_REGEX.find(remaining) {
+                    let token_text = mat.as_str();
+                    tokens.push(Token::new(token_text, TokenType::Date, start_idx, start_idx + token_text.len()));
+                    idx += token_text.len();
+                    continue;
+                }
+
+                if let Some(mat) = TIME_REGEX.find(remaining) {
+                    let token_text = mat.as_str();
+                    tokens.push(Token::new(token_text, TokenType::Time, start_idx, start_idx + token_text.len()));
+                    idx += token_text.len();
+                    continue;
+                }
+
+                if let Some(mat) = NUMBER_REGEX.find(remaining) {
+                    let token_text = mat.as_str();
+                    if token_text.chars().any(|c| c.is_ascii_digit()) {
+                        tokens.push(Token::new(token_text, TokenType::Number, start_idx, start_idx + token_text.len()));
+                        idx += token_text.len();
+                        continue;
+                    }
+                }
+            }
+
+            // 5. Alphabetic Words, Turkish Proper Nouns, and Abbreviations
             if first_char.is_alphabetic() {
+                // Quick check for email (if contains '@' before whitespace)
+                if remaining.split_whitespace().next().map_or(false, |w| w.contains('@')) {
+                    if let Some(mat) = EMAIL_REGEX.find(remaining) {
+                        let token_text = mat.as_str();
+                        tokens.push(Token::new(token_text, TokenType::Email, start_idx, start_idx + token_text.len()));
+                        idx += token_text.len();
+                        continue;
+                    }
+                }
+
+                // Zero-allocation zero-copy Word Scanner
                 let mut word_end = idx;
                 let mut has_apostrophe = false;
                 let mut is_abbreviation = false;
 
-                let char_indices: Vec<(usize, char)> = remaining.char_indices().collect();
-                for i in 0..char_indices.len() {
-                    let (offset, c) = char_indices[i];
+                let mut chars_iter = remaining.char_indices().peekable();
+                while let Some((offset, c)) = chars_iter.next() {
                     if c.is_alphabetic() {
                         word_end = idx + offset + c.len_utf8();
                     } else if c == '\'' || c == '’' {
                         // Turkish proper noun apostrophe (e.g. İstanbul'da)
-                        if i + 1 < char_indices.len() && char_indices[i + 1].1.is_alphabetic() {
-                            has_apostrophe = true;
-                            word_end = idx + offset + c.len_utf8();
-                        } else {
-                            break;
+                        if let Some(&(_, next_c)) = chars_iter.peek() {
+                            if next_c.is_alphabetic() {
+                                has_apostrophe = true;
+                                word_end = idx + offset + c.len_utf8();
+                                continue;
+                            }
                         }
+                        break;
                     } else if c == '.' {
                         // Check if candidate abbreviation (e.g. "Prof.", "Dr.", "vb.")
                         let candidate = &text[start_idx..idx + offset + 1];
@@ -197,7 +207,7 @@ impl TurkishTokenizer {
                 continue;
             }
 
-            // Check Punctuation & Symbols
+            // 6. Check Punctuation & Symbols
             let char_len = first_char.len_utf8();
             let token_type = if first_char.is_ascii_punctuation() || matches!(first_char, '…' | '“' | '”' | '‘' | '’' | '—' | '–') {
                 TokenType::Punctuation

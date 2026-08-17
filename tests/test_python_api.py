@@ -207,4 +207,31 @@ def test_summarization():
     summary = akana.summarize(text, max_sentences=2)
     assert len(summary) == 2
 
+def test_ai_style_auditor():
+    synthetic_ai_text = (
+        "Yapay zeka teknolojileri, modern dünyada kritik bir rol oynamaktadır. "
+        "Bu bağlamda —özellikle veri analitiği alanında— hayati bir önem taşımaktadır; "
+        "aynı zamanda sadece işletmeler için değil, aynı zamanda bireyler için de vazgeçilmez bir hale gelmiştir."
+    )
+    report = akana.audit_ai_style(synthetic_ai_text)
+    assert report.ai_score >= 60.0
+    assert len(report.findings) >= 3
+    assert "Ağır AI" in report.verdict or "Belirgin AI" in report.verdict
+
+    natural_human_text = (
+        "Dün sabah erkenden uyandım. Hava çok soğuktu. "
+        "Hızlıca giyinip dışarı çıktım çünkü vapuru kaçırmak istemiyordum. "
+        "İskelede sıcak bir çay içtim."
+    )
+    human_report = akana.audit_ai_style(natural_human_text)
+    assert human_report.ai_score < 25.0
+    assert human_report.verdict == "Doğal İnsan Metni"
+
+def test_humanize_prompt():
+    synthetic_ai_text = "Bu doğrultuda eğitim sistemleri hayati bir önem taşımaktadır."
+    prompt = akana.humanize_prompt(synthetic_ai_text, register="blog")
+    assert "Humanizer" in prompt
+    assert "İşlenecek Metin" in prompt
+
+
 

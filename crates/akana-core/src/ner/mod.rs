@@ -1,8 +1,8 @@
 //! Named Entity Recognition (NER) for Turkish text.
 //! Recognizes Person (PER), Location (LOC), Organization (ORG), Date (DATE), Money (MONEY), and Percent (PERCENT).
+//! Accelerated with single-pass zero-copy token stream matching.
 
 use std::collections::HashSet;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use lazy_static::lazy_static;
 use crate::tokenization::{TurkishTokenizer, TokenType};
@@ -78,8 +78,13 @@ lazy_static! {
         set
     };
 
-    static ref MONEY_REGEX: Regex = Regex::new(r"(?i)\b\d+(?:[\.,]\d+)?\s*(?:TL|TRY|lira|dolar|avro|euro|sterlin|\$|€|₺|£)\b").unwrap();
-    static ref PERCENT_REGEX: Regex = Regex::new(r"(?:%\s*\d+(?:[\.,]\d+)?|\byüzde\s+\d+(?:[\.,]\d+)?\b)").unwrap();
+    static ref CURRENCY_KEYWORDS: HashSet<&'static str> = {
+        let mut set = HashSet::new();
+        for &c in &["tl", "try", "lira", "dolar", "avro", "euro", "sterlin", "$", "€", "₺", "£"] {
+            set.insert(c);
+        }
+        set
+    };
 }
 
 pub struct TurkishNER;
@@ -91,33 +96,73 @@ impl TurkishNER {
         let tokens = TurkishTokenizer::tokenize(text);
         let n = tokens.len();
 
-        // 1. Regex-based pattern matching (Money & Percent)
-        for m in MONEY_REGEX.find_iter(text) {
-            entities.push(NamedEntity {
-                text: m.as_str().to_string(),
-                label: "MONEY".to_string(),
-                start: m.start(),
-                end: m.end(),
-            });
-        }
-
-        for m in PERCENT_REGEX.find_iter(text) {
-            entities.push(NamedEntity {
-                text: m.as_str().to_string(),
-                label: "PERCENT".to_string(),
-                start: m.start(),
-                end: m.end(),
-            });
-        }
-
-        // 2. Token-level structural and contextual matching (PER, LOC, ORG, DATE)
         let mut i = 0;
         while i < n {
             let tok = &tokens[i];
             let clean_tok = tok.text.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'');
             let lower_tok = to_turkish_lower(clean_tok);
 
-            // A. Date Pattern Matching (e.g. 16 Ağustos 2026, Pazartesi günü)
+            // 1. Money Pattern Matching (e.g. 500 TL, 100 dolar, 50€, $100)
+            if tok.token_type == TokenType::Number {
+                if i + 1 < n {
+                    let next_clean = tokens[i + 1].text.trim_matches(|c: char| !c.is_alphanumeric() && c != '$' && c != '€' && c != '₺' && c != '£');
+                    let next_lower = to_turkish_lower(next_clean);
+                    if CURRENCY_KEYWORDS.contains(next_lower.as_str()) {
+                        let matched_tokens: Vec<&str> = tokens[i..=i+1].iter().map(|t| t.text).collect();
+                        entities.push(NamedEntity {
+                            text: matched_tokens.join(" "),
+                            label: "MONEY".to_string(),
+                            start: tok.start,
+                            end: tokens[i + 1].end,
+                        });
+                        i += 2;
+                        continue;
+                    }
+                }
+            } else if tok.text.starts_with('$') || tok.text.starts_with('€') || tok.text.starts_with('₺') || tok.text.starts_with('£') {
+                entities.push(NamedEntity {
+                    text: tok.text.to_string(),
+                    label: "MONEY".to_string(),
+                    start: tok.start,
+                    end: tok.end,
+                });
+                i += 1;
+                continue;
+            }
+
+            // 2. Percent Pattern Matching (e.g. %50, yüzde 25)
+            if tok.text == "%" && i + 1 < n && tokens[i + 1].token_type == TokenType::Number {
+                let matched_tokens: Vec<&str> = tokens[i..=i+1].iter().map(|t| t.text).collect();
+                entities.push(NamedEntity {
+                    text: matched_tokens.join(""),
+                    label: "PERCENT".to_string(),
+                    start: tok.start,
+                    end: tokens[i + 1].end,
+                });
+                i += 2;
+                continue;
+            } else if tok.text.starts_with('%') && tok.text.len() > 1 && tok.text[1..].chars().any(|c| c.is_ascii_digit()) {
+                entities.push(NamedEntity {
+                    text: tok.text.to_string(),
+                    label: "PERCENT".to_string(),
+                    start: tok.start,
+                    end: tok.end,
+                });
+                i += 1;
+                continue;
+            } else if lower_tok == "yüzde" && i + 1 < n && tokens[i + 1].token_type == TokenType::Number {
+                let matched_tokens: Vec<&str> = tokens[i..=i+1].iter().map(|t| t.text).collect();
+                entities.push(NamedEntity {
+                    text: matched_tokens.join(" "),
+                    label: "PERCENT".to_string(),
+                    start: tok.start,
+                    end: tokens[i + 1].end,
+                });
+                i += 2;
+                continue;
+            }
+
+            // 3. Date Pattern Matching (e.g. 16 Ağustos 2026, Pazartesi günü)
             if tok.token_type == TokenType::Number && i + 1 < n {
                 let next_tok = tokens[i + 1].text.trim_matches(|c: char| !c.is_alphabetic());
                 let next_lower = to_turkish_lower(next_tok);
@@ -157,7 +202,7 @@ impl TurkishNER {
                 continue;
             }
 
-            // B. Multi-token Organization Pattern (Capitalized sequence ending with ORG suffix)
+            // 4. Multi-token Organization Pattern (Capitalized sequence ending with ORG suffix)
             if clean_tok.chars().next().map_or(false, |c| c.is_uppercase()) {
                 let mut j = i;
                 let mut org_matched = false;
@@ -185,7 +230,7 @@ impl TurkishNER {
                     continue;
                 }
 
-                // C. Multi-token Location Pattern (Capitalized sequence ending with LOC suffix)
+                // 5. Multi-token Location Pattern (Capitalized sequence ending with LOC suffix)
                 let mut loc_matched = false;
                 if i + 1 < n {
                     let next_clean = tokens[i + 1].text.trim_matches(|c: char| !c.is_alphanumeric());
@@ -206,13 +251,12 @@ impl TurkishNER {
                     continue;
                 }
 
-                // D. Person Pattern (Title trigger + Capitalized Word, or in PERSON_NAMES)
+                // 6. Person Pattern (Title trigger + Capitalized Word, or in PERSON_NAMES)
                 let is_person = PERSON_NAMES.contains(lower_tok.as_str());
                 let preceded_by_title = i > 0 && TITLE_TRIGGERS.contains(to_turkish_lower(tokens[i - 1].text.trim_matches(|c: char| !c.is_alphabetic())).as_str());
                 let followed_by_title = i + 1 < n && TITLE_TRIGGERS.contains(to_turkish_lower(tokens[i + 1].text.trim_matches(|c: char| !c.is_alphabetic())).as_str());
 
                 if is_person || preceded_by_title || followed_by_title {
-                    // Span consecutive capitalized words for full name (e.g. "Ahmet Yılmaz", "Mustafa Kemal Atatürk")
                     let mut j = i + 1;
                     while j < n {
                         let next_clean = tokens[j].text.trim_matches(|c: char| !c.is_alphabetic());

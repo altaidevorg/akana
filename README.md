@@ -37,18 +37,20 @@
 
 ---
 
-## Performance Benchmarks (Akana vs Zeyrek / Zemberek)
+## Performance Benchmarks (Akana vs Zeyrek / Zemberek & StringZilla SIMD)
 
-Tested on 10,500 real morphological queries using the complete 93,000-word Turkish root lexicon (`benchmarks/benchmark_vs_zeyrek.py`):
+Tested on real Turkish text corpora and 10,500 morphological queries (`benchmarks/`):
 
-| Benchmark Metric | Zeyrek (Python Zemberek Port) | Akana (Rust + PyO3) | Improvement |
+| Benchmark Metric | Zeyrek (Python Zemberek Port) | Akana (Rust + StringZilla SIMD) | Performance / Throughput |
 | :--- | :--- | :--- | :--- |
-| **Active Vocabulary** | ~90,000 roots | **93,167 roots** | **Full Coverage** |
+| **Active Root Lexicon** | ~90,000 roots | **93,167 roots** | **Full Coverage** |
 | **Startup / Lexicon Init** | `2,733.8 ms` (~2.7s) | **`200.2 ms`** | **13.6x faster** |
-| **Full Morphological Parse (10.5k queries)** | `55,349.7 ms` (55.3s) | **`989.7 ms`** (0.98s) | **55.9x faster** |
-| **Parsing Throughput** | `189.7 words/sec` | **`10,609.0 words/sec`** | **55.9x higher** |
-| **Tokenization & Normalization** | ~230 words/sec | **>84,000 words/sec** | **>360x faster** |
-| **String Acceleration** | Pure Python loops / Regex | **StringZilla SIMD (AVX/NEON)** | **Hardware Accelerated** |
+| **Morphological Parse (10.5k words)** | `55,349.7 ms` (55.3s) | **`989.7 ms`** (0.98s) | **55.9x faster** (`10,609 words/sec`) |
+| **Tokenization (Zero-Allocation)** | ~230 words/sec | **`949,991 tokens/sec`** | **>4,000x faster** (<21 ms for 19.5k tokens) |
+| **Informal Normalization** | N/A | **`36,222 words/sec`** | **High Throughput** (Zero-Regex Suffix Matching) |
+| **AI Writing Style Audit** | N/A | **`27,179 words/sec`** | **StringZilla SIMD** (10.2k words in 375 ms) |
+| **Named Entity Recognition (NER)** | N/A | **`1.14 MB/sec`** | **Linear Token Stream** (1,500 entities in 37 ms) |
+| **Hardware Acceleration** | Pure Python loops | **StringZilla AVX-512 / AVX2 / NEON** | **Native SIMD Instructions** |
 
 ---
 
@@ -102,11 +104,33 @@ report = akana.analyze_readability("Küçük çocuk bahçede neşeyle koşuyordu
 print(f"Kalyoncu F1: {report.kalyoncu_formula1.score} ({report.kalyoncu_formula1.grade_level})")
 print(f"Ateşman: {report.atesman.score} ({report.atesman.grade_level})")
 
-# 7. Full End-to-End Document Analysis
-doc = akana.analyze("Ak Ana, Türk mitolojisinde deniz tanrıçasıdır. Prof. Dr. Ayşe Hanım geldi.")
-for sentence in doc.sentences:
-    print("Sentence:", sentence.text)
-    print("Tokens:", sentence.tokens)
+# 7. Turkish AI Writing Signature Auditor & Humanizer
+audit = akana.audit_ai_style("Yapay zeka teknolojileri, modern dünyada kritik bir rol oynamaktadır. Bu bağlamda —özellikle veri alanında— hayati önem taşımaktadır.")
+print(f"AI Score: {audit.ai_score}/100 ({audit.verdict})")
+for finding in audit.findings:
+    print(f"[{finding.category}] {finding.message}")
+
+# Generate actionable LLM rewrite prompt to clean AI artifacts
+prompt = akana.humanize_prompt("Bu doğrultuda hayati önem taşımaktadır.", register="blog")
+print(prompt)
+
+# 8. High-Level Turkish NLP Suite
+# Syllabification & Hyphenation
+print(akana.syllabify("Türkçe"))  # -> ['Türk', 'çe']
+print(akana.hyphenate("bilgisayar"))  # -> 'bil-gi-sa-yar'
+
+# Number to Words Converter
+print(akana.number_to_words(1923))  # -> 'bin dokuz yüz yirmi üç'
+print(akana.currency_to_words(1250.50, "TL"))  # -> 'bin iki yüz elli lira elli kuruş'
+
+# Named Entity Recognition (NER)
+entities = akana.extract_entities("Prof. Dr. Ahmet Yılmaz 16 Ağustos 2026 tarihinde 500 TL ödeme yaptı.")
+for e in entities:
+    print(f"[{e.label}] {e.text}")
+
+# Keyword Extraction (Turkish RAKE) & Extractive Summarization (TextRank)
+keywords = akana.extract_keywords("Doğal dil işleme ve morfolojik analiz...", top_k=5)
+summary = akana.summarize("Uzun metin...", max_sentences=2)
 ```
 
 ---
@@ -114,8 +138,20 @@ for sentence in doc.sentences:
 ## CLI Usage
 
 ```bash
+# AI style auditing
+cargo run -p akana-cli -- ai-audit "Bu bağlamda kritik bir rol oynamaktadır."
+
+# Generate humanizer rewrite prompt
+cargo run -p akana-cli -- humanize-prompt "Bu doğrultuda hayati önem taşımaktadır." --register blog
+
 # Readability analysis
 cargo run -p akana-cli -- readability "Küçük çocuk bahçede neşeyle koşuyordu."
+
+# Syllabification
+cargo run -p akana-cli -- syllabify "bilgisayar"
+
+# Number to words
+cargo run -p akana-cli -- number 1923
 
 # Tokenization
 cargo run -p akana-cli -- tokenize "Prof. Dr. Ahmet İstanbul'a gitti."

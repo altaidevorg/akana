@@ -335,6 +335,20 @@ fn summarize(text: &str, max_sentences: Option<usize>) -> Vec<String> {
     summarizer.summarize(text, max_sentences.unwrap_or(3))
 }
 
+#[pyfunction]
+fn audit_ai_style_json(text: &str) -> PyResult<String> {
+    let auditor = akana_core::style::TurkishStyleAuditor::new();
+    let report = auditor.audit(text);
+    serde_json::to_string(&report).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
+#[pyfunction]
+#[pyo3(signature = (text, register=None))]
+fn generate_humanizer_prompt(text: &str, register: Option<&str>) -> String {
+    let reg = register.unwrap_or("blog");
+    akana_core::style::TurkishHumanizer::generate_prompt(text, reg)
+}
+
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -361,6 +375,8 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(extract_entities_json, m)?)?;
     m.add_function(wrap_pyfunction!(extract_keywords_json, m)?)?;
     m.add_function(wrap_pyfunction!(summarize, m)?)?;
+    m.add_function(wrap_pyfunction!(audit_ai_style_json, m)?)?;
+    m.add_function(wrap_pyfunction!(generate_humanizer_prompt, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PyCompoundDecomposer>()?;

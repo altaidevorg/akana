@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 use lazy_static::lazy_static;
-use regex::Regex;
 use crate::morphology::TurkishMorphology;
 use crate::phonology::to_turkish_lower;
 
@@ -31,15 +30,6 @@ lazy_static! {
         }
         m
     };
-
-    // Productive regex rewrite rules for informal verb forms
-    static ref FUTURE_RULE_CAM: Regex = Regex::new(r"^(.*[aıou])(cam|can|caz|cak|caklar)$").unwrap();
-    static ref FUTURE_RULE_CEM: Regex = Regex::new(r"^(.*[eiöü])(cem|cen|cez|cek|cekler)$").unwrap();
-    static ref FUTURE_RULE_YCAM: Regex = Regex::new(r"^(.*)(ycam|ycan|ycaz|ycak|ycaklar)$").unwrap();
-    static ref FUTURE_RULE_YCEM: Regex = Regex::new(r"^(.*)(ycem|ycen|ycez|ycek|ycekler)$").unwrap();
-
-    static ref PROG_RULE: Regex = Regex::new(r"^(.*)(yom|yon|yo|yoz|yonuz|yolar)$").unwrap();
-    static ref PROG_NEG_RULE: Regex = Regex::new(r"^(.*)(mıom|miom|muom|müom)$").unwrap();
 }
 
 pub struct TurkishInformalNormalizer;
@@ -66,7 +56,7 @@ impl TurkishInformalNormalizer {
 
         // If the 2-char deduped word is not in the dictionary, try reducing to single chars
         if count >= 2 {
-            let single_chars = Self::reduce_all_consecutive_duplicates(&word);
+            let single_chars = Self::reduce_all_consecutive_duplicates(word);
             if !GLOBAL_MORPHOLOGY.analyze(&to_turkish_lower(&single_chars)).is_empty() {
                 return single_chars;
             }
@@ -144,39 +134,41 @@ impl TurkishInformalNormalizer {
             }
         }
 
-        // Progressive contractions (geliyom -> geliyorum, biliyo -> biliyor)
-        if let Some(caps) = PROG_RULE.captures(&lower) {
-            let stem = caps.get(1).unwrap().as_str();
-            let ending = caps.get(2).unwrap().as_str();
-            let suffix = match ending {
-                "yom" => "yorum",
-                "yon" => "yorsun",
-                "yo" => "yor",
-                "yoz" => "yoruz",
-                "yonuz" => "yorsunuz",
-                "yolar" => "yorlar",
-                _ => ending,
-            };
-            let candidate = format!("{}{}", stem, suffix);
-            if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
-                return candidate;
+        // Fast progressive contractions (geliyom -> geliyorum, biliyo -> biliyor, yapıyom -> yapıyorum)
+        let prog_endings = [
+            ("yolar", "yorlar"),
+            ("yonuz", "yorsunuz"),
+            ("yom", "yorum"),
+            ("yon", "yorsun"),
+            ("yoz", "yoruz"),
+            ("yo", "yor"),
+        ];
+
+        for (end, repl) in prog_endings {
+            if lower.ends_with(end) && lower.len() > end.len() {
+                let stem = &lower[..lower.len() - end.len()];
+                let candidate = format!("{}{}", stem, repl);
+                if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
+                    return candidate;
+                }
             }
         }
 
-        // Negative progressive contractions (gelmiom -> gelmiyorum, yapmıom -> yapmıyorum)
-        if let Some(caps) = PROG_NEG_RULE.captures(&lower) {
-            let stem = caps.get(1).unwrap().as_str();
-            let ending = caps.get(2).unwrap().as_str();
-            let suffix = match ending {
-                "mıom" => "mıyorum",
-                "miom" => "miyorum",
-                "muom" => "muyorum",
-                "müom" => "müyorum",
-                _ => ending,
-            };
-            let candidate = format!("{}{}", stem, suffix);
-            if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
-                return candidate;
+        // Fast negative progressive contractions (gelmiom -> gelmiyorum, yapmıom -> yapmıyorum)
+        let neg_prog_endings = [
+            ("mıom", "mıyorum"),
+            ("miom", "miyorum"),
+            ("muom", "muyorum"),
+            ("müom", "müyorum"),
+        ];
+
+        for (end, repl) in neg_prog_endings {
+            if lower.ends_with(end) && lower.len() > end.len() {
+                let stem = &lower[..lower.len() - end.len()];
+                let candidate = format!("{}{}", stem, repl);
+                if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
+                    return candidate;
+                }
             }
         }
 

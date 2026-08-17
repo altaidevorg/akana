@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 use akana_core::*;
 
 #[derive(Parser)]
@@ -14,7 +15,10 @@ enum Commands {
     /// Tokenize Turkish text into words
     Tokenize {
         /// Text to tokenize
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Perform morphological analysis on a word
     Analyze {
@@ -32,17 +36,26 @@ enum Commands {
     /// De-asciify Turkish text
     Deasciify {
         /// Text to restore diacritics
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Asciify Turkish text
     Asciify {
         /// Text to convert to ASCII
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Normalize informal text
     Normalize {
         /// Text to normalize
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Check spelling and suggest corrections
     Spellcheck {
@@ -52,12 +65,18 @@ enum Commands {
     /// Parse sentence dependency tree
     Parse {
         /// Sentence to parse
-        sentence: String,
+        sentence: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Calculate modern and classical Turkish readability metrics
     Readability {
         /// Text to analyze
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Syllabify and hyphenate a Turkish word
     Syllabify {
@@ -72,12 +91,18 @@ enum Commands {
     /// Extract Named Entities (PER, LOC, ORG, DATE, MONEY, PERCENT)
     Ner {
         /// Text to analyze
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Extract top keywords from Turkish text
     Keywords {
         /// Text to extract keywords from
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
         /// Top K keywords
         #[arg(short, long, default_value_t = 10)]
         top_k: usize,
@@ -85,7 +110,10 @@ enum Commands {
     /// Extractive text summarization
     Summarize {
         /// Text to summarize
-        text: String,
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
         /// Maximum number of sentences
         #[arg(short, long, default_value_t = 3)]
         sentences: usize,
@@ -95,14 +123,47 @@ enum Commands {
         /// Word to stem
         word: String,
     },
+    /// Audit text for AI writing signatures, clichés, and punctuation anomalies
+    AiAudit {
+        /// Text to audit
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+    },
+    /// Generate an actionable LLM rewrite prompt to humanize Turkish text
+    HumanizePrompt {
+        /// Text to humanize
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+        /// Target register (e.g. blog, akademik, haber, edebi, hukuki)
+        #[arg(short, long, default_value = "blog")]
+        register: String,
+    },
+}
+
+fn resolve_input_text(text: Option<String>, file: Option<PathBuf>) -> Result<String, String> {
+    if let Some(f) = file {
+        std::fs::read_to_string(&f).map_err(|e| format!("Failed to read file '{}': {}", f.display(), e))
+    } else if let Some(t) = text {
+        Ok(t)
+    } else {
+        Err("Please provide input text as argument or use -f/--file <PATH>".to_string())
+    }
 }
 
 fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Tokenize { text } => {
-            let tokens = tokenization::TurkishTokenizer::tokenize_words(&text);
+        Commands::Tokenize { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let tokens = tokenization::TurkishTokenizer::tokenize_words(&input);
             println!("{}", serde_json::to_string_pretty(&tokens).unwrap());
         }
         Commands::Analyze { word } => {
@@ -119,16 +180,28 @@ fn main() {
                 println!("Failed to generate surface form.");
             }
         }
-        Commands::Deasciify { text } => {
-            let res = normalization::TurkishDeasciifier::deasciify(&text);
+        Commands::Deasciify { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let res = normalization::TurkishDeasciifier::deasciify(&input);
             println!("{}", res);
         }
-        Commands::Asciify { text } => {
-            let res = normalization::TurkishAsciifier::asciify(&text);
+        Commands::Asciify { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let res = normalization::TurkishAsciifier::asciify(&input);
             println!("{}", res);
         }
-        Commands::Normalize { text } => {
-            let res = normalization::TurkishInformalNormalizer::normalize_text(&text);
+        Commands::Normalize { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let res = normalization::TurkishInformalNormalizer::normalize_text(&input);
             println!("{}", res);
         }
         Commands::Spellcheck { word } => {
@@ -136,14 +209,22 @@ fn main() {
             let suggestions = checker.suggest(&word, 2, 5);
             println!("{}", serde_json::to_string_pretty(&suggestions).unwrap());
         }
-        Commands::Parse { sentence } => {
-            let tokens = tokenization::TurkishTokenizer::tokenize_words(&sentence);
+        Commands::Parse { sentence, file } => {
+            let input = match resolve_input_text(sentence, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let tokens = tokenization::TurkishTokenizer::tokenize_words(&input);
             let parser = parser::TurkishDependencyParser::new();
             let tree = parser.parse(&tokens);
             println!("{}", tree.to_conllu());
         }
-        Commands::Readability { text } => {
-            let report = readability::analyze_readability(&text);
+        Commands::Readability { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let report = readability::analyze_readability(&input);
             println!("{}", serde_json::to_string_pretty(&report).unwrap());
         }
         Commands::Syllabify { word } => {
@@ -156,18 +237,30 @@ fn main() {
             let ordinal = normalization::TurkishNumberConverter::ordinal_to_words(num);
             println!("Cardinal: {}\nOrdinal:  {}", words, ordinal);
         }
-        Commands::Ner { text } => {
-            let entities = ner::TurkishNER::extract_entities(&text);
+        Commands::Ner { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let entities = ner::TurkishNER::extract_entities(&input);
             println!("{}", serde_json::to_string_pretty(&entities).unwrap());
         }
-        Commands::Keywords { text, top_k } => {
+        Commands::Keywords { text, file, top_k } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
             let extractor = analysis::TurkishKeywordExtractor::new();
-            let kw = extractor.extract_keywords(&text, top_k);
+            let kw = extractor.extract_keywords(&input, top_k);
             println!("{}", serde_json::to_string_pretty(&kw).unwrap());
         }
-        Commands::Summarize { text, sentences } => {
+        Commands::Summarize { text, file, sentences } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
             let summarizer = analysis::TurkishSummarizer::new();
-            let summary = summarizer.summarize(&text, sentences);
+            let summary = summarizer.summarize(&input, sentences);
             for (idx, sent) in summary.iter().enumerate() {
                 println!("{}. {}", idx + 1, sent);
             }
@@ -175,6 +268,23 @@ fn main() {
         Commands::Stem { word } => {
             let stemmer = morphology::TurkishStemmer::new();
             println!("Stem: {}", stemmer.stem(&word));
+        }
+        Commands::AiAudit { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let auditor = style::TurkishStyleAuditor::new();
+            let report = auditor.audit(&input);
+            println!("{}", serde_json::to_string_pretty(&report).unwrap());
+        }
+        Commands::HumanizePrompt { text, file, register } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let prompt = style::TurkishHumanizer::generate_prompt(&input, &register);
+            println!("{}", prompt);
         }
     }
 }
