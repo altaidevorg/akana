@@ -1,6 +1,13 @@
 # Akana (Turkish NLP Toolkit)
 
-**Akana** (named after *Ak Ana*, the primordial creator goddess in Turkic mythology) is a modern, blazingly fast Turkish Natural Language Processing toolkit written in **Rust** with seamless **Python bindings via PyO3** and SIMD acceleration via **StringZilla**.
+[![PyPI Version](https://img.shields.io/pypi/v/akana.svg)](https://pypi.org/project/akana/)
+[![License: MIT / Apache-2.0](https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-blue.svg)](LICENSE-MIT)
+[![Rust: >= 1.75](https://img.shields.io/badge/rust-%3E%3D1.75-orange.svg)](https://www.rust-lang.org)
+[![Python: >= 3.8](https://img.shields.io/badge/python-%3E%3D3.8-blue.svg)](https://www.python.org)
+
+**Akana** (named after *Ak Ana*, the primordial creator goddess in Turkic mythology) is a modern, blazingly fast Turkish Natural Language Processing toolkit written in **Rust** with seamless **Python bindings via PyO3** and native hardware SIMD acceleration via **StringZilla**.
+
+Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevorg/akana)
 
 ---
 
@@ -8,28 +15,41 @@
 
 - **Phonology & Orthography Engine**:
   - Turkish alphabet characteristics and locale-aware casing (`ı` $\leftrightarrow$ `I`, `i` $\leftrightarrow$ `İ`).
-  - Major (2-way `A/E`) and Minor (4-way `I/İ/U/Ü`) Vowel Harmony checks.
+  - Major (2-way `A/E`) and Minor (4-way `I/İ/U/Ü`) Vowel Harmony validation.
   - Consonant softening / mutation ($p \rightarrow b$, $ç \rightarrow c$, $t \rightarrow d$, $k \rightarrow \check{g}/g$).
-  - Vowel drop (*burun* $\rightarrow$ *burnu*, *akıl* $\rightarrow$ *aklı*).
-  - Consonant doubling (*hak* $\rightarrow$ *hakkı*, *his* $\rightarrow$ *hissi*).
+  - Epenthetic vowel drop (*burun* $\rightarrow$ *burnu*, *akıl* $\rightarrow$ *aklı*).
+  - Consonant doubling / gemination (*hak* $\rightarrow$ *hakkı*, *his* $\rightarrow$ *hissi*).
 - **Tokenization & Sentence Segmentation**:
-  - Zero-copy, rule-based Turkish tokenizer handling proper nouns with apostrophes (`İstanbul'da`), abbreviations (`Prof.`, `Dr.`, `vb.`), currencies, URLs, emails, hashtags, dates, and times.
+  - Zero-allocation, rule-based Turkish tokenizer handling proper nouns with apostrophes (`İstanbul'da`), abbreviations (`Prof.`, `Dr.`, `vb.`), currencies, URLs, emails, hashtags, dates, and times.
   - Sentence Boundary Detector with Turkish quotation and abbreviation lookahead.
 - **Normalization & Spell Checking**:
   - **Asciifier** & **De-asciifier** for Turkish diacritics restoration.
-  - **SIMD Spell Checker**: Accelerated with **StringZilla** hardware instructions for fast Levenshtein / edit distance candidate scoring.
+  - **SIMD Spell Checker**: Accelerated with **StringZilla** hardware instructions for ultra-fast Levenshtein / edit distance candidate scoring.
   - **Informal Text Normalizer**: Spoken Turkish colloquialisms reduction (`yapcam` $\rightarrow$ `yapacağım`, `geliyom` $\rightarrow$ `geliyorum`, `noldu` $\rightarrow$ `ne oldu`) and letter elongation deduping (`çooook` $\rightarrow$ `çok`).
-- **Morphology (Morphological Analyzer, Generator & Compound Decomposer)**:
-  - **93,000+ Root Lexicon**: Complete Turkish vocabulary ingested from Zemberek, TDK, location gazetteers, and modern corpus lexicons.
-  - Finite-State Morphotactics Graph covering nominal cases, plurals, possessives, verbal tenses, compound tenses, voices (passive/causative), participles, diminutives, relative `-ki` chains, and derivations.
-  - **Compound Word Decomposer**: Deconstructs compound nouns (`denizaltı` $\rightarrow$ `deniz + altı`, `akbaba` $\rightarrow$ `ak + baba`).
-  - Morphological Generator for synthesizing words from lemmas and tags (`generate("kitap", ["Noun", "A3sg", "P1sg", "Dat"])` $\rightarrow$ `"kitabıma"`).
-  - Morphological Disambiguator for context-aware best-parse selection.
-- **Modern Turkish Readability Suite**:
+- **Dual-Engine Morphology Suite**:
+  1. **Standard Morphology (`akana.Morphology`)**:
+     - **93,167 Root Lexicon**: Broad-coverage Turkish vocabulary ingested from Zemberek, TDK, location gazetteers, and modern corpus lexicons.
+     - Multi-tier morphotactic graph: nominal cases, plurals, possessives, verbal tenses, compound copulas, voices (passive/causative), participles, diminutives, relative `-ki` chains, and derivations.
+     - **Compound Word Decomposer**: Deconstructs compound nouns (`denizaltı` $\rightarrow$ `deniz + altı`, `akbaba` $\rightarrow$ `ak + baba`).
+     - Morphological Generator (`generate("kitap", ["Noun", "A3sg", "P1sg", "Dat"])` $\rightarrow$ `"kitabıma"`).
+     - Context-aware Disambiguator for best-parse selection.
+  2. **Syntactic Expressive Morphology (`akana.SyntacticMorphology`)** *(Google FSMNLP 2019 Architecture)*:
+     - **Inflectional Groups (IG)**: Hierarchical derivational tiers with Universal Dependencies (UD) category-value feature maps.
+     - **Zero-Derivation Elimination**: Cross-categorized lexical entries (e.g. *güzel*, *hızlı*, *soğuk*) eliminating phantom `+^DB` morphemes.
+     - Dedicated, isolated 47,202 gold-standard root lexicon.
+- **Modern & Classic Turkish Readability Suite**:
   - **Kalyoncu (2025) Formula Suite**: Multi-regression equations (Formulas 1–4, $R^2$ up to 0.99) with embedded 4,600-word familiarity lexicon and exact grade-level mapping (*3. Sınıf Öncesi* to *Lisansüstü*).
   - **Classical Formulas**: Ateşman (1997), Çetinkaya-Uzun (2010), and Bezirci-Yılmaz (2010).
-- **Syntax & Dependency Parsing**:
+- **Turkish AI Writing Style Auditor & Humanizer Engine**:
+  - Detects LLM writing signatures: punctuation anomalies (excessive em-dashes, semicolons with conjunctions, colons), predicate tense repetition (`-mektedir` ratio), rhythm monotony ($CV = \sigma / \mu$), bureaucratic connectors, translationese calques, tricolon lists, and hypophora questions.
+  - Actionable prompt generation across 5 registers (*hukuki-idari, akademik-kurumsal, analitik-gazetecilik, deneme-blog, edebi-yaratıcı*).
+- **Syntax & Universal Dependencies**:
   - Transition-based parser outputting Universal Dependencies (UD) format and CoNLL-U trees.
+- **High-Level NLP Primitives**:
+  - Turkish Syllabification & Hyphenation.
+  - Number to Words Converter (Cardinals, Ordinals, Currency).
+  - Named Entity Recognition (PER, LOC, ORG, DATE, MONEY, PERCENT).
+  - Keyword Extraction (Turkish RAKE) & Extractive Summarization (TextRank).
 - **High-Performance Architecture**:
   - Pure Rust core with zero JVM dependency.
   - Python package via `pyo3` and `maturin` (compatible with `uv`).
@@ -56,12 +76,14 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 
 ## Python Quickstart
 
-### Installation via `uv` / `maturin`
+### Installation
 
 ```bash
-# Build and install locally with uv & maturin
-uv pip install maturin
-uv run maturin develop --release
+# Using uv
+uv pip install akana
+
+# Using pip
+pip install akana
 ```
 
 ### Usage in Python
@@ -69,58 +91,62 @@ uv run maturin develop --release
 ```python
 import akana
 
-# 1. Morphological Analysis
+# 1. Standard Morphological Analysis (Zemberek-Compatible Format)
 morph = akana.Morphology()
 parses = morph.analyze("kitabıma")
 for parse in parses:
     print(parse["lemma"], parse["primary_pos"], parse["morphemes"])
 # -> kitap Noun ['Noun', 'P1sg', 'Dat']
 
-# 2. Morphological Generation
-surface = morph.generate("kitap", ["Noun", "A3sg", "P1sg", "Dat"])
-print(surface)
-# -> kitabıma
+# 2. Google-Style Syntactic Expressive Morphology (Inflectional Groups & UD)
+syn_parses = akana.syntactic_analyze("geldiğimizde")
+for p in syn_parses:
+    print(p.formatted)
+    # Output: (gel[VB]+[Polarity=Pos])([NOMP]-PastNom+[Case=Loc]+[PersonNumber=A3sg]+[Possessive=P1pl])+[Proper=False]
+    for ig in p.inflectional_groups:
+        print(f"  • IG [{ig.pos}] Deriv: {ig.derivation} -> {ig.features}")
 
-# 3. Spell Checking with StringZilla SIMD
+# 3. Morphological Generation
+surface = morph.generate("kitap", ["Noun", "A3sg", "P1sg", "Dat"])
+print(surface)  # -> kitabıma
+
+# 4. Spell Checking with StringZilla SIMD
 spell = akana.SpellChecker()
 print("Is 'kitap' correct?", spell.is_correct("kitap"))
 suggestions = spell.suggest("ktap", max_distance=2, max_suggestions=3)
 print("Suggestions for 'ktap':", [s["word"] for s in suggestions])
 
-# 4. De-asciification & Normalization
+# 5. De-asciification & Normalization
 print(akana.deasciify("turkce nlp cok hizli calisiyor"))
 # -> türkçe nlp çok hızlı çalışıyor
 
 print(akana.normalize_informal("nooldu ya yapcam dedim"))
 # -> ne oldu ya yapacağım dedim
 
-# 5. Compound Word Decomposition
+# 6. Compound Word Decomposition
 compounds = akana.decompose_compound("denizaltı")
 print(compounds)
 # -> [{'surface': 'denizaltı', 'part1': 'deniz', 'part2': 'altı', ...}]
 
-# 6. Modern Turkish Readability Analysis (Kalyoncu 2025 & Classic)
+# 7. Modern Turkish Readability Analysis (Kalyoncu 2025 & Classic)
 report = akana.analyze_readability("Küçük çocuk bahçede neşeyle koşuyordu.")
 print(f"Kalyoncu F1: {report.kalyoncu_formula1.score} ({report.kalyoncu_formula1.grade_level})")
 print(f"Ateşman: {report.atesman.score} ({report.atesman.grade_level})")
 
-# 7. Turkish AI Writing Signature Auditor & Humanizer
+# 8. Turkish AI Writing Style Auditor & Actionable Humanizer Prompt
 audit = akana.audit_ai_style("Yapay zeka teknolojileri, modern dünyada kritik bir rol oynamaktadır. Bu bağlamda —özellikle veri alanında— hayati önem taşımaktadır.")
 print(f"AI Score: {audit.ai_score}/100 ({audit.verdict})")
-for finding in audit.findings:
-    print(f"[{finding.category}] {finding.message}")
 
-# Generate actionable LLM rewrite prompt to clean AI artifacts
 prompt = akana.humanize_prompt("Bu doğrultuda hayati önem taşımaktadır.", register="blog")
 print(prompt)
 
-# 8. High-Level Turkish NLP Suite
+# 9. High-Level Turkish NLP Suite
 # Syllabification & Hyphenation
-print(akana.syllabify("Türkçe"))  # -> ['Türk', 'çe']
-print(akana.hyphenate("bilgisayar"))  # -> 'bil-gi-sa-yar'
+print(akana.syllabify("Türkçe"))     # -> ['Türk', 'çe']
+print(akana.hyphenate("bilgisayar")) # -> 'bil-gi-sa-yar'
 
 # Number to Words Converter
-print(akana.number_to_words(1923))  # -> 'bin dokuz yüz yirmi üç'
+print(akana.number_to_words(1923))            # -> 'bin dokuz yüz yirmi üç'
 print(akana.currency_to_words(1250.50, "TL"))  # -> 'bin iki yüz elli lira elli kuruş'
 
 # Named Entity Recognition (NER)
@@ -137,36 +163,35 @@ summary = akana.summarize("Uzun metin...", max_sentences=2)
 
 ## CLI Usage
 
+The `akana` CLI supports direct text arguments or reading from file via `-f, --file`:
+
 ```bash
 # AI style auditing
-cargo run -p akana-cli -- ai-audit "Bu bağlamda kritik bir rol oynamaktadır."
+akana ai-audit "Bu bağlamda kritik bir rol oynamaktadır."
+akana ai-audit -f article.txt
 
 # Generate humanizer rewrite prompt
-cargo run -p akana-cli -- humanize-prompt "Bu doğrultuda hayati önem taşımaktadır." --register blog
+akana humanize-prompt "Bu doğrultuda hayati önem taşımaktadır." --register blog
+
+# Syntactic morphological analysis (Google FSMNLP format)
+akana syntactic-analyze "geldiğimizde"
+
+# Standard morphological analysis
+akana analyze "evlerimizde"
 
 # Readability analysis
-cargo run -p akana-cli -- readability "Küçük çocuk bahçede neşeyle koşuyordu."
+akana readability "Küçük çocuk bahçede neşeyle koşuyordu."
 
-# Syllabification
-cargo run -p akana-cli -- syllabify "bilgisayar"
+# Syllabification & Number conversion
+akana syllabify "bilgisayar"
+akana number 1923
 
-# Number to words
-cargo run -p akana-cli -- number 1923
+# De-asciification & Normalization
+akana deasciify "turkce nlp"
+akana normalize "yapcam"
 
-# Tokenization
-cargo run -p akana-cli -- tokenize "Prof. Dr. Ahmet İstanbul'a gitti."
-
-# Morphological analysis
-cargo run -p akana-cli -- analyze "evlerimizde"
-
-# Morphological generation
-cargo run -p akana-cli -- generate kitap --tags A3pl,P1sg,Loc
-
-# De-asciification
-cargo run -p akana-cli -- deasciify "turkce nlp"
-
-# Dependency parsing
-cargo run -p akana-cli -- parse "Ali güzel kitabı okudu."
+# Universal Dependencies Parsing
+akana parse "Ali güzel kitabı okudu."
 ```
 
 ---
@@ -176,20 +201,29 @@ cargo run -p akana-cli -- parse "Ali güzel kitabı okudu."
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-akana-core = { path = "crates/akana-core" }
+akana-core = { version = "0.1", default-features = true }
 ```
 
 ```rust
 use akana_core::morphology::TurkishMorphology;
+use akana_core::syntactic_morphology::TurkishSyntacticMorphology;
 use akana_core::phonology::to_turkish_lower;
 
 fn main() {
     let lower = to_turkish_lower("İSTANBUL");
     println!("Lower: {}", lower);
 
+    // Standard Morphology
     let morph = TurkishMorphology::new();
     let parses = morph.analyze("kitabım");
     for p in parses {
+        println!("{}", p.formatted);
+    }
+
+    // Syntactic Expressive Morphology (Inflectional Groups)
+    let syn_morph = TurkishSyntacticMorphology::new();
+    let syn_parses = syn_morph.analyze("geldiğimizde");
+    for p in syn_parses {
         println!("{}", p.formatted);
     }
 }
@@ -197,6 +231,68 @@ fn main() {
 
 ---
 
+## Building & Publishing with `uv` & `maturin`
+
+Akana is structured as a dual-language workspace (Rust workspace + PyO3 Python package) built using `maturin` and `uv`.
+
+### 1. Local Development Build
+```bash
+# Install maturin in your uv environment
+uv pip install maturin
+
+# Build and install release package in editable mode
+uv run maturin develop --release
+
+# Run unit tests
+uv run pytest
+uv run cargo test -p akana-core -p akana-cli
+```
+
+### 2. Build Python Wheels (for PyPI distribution)
+```bash
+# Build multi-platform abi3 wheels into dist/
+uv run maturin build --release --out dist/
+```
+
+### 3. Publish to PyPI
+```bash
+# Set your PyPI token (or use ~/.pypirc)
+export MATURIN_PYPI_TOKEN="pypi-..."
+
+# Publish via maturin
+uv run maturin publish --out dist/
+
+# Or publish via uv publish
+uv publish dist/*
+```
+
+### 4. Publish Rust Crates to crates.io
+```bash
+cargo publish -p akana-core
+cargo publish -p akana-cli
+```
+
+---
+
+## Acknowledgements & Academic Citations
+
+Akana builds upon decades of pioneering linguistic and natural language processing research in Turkish. We gratefully acknowledge and credit:
+
+- **Kemal Oflazer**: Foundational two-level Turkish morphological analysis (1994) and the Inflectional Group (IG) representation (2003) for Turkish dependency syntax.
+- **Ahmet A. Akın & The Zemberek Team**: Open-source Turkish morphology, phonotactics, and extensive root vocabulary database.
+- **Oğuzhan Güngör & Zeyrek Contributors**: The pure-Python Zemberek port that inspired modern open Turkish NLP tooling.
+- **Google Research (Adnan Öztürel, Tolga Kayadelen, Işın Demirşahin)**: *"A Syntactically Expressive Morphological Analyzer for Turkish"* (FSMNLP 2019), introducing zero-derivation elimination and two-level inflectional group FSTs.
+- **Mustafa Kalyoncu & Co-authors (2025)**: Development of modern Turkish readability formulas (Formulas 1–4) and the empirical 4,600-word grade-level familiarity corpus.
+- **Ender Ateşman (1997), Çetinkaya-Uzun (2010), Bezirci-Yılmaz (2010)**: Classical readability research for the Turkish education system.
+- **Ash Vardanian & Unum Cloud**: **StringZilla**, providing hardware-accelerated SIMD vector search and edit distance algorithms.
+- **Bushra Beg (Turkce-Humanizer)**: Research into Turkish AI writing style signatures, calques, and stylistic heuristics.
+
+---
+
 ## License
 
-Licensed under either of [MIT](LICENSE-MIT) or [Apache 2.0](LICENSE-APACHE).
+Licensed under either of:
+- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT License](LICENSE-MIT)
+
+at your option.
