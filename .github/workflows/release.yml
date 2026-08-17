@@ -64,15 +64,11 @@ jobs:
           path: dist
 
   macos:
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: macos-13
-            target: x86_64-apple-darwin
-          - runner: macos-14
-            target: aarch64-apple-darwin
+        target: [aarch64-apple-darwin]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
