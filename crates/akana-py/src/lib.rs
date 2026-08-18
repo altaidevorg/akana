@@ -391,6 +391,45 @@ fn generate_humanizer_prompt(text: &str, register: Option<&str>) -> String {
     akana_core::style::TurkishHumanizer::generate_prompt(text, reg)
 }
 
+#[pyclass(name = "GrammarChecker")]
+struct PyGrammarChecker {
+    inner: akana_core::grammar::TurkishGrammarChecker,
+}
+
+#[pymethods]
+impl PyGrammarChecker {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: akana_core::grammar::TurkishGrammarChecker::new(),
+        }
+    }
+
+    fn check_json(&self, text: &str) -> PyResult<String> {
+        let res = self.inner.check(text);
+        serde_json::to_string(&res).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    }
+
+    fn correct(&self, text: &str) -> String {
+        self.inner.correct(text)
+    }
+}
+
+lazy_static::lazy_static! {
+    static ref GLOBAL_GRAMMAR_CHECKER: akana_core::grammar::TurkishGrammarChecker = akana_core::grammar::TurkishGrammarChecker::new();
+}
+
+#[pyfunction]
+fn check_grammar_json(text: &str) -> PyResult<String> {
+    let res = GLOBAL_GRAMMAR_CHECKER.check(text);
+    serde_json::to_string(&res).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
+#[pyfunction]
+fn correct_grammar(text: &str) -> String {
+    GLOBAL_GRAMMAR_CHECKER.correct(text)
+}
+
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -419,11 +458,14 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(summarize, m)?)?;
     m.add_function(wrap_pyfunction!(audit_ai_style_json, m)?)?;
     m.add_function(wrap_pyfunction!(generate_humanizer_prompt, m)?)?;
+    m.add_function(wrap_pyfunction!(check_grammar_json, m)?)?;
+    m.add_function(wrap_pyfunction!(correct_grammar, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PySyntacticMorphology>()?;
     m.add_class::<PyCompoundDecomposer>()?;
     m.add_class::<PyDisambiguator>()?;
     m.add_class::<PyDependencyParser>()?;
+    m.add_class::<PyGrammarChecker>()?;
     Ok(())
 }

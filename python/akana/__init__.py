@@ -22,6 +22,9 @@ try:
         CompoundDecomposer,
         Disambiguator,
         DependencyParser,
+        GrammarChecker,
+        check_grammar_json,
+        correct_grammar,
         analyze_document_json,
         analyze_readability_json,
         syllabify,
@@ -212,6 +215,35 @@ def syntactic_analyze(word: str) -> List[SyntacticParse]:
     raw_parses = analyzer.analyze(word)
     return [SyntacticParse(p) for p in raw_parses]
 
+class GrammarFinding:
+    def __init__(self, raw: Dict[str, Any]):
+        self.category: str = raw.get("category", "")
+        self.start_offset: int = raw.get("start_offset", 0)
+        self.end_offset: int = raw.get("end_offset", 0)
+        self.original_text: str = raw.get("original_text", "")
+        self.replacement: str = raw.get("replacement", "")
+        self.message_tr: str = raw.get("message_tr", "")
+        self.message_en: str = raw.get("message_en", "")
+        self.confidence: float = raw.get("confidence", 1.0)
+
+    def __repr__(self) -> str:
+        return f"<GrammarFinding [{self.category}]: '{self.original_text}' -> '{self.replacement}' ({self.message_tr})>"
+
+class GrammarCheckResult:
+    def __init__(self, raw: Dict[str, Any]):
+        self.original: str = raw.get("original", "")
+        self.corrected: str = raw.get("corrected", "")
+        self.findings: List[GrammarFinding] = [GrammarFinding(f) for f in raw.get("findings", [])]
+        self.processing_time_us: int = raw.get("processing_time_us", 0)
+
+    def __repr__(self) -> str:
+        return f"<GrammarCheckResult: {len(self.findings)} findings, time={self.processing_time_us}µs>"
+
+def check_grammar(text: str) -> GrammarCheckResult:
+    """Performs full grammatical error detection and correction on Turkish text with detailed explanations."""
+    raw_json = check_grammar_json(text)
+    return GrammarCheckResult(json.loads(raw_json))
+
 __version__ = "0.2.0"
 __all__ = [
     "to_turkish_lower",
@@ -233,6 +265,11 @@ __all__ = [
     "decompose_compound",
     "Disambiguator",
     "DependencyParser",
+    "GrammarChecker",
+    "GrammarFinding",
+    "GrammarCheckResult",
+    "check_grammar",
+    "correct_grammar",
     "analyze",
     "analyze_readability",
     "syllabify",
