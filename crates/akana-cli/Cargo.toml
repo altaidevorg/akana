@@ -11,6 +11,6 @@ name = "akana"
 path = "src/main.rs"
 
 [dependencies]
-akana-core = { path = "../akana-core", version = "0.1.1" }
+akana-core = { path = "../akana-core", version = "0.2.0" }
 clap = { workspace = true }
 serde_json = { workspace = true }
