@@ -197,6 +197,7 @@ impl PhonologicalRuleEngine {
         morphology: &TurkishMorphology,
         findings: &mut Vec<GrammarFinding>,
     ) -> bool {
+        // 3A. Check Progressive Tense Under-Narrowing (e.g. "başlayor" -> "başlıyor", "anlamayor" -> "anlamıyor")
         if lower.ends_with("ayor") || lower.ends_with("eyor") {
             let stem = &lower[..lower.len() - 4];
             let ending = &lower[lower.len() - 4..];
@@ -227,6 +228,79 @@ impl PhonologicalRuleEngine {
                 }
             }
         }
+
+        // 3B. Check Over-Narrowing in non-progressive suffixes (Label 12: e.g. "başlıyan" -> "başlayan", "yapmıya" -> "yapmaya")
+        const OVER_NARROWED_PATTERNS: &[(&str, &str)] = &[
+            ("mıyanlar", "mayanlar"), ("miyenler", "meyenler"),
+            ("mıyan", "mayan"), ("miyen", "meyen"),
+            ("mıyarak", "mayarak"), ("miyerek", "meyerek"),
+            ("mıyalım", "mayalım"), ("miyelim", "meyelim"),
+            ("mıya", "maya"), ("miye", "meye"),
+            ("başlıyan", "başlayan"), ("söyliyen", "söyleyen"),
+            ("bekliyen", "bekleyen"), ("yaşıyan", "yaşayan"),
+            ("anlıyan", "anlayan"), ("istiyen", "isteyen"),
+            ("izliyen", "izleyen"), ("dinliyen", "dinleyen"),
+            ("kutlıyan", "kutlayan"), ("özliyen", "özleyen"),
+            ("olmıyan", "olmayan"), ("görmiyen", "görmeyen"),
+            ("bilmiyen", "bilmeyen"), ("gelmiyen", "gelmeyen"),
+        ];
+
+        for &(narrowed, corrected) in OVER_NARROWED_PATTERNS {
+            if lower.ends_with(narrowed) {
+                let stem = &lower[..lower.len() - narrowed.len()];
+                let fixed_lower = format!("{}{}", stem, corrected);
+                let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                    crate::phonology::to_turkish_title(&fixed_lower)
+                } else {
+                    fixed_lower
+                };
+                findings.push(GrammarFinding {
+                    category: ErrorCategory::VowelHarmony,
+                    start_offset: start,
+                    end_offset: end,
+                    original_text: original.to_string(),
+                    replacement,
+                    message_tr: "Yazı dilinde '-yor' dışındaki eklerde (sıfat-fiil, isim-fiil) ünlü daralması gösterilmez.".to_string(),
+                    message_en: "Vowel narrowing should only be written before '-yor', not in participles or nominals.".to_string(),
+                    confidence: 0.98,
+                });
+                return true;
+            }
+        }
+
+        // 3C. Check Colloquial Pronoun Syncopes (Label 14: e.g. "burda" -> "burada", "dışarda" -> "dışarıda")
+        const COLLOQUIAL_SYNCOPES: &[(&str, &str)] = &[
+            ("burda", "burada"), ("burdan", "buradan"), ("burdaki", "buradaki"),
+            ("şurda", "şurada"), ("şurdan", "şuradan"), ("şurdaki", "şuradaki"),
+            ("orda", "orada"), ("ordan", "oradan"), ("ordaki", "oradaki"),
+            ("dışarda", "dışarıda"), ("dışardan", "dışarıdan"), ("dışardaki", "dışarıdaki"),
+            ("içerde", "içeride"), ("içerden", "içeriden"), ("içerdeki", "içerideki"),
+            ("yukarda", "yukarıda"), ("yukardan", "yukarıdan"), ("yukardaki", "yukarıdaki"),
+            ("ilerde", "ileride"), ("ilerden", "ileriden"), ("ilerdeki", "ilerideki"),
+            ("yalınız", "yalnız"), ("yanlız", "yalnız"), ("yalnış", "yanlış"),
+        ];
+
+        for &(colloquial, standard) in COLLOQUIAL_SYNCOPES {
+            if lower == colloquial {
+                let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                    crate::phonology::to_turkish_title(standard)
+                } else {
+                    standard.to_string()
+                };
+                findings.push(GrammarFinding {
+                    category: ErrorCategory::VowelDropping,
+                    start_offset: start,
+                    end_offset: end,
+                    original_text: original.to_string(),
+                    replacement,
+                    message_tr: "Konuşma dilindeki ünlü düşmesi yazı dilinde gösterilmez.".to_string(),
+                    message_en: "Colloquial syncope should not be written in standard Turkish orthography.".to_string(),
+                    confidence: 0.99,
+                });
+                return true;
+            }
+        }
+
         false
     }
 
