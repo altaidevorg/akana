@@ -10,6 +10,7 @@ pub mod ner;
 pub mod analysis;
 pub mod style;
 pub mod syntactic_morphology;
+pub mod grammar;
 
 pub use phonology::*;
 pub use tokenization::*;
@@ -21,6 +22,7 @@ pub use ner::*;
 pub use analysis::*;
 pub use style::*;
 pub use syntactic_morphology::*;
+pub use grammar::*;
 
 /// High-level document model for Turkish NLP analysis.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -42,6 +44,7 @@ pub struct AkanaEngine {
     pub disambiguator: morphology::MorphologicalDisambiguator,
     pub parser: parser::TurkishDependencyParser,
     pub spell_checker: normalization::TurkishSpellChecker,
+    pub grammar_checker: grammar::TurkishGrammarChecker,
 }
 
 impl Default for AkanaEngine {
@@ -56,12 +59,14 @@ impl AkanaEngine {
         let disambiguator = morphology::MorphologicalDisambiguator::new();
         let parser = parser::TurkishDependencyParser::new();
         let spell_checker = normalization::TurkishSpellChecker::new();
+        let grammar_checker = grammar::TurkishGrammarChecker::new();
 
         Self {
             morphology,
             disambiguator,
             parser,
             spell_checker,
+            grammar_checker,
         }
     }
 
