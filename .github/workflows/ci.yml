@@ -35,6 +35,6 @@ jobs:
 
       - name: Build Python extension & Run Pytest
         run: |
-          uv sync
-          uv run --python ${{ matrix.python-version }} maturin develop
+          uv tool install maturin
+          maturin develop
           uv run --python ${{ matrix.python-version }} pytest
