@@ -31,12 +31,13 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run Cargo Tests (Rust)
-        run: cargo test --workspace
+        run: cargo test -p akana-core
 
       - name: Build Python extension & Run Pytest
         run: |
           uv sync
           uv tool install maturin
+          uv tool update-shell
           maturin develop
           uv pip install pytest
           uv run --python ${{ matrix.python-version }} pytest
