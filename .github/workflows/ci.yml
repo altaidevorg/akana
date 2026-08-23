@@ -38,4 +38,5 @@ jobs:
           uv sync
           uv tool install maturin
           maturin develop
+          uv pip install pytest
           uv run --python ${{ matrix.python-version }} pytest
