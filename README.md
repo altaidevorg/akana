@@ -233,7 +233,7 @@ akana parse "Ali güzel kitabı okudu."
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-akana-core = { version = "0.1", default-features = true }
+akana-core = { version = "0.2", default-features = true }
 ```
 
 ```rust
