@@ -42,6 +42,11 @@ try:
         summarize,
         audit_ai_style_json,
         generate_humanizer_prompt,
+        Embeddings,
+        embed,
+        embed_batch,
+        similarity,
+        similarity_vectors,
     )
 except ImportError:
     pass
@@ -295,4 +300,9 @@ __all__ = [
     "FormulaResult",
     "StyleAuditReport",
     "DiagnosticFinding",
+    "Embeddings",
+    "embed",
+    "embed_batch",
+    "similarity",
+    "similarity_vectors",
 ]
