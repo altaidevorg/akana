@@ -11,6 +11,7 @@ pub mod analysis;
 pub mod style;
 pub mod syntactic_morphology;
 pub mod grammar;
+pub mod embeddings;
 
 pub use phonology::*;
 pub use tokenization::*;
@@ -23,6 +24,7 @@ pub use analysis::*;
 pub use style::*;
 pub use syntactic_morphology::*;
 pub use grammar::*;
+pub use embeddings::{TurkishEmbeddings, cosine_similarity};
 
 /// High-level document model for Turkish NLP analysis.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

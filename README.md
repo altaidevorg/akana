@@ -50,6 +50,11 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - Number to Words Converter (Cardinals, Ordinals, Currency).
   - Named Entity Recognition (PER, LOC, ORG, DATE, MONEY, PERCENT).
   - Keyword Extraction (Turkish RAKE) & Extractive Summarization (TextRank).
+- **Embedded Turkish Sentence Embeddings (TurboQuant 2-Bit Model2Vec)**:
+  - **Ultra-lightweight (2.5 MB)**: Built-in 2-bit quantized static sentence embedding model distilled from BGE-M3 (`altaidevorg/turkish-bge-m3-model2vec-turboquant-2bit`).
+  - **256-dimensional** vector embeddings with **92.19%** STSb-TR benchmark accuracy.
+  - **High Throughput**: **>20,000 sentences/sec** on CPU with zero deep learning runtime or PyTorch dependencies.
+  - Built-in cosine similarity and batch embedding support.
 - **Grammatical Error Correction & Detection (GEC/GED) Engine**:
   - **Full GECTurk 25-Category Coverage**: High-precision rule-based grammar and orthography checker covering clitic separations (`de/da`, `ki`, `mi`), consonant assimilation (*kitapda* $\rightarrow$ *kitapta*), vowel syncope (*akılı* $\rightarrow$ *aklı*), consonant softening (*kitapı* $\rightarrow$ *kitabı*), over-narrowing (*başlıyan* $\rightarrow$ *başlayan*), proper noun / numeric apostrophes (*Ahmetler'in* $\rightarrow$ *Ahmetlerin*, *1923'de* $\rightarrow$ *1923'te*), compound modal verbs (*ola bilir* $\rightarrow$ *olabilir*), indefinite determiners (*bir çok* $\rightarrow$ *birçok*), reduplications (*elele* $\rightarrow$ *el ele*), and tautologies.
   - **Hardware SIMD Acceleration**: Accelerated with **StringZilla** for zero-regex, full-text substring and edit-distance scanning reaching **>1,470 sentences/sec** (>16,000 tokens/sec) on a single CPU core.
@@ -189,6 +194,18 @@ for e in entities:
 # Keyword Extraction (Turkish RAKE) & Extractive Summarization (TextRank)
 keywords = akana.extract_keywords("Doğal dil işleme ve morfolojik analiz...", top_k=5)
 summary = akana.summarize("Uzun metin...", max_sentences=2)
+
+# 11. TurboQuant 2-Bit Turkish Sentence Embeddings & Semantic Similarity
+vec = akana.embed("Türkiye'nin başkenti Ankara'dır.")
+print(f"Vector dim: {len(vec)}")  # -> 256
+
+# Semantic cosine similarity
+score = akana.similarity("ev", "evler")
+print(f"Similarity: {score:.4f}")  # -> ~0.9130
+
+# Batch embedding
+vecs = akana.embed_batch(["Merhaba dünya", "Hava bugün çok güzel"])
+print(f"Batch size: {len(vecs)}")  # -> 2
 ```
 
 ---
@@ -224,6 +241,10 @@ akana normalize "yapcam"
 
 # Universal Dependencies Parsing
 akana parse "Ali güzel kitabı okudu."
+
+# Turkish Sentence Embeddings & Similarity
+akana embed "Türkiye'nin başkenti Ankara'dır."
+akana similarity "ev" "evler"
 ```
 
 ---
@@ -240,13 +261,21 @@ akana-core = { version = "0.2", default-features = true }
 use akana_core::grammar::TurkishGrammarChecker;
 use akana_core::morphology::TurkishMorphology;
 use akana_core::syntactic_morphology::TurkishSyntacticMorphology;
+use akana_core::embeddings::TurkishEmbeddings;
 use akana_core::phonology::to_turkish_lower;
 
 fn main() {
     let lower = to_turkish_lower("İSTANBUL");
     println!("Lower: {}", lower);
 
-    // 1. Grammatical Error Correction & Diagnostics
+    // 1. Turkish Sentence Embeddings (TurboQuant 2-Bit)
+    let embeddings = TurkishEmbeddings::new();
+    let vec = embeddings.embed("Türkiye'nin başkenti Ankara'dır.");
+    println!("Embedding dim: {}", vec.len()); // 256
+    let sim = embeddings.similarity("ev", "evler");
+    println!("Similarity: {:.4}", sim); // 0.9130
+
+    // 2. Grammatical Error Correction & Diagnostics
     let grammar_checker = TurkishGrammarChecker::new();
     let res = grammar_checker.check("Ali de geldi, Veli te geldi. Pazardan üç elmalar aldık.");
     println!("Corrected: {}", res.corrected);
@@ -254,14 +283,14 @@ fn main() {
         println!("[{:?}] '{}' -> '{}'", f.category, f.original_text, f.replacement);
     }
 
-    // 2. Standard Morphology
+    // 3. Standard Morphology
     let morph = TurkishMorphology::new();
     let parses = morph.analyze("kitabım");
     for p in parses {
         println!("{}", p.formatted);
     }
 
-    // 3. Syntactic Expressive Morphology (Inflectional Groups)
+    // 4. Syntactic Expressive Morphology (Inflectional Groups)
     let syn_morph = TurkishSyntacticMorphology::new();
     let syn_parses = syn_morph.analyze("geldiğimizde");
     for p in syn_parses {

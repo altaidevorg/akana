@@ -13,6 +13,7 @@ __pycache__/
 *.pyd
 *.pdb
 *.so
+*.dylib
 *.dll
 .pytest_cache/
 *.egg-info/
@@ -21,6 +22,11 @@ build/
 wheels/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+
+# Local Benchmark Caches & Data
+.cache_gecturk/
 
 # IDE & OS files
 .idea/
@@ -33,3 +39,8 @@ Thumbs.db
 # Logs & scratch
 *.log
 scratch/
+.env
+*.env
+
+# Ensure embedded models are NEVER ignored even if broad binary rules are added
+!data/embeddings/**

@@ -147,6 +147,21 @@ enum Commands {
         #[arg(short, long, default_value = "blog")]
         register: String,
     },
+    /// Generate 256-dimensional Turkish sentence embedding vector
+    Embed {
+        /// Text to embed
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+    },
+    /// Calculate semantic cosine similarity between two Turkish texts
+    Similarity {
+        /// First text
+        text_a: String,
+        /// Second text
+        text_b: String,
+    },
 }
 
 fn resolve_input_text(text: Option<String>, file: Option<PathBuf>) -> Result<String, String> {
@@ -295,6 +310,20 @@ fn main() {
             };
             let prompt = style::TurkishHumanizer::generate_prompt(&input, &register);
             println!("{}", prompt);
+        }
+        Commands::Embed { text, file } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+            };
+            let embeddings = embeddings::TurkishEmbeddings::new();
+            let vec = embeddings.embed(&input);
+            println!("{}", serde_json::to_string(&vec).unwrap());
+        }
+        Commands::Similarity { text_a, text_b } => {
+            let embeddings = embeddings::TurkishEmbeddings::new();
+            let score = embeddings.similarity(&text_a, &text_b);
+            println!("{:.4}", score);
         }
     }
 }

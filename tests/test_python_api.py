@@ -255,5 +255,35 @@ def test_humanize_prompt():
     assert "Humanizer" in prompt
     assert "İşlenecek Metin" in prompt
 
+def test_embeddings():
+    # Single embedding
+    vec = akana.embed("Türkçe doğal dil işleme")
+    assert len(vec) == 256
+    assert isinstance(vec[0], float)
 
+    # Batch embedding
+    texts = ["Merhaba dünya", "Türkiye'nin başkenti Ankara'dır", "Yapay zeka"]
+    vecs = akana.embed_batch(texts)
+    assert len(vecs) == 3
+    for v in vecs:
+        assert len(v) == 256
 
+    # Similarity tests
+    sim_identical = akana.similarity("kitap", "kitap")
+    assert abs(sim_identical - 1.0) < 0.01
+
+    sim_related = akana.similarity("ev", "evler")
+    sim_unrelated = akana.similarity("ev", "araba")
+    assert sim_related > sim_unrelated
+
+    # Similarity vectors
+    v1 = akana.embed("ev")
+    v2 = akana.embed("evler")
+    sim_vec = akana.similarity_vectors(v1, v2)
+    assert abs(sim_vec - sim_related) < 1e-4
+
+    # Embeddings class
+    emb = akana.Embeddings()
+    assert emb.dimension == 256
+    assert len(emb.embed("test")) == 256
+    assert emb.similarity("kedi", "kedi") > 0.99
