@@ -64,6 +64,11 @@ impl TurkishEmbeddings {
         self.embed_token_ids(&token_ids)
     }
 
+    /// Tokenize a text string into model token IDs.
+    pub fn tokenize(&self, text: &str) -> Vec<usize> {
+        self.tokenizer.encode(text)
+    }
+
     /// Embed multiple texts into vectors (batch processing).
     pub fn embed_batch(&self, texts: &[&str]) -> Vec<Vec<f32>> {
         texts.iter().map(|t| self.embed(t)).collect()

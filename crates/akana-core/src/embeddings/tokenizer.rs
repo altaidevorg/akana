@@ -184,6 +184,7 @@ impl UnigramTokenizer {
         }
 
         result.reverse();
+        result.dedup_by(|a, b| *a == self.unk_id && *b == self.unk_id);
         result
     }
 
@@ -207,17 +208,11 @@ fn metaspace_pretokenize(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// Lightweight NFKC-like normalization for Turkish text.
-///
-/// Handles the most common cases without pulling in a full Unicode normalization crate.
-/// For the Unigram tokenizer on Turkish text, the main concern is consistent handling
-/// of combining characters and compatibility forms.
+use unicode_normalization::UnicodeNormalization;
+
+/// NFKC Unicode normalization (matches HuggingFace Tokenizer normalizer pipeline).
 fn normalize_nfkc_light(text: &str) -> String {
-    // For Turkish, the text is almost always already in NFC/NFKC form.
-    // The tokenizer vocab was built from NFKC-normalized text, so we just
-    // do a simple pass-through. If exact NFKC compliance becomes needed,
-    // we can add the `unicode-normalization` crate later.
-    text.to_string()
+    text.nfkc().collect()
 }
 
 /// Errors from tokenizer operations.
