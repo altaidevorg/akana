@@ -80,6 +80,7 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 | **AI Writing Style Audit** | N/A | **`27,179 words/sec`** | **StringZilla SIMD** (10.2k words in 375 ms) |
 | **Named Entity Recognition (NER)** | N/A | **`1.14 MB/sec`** | **Linear Token Stream** (1,500 entities in 37 ms) |
 | **Grammar Correction (GEC)** | ~22–55 sent/s (Neural) | **`1,471 sent/s`** | **~27x–67x faster** (20.7k sentences in 14.1s) |
+| **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
 | **Hardware Acceleration** | Pure Python loops | **StringZilla AVX-512 / AVX2 / NEON** | **Native SIMD Instructions** |
 
 ### Grammatical Error Correction Benchmark (GECTurk - arXiv:2309.11346)
@@ -95,6 +96,18 @@ Evaluated across the full 25-category **HuggingFace `GGLab/GECTurk`** benchmark 
 
 * 🚀 **Throughput Speedup:** **26.7x faster** than BERTurk on CPU and **66.8x faster** than mT5 on GPU.
 * 🎯 **Out-of-Domain Superiority:** Akana achieves **75.3% $F_{0.5}$** on real-world human movie reviews (outperforming BERTurk at 52.8% and mT5 at 42.1%) with zero neural generative hallucinations.
+
+### Turkish Sentence Embedding Benchmark (Model2Vec TurboQuant 2-Bit)
+
+Evaluated on standard Turkish Semantic Textual Similarity Benchmark (STSb) test sets:
+
+| Model | Vocab | Size | Compression | STSb (gorkem) | STSb (emrecan) | Speed | Speedup |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| BGE-M3 (Teacher) | 250,002 | ~2,200 MB | 1x | **96.35%** | **79.57%** | 79 s/s | 1.0x |
+| Our Model | **39,655** | **2.50 MB** | **880x** | 92.19% | 63.53% | **20,013 s/s** | **253x** |
+
+* ⚡ **880x Model Compression:** Compressed from **~2,200 MB** to **2.50 MB** embedded directly into the binary with zero runtime dependencies.
+* 🚀 **253x Speedup:** Delivers **20,013 sentences/sec** on CPU with high retention of semantic quality against the teacher model.
 
 ---
 
