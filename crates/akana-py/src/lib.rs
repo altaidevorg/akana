@@ -417,6 +417,7 @@ impl PyGrammarChecker {
 
 lazy_static::lazy_static! {
     static ref GLOBAL_GRAMMAR_CHECKER: akana_core::grammar::TurkishGrammarChecker = akana_core::grammar::TurkishGrammarChecker::new();
+    static ref GLOBAL_EMBEDDINGS: akana_core::TurkishEmbeddings = akana_core::TurkishEmbeddings::new();
 }
 
 #[pyfunction]
@@ -428,6 +429,74 @@ fn check_grammar_json(text: &str) -> PyResult<String> {
 #[pyfunction]
 fn correct_grammar(text: &str) -> String {
     GLOBAL_GRAMMAR_CHECKER.correct(text)
+}
+
+#[pyclass(name = "Embeddings")]
+struct PyEmbeddings {
+    inner: akana_core::TurkishEmbeddings,
+}
+
+#[pymethods]
+impl PyEmbeddings {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: akana_core::TurkishEmbeddings::new(),
+        }
+    }
+
+    fn embed(&self, text: &str) -> Vec<f32> {
+        self.inner.embed(text)
+    }
+
+    fn tokenize(&self, text: &str) -> Vec<usize> {
+        self.inner.tokenize(text)
+    }
+
+    fn embed_batch(&self, texts: Vec<String>) -> Vec<Vec<f32>> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        self.inner.embed_batch(&text_refs)
+    }
+
+    fn similarity(&self, text_a: &str, text_b: &str) -> f32 {
+        self.inner.similarity(text_a, text_b)
+    }
+
+    #[staticmethod]
+    fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> f32 {
+        akana_core::cosine_similarity(&vec_a, &vec_b)
+    }
+
+    #[getter]
+    fn dimension(&self) -> usize {
+        self.inner.embedding_dim()
+    }
+}
+
+#[pyfunction]
+fn embed(text: &str) -> Vec<f32> {
+    GLOBAL_EMBEDDINGS.embed(text)
+}
+
+#[pyfunction]
+fn tokenize_embedding_text(text: &str) -> Vec<usize> {
+    GLOBAL_EMBEDDINGS.tokenize(text)
+}
+
+#[pyfunction]
+fn embed_batch(texts: Vec<String>) -> Vec<Vec<f32>> {
+    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+    GLOBAL_EMBEDDINGS.embed_batch(&text_refs)
+}
+
+#[pyfunction]
+fn similarity(text_a: &str, text_b: &str) -> f32 {
+    GLOBAL_EMBEDDINGS.similarity(text_a, text_b)
+}
+
+#[pyfunction]
+fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> f32 {
+    akana_core::cosine_similarity(&vec_a, &vec_b)
 }
 
 #[pymodule]
@@ -460,6 +529,11 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(generate_humanizer_prompt, m)?)?;
     m.add_function(wrap_pyfunction!(check_grammar_json, m)?)?;
     m.add_function(wrap_pyfunction!(correct_grammar, m)?)?;
+    m.add_function(wrap_pyfunction!(embed, m)?)?;
+    m.add_function(wrap_pyfunction!(tokenize_embedding_text, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_batch, m)?)?;
+    m.add_function(wrap_pyfunction!(similarity, m)?)?;
+    m.add_function(wrap_pyfunction!(similarity_vectors, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PySyntacticMorphology>()?;
@@ -467,5 +541,6 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDisambiguator>()?;
     m.add_class::<PyDependencyParser>()?;
     m.add_class::<PyGrammarChecker>()?;
+    m.add_class::<PyEmbeddings>()?;
     Ok(())
 }
