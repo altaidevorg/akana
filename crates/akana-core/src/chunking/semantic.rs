@@ -2,11 +2,9 @@
 //!
 //! Segments text at semantic topic transitions while respecting size and coherence constraints.
 
-use super::similarity::{
-    calculate_threshold, compute_windowed_similarities, moving_average_filter, savitzky_golay_filter,
-};
+use super::similarity::{calculate_threshold, moving_average_filter, savitzky_golay_filter};
 use super::types::{Chunk, SentenceSpan, ThresholdMode};
-use crate::embeddings::TurkishEmbeddings;
+use crate::embeddings::{cosine_similarity, TurkishEmbeddings};
 use crate::tokenization::SentenceSegmenter;
 use std::sync::Arc;
 
@@ -135,27 +133,50 @@ impl SemanticChunker {
             })
             .collect();
 
-        let embeddings: Vec<Vec<f32>> = spans
-            .iter()
-            .map(|s| s.embedding.as_ref().unwrap().clone())
-            .collect();
+        let n = spans.len();
+        let mut pairwise_sims = Vec::with_capacity(n.saturating_sub(1));
+        let mut has_para_break = Vec::with_capacity(n.saturating_sub(1));
 
-        // 2. Compute windowed similarities between adjacent sentence windows
-        let raw_sims = compute_windowed_similarities(&embeddings, self.similarity_window);
+        for i in 0..n.saturating_sub(1) {
+            let sim = cosine_similarity(
+                spans[i].embedding.as_ref().unwrap(),
+                spans[i + 1].embedding.as_ref().unwrap(),
+            );
+            pairwise_sims.push(sim);
 
-        // 3. Smooth similarities to eliminate high-frequency noise if enabled and sufficient samples
-        let similarities = if self.use_smoothing && raw_sims.len() >= 10 {
-            savitzky_golay_filter(&raw_sims)
-        } else if self.use_smoothing && raw_sims.len() >= 6 {
-            moving_average_filter(&raw_sims, 3)
+            let inter_slice = &text[spans[i].byte_end..spans[i + 1].byte_start];
+            has_para_break.push(inter_slice.contains('\n'));
+        }
+
+        // 2. Smooth similarities to eliminate high-frequency noise if enabled
+        let similarities = if self.use_smoothing && pairwise_sims.len() >= 10 {
+            savitzky_golay_filter(&pairwise_sims)
+        } else if self.use_smoothing && pairwise_sims.len() >= 6 {
+            moving_average_filter(&pairwise_sims, 3)
         } else {
-            raw_sims
+            pairwise_sims.clone()
         };
 
-        // 4. Calculate threshold cutoff
+        // 3. Calculate threshold cutoff
         let threshold = calculate_threshold(&similarities, &self.threshold_mode);
 
-        // 5. Build chunks based on similarity drops and token limit constraints
+        // 4. Identify true breakpoint valleys (raw local minima drops OR paragraph breaks with similarity drop)
+        let mut is_breakpoint = vec![false; n];
+        for i in 0..pairwise_sims.len() {
+            let raw_sim = pairwise_sims[i];
+            let is_drop = raw_sim < threshold;
+
+            let is_raw_valley = (i == 0 || raw_sim <= pairwise_sims[i - 1])
+                && (i == pairwise_sims.len() - 1 || raw_sim <= pairwise_sims[i + 1]);
+
+            let is_para_drop = has_para_break[i] && raw_sim < threshold * 1.25;
+
+            if (is_drop && is_raw_valley) || is_para_drop {
+                is_breakpoint[i + 1] = true; // Cut before span i + 1
+            }
+        }
+
+        // 5. Build chunks based on breakpoints and token limit constraints
         let mut chunks = Vec::new();
         let mut current_sentences = Vec::new();
         let mut current_tokens = 0;
@@ -165,20 +186,15 @@ impl SemanticChunker {
         let mut char_end = spans[0].char_end;
 
         for (i, span) in spans.iter().enumerate() {
-            // Check if we should split before adding this sentence (if we already have sentences)
+            // Check if we should split before adding this sentence
             if !current_sentences.is_empty() {
-                let is_semantic_drop = if i > 0 && (i - 1) < similarities.len() {
-                    similarities[i - 1] < threshold
-                } else {
-                    false
-                };
-
                 let exceeds_size = current_tokens + span.token_count > self.chunk_size;
                 let meets_min_size = current_tokens >= self.min_chunk_size;
                 let meets_min_sentences = current_sentences.len() >= self.min_sentences_per_chunk;
 
-                // Split condition: size limit exceeded OR (semantic drop AND size constraints satisfied)
-                if exceeds_size || (is_semantic_drop && meets_min_size && meets_min_sentences) {
+                let is_cut = is_breakpoint[i] && meets_min_size && meets_min_sentences;
+
+                if exceeds_size || is_cut {
                     let chunk_text = text[byte_start..byte_end].to_string();
                     chunks.push(Chunk::new(
                         chunk_text,

@@ -735,7 +735,7 @@ impl PySDPMChunker {
     ) -> Self {
         let size = chunk_size.unwrap_or(512);
         let mode = parse_threshold_mode(threshold, threshold_mode, threshold_value);
-        let merge_thresh = merge_threshold.unwrap_or(0.65);
+        let merge_thresh = merge_threshold.unwrap_or(0.32);
         let mut chunker = akana_core::chunking::SDPMChunker::new(size, mode, merge_thresh);
 
         if let Some(w) = similarity_window {

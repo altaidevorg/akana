@@ -22,7 +22,7 @@ pub struct SDPMChunker {
 
 impl Default for SDPMChunker {
     fn default() -> Self {
-        Self::new(512, ThresholdMode::Percentile(0.75), 0.65)
+        Self::new(512, ThresholdMode::Percentile(0.75), 0.32)
     }
 }
 

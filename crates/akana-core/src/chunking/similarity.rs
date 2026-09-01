@@ -44,7 +44,7 @@ pub fn compute_windowed_similarities(
 }
 
 /// Averages multiple vectors and L2-normalizes the result.
-fn mean_pool_vectors(vectors: &[Vec<f32>]) -> Vec<f32> {
+pub fn mean_pool_vectors(vectors: &[Vec<f32>]) -> Vec<f32> {
     if vectors.is_empty() {
         return Vec::new();
     }
@@ -132,16 +132,17 @@ pub fn savitzky_golay_filter(scores: &[f32]) -> Vec<f32> {
 /// Scores below this threshold represent topic transitions (valleys/breakpoints).
 pub fn calculate_threshold(scores: &[f32], mode: &ThresholdMode) -> f32 {
     if scores.is_empty() {
-        return 0.70;
+        return 0.32;
     }
 
     match mode {
         ThresholdMode::Similarity(val) => *val,
 
         ThresholdMode::Percentile(p) => {
-            // If p = 0.75 (75th percentile of drops), we split at the bottom 25% similarity scores.
-            let percentile = (1.0 - p.clamp(0.0, 1.0)).clamp(0.0, 1.0);
-            calculate_quantile(scores, percentile)
+            // In semantic chunking, p (e.g. 0.75 or 0.85) defines the tail of similarity drops.
+            // On long documents, we calibrate the quantile to target the most significant drops.
+            let drop_fraction = (1.0 - p.clamp(0.0, 1.0)) * 0.4;
+            calculate_quantile(scores, drop_fraction.clamp(0.02, 0.50))
         }
 
         ThresholdMode::StandardDeviation(k) => {
@@ -164,7 +165,6 @@ pub fn calculate_threshold(scores: &[f32], mode: &ThresholdMode) -> f32 {
 
         ThresholdMode::Auto => {
             if scores.len() >= 6 {
-                // If enough samples, standard deviation with k=0.8 works remarkably well
                 calculate_threshold(scores, &ThresholdMode::StandardDeviation(0.8))
             } else {
                 calculate_threshold(scores, &ThresholdMode::Percentile(0.75))

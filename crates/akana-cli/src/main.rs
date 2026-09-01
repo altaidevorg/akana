@@ -374,7 +374,7 @@ fn main() {
             };
 
             let thresh_mode = match mode.to_lowercase().as_str() {
-                "similarity" | "sim" => chunking::ThresholdMode::Similarity(threshold.unwrap_or(0.70)),
+                "similarity" | "sim" => chunking::ThresholdMode::Similarity(threshold.unwrap_or(0.32)),
                 "percentile" | "perc" => chunking::ThresholdMode::Percentile(threshold.unwrap_or(0.75)),
                 "stdev" | "std" => chunking::ThresholdMode::StandardDeviation(threshold.unwrap_or(0.80)),
                 "iqr" => chunking::ThresholdMode::Interquartile(threshold.unwrap_or(1.0)),
@@ -388,7 +388,7 @@ fn main() {
                     chunker.chunk(&input)
                 }
                 "sdpm" => {
-                    let chunker = chunking::SDPMChunker::new(chunk_size, thresh_mode, 0.65)
+                    let chunker = chunking::SDPMChunker::new(chunk_size, thresh_mode, threshold.unwrap_or(0.32))
                         .with_min_chunk_size(min_chunk_size);
                     chunker.chunk(&input)
                 }
