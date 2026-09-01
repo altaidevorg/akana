@@ -48,6 +48,13 @@ try:
         embed_batch,
         similarity,
         similarity_vectors,
+        Chunk,
+        SemanticChunker,
+        SentenceChunker,
+        SDPMChunker,
+        chunk_semantic,
+        chunk_sentences,
+        chunk_sdpm,
     )
 except ImportError:
     pass
@@ -307,4 +314,11 @@ __all__ = [
     "embed_batch",
     "similarity",
     "similarity_vectors",
+    "Chunk",
+    "SemanticChunker",
+    "SentenceChunker",
+    "SDPMChunker",
+    "chunk_semantic",
+    "chunk_sentences",
+    "chunk_sdpm",
 ]

@@ -499,6 +499,358 @@ fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> f32 {
     akana_core::cosine_similarity(&vec_a, &vec_b)
 }
 
+fn parse_threshold_mode(
+    threshold: Option<f32>,
+    threshold_mode: Option<&str>,
+    threshold_value: Option<f32>,
+) -> akana_core::chunking::ThresholdMode {
+    use akana_core::chunking::ThresholdMode;
+
+    if let Some(mode_str) = threshold_mode {
+        match mode_str.to_lowercase().as_str() {
+            "similarity" | "sim" => {
+                let val = threshold_value.or(threshold).unwrap_or(0.70);
+                ThresholdMode::Similarity(val)
+            }
+            "percentile" | "perc" => {
+                let val = threshold_value.or(threshold).unwrap_or(0.75);
+                ThresholdMode::Percentile(val)
+            }
+            "stdev" | "std" | "standard_deviation" => {
+                let val = threshold_value.or(threshold).unwrap_or(0.80);
+                ThresholdMode::StandardDeviation(val)
+            }
+            "iqr" | "interquartile" => {
+                let val = threshold_value.or(threshold).unwrap_or(1.0);
+                ThresholdMode::Interquartile(val)
+            }
+            "auto" => ThresholdMode::Auto,
+            _ => ThresholdMode::Percentile(threshold.unwrap_or(0.75)),
+        }
+    } else if let Some(t) = threshold {
+        // If 0 < t <= 1 and caller passed threshold as float, treat as Similarity if >= 0.1, or Percentile
+        ThresholdMode::Similarity(t)
+    } else {
+        ThresholdMode::Percentile(0.75)
+    }
+}
+
+#[pyclass(name = "Chunk")]
+#[derive(Clone)]
+struct PyChunk {
+    inner: akana_core::chunking::Chunk,
+}
+
+#[pymethods]
+impl PyChunk {
+    #[getter]
+    fn text(&self) -> String {
+        self.inner.text.clone()
+    }
+
+    #[getter]
+    fn start_index(&self) -> usize {
+        self.inner.start_index
+    }
+
+    #[getter]
+    fn end_index(&self) -> usize {
+        self.inner.end_index
+    }
+
+    #[getter]
+    fn token_count(&self) -> usize {
+        self.inner.token_count
+    }
+
+    #[getter]
+    fn sentences(&self) -> Vec<String> {
+        self.inner.sentences.clone()
+    }
+
+    fn __repr__(&self) -> String {
+        let text_chars: Vec<char> = self.inner.text.chars().collect();
+        let preview = if text_chars.len() > 40 {
+            let s: String = text_chars.into_iter().take(37).collect();
+            format!("{}...", s)
+        } else {
+            self.inner.text.clone()
+        };
+        format!(
+            "<Chunk tokens={} ({}:{}) text='{}'>",
+            self.inner.token_count, self.inner.start_index, self.inner.end_index, preview
+        )
+    }
+
+    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new_bound(py);
+        dict.set_item("text", &self.inner.text)?;
+        dict.set_item("start_index", self.inner.start_index)?;
+        dict.set_item("end_index", self.inner.end_index)?;
+        dict.set_item("token_count", self.inner.token_count)?;
+        dict.set_item("sentences", &self.inner.sentences)?;
+        Ok(dict)
+    }
+}
+
+#[pyclass(name = "SemanticChunker")]
+struct PySemanticChunker {
+    inner: akana_core::chunking::SemanticChunker,
+}
+
+#[pymethods]
+impl PySemanticChunker {
+    #[new]
+    #[pyo3(signature = (
+        chunk_size=None,
+        threshold=None,
+        threshold_mode=None,
+        threshold_value=None,
+        similarity_window=None,
+        min_chunk_size=None,
+        min_sentences_per_chunk=None,
+        use_smoothing=None
+    ))]
+    fn new(
+        chunk_size: Option<usize>,
+        threshold: Option<f32>,
+        threshold_mode: Option<&str>,
+        threshold_value: Option<f32>,
+        similarity_window: Option<usize>,
+        min_chunk_size: Option<usize>,
+        min_sentences_per_chunk: Option<usize>,
+        use_smoothing: Option<bool>,
+    ) -> Self {
+        let size = chunk_size.unwrap_or(512);
+        let mode = parse_threshold_mode(threshold, threshold_mode, threshold_value);
+        let mut chunker = akana_core::chunking::SemanticChunker::new(size, mode);
+
+        if let Some(w) = similarity_window {
+            chunker = chunker.with_similarity_window(w);
+        }
+        if let Some(min_s) = min_chunk_size {
+            chunker = chunker.with_min_chunk_size(min_s);
+        }
+        if let Some(min_sent) = min_sentences_per_chunk {
+            chunker = chunker.with_min_sentences_per_chunk(min_sent);
+        }
+        if let Some(smooth) = use_smoothing {
+            chunker = chunker.with_smoothing(smooth);
+        }
+
+        Self { inner: chunker }
+    }
+
+    fn chunk(&self, text: &str) -> Vec<PyChunk> {
+        self.inner
+            .chunk(text)
+            .into_iter()
+            .map(|c| PyChunk { inner: c })
+            .collect()
+    }
+
+    fn chunk_batch(&self, texts: Vec<String>) -> Vec<Vec<PyChunk>> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        self.inner
+            .chunk_batch(&text_refs)
+            .into_iter()
+            .map(|batch| batch.into_iter().map(|c| PyChunk { inner: c }).collect())
+            .collect()
+    }
+
+    fn __call__(&self, text: &str) -> Vec<PyChunk> {
+        self.chunk(text)
+    }
+}
+
+#[pyclass(name = "SentenceChunker")]
+struct PySentenceChunker {
+    inner: akana_core::chunking::SentenceChunker,
+}
+
+#[pymethods]
+impl PySentenceChunker {
+    #[new]
+    #[pyo3(signature = (chunk_size=None, chunk_overlap=None, min_sentences_per_chunk=None))]
+    fn new(
+        chunk_size: Option<usize>,
+        chunk_overlap: Option<usize>,
+        min_sentences_per_chunk: Option<usize>,
+    ) -> Self {
+        let size = chunk_size.unwrap_or(512);
+        let overlap = chunk_overlap.unwrap_or(0);
+        let min_sent = min_sentences_per_chunk.unwrap_or(1);
+        Self {
+            inner: akana_core::chunking::SentenceChunker::new(size, overlap, min_sent),
+        }
+    }
+
+    fn chunk(&self, text: &str) -> Vec<PyChunk> {
+        self.inner
+            .chunk(text)
+            .into_iter()
+            .map(|c| PyChunk { inner: c })
+            .collect()
+    }
+
+    fn chunk_batch(&self, texts: Vec<String>) -> Vec<Vec<PyChunk>> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        self.inner
+            .chunk_batch(&text_refs)
+            .into_iter()
+            .map(|batch| batch.into_iter().map(|c| PyChunk { inner: c }).collect())
+            .collect()
+    }
+
+    fn __call__(&self, text: &str) -> Vec<PyChunk> {
+        self.chunk(text)
+    }
+}
+
+#[pyclass(name = "SDPMChunker")]
+struct PySDPMChunker {
+    inner: akana_core::chunking::SDPMChunker,
+}
+
+#[pymethods]
+impl PySDPMChunker {
+    #[new]
+    #[pyo3(signature = (
+        chunk_size=None,
+        threshold=None,
+        threshold_mode=None,
+        threshold_value=None,
+        merge_threshold=None,
+        similarity_window=None,
+        min_chunk_size=None
+    ))]
+    fn new(
+        chunk_size: Option<usize>,
+        threshold: Option<f32>,
+        threshold_mode: Option<&str>,
+        threshold_value: Option<f32>,
+        merge_threshold: Option<f32>,
+        similarity_window: Option<usize>,
+        min_chunk_size: Option<usize>,
+    ) -> Self {
+        let size = chunk_size.unwrap_or(512);
+        let mode = parse_threshold_mode(threshold, threshold_mode, threshold_value);
+        let merge_thresh = merge_threshold.unwrap_or(0.65);
+        let mut chunker = akana_core::chunking::SDPMChunker::new(size, mode, merge_thresh);
+
+        if let Some(w) = similarity_window {
+            chunker = chunker.with_similarity_window(w);
+        }
+        if let Some(min_s) = min_chunk_size {
+            chunker = chunker.with_min_chunk_size(min_s);
+        }
+
+        Self { inner: chunker }
+    }
+
+    fn chunk(&self, text: &str) -> Vec<PyChunk> {
+        self.inner
+            .chunk(text)
+            .into_iter()
+            .map(|c| PyChunk { inner: c })
+            .collect()
+    }
+
+    fn chunk_batch(&self, texts: Vec<String>) -> Vec<Vec<PyChunk>> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        self.inner
+            .chunk_batch(&text_refs)
+            .into_iter()
+            .map(|batch| batch.into_iter().map(|c| PyChunk { inner: c }).collect())
+            .collect()
+    }
+
+    fn __call__(&self, text: &str) -> Vec<PyChunk> {
+        self.chunk(text)
+    }
+}
+
+#[pyfunction]
+#[pyo3(signature = (
+    text,
+    chunk_size=None,
+    threshold=None,
+    threshold_mode=None,
+    threshold_value=None,
+    similarity_window=None,
+    min_chunk_size=None,
+    min_sentences_per_chunk=None,
+    use_smoothing=None
+))]
+fn chunk_semantic(
+    text: &str,
+    chunk_size: Option<usize>,
+    threshold: Option<f32>,
+    threshold_mode: Option<&str>,
+    threshold_value: Option<f32>,
+    similarity_window: Option<usize>,
+    min_chunk_size: Option<usize>,
+    min_sentences_per_chunk: Option<usize>,
+    use_smoothing: Option<bool>,
+) -> Vec<PyChunk> {
+    let chunker = PySemanticChunker::new(
+        chunk_size,
+        threshold,
+        threshold_mode,
+        threshold_value,
+        similarity_window,
+        min_chunk_size,
+        min_sentences_per_chunk,
+        use_smoothing,
+    );
+    chunker.chunk(text)
+}
+
+#[pyfunction]
+#[pyo3(signature = (text, chunk_size=None, chunk_overlap=None, min_sentences_per_chunk=None))]
+fn chunk_sentences(
+    text: &str,
+    chunk_size: Option<usize>,
+    chunk_overlap: Option<usize>,
+    min_sentences_per_chunk: Option<usize>,
+) -> Vec<PyChunk> {
+    let chunker = PySentenceChunker::new(chunk_size, chunk_overlap, min_sentences_per_chunk);
+    chunker.chunk(text)
+}
+
+#[pyfunction]
+#[pyo3(signature = (
+    text,
+    chunk_size=None,
+    threshold=None,
+    threshold_mode=None,
+    threshold_value=None,
+    merge_threshold=None,
+    similarity_window=None,
+    min_chunk_size=None
+))]
+fn chunk_sdpm(
+    text: &str,
+    chunk_size: Option<usize>,
+    threshold: Option<f32>,
+    threshold_mode: Option<&str>,
+    threshold_value: Option<f32>,
+    merge_threshold: Option<f32>,
+    similarity_window: Option<usize>,
+    min_chunk_size: Option<usize>,
+) -> Vec<PyChunk> {
+    let chunker = PySDPMChunker::new(
+        chunk_size,
+        threshold,
+        threshold_mode,
+        threshold_value,
+        merge_threshold,
+        similarity_window,
+        min_chunk_size,
+    );
+    chunker.chunk(text)
+}
+
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -534,6 +886,9 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(embed_batch, m)?)?;
     m.add_function(wrap_pyfunction!(similarity, m)?)?;
     m.add_function(wrap_pyfunction!(similarity_vectors, m)?)?;
+    m.add_function(wrap_pyfunction!(chunk_semantic, m)?)?;
+    m.add_function(wrap_pyfunction!(chunk_sentences, m)?)?;
+    m.add_function(wrap_pyfunction!(chunk_sdpm, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PySyntacticMorphology>()?;
@@ -542,5 +897,9 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDependencyParser>()?;
     m.add_class::<PyGrammarChecker>()?;
     m.add_class::<PyEmbeddings>()?;
+    m.add_class::<PyChunk>()?;
+    m.add_class::<PySemanticChunker>()?;
+    m.add_class::<PySentenceChunker>()?;
+    m.add_class::<PySDPMChunker>()?;
     Ok(())
 }

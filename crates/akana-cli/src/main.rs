@@ -162,6 +162,35 @@ enum Commands {
         /// Second text
         text_b: String,
     },
+    /// Split Turkish text into chunks (semantic, sentence, or sdpm)
+    Chunk {
+        /// Text to chunk
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+        /// Chunking strategy: semantic, sentence, sdpm
+        #[arg(short, long, default_value = "semantic")]
+        strategy: String,
+        /// Maximum tokens per chunk
+        #[arg(short = 'c', long, default_value_t = 512)]
+        chunk_size: usize,
+        /// Overlap tokens between chunks (for sentence strategy)
+        #[arg(short, long, default_value_t = 0)]
+        overlap: usize,
+        /// Minimum tokens before allowing a semantic split
+        #[arg(short = 'k', long, default_value_t = 20)]
+        min_chunk_size: usize,
+        /// Similarity threshold (0.0 to 1.0) or cutoff value
+        #[arg(short, long)]
+        threshold: Option<f32>,
+        /// Threshold calculation mode: similarity, percentile, stdev, iqr, auto
+        #[arg(short = 'm', long, default_value = "percentile")]
+        mode: String,
+        /// Output formatted JSON
+        #[arg(short, long)]
+        json: bool,
+    },
 }
 
 fn resolve_input_text(text: Option<String>, file: Option<PathBuf>) -> Result<String, String> {
@@ -324,6 +353,67 @@ fn main() {
             let embeddings = embeddings::TurkishEmbeddings::new();
             let score = embeddings.similarity(&text_a, &text_b);
             println!("{:.4}", score);
+        }
+        Commands::Chunk {
+            text,
+            file,
+            strategy,
+            chunk_size,
+            overlap,
+            min_chunk_size,
+            threshold,
+            mode,
+            json,
+        } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    std::process::exit(1);
+                }
+            };
+
+            let thresh_mode = match mode.to_lowercase().as_str() {
+                "similarity" | "sim" => chunking::ThresholdMode::Similarity(threshold.unwrap_or(0.70)),
+                "percentile" | "perc" => chunking::ThresholdMode::Percentile(threshold.unwrap_or(0.75)),
+                "stdev" | "std" => chunking::ThresholdMode::StandardDeviation(threshold.unwrap_or(0.80)),
+                "iqr" => chunking::ThresholdMode::Interquartile(threshold.unwrap_or(1.0)),
+                "auto" => chunking::ThresholdMode::Auto,
+                _ => chunking::ThresholdMode::Percentile(threshold.unwrap_or(0.75)),
+            };
+
+            let chunks = match strategy.to_lowercase().as_str() {
+                "sentence" => {
+                    let chunker = chunking::SentenceChunker::new(chunk_size, overlap, 1);
+                    chunker.chunk(&input)
+                }
+                "sdpm" => {
+                    let chunker = chunking::SDPMChunker::new(chunk_size, thresh_mode, 0.65)
+                        .with_min_chunk_size(min_chunk_size);
+                    chunker.chunk(&input)
+                }
+                _ => {
+                    let chunker = chunking::SemanticChunker::new(chunk_size, thresh_mode)
+                        .with_min_chunk_size(min_chunk_size);
+                    chunker.chunk(&input)
+                }
+            };
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&chunks).unwrap());
+            } else {
+                println!("Generated {} chunk(s):\n", chunks.len());
+                for (i, chunk) in chunks.iter().enumerate() {
+                    println!(
+                        "--- Chunk #{} (tokens: {}, chars: {}-{}) ---",
+                        i + 1,
+                        chunk.token_count,
+                        chunk.start_index,
+                        chunk.end_index
+                    );
+                    println!("{}\n", chunk.text);
+                }
+            }
         }
     }
 }

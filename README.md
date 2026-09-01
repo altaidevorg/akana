@@ -219,6 +219,22 @@ print(f"Similarity: {score:.4f}")  # -> ~0.9130
 # Batch embedding
 vecs = akana.embed_batch(["Merhaba dünya", "Hava bugün çok güzel"])
 print(f"Batch size: {len(vecs)}")  # -> 2
+
+# 12. Chonkie-Inspired Semantic Chunking for RAG Pipelines
+# SemanticChunker: splits text at topic boundaries based on embedding similarity drops
+semantic_chunker = akana.SemanticChunker(
+    chunk_size=512,
+    threshold_mode="percentile",  # "percentile", "similarity", "stdev", "iqr", "auto"
+    threshold_value=0.75,
+    min_chunk_size=20,
+)
+chunks = semantic_chunker("Kuantum fiziği parçacıkları inceler... Fenerbahçe dün akşam derbide galip geldi...")
+for chunk in chunks:
+    print(f"Chunk ({chunk.token_count} tokens, chars {chunk.start_index}:{chunk.end_index}): {chunk.text}")
+
+# SentenceChunker & SDPMChunker (Semantic Double-Pass Merge)
+sentence_chunker = akana.SentenceChunker(chunk_size=256, chunk_overlap=30)
+sdpm_chunker = akana.SDPMChunker(chunk_size=512, merge_threshold=0.65)
 ```
 
 ---
@@ -258,6 +274,11 @@ akana parse "Ali güzel kitabı okudu."
 # Turkish Sentence Embeddings & Similarity
 akana embed "Türkiye'nin başkenti Ankara'dır."
 akana similarity "ev" "evler"
+
+# Text Chunking (Semantic, Sentence, SDPM)
+akana chunk --strategy semantic --chunk-size 512 --mode percentile -t 0.75 -f document.txt
+akana chunk --strategy sentence --chunk-size 256 --overlap 30 -f document.txt
+akana chunk --strategy sdpm --chunk-size 512 --json -f document.txt
 ```
 
 ---
@@ -267,10 +288,11 @@ akana similarity "ev" "evler"
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-akana-core = { version = "0.2", default-features = true }
+akana-core = { version = "0.3", default-features = true }
 ```
 
 ```rust
+use akana_core::chunking::{SemanticChunker, SentenceChunker, SDPMChunker, ThresholdMode};
 use akana_core::grammar::TurkishGrammarChecker;
 use akana_core::morphology::TurkishMorphology;
 use akana_core::syntactic_morphology::TurkishSyntacticMorphology;
@@ -280,6 +302,13 @@ use akana_core::phonology::to_turkish_lower;
 fn main() {
     let lower = to_turkish_lower("İSTANBUL");
     println!("Lower: {}", lower);
+
+    // 1. Semantic Chunking with TurboQuant Embeddings
+    let chunker = SemanticChunker::new(512, ThresholdMode::Percentile(0.75));
+    let chunks = chunker.chunk("Kuantum mekaniği... Fenerbahçe dün akşam...");
+    for chunk in chunks {
+        println!("Chunk ({} tokens, {}-{}): {}", chunk.token_count, chunk.start_index, chunk.end_index, chunk.text);
+    }
 
     // 1. Turkish Sentence Embeddings (TurboQuant 2-Bit)
     let embeddings = TurkishEmbeddings::new();
