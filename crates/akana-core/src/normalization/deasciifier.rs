@@ -57,7 +57,7 @@ impl TurkishDeasciifier {
             return String::new();
         }
 
-        let is_upper = word.chars().next().map_or(false, |c| c.is_uppercase());
+        let is_upper = word.chars().next().is_some_and(|c| c.is_uppercase());
         let is_all_upper = word.len() > 1 && word.chars().all(|c| c.is_uppercase());
 
         let lower = to_turkish_lower(word);

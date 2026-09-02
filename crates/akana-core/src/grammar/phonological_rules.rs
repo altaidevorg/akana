@@ -93,6 +93,7 @@ impl PhonologicalRuleEngine {
     }
 
     /// 1. Consonant Assimilation / Hardening:
+    ///
     /// When a word ends with a voiceless consonant (f, s, t, k, ç, ş, h, p),
     /// suffixes starting with c/d must harden to ç/t (*kitap-da* -> *kitapta*, *sokak-dan* -> *sokaktan*).
     fn check_consonant_assimilation(
@@ -120,9 +121,9 @@ impl PhonologicalRuleEngine {
                         // Validate that stem is a real Turkish root/stem
                         let parses = morphology.analyze(stem);
                         if !parses.is_empty() {
-                            let fixed_lower = format!("{}{}", stem, good_suf);
+                            let fixed_lower = format!("{stem}{good_suf}");
                             // Preserve original casing
-                            let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                            let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                                 crate::phonology::to_turkish_title(&fixed_lower)
                             } else {
                                 fixed_lower
@@ -148,6 +149,7 @@ impl PhonologicalRuleEngine {
     }
 
     /// 2. Vowel Dropping (Syncope):
+    ///
     /// Words like *akıl*, *burun*, *şehir* drop the second vowel when receiving a vowel-initial suffix (*akıl-ı* -> *aklı*).
     fn check_vowel_drop(
         original: &str,
@@ -162,8 +164,8 @@ impl PhonologicalRuleEngine {
                 let suf = &lower[root.len()..];
                 if let Some(first_suf_char) = suf.chars().next() {
                     if is_turkish_vowel(first_suf_char) {
-                        let fixed_lower = format!("{}{}", contracted, suf);
-                        let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                        let fixed_lower = format!("{contracted}{suf}");
+                        let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                             crate::phonology::to_turkish_title(&fixed_lower)
                         } else {
                             fixed_lower
@@ -175,8 +177,8 @@ impl PhonologicalRuleEngine {
                             end_offset: end,
                             original_text: original.to_string(),
                             replacement,
-                            message_tr: format!("'{}' sözcüğü ünlüyle başlayan ek aldığında ikinci hecedeki dar ünlü düşer (ünlü düşmesi).", root),
-                            message_en: format!("The second vowel in '{}' drops when attached to a vowel-initial suffix.", root),
+                            message_tr: format!("'{root}' sözcüğü ünlüyle başlayan ek aldığında ikinci hecedeki dar ünlü düşer (ünlü düşmesi)."),
+                            message_en: format!("The second vowel in '{root}' drops when attached to a vowel-initial suffix."),
                             confidence: 0.99,
                         });
                         return true;
@@ -188,6 +190,7 @@ impl PhonologicalRuleEngine {
     }
 
     /// 3. Vowel Narrowing:
+    ///
     /// Progressive tense "-yor" narrows preceding open vowels 'a'/'e' (*başla-yor* -> *başlıyor*, *gözle-yor* -> *gözlüyor*).
     fn check_vowel_narrowing(
         original: &str,
@@ -203,12 +206,11 @@ impl PhonologicalRuleEngine {
             let ending = &lower[lower.len() - 4..];
             if !stem.is_empty() {
                 let verb_root = format!("{}{}", stem, if ending.starts_with('a') { "a" } else { "e" });
-                let parses = morphology.analyze(&verb_root);
-                if parses.iter().any(|p| p.primary_pos == crate::morphology::pos::PrimaryPos::Verb) {
+                if morphology.analyze(&verb_root).iter().any(|p| p.primary_pos == crate::morphology::pos::PrimaryPos::Verb) {
                     let last_v = last_vowel(stem).unwrap_or('a');
                     let narrow_v = harmony_i_type(last_v);
-                    let fixed_lower = format!("{}{}yor", stem, narrow_v);
-                    let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                    let fixed_lower = format!("{stem}{narrow_v}yor");
+                    let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                         crate::phonology::to_turkish_title(&fixed_lower)
                     } else {
                         fixed_lower
@@ -246,10 +248,9 @@ impl PhonologicalRuleEngine {
         ];
 
         for &(narrowed, corrected) in OVER_NARROWED_PATTERNS {
-            if lower.ends_with(narrowed) {
-                let stem = &lower[..lower.len() - narrowed.len()];
-                let fixed_lower = format!("{}{}", stem, corrected);
-                let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+            if let Some(stem) = lower.strip_suffix(narrowed) {
+                let fixed_lower = format!("{stem}{corrected}");
+                let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                     crate::phonology::to_turkish_title(&fixed_lower)
                 } else {
                     fixed_lower
@@ -282,7 +283,7 @@ impl PhonologicalRuleEngine {
 
         for &(colloquial, standard) in COLLOQUIAL_SYNCOPES {
             if lower == colloquial {
-                let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                     crate::phonology::to_turkish_title(standard)
                 } else {
                     standard.to_string()
@@ -305,6 +306,7 @@ impl PhonologicalRuleEngine {
     }
 
     /// 4. Consonant Softening / Voicing:
+    ///
     /// When words ending in p, ç, t, k take a vowel-initial suffix, they mutate to b, c, d, ğ/g (*kitap-ı* -> *kitabı*).
     fn check_consonant_softening(
         original: &str,
@@ -326,8 +328,8 @@ impl PhonologicalRuleEngine {
                 let suf = &lower[unmutated.len()..];
                 if let Some(first_suf_char) = suf.chars().next() {
                     if is_turkish_vowel(first_suf_char) {
-                        let fixed_lower = format!("{}{}", mutated, suf);
-                        let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                        let fixed_lower = format!("{mutated}{suf}");
+                        let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                             crate::phonology::to_turkish_title(&fixed_lower)
                         } else {
                             fixed_lower
@@ -339,8 +341,8 @@ impl PhonologicalRuleEngine {
                             end_offset: end,
                             original_text: original.to_string(),
                             replacement,
-                            message_tr: format!("'{}' sözcüğü ünlüyle başlayan ek aldığında sonundaki ünsüz yumuşar (ünsüz yumuşaması).", unmutated),
-                            message_en: format!("The final consonant in '{}' undergoes voicing when a vowel-initial suffix is added.", unmutated),
+                            message_tr: format!("'{unmutated}' sözcüğü ünlüyle başlayan ek aldığında sonundaki ünsüz yumuşar (ünsüz yumuşaması)."),
+                            message_en: format!("The final consonant in '{unmutated}' undergoes voicing when a vowel-initial suffix is added."),
                             confidence: 0.98,
                         });
                         return true;
@@ -352,6 +354,7 @@ impl PhonologicalRuleEngine {
     }
 
     /// 5. Suffix Vowel Harmony (Major/Minor Vowel Harmony):
+    ///
     /// Suffixes must match backness/frontness of the stem (*araba-ler* -> *arabalar*, *ev-lar* -> *evler*).
     fn check_suffix_vowel_harmony(
         original: &str,
@@ -374,9 +377,9 @@ impl PhonologicalRuleEngine {
                 let expected_pl = if is_front_vowel(stem_v) { "ler" } else { "lar" };
                 let current_pl = &lower[lower.len() - 3..];
                 if current_pl != expected_pl {
-                    let fixed_lower = format!("{}{}", stem, expected_pl);
+                    let fixed_lower = format!("{stem}{expected_pl}");
                     if !morphology.analyze(&fixed_lower).is_empty() {
-                        let replacement = if original.chars().next().map_or(false, |c| c.is_uppercase()) {
+                        let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
                             crate::phonology::to_turkish_title(&fixed_lower)
                         } else {
                             fixed_lower
@@ -387,8 +390,8 @@ impl PhonologicalRuleEngine {
                             end_offset: end,
                             original_text: original.to_string(),
                             replacement,
-                            message_tr: format!("Çoğul eki büyük ünlü uyumuna göre '-{}' olmalıdır.", expected_pl),
-                            message_en: format!("The plural suffix must be '-{}' to satisfy vowel harmony.", expected_pl),
+                            message_tr: format!("Çoğul eki büyük ünlü uyumuna göre '-{expected_pl}' olmalıdır."),
+                            message_en: format!("The plural suffix must be '-{expected_pl}' to satisfy vowel harmony."),
                             confidence: 0.97,
                         });
                     }

@@ -91,6 +91,7 @@ impl LexiconRuleEngine {
     }
 
     /// 1. Compound Verbs:
+    ///
     /// Validates correct separate vs attached spelling based on sound change laws.
     fn check_compound_verbs(
         tokens: &[&str],

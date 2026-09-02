@@ -203,7 +203,7 @@ impl TurkishNER {
             }
 
             // 4. Multi-token Organization Pattern (Capitalized sequence ending with ORG suffix)
-            if clean_tok.chars().next().map_or(false, |c| c.is_uppercase()) {
+            if clean_tok.chars().next().is_some_and(|c| c.is_uppercase()) {
                 let mut j = i;
                 let mut org_matched = false;
                 while j < n {
@@ -221,7 +221,7 @@ impl TurkishNER {
                         org_matched = true;
                         break;
                     }
-                    if !cur_clean.chars().next().map_or(false, |c| c.is_uppercase()) && cur_clean != "ve" && cur_clean != "ile" {
+                    if !cur_clean.chars().next().is_some_and(|c| c.is_uppercase()) && cur_clean != "ve" && cur_clean != "ile" {
                         break;
                     }
                     j += 1;

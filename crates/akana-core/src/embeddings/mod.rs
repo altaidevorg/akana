@@ -177,7 +177,7 @@ mod tests {
         // L2 norm should be ~1.0
         let norm: f32 = vec.iter().map(|x| x * x).sum::<f32>().sqrt();
         assert!((norm - 1.0).abs() < 0.01,
-            "expected L2 norm ~1.0, got {}", norm);
+            "expected L2 norm ~1.0, got {norm}");
     }
 
     #[test]
@@ -185,7 +185,7 @@ mod tests {
         let emb = TurkishEmbeddings::new();
         let score = emb.similarity("kedi", "kedi");
         assert!((score - 1.0).abs() < 0.01,
-            "identical texts should have similarity ~1.0, got {}", score);
+            "identical texts should have similarity ~1.0, got {score}");
     }
 
     #[test]
@@ -196,8 +196,7 @@ mod tests {
 
         // Related words should have higher similarity than unrelated
         assert!(score_related > score_unrelated,
-            "expected 'ev-evler' ({}) > 'ev-araba' ({})",
-            score_related, score_unrelated);
+            "expected 'ev-evler' ({score_related}) > 'ev-araba' ({score_unrelated})");
     }
 
     #[test]

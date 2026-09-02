@@ -94,7 +94,8 @@ impl AgreementRuleEngine {
         Self::check_subject_verb_inanimate_plural(tokens, token_spans, &disambiguated, parser, findings);
     }
 
-    /// 1. Quantity Determiner + Noun Plural Redundancy
+    /// 1. Quantity Determiner + Noun Plural Redundancy:
+    ///
     /// In Turkish, nouns modified by quantity words or numbers must be singular (*üç elmalar* -> *üç elma*).
     fn check_quantity_plural_agreement(
         tokens: &[&str],
@@ -142,7 +143,8 @@ impl AgreementRuleEngine {
         }
     }
 
-    /// 2. Genitive - Possessive Concord
+    /// 2. Genitive - Possessive Concord:
+    ///
     /// *benim* requires 1st sing possessive (*evim*), *senin* requires 2nd sing (*evin*), etc.
     fn check_genitive_possessive_concord(
         tokens: &[&str],
@@ -183,15 +185,15 @@ impl AgreementRuleEngine {
                         } else {
                             format!("{}m", get_i_type_harmonic_vowel(&next_lower))
                         };
-                        let replacement = format!("{}{}", next_tok, poss_suffix);
+                        let replacement = format!("{next_tok}{poss_suffix}");
                         findings.push(GrammarFinding {
                             category: ErrorCategory::GenitivePossessiveClash,
                             start_offset: next_start,
                             end_offset: next_end,
                             original_text: next_tok.to_string(),
                             replacement,
-                            message_tr: format!("'{}' tamlayanından sonra gelen isim iyelik eki almalıdır (tamlayan-tamlanan uyumu).", pron),
-                            message_en: format!("Nouns following the genitive '{}' must take matching possessive suffix.", pron),
+                            message_tr: format!("'{pron}' tamlayanından sonra gelen isim iyelik eki almalıdır (tamlayan-tamlanan uyumu)."),
+                            message_en: format!("Nouns following the genitive '{pron}' must take matching possessive suffix."),
                             confidence: 0.94,
                         });
                     }
@@ -201,6 +203,7 @@ impl AgreementRuleEngine {
     }
 
     /// 3. Correlative Conjunction Polarity (*Ne... Ne...*):
+    ///
     /// In standard Turkish, sentences with *ne ... ne ...* must have an affirmative (positive) predicate (*Ne geldi ne gitti* vs *Ne gelmedi ne gitmedi* ❌).
     fn check_correlative_conjunctions(
         tokens: &[&str],
@@ -244,6 +247,7 @@ impl AgreementRuleEngine {
     }
 
     /// 4. Negation Concord (*Kimse / Hiçbiri*):
+    ///
     /// Must be used with negative verbs (*Kimse geldi* ❌ -> *Kimse gelmedi*).
     fn check_negation_concord(
         tokens: &[&str],
@@ -277,6 +281,7 @@ impl AgreementRuleEngine {
     }
 
     /// 5. Subject-Verb Plurality & Inanimate Agreement:
+    ///
     /// Inanimate / abstract plural subjects take a singular verb (*Ağaçlar döküldüler* -> *Ağaçlar döküldü*).
     fn check_subject_verb_inanimate_plural(
         tokens: &[&str],

@@ -204,7 +204,7 @@ impl UnigramTokenizer {
 /// "merhaba dünya" → ["▁merhaba", "▁dünya"]
 fn metaspace_pretokenize(text: &str) -> Vec<String> {
     text.split_whitespace()
-        .map(|word| format!("{}{}", METASPACE, word))
+        .map(|word| format!("{METASPACE}{word}"))
         .collect()
 }
 
@@ -224,7 +224,7 @@ pub enum TokenizerError {
 impl std::fmt::Display for TokenizerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TokenizerError::InvalidJson(msg) => write!(f, "invalid tokenizer JSON: {}", msg),
+            TokenizerError::InvalidJson(msg) => write!(f, "invalid tokenizer JSON: {msg}"),
         }
     }
 }
@@ -283,7 +283,7 @@ mod tests {
         // ▁merhaba (38114) should be in the output (if it's a single piece)
         // or the constituent pieces should be present
         assert!(ids.contains(&38114) || ids.len() > 4,
-            "expected ▁merhaba token or sub-pieces, got {:?}", ids);
+            "expected ▁merhaba token or sub-pieces, got {ids:?}");
     }
 
     #[test]

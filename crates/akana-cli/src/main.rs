@@ -162,6 +162,35 @@ enum Commands {
         /// Second text
         text_b: String,
     },
+    /// Split Turkish text into chunks (semantic, sentence, or sdpm)
+    Chunk {
+        /// Text to chunk
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+        /// Chunking strategy: semantic, sentence, sdpm
+        #[arg(short, long, default_value = "semantic")]
+        strategy: String,
+        /// Maximum tokens per chunk
+        #[arg(short = 'c', long, default_value_t = 512)]
+        chunk_size: usize,
+        /// Overlap tokens between chunks (for sentence strategy)
+        #[arg(short, long, default_value_t = 0)]
+        overlap: usize,
+        /// Minimum tokens before allowing a semantic split
+        #[arg(short = 'k', long, default_value_t = 20)]
+        min_chunk_size: usize,
+        /// Similarity threshold (0.0 to 1.0) or cutoff value
+        #[arg(short, long)]
+        threshold: Option<f32>,
+        /// Threshold calculation mode: similarity, percentile, stdev, iqr, auto
+        #[arg(short = 'm', long, default_value = "percentile")]
+        mode: String,
+        /// Output formatted JSON
+        #[arg(short, long)]
+        json: bool,
+    },
 }
 
 fn resolve_input_text(text: Option<String>, file: Option<PathBuf>) -> Result<String, String> {
@@ -181,7 +210,7 @@ fn main() {
         Commands::Tokenize { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let tokens = tokenization::TurkishTokenizer::tokenize_words(&input);
             println!("{}", serde_json::to_string_pretty(&tokens).unwrap());
@@ -200,7 +229,7 @@ fn main() {
             let gen = morphology::TurkishGenerator::new();
             let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
             if let Some(surface) = gen.generate(&lemma, &tag_refs) {
-                println!("Generated surface: {}", surface);
+                println!("Generated surface: {surface}");
             } else {
                 println!("Failed to generate surface form.");
             }
@@ -208,26 +237,26 @@ fn main() {
         Commands::Deasciify { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let res = normalization::TurkishDeasciifier::deasciify(&input);
-            println!("{}", res);
+            println!("{res}");
         }
         Commands::Asciify { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let res = normalization::TurkishAsciifier::asciify(&input);
-            println!("{}", res);
+            println!("{res}");
         }
         Commands::Normalize { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let res = normalization::TurkishInformalNormalizer::normalize_text(&input);
-            println!("{}", res);
+            println!("{res}");
         }
         Commands::Spellcheck { word } => {
             let checker = normalization::TurkishSpellChecker::new();
@@ -237,7 +266,7 @@ fn main() {
         Commands::Parse { sentence, file } => {
             let input = match resolve_input_text(sentence, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let tokens = tokenization::TurkishTokenizer::tokenize_words(&input);
             let parser = parser::TurkishDependencyParser::new();
@@ -247,7 +276,7 @@ fn main() {
         Commands::Readability { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let report = readability::analyze_readability(&input);
             println!("{}", serde_json::to_string_pretty(&report).unwrap());
@@ -260,12 +289,12 @@ fn main() {
         Commands::Number { num } => {
             let words = normalization::TurkishNumberConverter::number_to_words(num);
             let ordinal = normalization::TurkishNumberConverter::ordinal_to_words(num);
-            println!("Cardinal: {}\nOrdinal:  {}", words, ordinal);
+            println!("Cardinal: {words}\nOrdinal:  {ordinal}");
         }
         Commands::Ner { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let entities = ner::TurkishNER::extract_entities(&input);
             println!("{}", serde_json::to_string_pretty(&entities).unwrap());
@@ -273,7 +302,7 @@ fn main() {
         Commands::Keywords { text, file, top_k } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let extractor = analysis::TurkishKeywordExtractor::new();
             let kw = extractor.extract_keywords(&input, top_k);
@@ -282,7 +311,7 @@ fn main() {
         Commands::Summarize { text, file, sentences } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let summarizer = analysis::TurkishSummarizer::new();
             let summary = summarizer.summarize(&input, sentences);
@@ -297,7 +326,7 @@ fn main() {
         Commands::AiAudit { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let auditor = style::TurkishStyleAuditor::new();
             let report = auditor.audit(&input);
@@ -306,15 +335,15 @@ fn main() {
         Commands::HumanizePrompt { text, file, register } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let prompt = style::TurkishHumanizer::generate_prompt(&input, &register);
-            println!("{}", prompt);
+            println!("{prompt}");
         }
         Commands::Embed { text, file } => {
             let input = match resolve_input_text(text, file) {
                 Ok(t) => t,
-                Err(e) => { eprintln!("Error: {}", e); std::process::exit(1); }
+                Err(e) => { eprintln!("Error: {e}"); std::process::exit(1); }
             };
             let embeddings = embeddings::TurkishEmbeddings::new();
             let vec = embeddings.embed(&input);
@@ -323,7 +352,68 @@ fn main() {
         Commands::Similarity { text_a, text_b } => {
             let embeddings = embeddings::TurkishEmbeddings::new();
             let score = embeddings.similarity(&text_a, &text_b);
-            println!("{:.4}", score);
+            println!("{score:.4}");
+        }
+        Commands::Chunk {
+            text,
+            file,
+            strategy,
+            chunk_size,
+            overlap,
+            min_chunk_size,
+            threshold,
+            mode,
+            json,
+        } => {
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("Error: {e}");
+                    std::process::exit(1);
+                }
+            };
+
+            let thresh_mode = match mode.to_lowercase().as_str() {
+                "similarity" | "sim" => chunking::ThresholdMode::Similarity(threshold.unwrap_or(0.32)),
+                "percentile" | "perc" => chunking::ThresholdMode::Percentile(threshold.unwrap_or(0.75)),
+                "stdev" | "std" => chunking::ThresholdMode::StandardDeviation(threshold.unwrap_or(0.80)),
+                "iqr" => chunking::ThresholdMode::Interquartile(threshold.unwrap_or(1.0)),
+                "auto" => chunking::ThresholdMode::Auto,
+                _ => chunking::ThresholdMode::Percentile(threshold.unwrap_or(0.75)),
+            };
+
+            let chunks = match strategy.to_lowercase().as_str() {
+                "sentence" => {
+                    let chunker = chunking::SentenceChunker::new(chunk_size, overlap, 1);
+                    chunker.chunk(&input)
+                }
+                "sdpm" => {
+                    let chunker = chunking::SDPMChunker::new(chunk_size, thresh_mode, threshold.unwrap_or(0.32))
+                        .with_min_chunk_size(min_chunk_size);
+                    chunker.chunk(&input)
+                }
+                _ => {
+                    let chunker = chunking::SemanticChunker::new(chunk_size, thresh_mode)
+                        .with_min_chunk_size(min_chunk_size);
+                    chunker.chunk(&input)
+                }
+            };
+
+            if json {
+                println!("{}", serde_json::to_string_pretty(&chunks).unwrap());
+            } else {
+                println!("Generated {} chunk(s):\n", chunks.len());
+                for (i, chunk) in chunks.iter().enumerate() {
+                    println!(
+                        "--- Chunk #{} (tokens: {}, chars: {}-{}) ---",
+                        i + 1,
+                        chunk.token_count,
+                        chunk.start_index,
+                        chunk.end_index
+                    );
+                    println!("{}\n", chunk.text);
+                }
+            }
         }
     }
 }

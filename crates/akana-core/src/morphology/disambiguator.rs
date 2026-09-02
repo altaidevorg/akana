@@ -58,7 +58,7 @@ impl MorphologicalDisambiguator {
             }
 
             let is_sentence_final = i == n - 1 || (i == n - 2 && matches!(tokens[n - 1], "." | "!" | "?" | "…"));
-            let is_first_char_upper = tokens[i].chars().next().map_or(false, |c| c.is_uppercase());
+            let is_first_char_upper = tokens[i].chars().next().is_some_and(|c| c.is_uppercase());
 
             let mut best_idx = 0;
             let mut best_score = f32::MIN;

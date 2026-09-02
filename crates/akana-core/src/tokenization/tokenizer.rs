@@ -151,7 +151,7 @@ impl TurkishTokenizer {
             // 5. Alphabetic Words, Turkish Proper Nouns, and Abbreviations
             if first_char.is_alphabetic() {
                 // Quick check for email (if contains '@' before whitespace)
-                if remaining.split_whitespace().next().map_or(false, |w| w.contains('@')) {
+                if remaining.split_whitespace().next().is_some_and(|w| w.contains('@')) {
                     if let Some(mat) = EMAIL_REGEX.find(remaining) {
                         let token_text = mat.as_str();
                         tokens.push(Token::new(token_text, TokenType::Email, start_idx, start_idx + token_text.len()));
@@ -223,7 +223,7 @@ impl TurkishTokenizer {
     }
 
     /// Fast tokenization returning only string slices.
-    pub fn tokenize_words<'a>(text: &'a str) -> Vec<&'a str> {
+    pub fn tokenize_words(text: &str) -> Vec<&str> {
         Self::tokenize(text).into_iter().map(|t| t.text).collect()
     }
 }

@@ -140,7 +140,7 @@ impl TurkishMorphology {
             }
 
             // e) Diminutive k-drop (e.g. "küçü" from "küçük", "mini" from "minik", "sıca" from "sıcak")
-            let with_k = format!("{}k", candidate_stem);
+            let with_k = format!("{candidate_stem}k");
             self.match_and_traverse(&with_k, &suffix_part, clean, &mut results, false, false, false);
         }
 
@@ -198,6 +198,7 @@ impl TurkishMorphology {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn match_and_traverse(
         &self,
         root_cand: &str,
@@ -249,6 +250,7 @@ impl TurkishMorphology {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn search_suffix_chain(
         &self,
         state: MorphState,
@@ -265,7 +267,7 @@ impl TurkishMorphology {
 
         if remaining_suffix.is_empty() {
             let formatted = format!("[{}:{}] {}:{}", item.lemma, item.primary_pos.as_str(), item.root, tags.join("+"));
-            let is_upper = original_surface.chars().next().map_or(false, |c| c.is_uppercase());
+            let is_upper = original_surface.chars().next().is_some_and(|c| c.is_uppercase());
             let score = if item.secondary_pos == SecondaryPos::ProperNoun {
                 if is_upper { 0.98 } else { 0.6 }
             } else {
@@ -288,8 +290,7 @@ impl TurkishMorphology {
         for tr in &self.transitions {
             if tr.from_state == state {
                 for &template in tr.surface_templates {
-                    if remaining_suffix.starts_with(template) {
-                        let next_remaining = &remaining_suffix[template.len()..];
+                    if let Some(next_remaining) = remaining_suffix.strip_prefix(template) {
                         let tag_str = tr.suffix_type.tag().to_string();
                         tags.push(tag_str);
 

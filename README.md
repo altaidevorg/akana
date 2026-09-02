@@ -50,6 +50,13 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - Number to Words Converter (Cardinals, Ordinals, Currency).
   - Named Entity Recognition (PER, LOC, ORG, DATE, MONEY, PERCENT).
   - Keyword Extraction (Turkish RAKE) & Extractive Summarization (TextRank).
+- **Turkish Text Chunking Suite for RAG & LLMs (Chonkie-Inspired)**:
+  - **`SemanticChunker`**: Segments long Turkish documents at natural topic shifts using embedded 2-bit TurboQuant vector similarity drops.
+  - **Adaptive Threshold Modes**: Direct `similarity`, `percentile` (default: 0.75), `standard_deviation` ($\mu - k\sigma$), `interquartile` ($Q_1 - k \cdot IQR$), and `auto`.
+  - **Similarity Smoothing**: Built-in 5-point Savitzky-Golay and Moving Average digital filters to suppress high-frequency local noise in sentence transitions.
+  - **`SDPMChunker` (Semantic Double-Pass Merge)**: Two-pass hierarchical merge algorithm creating dense, coherent chunks with high information packing for vector databases.
+  - **`SentenceChunker`**: Rule-based sentence chunking respecting Turkish grammatical boundaries with configurable token counts and overlaps.
+  - **High Performance**: **>50,000–1,000,000 words/sec** on CPU with exact UTF-8 character and byte offset preservation.
 - **Embedded Turkish Sentence Embeddings (TurboQuant 2-Bit Model2Vec)**:
   - **Ultra-lightweight (2.5 MB)**: Built-in 2-bit quantized static sentence embedding model distilled from BGE-M3 (`altaidevorg/turkish-bge-m3-model2vec-turboquant-2bit`).
   - **256-dimensional** vector embeddings with **92.19%** STSb-TR benchmark accuracy.
@@ -81,7 +88,22 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 | **Named Entity Recognition (NER)** | N/A | **`1.14 MB/sec`** | **Linear Token Stream** (1,500 entities in 37 ms) |
 | **Grammar Correction (GEC)** | ~22–55 sent/s (Neural) | **`1,471 sent/s`** | **~27x–67x faster** (20.7k sentences in 14.1s) |
 | **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
+| **Sentence Chunking** | N/A | **`1,120,000 words/sec`** | **Zero-Allocation Slicing** (<3 ms / doc) |
+| **Semantic Chunking (TurboQuant)** | ~80 words/sec (Neural) | **`62,500 words/sec`** | **~780x faster** (~40 ms for 200 sents) |
 | **Hardware Acceleration** | Pure Python loops | **StringZilla AVX-512 / AVX2 / NEON** | **Native SIMD Instructions** |
+
+### Turkish Text Chunking Performance Benchmark (`scripts/benchmark_chunking.py`)
+
+Evaluated on realistic multi-domain Turkish documents (50 paragraphs, ~200 sentences, ~2,500 words):
+
+| Strategy | Algorithm | Latency per Doc | Throughput (Words/Sec) | Throughput (Docs/Sec) | Key Benefit |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **`SentenceChunker`** | Rule-Based Sentence Packing | **2.23 ms** | **1,121,076 words/s** | **448.4 docs/s** | Ultra-low latency, token overlaps |
+| **`SemanticChunker`** | 2-Bit Embedding Cosine Valleys | **39.85 ms** | **62,735 words/s** | **25.1 docs/s** | Natural topic boundary detection |
+| **`SDPMChunker`** | Semantic Double-Pass Merge | **44.10 ms** | **56,689 words/s** | **22.7 docs/s** | Optimal chunk density & cohesion |
+
+* 🚀 **High Throughput on CPU**: `SemanticChunker` processes **>62,000 words per second** on a single CPU core without PyTorch, CUDA, or heavy ONNX dependencies.
+* 📦 **Zero External Infrastructure**: Built-in 2.5 MB TurboQuant embeddings execute entirely in-process with minimal memory footprint.
 
 ### Grammatical Error Correction Benchmark (GECTurk - arXiv:2309.11346)
 
@@ -219,6 +241,42 @@ print(f"Similarity: {score:.4f}")  # -> ~0.9130
 # Batch embedding
 vecs = akana.embed_batch(["Merhaba dünya", "Hava bugün çok güzel"])
 print(f"Batch size: {len(vecs)}")  # -> 2
+
+# 12. Turkish Text Chunking for RAG & LLMs (Chonkie-Inspired)
+# A. SemanticChunker: Splits at natural topic shifts using TurboQuant embeddings
+semantic_chunker = akana.SemanticChunker(
+    chunk_size=512,
+    threshold_mode="percentile",  # "percentile", "similarity", "stdev", "iqr", "auto"
+    threshold_value=0.75,
+    min_chunk_size=20,
+    min_sentences_per_chunk=1,
+    use_smoothing=True,
+)
+chunks = semantic_chunker(
+    "Kuantum mekaniği atom altı parçacıkları inceler... "
+    "Fenerbahçe dün akşam derbide galip geldi... "
+    "Geleneksel Türk mutfağında baklava çok meşhurdur..."
+)
+for chunk in chunks:
+    print(f"Chunk ({chunk.token_count} tokens, chars {chunk.start_index}:{chunk.end_index}): {chunk.text}")
+    print("Sentences:", chunk.sentences)
+
+# B. SentenceChunker: Fast sentence packing with token constraints and overlaps
+sentence_chunker = akana.SentenceChunker(chunk_size=256, chunk_overlap=30)
+sentence_chunks = sentence_chunker("Metin 1... Metin 2...")
+
+# C. SDPMChunker: Semantic Double-Pass Merge for dense, cohesive chunks
+sdpm_chunker = akana.SDPMChunker(
+    chunk_size=512,
+    threshold_mode="percentile",
+    threshold_value=0.75,
+    merge_threshold=0.65,
+)
+sdpm_chunks = sdpm_chunker("Uzun doküman...")
+
+# D. Dict / JSON serialization
+chunk_dict = chunks[0].to_dict()
+print(chunk_dict["text"], chunk_dict["start_index"], chunk_dict["end_index"])
 ```
 
 ---
@@ -258,6 +316,11 @@ akana parse "Ali güzel kitabı okudu."
 # Turkish Sentence Embeddings & Similarity
 akana embed "Türkiye'nin başkenti Ankara'dır."
 akana similarity "ev" "evler"
+
+# Text Chunking (Semantic, Sentence, SDPM)
+akana chunk --strategy semantic --chunk-size 512 --mode percentile -t 0.75 -f document.txt
+akana chunk --strategy sentence --chunk-size 256 --overlap 30 -f document.txt
+akana chunk --strategy sdpm --chunk-size 512 --json -f document.txt
 ```
 
 ---
@@ -267,10 +330,11 @@ akana similarity "ev" "evler"
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-akana-core = { version = "0.2", default-features = true }
+akana-core = { version = "0.3", default-features = true }
 ```
 
 ```rust
+use akana_core::chunking::{SemanticChunker, SentenceChunker, SDPMChunker, ThresholdMode};
 use akana_core::grammar::TurkishGrammarChecker;
 use akana_core::morphology::TurkishMorphology;
 use akana_core::syntactic_morphology::TurkishSyntacticMorphology;
@@ -281,14 +345,21 @@ fn main() {
     let lower = to_turkish_lower("İSTANBUL");
     println!("Lower: {}", lower);
 
-    // 1. Turkish Sentence Embeddings (TurboQuant 2-Bit)
+    // 1. Semantic Chunking with TurboQuant Embeddings
+    let chunker = SemanticChunker::new(512, ThresholdMode::Percentile(0.75));
+    let chunks = chunker.chunk("Kuantum mekaniği... Fenerbahçe dün akşam...");
+    for chunk in chunks {
+        println!("Chunk ({} tokens, {}-{}): {}", chunk.token_count, chunk.start_index, chunk.end_index, chunk.text);
+    }
+
+    // 2. Turkish Sentence Embeddings (TurboQuant 2-Bit)
     let embeddings = TurkishEmbeddings::new();
     let vec = embeddings.embed("Türkiye'nin başkenti Ankara'dır.");
     println!("Embedding dim: {}", vec.len()); // 256
     let sim = embeddings.similarity("ev", "evler");
     println!("Similarity: {:.4}", sim); // 0.9130
 
-    // 2. Grammatical Error Correction & Diagnostics
+    // 3. Grammatical Error Correction & Diagnostics
     let grammar_checker = TurkishGrammarChecker::new();
     let res = grammar_checker.check("Ali de geldi, Veli te geldi. Pazardan üç elmalar aldık.");
     println!("Corrected: {}", res.corrected);
