@@ -91,6 +91,13 @@ impl SDPMChunker {
         }
 
         // Pass 2: Merge adjacent chunks that are semantically coherent and fit in chunk_size
+        // Pre-build character-to-byte boundary map for O(1) byte-slice text extraction
+        let char_byte_offsets: Vec<usize> = text
+            .char_indices()
+            .map(|(b, _)| b)
+            .chain(std::iter::once(text.len()))
+            .collect();
+
         let mut merged_chunks: Vec<Chunk> = Vec::new();
 
         for chunk in initial_chunks {
@@ -103,12 +110,14 @@ impl SDPMChunker {
 
                     if sim >= self.merge_threshold {
                         // Merge `chunk` into `prev`
-                        let start = prev.start_index;
-                        let end = chunk.end_index;
-                        let full_text: String = text.chars().skip(start).take(end - start).collect();
+                        let start_char = prev.start_index.min(char_byte_offsets.len().saturating_sub(1));
+                        let end_char = chunk.end_index.min(char_byte_offsets.len().saturating_sub(1));
+                        let byte_start = char_byte_offsets[start_char];
+                        let byte_end = char_byte_offsets[end_char];
+                        let full_text = text[byte_start..byte_end].to_string();
 
                         prev.text = full_text;
-                        prev.end_index = end;
+                        prev.end_index = chunk.end_index;
                         prev.token_count = combined_tokens;
                         prev.sentences.extend(chunk.sentences);
                         continue;

@@ -126,4 +126,28 @@ fn test_similarity_math_utilities() {
 
     let thresh_auto = calculate_threshold(&raw, &ThresholdMode::Auto);
     assert!(thresh_auto > 0.0);
+
+    // Test mean_pool_vectors safety
+    use akana_core::chunking::mean_pool_vectors;
+    assert!(mean_pool_vectors(&[]).is_empty());
+    let v1 = vec![0.5, 0.5];
+    let v2 = vec![0.5, 0.5];
+    let pooled = mean_pool_vectors(&[v1, v2]);
+    assert_eq!(pooled.len(), 2);
+    let norm = (pooled[0] * pooled[0] + pooled[1] * pooled[1]).sqrt();
+    assert!((norm - 1.0).abs() < 1e-5);
+}
+
+#[test]
+fn test_sdpm_multibyte_turkish_merging() {
+    let chunker = SDPMChunker::new(512, ThresholdMode::Similarity(0.70), 0.30);
+    let text = "Şiir ve edebiyat; Türkçe'nin zenginliğini, inceliğini ve çağrışım gücünü gösterir. \
+                Öykücülük ve romancılık ise toplumsal dönüşümleri derinlemesine işler. \
+                İçerik çözümlemesi dilbilimsel yöntemlerle yürütülür.";
+
+    let chunks = chunker.chunk(text);
+    assert!(!chunks.is_empty());
+    for chunk in &chunks {
+        assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+    }
 }

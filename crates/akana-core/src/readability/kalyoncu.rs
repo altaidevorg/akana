@@ -110,8 +110,8 @@ impl KalyoncuAnalyzer {
                 // 2. Lemma/Root in list
                 // 3. Verb infinitive (-mak / -mek) in list
                 // 4. Proper noun or numeral
-                let lemma_mak = format!("{}mak", best_lemma);
-                let lemma_mek = format!("{}mek", best_lemma);
+                let lemma_mak = format!("{best_lemma}mak");
+                let lemma_mek = format!("{best_lemma}mek");
 
                 let is_familiar = is_proper_or_num
                     || self.word_list.contains(lower.as_str())

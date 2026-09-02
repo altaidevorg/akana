@@ -101,7 +101,7 @@ impl TurkishInformalNormalizer {
                 let stem_ends_with_vowel = super::super::phonology::is_turkish_vowel(stem.chars().last().unwrap());
 
                 let buffer = if stem_ends_with_vowel { "y" } else if is_back { "a" } else { "e" };
-                let harmonic_c = if is_back { "c" } else { "c" };
+                let harmonic_c = "c";
                 let suffix = match ending {
                     "am" => if is_back { "ağım" } else { "eceğim" },
                     "an" => if is_back { "aksın" } else { "eksin" },
@@ -125,7 +125,7 @@ impl TurkishInformalNormalizer {
                 } else if ending == "ez" {
                     format!("{}{}{}", stem, buffer, "ceğiz")
                 } else {
-                    format!("{}{}{}{}", stem, buffer, harmonic_c, suffix)
+                    format!("{stem}{buffer}{harmonic_c}{suffix}")
                 };
 
                 if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
@@ -147,7 +147,7 @@ impl TurkishInformalNormalizer {
         for (end, repl) in prog_endings {
             if lower.ends_with(end) && lower.len() > end.len() {
                 let stem = &lower[..lower.len() - end.len()];
-                let candidate = format!("{}{}", stem, repl);
+                let candidate = format!("{stem}{repl}");
                 if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
                     return candidate;
                 }
@@ -165,7 +165,7 @@ impl TurkishInformalNormalizer {
         for (end, repl) in neg_prog_endings {
             if lower.ends_with(end) && lower.len() > end.len() {
                 let stem = &lower[..lower.len() - end.len()];
-                let candidate = format!("{}{}", stem, repl);
+                let candidate = format!("{stem}{repl}");
                 if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
                     return candidate;
                 }

@@ -138,10 +138,10 @@ impl SemanticChunker {
         let mut has_para_break = Vec::with_capacity(n.saturating_sub(1));
 
         for i in 0..n.saturating_sub(1) {
-            let sim = cosine_similarity(
-                spans[i].embedding.as_ref().unwrap(),
-                spans[i + 1].embedding.as_ref().unwrap(),
-            );
+            let sim = match (spans[i].embedding.as_ref(), spans[i + 1].embedding.as_ref()) {
+                (Some(e1), Some(e2)) => cosine_similarity(e1, e2),
+                _ => 0.0,
+            };
             pairwise_sims.push(sim);
 
             let inter_slice = &text[spans[i].byte_end..spans[i + 1].byte_start];

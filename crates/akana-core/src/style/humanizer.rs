@@ -119,7 +119,7 @@ impl TurkishHumanizer {
 
         let mut prompt = String::new();
         prompt.push_str("# Türkçe Metin Doğallaştırma (Humanizer) Yönergesi\n\n");
-        prompt.push_str(&format!("**Hedef Register:** {}\n", register_guidance));
+        prompt.push_str(&format!("**Hedef Register:** {register_guidance}\n"));
         prompt.push_str(&format!("**Tespit Edilen AI Skoru:** {:.1} / 100 ({})\n\n", report.ai_score, report.verdict));
         prompt.push_str("Lütfen aşağıdaki metni şu somut kurallara uyarak insan Türkçesine dönüştür:\n\n");
 

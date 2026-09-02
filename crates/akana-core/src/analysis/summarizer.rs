@@ -84,14 +84,14 @@ impl TurkishSummarizer {
         let mut scores = vec![1.0f32; n];
         for _ in 0..25 {
             let mut next_scores = vec![1.0 - d; n];
-            for i in 0..n {
+            for (i, next_score) in next_scores.iter_mut().enumerate().take(n) {
                 for j in 0..n {
                     if i == j || weights[j][i] == 0.0 {
                         continue;
                     }
                     let sum_out: f32 = weights[j].iter().sum();
                     if sum_out > 0.0 {
-                        next_scores[i] += d * (weights[j][i] / sum_out) * scores[j];
+                        *next_score += d * (weights[j][i] / sum_out) * scores[j];
                     }
                 }
             }

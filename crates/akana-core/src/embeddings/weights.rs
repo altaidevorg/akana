@@ -75,11 +75,11 @@ impl EmbeddingWeights {
 /// 2-bit quantization levels: `{0, 1, 2, 3}` → centered to `{-1.5, -0.5, 0.5, 1.5}` × scale.
 #[inline]
 fn dequantize_row(packed: &[u8], scale: f32, output: &mut [f32]) {
-    for j in 0..EMBEDDING_DIM {
+    for (j, out) in output.iter_mut().enumerate().take(EMBEDDING_DIM) {
         let byte_idx = j / PACK_FACTOR;
         let bit_offset = (j % PACK_FACTOR) * 2;
         let quantized = (packed[byte_idx] >> bit_offset) & 0b11;
-        output[j] = (quantized as f32 - 1.5) * scale;
+        *out = (quantized as f32 - 1.5) * scale;
     }
 }
 
@@ -315,11 +315,11 @@ pub enum WeightsError {
 impl std::fmt::Display for WeightsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            WeightsError::Io(msg) => write!(f, "IO error: {}", msg),
-            WeightsError::MissingArray(name) => write!(f, "missing array '{}' in NPZ", name),
-            WeightsError::InvalidNpy(msg) => write!(f, "invalid NPY format: {}", msg),
+            WeightsError::Io(msg) => write!(f, "IO error: {msg}"),
+            WeightsError::MissingArray(name) => write!(f, "missing array '{name}' in NPZ"),
+            WeightsError::InvalidNpy(msg) => write!(f, "invalid NPY format: {msg}"),
             WeightsError::DimensionMismatch { expected, got } => {
-                write!(f, "dimension mismatch: expected {}, got {}", expected, got)
+                write!(f, "dimension mismatch: expected {expected}, got {got}")
             }
         }
     }

@@ -145,7 +145,7 @@ impl OrthographyRuleEngine {
 
                         if p == expected_p && (stem.ends_with('r') || stem.ends_with('n') || stem.ends_with('k') || stem.ends_with('z') || stem.ends_with('d') || stem.ends_with('t') || stem.ends_with('m') || stem.ends_with('ş') || stem.ends_with('l')) {
                             let original_stem = &trimmed_tok[..trimmed_tok.len() - p.len()];
-                            let replacement = format!("{} {}{}", original_stem, expected_p, punct);
+                            let replacement = format!("{original_stem} {expected_p}{punct}");
                             findings.push(GrammarFinding {
                                 category: ErrorCategory::ParticleMi,
                                 start_offset: start,
@@ -166,7 +166,7 @@ impl OrthographyRuleEngine {
             for &suf in &mi_suffixes {
                 if lower.ends_with(suf) && lower.len() > suf.len() + 2 {
                     let original_stem = &trimmed_tok[..trimmed_tok.len() - suf.len()];
-                    let replacement = format!("{} {}{}", original_stem, suf, punct);
+                    let replacement = format!("{original_stem} {suf}{punct}");
                     findings.push(GrammarFinding {
                         category: ErrorCategory::ParticleMi,
                         start_offset: start,
@@ -199,9 +199,9 @@ impl OrthographyRuleEngine {
                             start_offset: start,
                             end_offset: end,
                             original_text: tok.to_string(),
-                            replacement: format!("{}{}", expected_p, punct),
-                            message_tr: format!("Soru eki ünlü uyumuna göre '{}' olmalıdır.", expected_p),
-                            message_en: format!("The question particle should be '{}' according to vowel harmony.", expected_p),
+                            replacement: format!("{expected_p}{punct}"),
+                            message_tr: format!("Soru eki ünlü uyumuna göre '{expected_p}' olmalıdır."),
+                            message_en: format!("The question particle should be '{expected_p}' according to vowel harmony."),
                             confidence: 0.99,
                         });
                     }
@@ -257,8 +257,8 @@ impl OrthographyRuleEngine {
             let (start, end) = token_spans[i];
 
             // Case A: Standalone "te" or "ta"
-            if lower == "te" || lower == "ta" {
-                if i > 0 {
+            if (lower == "te" || lower == "ta")
+                && i > 0 {
                     let prev_tok = tokens[i - 1];
                     let prev_lower = to_turkish_lower(prev_tok);
                     let correct_clitic = if let Some(v) = last_vowel(&prev_lower) {
@@ -277,12 +277,11 @@ impl OrthographyRuleEngine {
                         confidence: 0.99,
                     });
                 }
-            }
 
             // Case B: High frequency pronoun/adverb clitic merges & apostrophes (e.g. "yada", "hemde", "ya'da")
             for &(merged, split) in FREQUENT_CLITIC_MERGES {
                 if lower == merged {
-                    let is_upper = tok.chars().next().map_or(false, |c| c.is_uppercase());
+                    let is_upper = tok.chars().next().is_some_and(|c| c.is_uppercase());
                     let replacement = if is_upper {
                         to_turkish_title(split)
                     } else {
@@ -307,12 +306,12 @@ impl OrthographyRuleEngine {
                 let prev_lower = to_turkish_lower(prev_tok);
                 if SPLIT_LOCATIVE_STEMS.contains(&prev_lower.as_str()) {
                     let prev_start = token_spans[i - 1].0;
-                    let replacement = format!("{}{}", prev_tok, tok);
+                    let replacement = format!("{prev_tok}{tok}");
                     findings.push(GrammarFinding {
                         category: ErrorCategory::CliticDeDa,
                         start_offset: prev_start,
                         end_offset: end,
-                        original_text: format!("{} {}", prev_tok, tok),
+                        original_text: format!("{prev_tok} {tok}"),
                         replacement,
                         message_tr: "Bulunma/ayrılma durum eki (-de/-da/-den/-dan) sözcüğe bitişik yazılır.".to_string(),
                         message_en: "The locative/ablative case suffix must be written attached to the noun.".to_string(),
@@ -322,8 +321,8 @@ impl OrthographyRuleEngine {
             }
 
             // Case D: Attached "de/da" on finite verbs (e.g. "gittide", "bilsede", "yaparda", "gelmişde")
-            if lower.ends_with("de") || lower.ends_with("da") || lower.ends_with("te") || lower.ends_with("ta") {
-                if lower.len() > 4 {
+            if (lower.ends_with("de") || lower.ends_with("da") || lower.ends_with("te") || lower.ends_with("ta"))
+                && lower.len() > 4 {
                     let stem = &lower[..lower.len() - 2];
                     let parses = morphology.analyze(stem);
                     let is_common_noun = parses.iter().any(|p| p.primary_pos == PrimaryPos::Noun && (p.morpheme_tags.is_empty() || p.morpheme_tags == vec!["Noun".to_string()]));
@@ -340,7 +339,7 @@ impl OrthographyRuleEngine {
                         } else {
                             "de"
                         };
-                        let replacement = format!("{} {}", original_stem, correct_clitic);
+                        let replacement = format!("{original_stem} {correct_clitic}");
                         findings.push(GrammarFinding {
                             category: ErrorCategory::CliticDeDa,
                             start_offset: start,
@@ -353,7 +352,6 @@ impl OrthographyRuleEngine {
                         });
                     }
                 }
-            }
         }
     }
 
@@ -386,7 +384,7 @@ impl OrthographyRuleEngine {
                 let compound = format!("{}{}", prev_tok, "ki");
                 if SOMBAHCEMI_EXCEPTIONS.contains(compound.as_str()) {
                     let prev_start = token_spans[i - 1].0;
-                    let is_upper = tokens[i - 1].chars().next().map_or(false, |c| c.is_uppercase());
+                    let is_upper = tokens[i - 1].chars().next().is_some_and(|c| c.is_uppercase());
                     let replacement = if is_upper {
                         to_turkish_title(&compound)
                     } else {
@@ -399,8 +397,8 @@ impl OrthographyRuleEngine {
                         end_offset: end,
                         original_text: format!("{} {}", tokens[i - 1], tok),
                         replacement,
-                        message_tr: format!("'{}' sözcüğündeki 'ki' kalıplaşmış olduğu için bitişik yazılır.", compound),
-                        message_en: format!("'{}' is a lexicalized exception and must be written attached.", compound),
+                        message_tr: format!("'{compound}' sözcüğündeki 'ki' kalıplaşmış olduğu için bitişik yazılır."),
+                        message_en: format!("'{compound}' is a lexicalized exception and must be written attached."),
                         confidence: 0.99,
                     });
                 }
@@ -409,7 +407,7 @@ impl OrthographyRuleEngine {
             // Case B: Merged non-lexicalized ki (e.g. "yazıkki", "demekki", "tabiiki")
             for &(merged, split) in MERGED_KI_EXCEPTIONS {
                 if lower == merged {
-                    let is_upper = tok.chars().next().map_or(false, |c| c.is_uppercase());
+                    let is_upper = tok.chars().next().is_some_and(|c| c.is_uppercase());
                     let replacement = if is_upper {
                         to_turkish_title(split)
                     } else {
@@ -436,7 +434,7 @@ impl OrthographyRuleEngine {
 
                 if is_verb {
                     let original_stem = &tok[..tok.len() - 2];
-                    let replacement = format!("{} ki", original_stem);
+                    let replacement = format!("{original_stem} ki");
                     findings.push(GrammarFinding {
                         category: ErrorCategory::CliticKi,
                         start_offset: start,
@@ -471,7 +469,7 @@ impl OrthographyRuleEngine {
                     let end = offset + pat.len();
                     let original_snippet = &text[digit_start..end];
                     let fixed_suf = pat.replace('.', "");
-                    let replacement = format!("{}{}", num_str, fixed_suf);
+                    let replacement = format!("{num_str}{fixed_suf}");
                     findings.push(GrammarFinding {
                         category: ErrorCategory::ApostropheNumberDate,
                         start_offset: digit_start,
@@ -507,8 +505,8 @@ impl OrthographyRuleEngine {
                     let suf_lower = to_turkish_lower(suf);
                     let is_voiceless_digit = matches!(last_digit, '3' | '4' | '5');
 
-                    if is_voiceless_digit {
-                        if suf_lower.starts_with("de") || suf_lower.starts_with("da") || suf_lower.starts_with("den") || suf_lower.starts_with("dan") {
+                    if is_voiceless_digit
+                        && (suf_lower.starts_with("de") || suf_lower.starts_with("da") || suf_lower.starts_with("den") || suf_lower.starts_with("dan")) {
                             let hardened_suf = if suf_lower.starts_with("de") {
                                 format!("te{}", &suf[2..])
                             } else if suf_lower.starts_with("da") {
@@ -518,7 +516,7 @@ impl OrthographyRuleEngine {
                             } else {
                                 format!("tan{}", &suf[3..])
                             };
-                            let replacement = format!("{}'{}", root, hardened_suf);
+                            let replacement = format!("{root}'{hardened_suf}");
                             findings.push(GrammarFinding {
                                 category: ErrorCategory::ApostropheNumberDate,
                                 start_offset: start,
@@ -530,7 +528,6 @@ impl OrthographyRuleEngine {
                                 confidence: 0.99,
                             });
                         }
-                    }
                 } else {
                     // B. Plural / derivational on proper noun (e.g. Ahmetler'in, Türk'ler)
                     let root_lower = to_turkish_lower(root);
@@ -539,7 +536,7 @@ impl OrthographyRuleEngine {
                     let is_plural_or_deriv_suffix = suf_lower.starts_with("ler") || suf_lower.starts_with("lar") || suf_lower.starts_with("li") || suf_lower.starts_with("lı") || suf_lower.starts_with("lu") || suf_lower.starts_with("lü") || suf_lower.starts_with("siz") || suf_lower.starts_with("sız") || suf_lower.starts_with("suz") || suf_lower.starts_with("süz") || suf_lower.starts_with("lik") || suf_lower.starts_with("lık") || suf_lower.starts_with("luk") || suf_lower.starts_with("lük");
 
                     if is_plural_or_deriv_root || is_plural_or_deriv_suffix {
-                        let replacement = format!("{}{}", root, suf);
+                        let replacement = format!("{root}{suf}");
                         findings.push(GrammarFinding {
                             category: ErrorCategory::ApostropheProperNoun,
                             start_offset: start,
@@ -675,7 +672,7 @@ impl OrthographyRuleEngine {
             };
 
             if let Some(comp_str) = compound {
-                let is_upper = tokens[i - 1].chars().next().map_or(false, |c| c.is_uppercase());
+                let is_upper = tokens[i - 1].chars().next().is_some_and(|c| c.is_uppercase());
                 let replacement = if is_upper {
                     to_turkish_title(comp_str)
                 } else {
@@ -687,8 +684,8 @@ impl OrthographyRuleEngine {
                     end_offset: end,
                     original_text: format!("{} {}", tokens[i - 1], tok),
                     replacement,
-                    message_tr: format!("'{}' belgisiz sözcüğü bitişik yazılır.", comp_str),
-                    message_en: format!("'{}' is a compound determiner/pronoun and must be written attached.", comp_str),
+                    message_tr: format!("'{comp_str}' belgisiz sözcüğü bitişik yazılır."),
+                    message_en: format!("'{comp_str}' is a compound determiner/pronoun and must be written attached."),
                     confidence: 0.99,
                 });
             }

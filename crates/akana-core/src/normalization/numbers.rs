@@ -92,7 +92,7 @@ impl TurkishNumberConverter {
 
         let text = result_parts.join(" ");
         if is_negative {
-            format!("eksi {}", text)
+            format!("eksi {text}")
         } else {
             text
         }
@@ -169,7 +169,7 @@ impl TurkishNumberConverter {
             words
         };
 
-        format!("{}{}", base, ordinal_suffix)
+        format!("{base}{ordinal_suffix}")
     }
 
     /// Converts currency amounts into Turkish words.
@@ -233,7 +233,7 @@ impl TurkishNumberConverter {
                     current_triplet += val;
                 }
             } else {
-                return Err(format!("Unrecognized number word: {}", w));
+                return Err(format!("Unrecognized number word: {w}"));
             }
         }
 

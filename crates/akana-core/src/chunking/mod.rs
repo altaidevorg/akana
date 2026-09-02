@@ -31,7 +31,7 @@ pub use sdpm::SDPMChunker;
 pub use semantic::SemanticChunker;
 pub use sentence::SentenceChunker;
 pub use similarity::{
-    calculate_quantile, calculate_threshold, compute_windowed_similarities, moving_average_filter,
-    savitzky_golay_filter,
+    calculate_quantile, calculate_threshold, compute_windowed_similarities, mean_pool_vectors,
+    moving_average_filter, savitzky_golay_filter,
 };
 pub use types::{Chunk, SentenceSpan, ThresholdMode};

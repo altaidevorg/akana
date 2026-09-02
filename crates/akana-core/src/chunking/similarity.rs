@@ -26,7 +26,7 @@ pub fn compute_windowed_similarities(
             similarities.push(sim);
         } else {
             // Left window: max(0, i + 1 - w) ..= i
-            let left_start = if i + 1 >= w { i + 1 - w } else { 0 };
+            let left_start = (i + 1).saturating_sub(w);
             let left_slice = &embeddings[left_start..=i];
             let left_vec = mean_pool_vectors(left_slice);
 
@@ -44,15 +44,28 @@ pub fn compute_windowed_similarities(
 }
 
 /// Averages multiple vectors and L2-normalizes the result.
+///
+/// All vectors are expected to have the same dimension. If dimensions differ or are empty,
+/// this function safely processes up to the common dimension `vectors[0].len()`.
 pub fn mean_pool_vectors(vectors: &[Vec<f32>]) -> Vec<f32> {
     if vectors.is_empty() {
         return Vec::new();
     }
     let dim = vectors[0].len();
+    if dim == 0 {
+        return Vec::new();
+    }
+
+    debug_assert!(
+        vectors.iter().all(|v| v.len() == dim),
+        "All vectors must have identical dimensions"
+    );
+
     let mut pooled = vec![0.0f32; dim];
 
     for v in vectors {
-        for (i, val) in v.iter().enumerate() {
+        let valid_len = v.len().min(dim);
+        for (i, val) in v[..valid_len].iter().enumerate() {
             pooled[i] += val;
         }
     }
@@ -84,7 +97,7 @@ pub fn moving_average_filter(scores: &[f32], window_size: usize) -> Vec<f32> {
     let mut smoothed = Vec::with_capacity(n);
 
     for i in 0..n {
-        let start = if i >= half { i - half } else { 0 };
+        let start = i.saturating_sub(half);
         let end = (i + half + 1).min(n);
         let slice = &scores[start..end];
         let sum: f32 = slice.iter().sum();
@@ -228,5 +241,19 @@ mod tests {
 
         let std_thresh = calculate_threshold(&scores, &ThresholdMode::StandardDeviation(1.0));
         assert!(std_thresh > 0.3 && std_thresh < 0.8);
+    }
+
+    #[test]
+    fn test_mean_pool_vectors() {
+        assert!(mean_pool_vectors(&[]).is_empty());
+        assert!(mean_pool_vectors(&[vec![], vec![]]).is_empty());
+
+        let v1 = vec![1.0, 0.0, 0.0];
+        let v2 = vec![0.0, 1.0, 0.0];
+        let pooled = mean_pool_vectors(&[v1, v2]);
+        assert_eq!(pooled.len(), 3);
+        let norm: f32 = pooled.iter().map(|x| x * x).sum::<f32>().sqrt();
+        assert!((norm - 1.0).abs() < 1e-5);
+        assert!((pooled[0] - pooled[1]).abs() < 1e-5);
     }
 }

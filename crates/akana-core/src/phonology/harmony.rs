@@ -27,12 +27,10 @@ pub fn harmony_i_type(vowel: char) -> char {
         } else {
             'i'
         }
+    } else if is_rounded_vowel(vowel) {
+        'u'
     } else {
-        if is_rounded_vowel(vowel) {
-            'u'
-        } else {
-            'ı'
-        }
+        'ı'
     }
 }
 

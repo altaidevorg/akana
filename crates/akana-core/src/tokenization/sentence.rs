@@ -36,9 +36,7 @@ impl SentenceSegmenter {
             let is_sentence_ender = match token.text {
                 "." => {
                     // Make sure it's not preceded by abbreviation or part of number
-                    if token.token_type == TokenType::Abbreviation {
-                        false
-                    } else if i > 0 && tokens[i - 1].token_type == TokenType::Abbreviation {
+                    if token.token_type == TokenType::Abbreviation || (i > 0 && tokens[i - 1].token_type == TokenType::Abbreviation) {
                         false
                     } else if i > 0 && tokens[i - 1].token_type == TokenType::Number {
                         // Ordinal number check (e.g. "3. madde", "1. kat")
