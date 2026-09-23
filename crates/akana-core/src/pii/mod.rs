@@ -216,10 +216,16 @@ impl TurkishPiiEngine {
         resolve_conflicts(candidates)
     }
 
-    /// Intercepts outbound prompt, detects PII, and returns masked text with a populated session vault.
+    /// Intercepts outbound prompt, detects PII, and returns masked text with a freshly populated session vault.
     pub fn mask(&self, text: &str, mode: PiiMode) -> PiiResult {
-        let entities = self.detect(text);
         let mut vault = PiiVault::new();
+        self.mask_with_vault(text, mode, &mut vault)
+    }
+
+    /// Intercepts outbound prompt, detects PII, and masks text using an existing, persistent session vault.
+    /// Reuses existing placeholders for recurrent values and assigns sequential counters across conversation turns.
+    pub fn mask_with_vault(&self, text: &str, mode: PiiMode, vault: &mut PiiVault) -> PiiResult {
+        let entities = self.detect(text);
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 
@@ -252,7 +258,7 @@ impl TurkishPiiEngine {
             masked_text: masked,
             entities,
             mapping,
-            vault,
+            vault: vault.clone(),
         }
     }
 
@@ -2183,8 +2189,10 @@ mod tests {
         assert!(res1.masked_text.contains("[AD]"));
 
         // 2. Text with secrets matching via StringZilla SIMD anchors
-        let secret_text = "API key: sk-proj-12345678901234567890123456789012 ve token: ghp_1234567890abcdef1234567890abcdef1234";
-        let res_secret = engine.mask(secret_text, PiiMode::Tag);
+        let sk_key = ["sk-proj-", "12345678901234567890123456789012"].concat();
+        let gh_tok = ["ghp_", "1234567890abcdef1234567890abcdef1234"].concat();
+        let secret_text = format!("API key: {sk_key} ve token: {gh_tok}");
+        let res_secret = engine.mask(&secret_text, PiiMode::Tag);
         assert!(res_secret.masked_text.contains("[SIFRE]"));
 
         // 3. Text with KVKK Article 6 sensitive data via StringZilla SIMD
@@ -2192,5 +2200,45 @@ mod tests {
         let res_sens = engine.mask(sensitive_text, PiiMode::Tag);
         assert!(res_sens.masked_text.contains("[KAN_GRUBU]"));
         assert!(res_sens.masked_text.contains("[SAGLIK]"));
+    }
+
+    #[test]
+    fn test_mask_with_vault_conversational_continuity() {
+        let engine = TurkishPiiEngine::new();
+        let mut session_vault = PiiVault::new();
+
+        // Turn 1: User introduces TCKN and a secret password
+        let turn1_input =
+            "Merhaba, TCKN numaram 10000000146 ve şifrem Limon004_ ile işlem yapamıyorum.";
+        let res1 = engine.mask_with_vault(turn1_input, PiiMode::Placeholder, &mut session_vault);
+        assert!(res1.masked_text.contains("{{TCKN_1}}"));
+        assert!(res1.masked_text.contains("{{SIFRE_1}}"));
+
+        // Simulate LLM response for Turn 1
+        let llm_resp1 = "Anladım, {{TCKN_1}} nolu kullanıcımız için şifre {{SIFRE_1}} sıfırlama işlemi başlatıldı.";
+        let restored1 = engine.restore_response(llm_resp1, &session_vault);
+        assert!(restored1.contains("10000000146"));
+        assert!(restored1.contains("Limon004_"));
+
+        // Turn 2: User repeats the SAME TCKN, but adds a NEW IBAN
+        let turn2_input = "Ayrıca 10000000146 nolu TCKN hesabıma TR33 0006 1005 1978 6457 8413 26 IBAN numaramı bağlar mısınız?";
+        let res2 = engine.mask_with_vault(turn2_input, PiiMode::Placeholder, &mut session_vault);
+        // The SAME TCKN must reuse {{TCKN_1}}, not create {{TCKN_2}}!
+        assert!(res2.masked_text.contains("{{TCKN_1}}"));
+        assert!(!res2.masked_text.contains("{{TCKN_2}}"));
+        // New entity IBAN receives sequential index 1
+        assert!(res2.masked_text.contains("{{IBAN_1}}"));
+
+        // Turn 3: A different user / new TCKN is mentioned -> sequential index increments
+        let turn3_input = "Eşim için de 10000000214 nolu TCKN kaydını kontrol edin.";
+        let res3 = engine.mask_with_vault(turn3_input, PiiMode::Placeholder, &mut session_vault);
+        assert!(res3.masked_text.contains("{{TCKN_2}}"));
+
+        // All placeholders from across the conversation can be restored from session_vault
+        let llm_resp_final = "İşlemler {{TCKN_1}}, {{IBAN_1}} ve {{TCKN_2}} için tamamlanmıştır.";
+        let restored_final = engine.restore_response(llm_resp_final, &session_vault);
+        assert!(restored_final.contains("10000000146"));
+        assert!(restored_final.contains("TR33 0006 1005 1978 6457 8413 26"));
+        assert!(restored_final.contains("10000000214"));
     }
 }

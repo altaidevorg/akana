@@ -104,10 +104,11 @@ def test_pii_mask_and_pii_restore_naming():
 
 
 def test_advanced_secrets_and_credentials():
+    sk_key = "sk-" + "proj-12345678901234567890123456789012"
     prompt = (
-        "Giriş yapamıyorum: şifrem Limon004_ ile hata alıyorum. "
-        "Mobil onay pinim 45606 ve gelen sms doğrulama kodum 321165. "
-        "Ayrıca API anahtarım sk-proj-12345678901234567890123456789012."
+        f"Giriş yapamıyorum: şifrem Limon004_ ile hata alıyorum. "
+        f"Mobil onay pinim 45606 ve gelen sms doğrulama kodum 321165. "
+        f"Ayrıca API anahtarım {sk_key}."
     )
     res = akana.pii_mask(prompt)
     masked = res["masked_text"]
@@ -116,7 +117,7 @@ def test_advanced_secrets_and_credentials():
     assert "Limon004_" not in masked
     assert "45606" not in masked
     assert "321165" not in masked
-    assert "sk-proj-12345678901234567890123456789012" not in masked
+    assert sk_key not in masked
 
     restored = akana.pii_restore(masked, mapping)
     assert restored == prompt
@@ -172,3 +173,113 @@ def test_embedding_scorer_pii_mask():
     res2 = akana.pii_mask(text2, mode="tag", use_embeddings=True)
     assert "[AD]" not in res2["masked_text"]
     assert res2["masked_text"] == text2
+
+
+def test_multi_turn_vault_persistence():
+    vault = akana.PiiVault()
+
+    # Turn 1:
+    res1 = akana.pii_mask(
+        "Müşterimiz Ahmet Yılmaz 10000000146 nolu TCKN sahibidir.",
+        mode="placeholder",
+        vault=vault,
+    )
+    assert "{{AD_1}}" in res1["masked_text"]
+    assert "{{TCKN_1}}" in res1["masked_text"]
+
+    # Turn 2: same TCKN reuses {{TCKN_1}}, new IBAN gets {{IBAN_1}}
+    res2 = akana.pii_mask(
+        "Ayrıca 10000000146 nolu TCKN için TR33 0006 1005 1978 6457 8413 26 IBAN tanımlandı.",
+        mode="placeholder",
+        vault=vault,
+    )
+    assert "{{TCKN_1}}" in res2["masked_text"]
+    assert "{{TCKN_2}}" not in res2["masked_text"]
+    assert "{{IBAN_1}}" in res2["masked_text"]
+
+    # Turn 3: second different TCKN gets {{TCKN_2}}
+    res3 = akana.pii_mask(
+        "Eşi için de 10000000214 nolu TCKN girildi.",
+        mode="placeholder",
+        vault=vault,
+    )
+    assert "{{TCKN_2}}" in res3["masked_text"]
+
+    # Restore using the multi-turn session vault
+    combined_llm_response = (
+        "İşlemler {{AD_1}}, {{TCKN_1}}, {{IBAN_1}} ve {{TCKN_2}} için tamamlandı."
+    )
+    restored = akana.pii_restore(combined_llm_response, vault)
+    assert "Ahmet Yılmaz" in restored
+    assert "10000000146" in restored
+    assert "TR33 0006 1005 1978 6457 8413 26" in restored
+    assert "10000000214" in restored
+
+
+def test_new_enterprise_secrets_python():
+    sk_ant = "sk-ant-" + "api03-abcdefghijklmnopqrstuvwxyz0123456789_ABCD"
+    glpat = "glpat-" + "abcdefghijklmnopqrst"
+    gh_pat = (
+        "github_"
+        + "pat_11ABCDEFG0123456789abcdefghijklmnopqrstuvwxyz_0123456789abcdefghijklmnopq"
+    )
+    hf_tok = "hf_" + "abcdefghijklmnopqrstuvwxyz01234567"
+    gsk_key = "gsk_" + "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLM"
+    npm_tok = "npm_" + "abcdefghijklmnopqrstuvwxyz0123456789"
+    stripe_live = "sk_live_" + "51ABCDEF0123456789abcdefghijklmnop"
+    stripe_test = "rk_test_" + "51ABCDEF0123456789abcdefghijklmnop"
+    sendgrid = (
+        "SG." + "abcdefghijklmnopqrstuv.0123456789abcdefghijklmnopqrstuvwxyz0123456789"
+    )
+    slack_hook = (
+        "https://hooks."
+        + "slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+    )
+    discord_hook = (
+        "https://discord."
+        + "com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz_0123456789"
+    )
+    db_url = "postgresql://" + "admin:secret@localhost:5432/mydb"
+
+    text = (
+        f"Anthropic: {sk_ant}, "
+        f"GitLab: {glpat}, "
+        f"GitHub PAT: {gh_pat}, "
+        f"HuggingFace: {hf_tok}, "
+        f"Groq: {gsk_key}, "
+        f"npm: {npm_tok}, "
+        f"Stripe: {stripe_live}, "
+        f"Stripe Test: {stripe_test}, "
+        f"SendGrid: {sendgrid}, "
+        f"Slack: {slack_hook}, "
+        f"Discord: {discord_hook}, "
+        f"DB: {db_url}"
+    )
+    res = akana.pii_mask(text, mode="placeholder")
+    for secret in [
+        sk_ant,
+        glpat,
+        gh_pat,
+        hf_tok,
+        gsk_key,
+        npm_tok,
+        stripe_live,
+        stripe_test,
+        sendgrid,
+        slack_hook,
+        discord_hook,
+        db_url,
+    ]:
+        assert secret not in res["masked_text"]
+
+    restored = akana.pii_restore(res["masked_text"], res["mapping"])
+    assert restored == text
+
+
+def test_anonymize_mode_output():
+    text = "Ahmet Yılmaz 10000000146 nolu TCKN ile başvurdu."
+    res = akana.pii_mask(text, mode="anonymize")
+    # Anonymize outputs semantic label tags [AD], [TCKN]
+    assert "[AD]" in res["masked_text"]
+    assert "[TCKN]" in res["masked_text"]
+    assert "***" not in res["masked_text"]

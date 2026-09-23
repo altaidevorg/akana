@@ -44,9 +44,59 @@ lazy_static! {
         r"\b(sk-(?:proj-)?[A-Za-z0-9_-]{32,128})\b"
     ).unwrap();
 
+    /// Anthropic API Keys: sk-ant-api03-..., sk-ant-admin01-...
+    pub static ref ANTHROPIC_KEY_REGEX: Regex = Regex::new(
+        r"\b(sk-ant-[A-Za-z0-9_-]{20,128})\b"
+    ).unwrap();
+
+    /// GitLab Personal Access Tokens (glpat-...)
+    pub static ref GITLAB_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(glpat-[0-9A-Za-z_-]{20,40})\b"
+    ).unwrap();
+
+    /// GitHub Fine-Grained Personal Access Tokens (github_pat_...)
+    pub static ref GITHUB_FINE_GRAINED_PAT_REGEX: Regex = Regex::new(
+        r"\b(github_pat_[0-9A-Za-z_]{60,100})\b"
+    ).unwrap();
+
     /// GitHub Personal Access Tokens & App tokens (ghp_, gho_, ghu_, ghs_, ghr_)
     pub static ref GITHUB_TOKEN_REGEX: Regex = Regex::new(
         r"\b(gh[pours]_[A-Za-z0-9]{36,40})\b"
+    ).unwrap();
+
+    /// Hugging Face User Access Tokens (hf_...)
+    pub static ref HUGGINGFACE_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(hf_[0-9A-Za-z]{30,50})\b"
+    ).unwrap();
+
+    /// Groq API Keys (gsk_...)
+    pub static ref GROQ_KEY_REGEX: Regex = Regex::new(
+        r"\b(gsk_[0-9A-Za-z]{40,70})\b"
+    ).unwrap();
+
+    /// npm Access Tokens (npm_...)
+    pub static ref NPM_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(npm_[0-9A-Za-z]{32,45})\b"
+    ).unwrap();
+
+    /// Stripe API Keys (sk_live_..., sk_test_..., rk_live_..., rk_test_...)
+    pub static ref STRIPE_KEY_REGEX: Regex = Regex::new(
+        r"\b((?:sk|rk)_(?:live|test)_[0-9A-Za-z]{24,99})\b"
+    ).unwrap();
+
+    /// SendGrid API Keys (SG.xxx.yyy)
+    pub static ref SENDGRID_KEY_REGEX: Regex = Regex::new(
+        r"\b(SG\.[0-9A-Za-z_-]{16,32}\.[0-9A-Za-z_-]{32,64})\b"
+    ).unwrap();
+
+    /// Slack and Discord Incoming Webhooks
+    pub static ref WEBHOOK_URL_REGEX: Regex = Regex::new(
+        r"(?i)\bhttps?://(?:hooks\.slack\.com/services/[0-9A-Za-z_-]+/[0-9A-Za-z_-]+/[0-9A-Za-z_-]+|(?:ptb\.|canary\.)?discord(?:app)?\.com/api/webhooks/\d+/[0-9A-Za-z_-]+)\b"
+    ).unwrap();
+
+    /// Sensitive Database Connection URLs (PostgreSQL, MySQL, MongoDB, Redis, AMQP, MSSQL)
+    pub static ref DATABASE_URL_REGEX: Regex = Regex::new(
+        r#"(?i)\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|rediss|amqps?|mssql|sqlserver)://[^\s<>'"`)]+"#
     ).unwrap();
 
     /// AWS Access Key ID (AKIA..., ASIA...)
@@ -120,39 +170,6 @@ pub fn has_mixed_character_classes(s: &str) -> bool {
     classes >= 3
 }
 
-/// Filters out tokens that should not be classified by the entropy scanner.
-fn is_suppressed_token(token: &str) -> bool {
-    if token.starts_with("http://") || token.starts_with("https://") {
-        return true;
-    }
-    if token.sz_find("@").is_some() || token.sz_find("/").is_some() || token.sz_find("\\").is_some()
-    {
-        return true;
-    }
-    if token.ends_with(".com")
-        || token.ends_with(".net")
-        || token.ends_with(".org")
-        || token.ends_with(".tr")
-    {
-        return true;
-    }
-    if token.starts_with("0x") && token.len() == 42 {
-        return true; // Ethereum address
-    }
-    if token.starts_with("bc1") {
-        return true; // Bitcoin address
-    }
-    if token.chars().all(|c| c.is_ascii_digit()) {
-        return true; // Pure numbers handled by other modules (phone, card, account)
-    }
-    if token.chars().all(|c| c.is_ascii_lowercase())
-        || token.chars().all(|c| c.is_ascii_uppercase())
-    {
-        return true; // Ordinary words
-    }
-    false
-}
-
 /// Detects all secrets, passwords, OTPs, API keys, and high-entropy credentials.
 pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     // 1. Contextual Secrets & OTPs (Fast SIMD pre-check for triggers before running unicode regex)
@@ -185,10 +202,30 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 2. OpenAI API Keys (SIMD anchor: sk-)
+    // 2. Anthropic API Keys (SIMD anchor: sk-ant)
+    if text.sz_find("sk-ant").is_some() {
+        for cap in ANTHROPIC_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 3. OpenAI API Keys (SIMD anchor: sk-)
     if text.sz_find("sk-").is_some() {
         for cap in OPENAI_KEY_REGEX.captures_iter(text) {
             let val = cap.get(1).unwrap();
+            if val.as_str().starts_with("sk-ant-") {
+                continue;
+            }
             out.push(PiiEntity {
                 text: val.as_str().to_string(),
                 label: "SIFRE".to_string(),
@@ -321,6 +358,195 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
+    // 10. GitLab Personal Access Tokens (SIMD anchor: glpat-)
+    if text.sz_find("glpat-").is_some() {
+        for cap in GITLAB_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 11. GitHub Fine-Grained Personal Access Tokens (SIMD anchor: github_pat_)
+    if text.sz_find("github_pat_").is_some() {
+        for cap in GITHUB_FINE_GRAINED_PAT_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 12. Hugging Face Tokens (SIMD anchor: hf_)
+    if text.sz_find("hf_").is_some() {
+        for cap in HUGGINGFACE_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 13. Groq API Keys (SIMD anchor: gsk_)
+    if text.sz_find("gsk_").is_some() {
+        for cap in GROQ_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 14. npm Access Tokens (SIMD anchor: npm_)
+    if text.sz_find("npm_").is_some() {
+        for cap in NPM_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 15. Stripe API Keys (SIMD anchor: sk_live_, sk_test_, rk_live_, rk_test_)
+    if text.sz_find("sk_live_").is_some()
+        || text.sz_find("sk_test_").is_some()
+        || text.sz_find("rk_live_").is_some()
+        || text.sz_find("rk_test_").is_some()
+    {
+        for cap in STRIPE_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 16. SendGrid API Keys (SIMD anchor: SG.)
+    if text.sz_find("SG.").is_some() {
+        for cap in SENDGRID_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 17. Webhooks (Slack & Discord) (SIMD anchor: hooks.slack.com/services or /api/webhooks/)
+    if text.sz_find("hooks.slack.com/services").is_some()
+        || text.sz_find("/api/webhooks/").is_some()
+    {
+        for mat in WEBHOOK_URL_REGEX.find_iter(text) {
+            let val_str = mat.as_str().trim_end_matches(|c: char| {
+                c == '.'
+                    || c == ','
+                    || c == ';'
+                    || c == ':'
+                    || c == ')'
+                    || c == ']'
+                    || c == '}'
+                    || c == '>'
+                    || c == '"'
+                    || c == '\''
+            });
+            out.push(PiiEntity {
+                text: val_str.to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: mat.start(),
+                end: mat.start() + val_str.len(),
+                confidence: 1.0,
+                stem: val_str.to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 18. Database Connection URLs (SIMD anchor: :// and protocol keywords)
+    if text.sz_find("://").is_some()
+        && (text.sz_find("postgres").is_some()
+            || text.sz_find("mysql").is_some()
+            || text.sz_find("mongodb").is_some()
+            || text.sz_find("redis").is_some()
+            || text.sz_find("amqp").is_some()
+            || text.sz_find("mssql").is_some()
+            || text.sz_find("sqlserver").is_some())
+    {
+        for mat in DATABASE_URL_REGEX.find_iter(text) {
+            let val_str = mat.as_str().trim_end_matches(|c: char| {
+                c == '.'
+                    || c == ','
+                    || c == ';'
+                    || c == ':'
+                    || c == ')'
+                    || c == ']'
+                    || c == '}'
+                    || c == '>'
+                    || c == '"'
+                    || c == '\''
+            });
+            out.push(PiiEntity {
+                text: val_str.to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: mat.start(),
+                end: mat.start() + val_str.len(),
+                confidence: 1.0,
+                stem: val_str.to_string(),
+                suffix: None,
+            });
+        }
+    }
+
     // 10. Free-Floating High-Entropy Secret Scanner
     for (start_idx, token) in tokenize_words_with_offsets(text) {
         let clean_token =
@@ -328,7 +554,7 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         if clean_token.len() < 8 || clean_token.len() > 64 {
             continue;
         }
-        if is_suppressed_token(clean_token) {
+        if is_suppressed_entropy_token(clean_token) {
             continue;
         }
 
@@ -351,6 +577,46 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
             });
         }
     }
+}
+
+/// Filters out tokens that should not be classified by the free-floating entropy scanner.
+///
+/// NOTE: Structured secrets (API keys, JWT, Webhooks, and Database connection URLs) are extracted
+/// by dedicated detectors (e.g. `DATABASE_URL_REGEX`) prior to this step and are NOT affected
+/// by this suppression filter.
+fn is_suppressed_entropy_token(token: &str) -> bool {
+    if token.starts_with("http://") || token.starts_with("https://") {
+        return true;
+    }
+    if token.sz_find("://").is_some() {
+        return true; // Protocol URIs (handled by dedicated database/webhook extractors)
+    }
+    if token.sz_find("@").is_some() || token.sz_find("/").is_some() || token.sz_find("\\").is_some()
+    {
+        return true;
+    }
+    if token.ends_with(".com")
+        || token.ends_with(".net")
+        || token.ends_with(".org")
+        || token.ends_with(".tr")
+    {
+        return true;
+    }
+    if token.starts_with("0x") && token.len() == 42 {
+        return true; // Ethereum address
+    }
+    if token.starts_with("bc1") {
+        return true; // Bitcoin address
+    }
+    if token.chars().all(|c| c.is_ascii_digit()) {
+        return true; // Pure numbers handled by other modules (phone, card, account)
+    }
+    if token.chars().all(|c| c.is_ascii_lowercase())
+        || token.chars().all(|c| c.is_ascii_uppercase())
+    {
+        return true; // Ordinary words
+    }
+    false
 }
 
 /// Tokenizes text into (byte_offset, token) pairs by splitting on whitespace.
@@ -423,12 +689,113 @@ mod tests {
 
     #[test]
     fn test_detect_api_keys() {
-        let text = "Burada OpenAI anahtarı sk-proj-98421094821098412094812098412094 ve GitHub token ghp_ABCDEF0123456789abcdef0123456789abcd var.";
+        let openai_key = ["sk-proj-", "98421094821098412094812098412094"].concat();
+        let gh_token = ["ghp_", "ABCDEF0123456789abcdef0123456789abcd"].concat();
+        let text = format!("Burada OpenAI anahtarı {openai_key} ve GitHub token {gh_token} var.");
         let mut out = Vec::new();
-        detect_secrets(text, &mut out);
+        detect_secrets(&text, &mut out);
 
         let detected_values: Vec<&str> = out.iter().map(|e| e.text.as_str()).collect();
-        assert!(detected_values.contains(&"sk-proj-98421094821098412094812098412094"));
-        assert!(detected_values.contains(&"ghp_ABCDEF0123456789abcdef0123456789abcd"));
+        assert!(detected_values.contains(&openai_key.as_str()));
+        assert!(detected_values.contains(&gh_token.as_str()));
+    }
+
+    #[test]
+    fn test_detect_new_enterprise_secret_families() {
+        let sk_ant = [
+            "sk-ant-",
+            "api03-",
+            "abcdefghijklmnopqrstuvwxyz0123456789_ABCD",
+        ]
+        .concat();
+        let glpat = ["glpat-", "abcdefghijklmnopqrst"].concat();
+        let gh_pat = [
+            "github_",
+            "pat_11ABCDEFG0123456789abcdefghijklmnopqrstuvwxyz_0123456789abcdefghijklmnopq",
+        ]
+        .concat();
+        let hf_tok = ["hf_", "abcdefghijklmnopqrstuvwxyz01234567"].concat();
+        let gsk_key = ["gsk_", "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLM"].concat();
+        let npm_tok = ["npm_", "abcdefghijklmnopqrstuvwxyz0123456789"].concat();
+        let stripe_live = ["sk_live_", "51ABCDEF0123456789abcdefghijklmnop"].concat();
+        let stripe_test = ["rk_test_", "51ABCDEF0123456789abcdefghijklmnop"].concat();
+        let sendgrid = [
+            "SG.",
+            "abcdefghijklmnopqrstuv.",
+            "0123456789abcdefghijklmnopqrstuvwxyz0123456789",
+        ]
+        .concat();
+        let slack_hook = [
+            "https://hooks.",
+            "slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
+        ]
+        .concat();
+        let discord_hook = [
+            "https://discord.",
+            "com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz_0123456789",
+        ]
+        .concat();
+        let pg_url = [
+            "postgresql://admin:super_secret@",
+            "localhost:5432/my_database",
+        ]
+        .concat();
+        let mongo_url = [
+            "mongodb+srv://app_user:p%40ssword@",
+            "cluster0.abcde.mongodb.net/prod_db",
+        ]
+        .concat();
+        let redis_url = ["redis://:mypassword@", "cache.internal:6379/0"].concat();
+
+        let text = format!(
+            "Anthropic: {sk_ant}\n\
+             GitLab: {glpat}\n\
+             GitHub Fine-Grained: {gh_pat}\n\
+             HuggingFace: {hf_tok}\n\
+             Groq: {gsk_key}\n\
+             npm: {npm_tok}\n\
+             Stripe Live: {stripe_live}\n\
+             Stripe Restricted: {stripe_test}\n\
+             SendGrid: {sendgrid}\n\
+             Slack Webhook: {slack_hook}\n\
+             Discord Webhook: {discord_hook}\n\
+             Postgres URL: {pg_url}\n\
+             MongoDB URL: {mongo_url}\n\
+             Redis URL: {redis_url}"
+        );
+
+        let mut out = Vec::new();
+        detect_secrets(&text, &mut out);
+
+        let detected: Vec<&str> = out.iter().map(|e| e.text.as_str()).collect();
+        assert!(detected.iter().any(|s| s.starts_with("sk-ant-")));
+        assert!(detected.iter().any(|s| s.starts_with("glpat-")));
+        assert!(detected.iter().any(|s| s.starts_with("github_")));
+        assert!(detected.iter().any(|s| s.starts_with("hf_")));
+        assert!(detected.iter().any(|s| s.starts_with("gsk_")));
+        assert!(detected.iter().any(|s| s.starts_with("npm_")));
+        assert!(detected.iter().any(|s| s.starts_with("sk_live_")));
+        assert!(detected.iter().any(|s| s.starts_with("rk_test_")));
+        assert!(detected.iter().any(|s| s.starts_with("SG.")));
+        assert!(detected
+            .iter()
+            .any(|s| s.contains("hooks.slack.com/services/")));
+        assert!(detected
+            .iter()
+            .any(|s| s.contains("discord.com/api/webhooks/")));
+        assert!(detected
+            .iter()
+            .any(|s| s.starts_with("postgresql://admin:super_secret@")));
+        assert!(detected
+            .iter()
+            .any(|s| s.starts_with("mongodb+srv://app_user:")));
+        assert!(detected
+            .iter()
+            .any(|s| s.starts_with("redis://:mypassword@")));
+
+        for entity in &out {
+            assert_eq!(entity.label, "SIFRE");
+            assert_eq!(entity.pii_type, PiiType::Credentials);
+        }
     }
 }
