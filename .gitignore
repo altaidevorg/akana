@@ -43,4 +43,4 @@ scratch/
 *.env
 
 # Ensure embedded models are NEVER ignored even if broad binary rules are added
-!data/embeddings/**
+!crates/akana-core/data/embeddings/**
