@@ -1044,8 +1044,14 @@ impl PyTurkishPiiEngine {
         Ok(list)
     }
 
-    #[pyo3(signature = (text, mode="placeholder"))]
-    fn mask<'py>(&self, py: Python<'py>, text: &str, mode: &str) -> PyResult<Bound<'py, PyDict>> {
+    #[pyo3(signature = (text, mode="placeholder", vault=None))]
+    fn mask<'py>(
+        &self,
+        py: Python<'py>,
+        text: &str,
+        mode: &str,
+        vault: Option<PyRefMut<'py, PyPiiVault>>,
+    ) -> PyResult<Bound<'py, PyDict>> {
         let pii_mode = match mode.to_lowercase().as_str() {
             "placeholder" => akana_core::pii::PiiMode::Placeholder,
             "tag" => akana_core::pii::PiiMode::Tag,
@@ -1059,7 +1065,11 @@ impl PyTurkishPiiEngine {
             }
         };
 
-        let result = self.inner.mask(text, pii_mode);
+        let result = if let Some(mut v) = vault {
+            self.inner.mask_with_vault(text, pii_mode, &mut v.inner)
+        } else {
+            self.inner.mask(text, pii_mode)
+        };
         let dict = PyDict::new_bound(py);
         dict.set_item("original_text", &result.original_text)?;
         dict.set_item("masked_text", &result.masked_text)?;
@@ -1115,6 +1125,18 @@ impl PyTurkishPiiEngine {
         )?;
 
         Ok(dict)
+    }
+
+    /// Intercepts outbound prompt and masks text using an existing PiiVault session instance.
+    #[pyo3(signature = (text, vault, mode="placeholder"))]
+    fn mask_with_vault<'py>(
+        &self,
+        py: Python<'py>,
+        text: &str,
+        vault: PyRefMut<'py, PyPiiVault>,
+        mode: &str,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        self.mask(py, text, mode, Some(vault))
     }
 
     /// Flexible restore function: restores LLM response using either a PiiVault instance,

@@ -15,7 +15,7 @@ pub enum PiiMode {
     Placeholder,
     /// Bracketed tag mode: `[AD]`, `[TCKN]`, `[IBAN]` (benchmark & dataset standard).
     Tag,
-    /// Irreversible redaction: replaces with `***` or `[GİZLENDİ]`.
+    /// Redaction mode: replaces sensitive entities with category label tag (`[AD]`, `[TCKN]`, `[SIFRE]`).
     Anonymize,
     /// Synthetic surrogate mode: replaces with realistic fake Turkish data (`Ahmet` -> `Can`).
     SyntheticSurrogate,
@@ -61,6 +61,11 @@ impl PiiVault {
         if let Some(existing) = self.original_to_placeholder.get(original_text) {
             return existing.clone();
         }
+        if !stem.is_empty() && stem != original_text {
+            if let Some(existing) = self.original_to_placeholder.get(stem) {
+                return existing.clone();
+            }
+        }
 
         let count = self.label_counters.entry(label.to_string()).or_insert(0);
         *count += 1;
@@ -84,6 +89,10 @@ impl PiiVault {
         self.placeholder_to_entry.insert(placeholder.clone(), entry);
         self.original_to_placeholder
             .insert(original_text.to_string(), placeholder.clone());
+        if !stem.is_empty() && stem != original_text {
+            self.original_to_placeholder
+                .insert(stem.to_string(), placeholder.clone());
+        }
 
         placeholder
     }

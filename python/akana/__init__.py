@@ -385,6 +385,7 @@ def pii_mask(
     mode: str = "placeholder",
     use_embeddings: bool = False,
     preserve_corporate_emails: bool = True,
+    vault: Any | None = None,
 ) -> dict[str, Any]:
     """
     Detects and masks/pseudonymizes Turkish PII entities (KVKK aligned).
@@ -395,10 +396,11 @@ def pii_mask(
             - 'placeholder': structured tokens e.g. {{AD_1}}, {{TCKN_1}}, {{IBAN_1}}, {{OZEL_URL_1}}
             - 'surrogate': realistic fake Turkish synthetic data e.g. Can Demir, 51980838902
             - 'tag': bracketed classification tags e.g. [AD], [TCKN], [OZEL_URL]
-            - 'anonymize': redacted masking
+            - 'anonymize': category label redaction e.g. [AD], [TCKN], [SIFRE], [IBAN]
         use_embeddings: If True, uses Akana's bundled 256-dim Model2Vec embedding prototype scorer.
         preserve_corporate_emails: If True (default), institutional support/functional emails
             (info@, destek@, satis@, etc.) are preserved and not masked as personal data.
+        vault: Optional persistent PiiVault session instance to continue conversational context.
 
     Returns:
         Dict containing:
@@ -412,6 +414,8 @@ def pii_mask(
         use_embeddings=use_embeddings,
         preserve_corporate_emails=preserve_corporate_emails,
     )
+    if vault is not None:
+        return engine.mask_with_vault(text, vault, mode=mode)
     return engine.mask(text, mode=mode)
 
 
