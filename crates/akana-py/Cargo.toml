@@ -14,7 +14,7 @@ name = "_core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-akana-core = { path = "../akana-core", version = "0.5.1" }
+akana-core = { path = "../akana-core", version = "0.5.2" }
 pyo3 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

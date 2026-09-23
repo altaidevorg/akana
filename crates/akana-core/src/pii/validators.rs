@@ -100,45 +100,203 @@ pub fn validate_vkn(s: &str) -> bool {
     check_digit == d[9]
 }
 
-/// Validates a Turkish IBAN (26 alphanumeric characters starting with 'TR').
+/// Returns the expected standard IBAN length according to ISO 13616 if the country code is known.
+fn expected_iban_length(country_code: &[u8; 2]) -> Option<usize> {
+    match country_code {
+        b"AL" => Some(28),
+        b"AD" => Some(24),
+        b"AT" => Some(20),
+        b"AZ" => Some(28),
+        b"BH" => Some(22),
+        b"BY" => Some(28),
+        b"BE" => Some(16),
+        b"BA" => Some(20),
+        b"BR" => Some(29),
+        b"BG" => Some(22),
+        b"CR" => Some(22),
+        b"HR" => Some(21),
+        b"CY" => Some(28),
+        b"CZ" => Some(24),
+        b"DK" => Some(18),
+        b"DO" => Some(28),
+        b"EE" => Some(20),
+        b"FO" => Some(18),
+        b"FI" => Some(18),
+        b"FR" => Some(27),
+        b"GE" => Some(22),
+        b"DE" => Some(22),
+        b"GI" => Some(23),
+        b"GR" => Some(27),
+        b"GL" => Some(18),
+        b"GT" => Some(28),
+        b"HU" => Some(28),
+        b"IS" => Some(26),
+        b"IE" => Some(22),
+        b"IL" => Some(23),
+        b"IT" => Some(27),
+        b"JO" => Some(30),
+        b"KZ" => Some(20),
+        b"XK" => Some(20),
+        b"KW" => Some(30),
+        b"LV" => Some(21),
+        b"LB" => Some(28),
+        b"LI" => Some(21),
+        b"LT" => Some(20),
+        b"LU" => Some(20),
+        b"MK" => Some(19),
+        b"MT" => Some(31),
+        b"MR" => Some(27),
+        b"MU" => Some(30),
+        b"MC" => Some(27),
+        b"MD" => Some(24),
+        b"ME" => Some(22),
+        b"NL" => Some(18),
+        b"NO" => Some(15),
+        b"PK" => Some(24),
+        b"PS" => Some(29),
+        b"PL" => Some(28),
+        b"PT" => Some(25),
+        b"QA" => Some(29),
+        b"RO" => Some(24),
+        b"LC" => Some(32),
+        b"SM" => Some(27),
+        b"ST" => Some(25),
+        b"SA" => Some(24),
+        b"RS" => Some(22),
+        b"SC" => Some(31),
+        b"SK" => Some(24),
+        b"SI" => Some(19),
+        b"ES" => Some(24),
+        b"SE" => Some(24),
+        b"CH" => Some(21),
+        b"TL" => Some(23),
+        b"TN" => Some(24),
+        b"TR" => Some(26),
+        b"UA" => Some(29),
+        b"AE" => Some(23),
+        b"GB" => Some(22),
+        b"VA" => Some(22),
+        b"VG" => Some(24),
+        _ => None,
+    }
+}
+
+/// Validates an International Bank Account Number (IBAN) from any country (ISO 13616).
 ///
-/// Computes ISO 7064 MOD 97-10 check:
-/// Moves the first 4 characters ('TR' + 2 check digits) to the end,
-/// replaces letters with numbers (T=29, R=27), and checks if mod 97 == 1.
+/// Checks:
+/// - Total length (15 to 34 characters; checks exact length if country is registered)
+/// - First 2 characters are ISO country code (`[A-Z]{2}`)
+/// - Characters 3..4 are check digits (`[0-9]{2}`)
+/// - Remaining characters are alphanumeric
+/// - ISO 7064 MOD 97-10 check on rearranged string (rearranged mod 97 == 1)
 pub fn validate_iban(s: &str) -> bool {
     let clean: String = s.chars().filter(|c| !c.is_whitespace()).collect();
-    if clean.len() != 26 {
+    if clean.len() < 15 || clean.len() > 34 {
         return false;
     }
 
     let upper = clean.to_ascii_uppercase();
-    if !upper.starts_with("TR") {
+    let bytes = upper.as_bytes();
+
+    // First 2 chars: ISO country code (A-Z)
+    if !bytes[0].is_ascii_uppercase() || !bytes[1].is_ascii_uppercase() {
         return false;
     }
 
-    if !upper.chars().all(|c| c.is_ascii_alphanumeric()) {
+    // Next 2 chars: check digits (0-9)
+    if !bytes[2].is_ascii_digit() || !bytes[3].is_ascii_digit() {
         return false;
     }
 
-    // Rearrange: chars[4..26] + chars[0..4]
-    let rearranged = format!("{}{}", &upper[4..26], &upper[0..4]);
+    // Remaining characters: alphanumeric
+    if !bytes[4..].iter().all(|b| b.is_ascii_alphanumeric()) {
+        return false;
+    }
 
-    // Incremental modulo 97 to avoid giant integer overflow
-    let mut remainder = 0u64;
-    for c in rearranged.chars() {
-        if c.is_ascii_digit() {
-            let digit = (c as u8 - b'0') as u64;
-            remainder = (remainder * 10 + digit) % 97;
-        } else if c.is_ascii_alphabetic() {
-            // A=10, B=11, ..., Z=35
-            let val = (c as u8 - b'A' + 10) as u64;
-            remainder = (remainder * 100 + val) % 97;
-        } else {
+    // If country code is known in ISO 13616 table, enforce exact length
+    let country = [bytes[0], bytes[1]];
+    if let Some(expected_len) = expected_iban_length(&country) {
+        if clean.len() != expected_len {
             return false;
         }
     }
 
+    // Rearrange: chars[4..] + chars[0..4]
+    // Incremental modulo 97 to avoid giant integer overflow
+    let mut remainder = 0u64;
+    for &b in &bytes[4..] {
+        if b.is_ascii_digit() {
+            remainder = (remainder * 10 + (b - b'0') as u64) % 97;
+        } else {
+            // A=10, B=11, ..., Z=35
+            let val = (b - b'A' + 10) as u64;
+            remainder = (remainder * 100 + val) % 97;
+        }
+    }
+    for &b in &bytes[..4] {
+        if b.is_ascii_digit() {
+            remainder = (remainder * 10 + (b - b'0') as u64) % 97;
+        } else {
+            let val = (b - b'A' + 10) as u64;
+            remainder = (remainder * 100 + val) % 97;
+        }
+    }
+
     remainder == 1
+}
+
+/// Validates a US Social Security Number (SSN).
+///
+/// Rules:
+/// - Hyphenated form only: `000-00-0000` (length 11).
+/// - Reject Area number (first 3 digits): `000`, `666`, and `900..=999`.
+/// - Reject Group number (middle 2 digits): `00`.
+/// - Reject Serial number (last 4 digits): `0000`.
+pub fn validate_ssn(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    if bytes.len() != 11 {
+        return false;
+    }
+
+    if bytes[3] != b'-' || bytes[6] != b'-' {
+        return false;
+    }
+
+    if !bytes[0].is_ascii_digit()
+        || !bytes[1].is_ascii_digit()
+        || !bytes[2].is_ascii_digit()
+        || !bytes[4].is_ascii_digit()
+        || !bytes[5].is_ascii_digit()
+        || !bytes[7].is_ascii_digit()
+        || !bytes[8].is_ascii_digit()
+        || !bytes[9].is_ascii_digit()
+        || !bytes[10].is_ascii_digit()
+    {
+        return false;
+    }
+
+    let area =
+        (bytes[0] - b'0') as u16 * 100 + (bytes[1] - b'0') as u16 * 10 + (bytes[2] - b'0') as u16;
+
+    if area == 0 || area == 666 || area >= 900 {
+        return false;
+    }
+
+    let group = (bytes[4] - b'0') as u16 * 10 + (bytes[5] - b'0') as u16;
+    if group == 0 {
+        return false;
+    }
+
+    let serial = (bytes[7] - b'0') as u16 * 1000
+        + (bytes[8] - b'0') as u16 * 100
+        + (bytes[9] - b'0') as u16 * 10
+        + (bytes[10] - b'0') as u16;
+
+    if serial == 0 {
+        return false;
+    }
+
+    true
 }
 
 /// Validates credit/debit card numbers using the standard Luhn (mod-10) algorithm
@@ -375,7 +533,21 @@ mod tests {
         assert!(validate_iban("TR330006100519786457841326"));
         assert!(validate_iban("TR33 0006 1005 1978 6457 8413 26"));
         assert!(!validate_iban("TR330006100519786457841327")); // Bad check digit
-        assert!(!validate_iban("DE89370400440532013000")); // Non-TR
+        assert!(validate_iban("DE89370400440532013000")); // Valid German IBAN
+        assert!(validate_iban("GB82WEST12345698765432")); // Valid UK IBAN
+        assert!(!validate_iban("GB82WEST12345698765433")); // Changed final digit to 3 fails
+    }
+
+    #[test]
+    fn test_ssn_validation() {
+        assert!(validate_ssn("219-09-9999")); // Valid SSN
+        assert!(!validate_ssn("000-09-9999")); // Area 000 rejected
+        assert!(!validate_ssn("666-09-9999")); // Area 666 rejected
+        assert!(!validate_ssn("950-09-9999")); // Area 900-999 rejected
+        assert!(!validate_ssn("219-00-9999")); // Group 00 rejected
+        assert!(!validate_ssn("219-09-0000")); // Serial 0000 rejected
+        assert!(!validate_ssn("219099999")); // Unhyphenated rejected
+        assert!(!validate_ssn("219 09 9999")); // Space-separated rejected
     }
 
     #[test]

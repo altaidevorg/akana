@@ -902,6 +902,11 @@ fn validate_imei(s: &str) -> bool {
 }
 
 #[pyfunction]
+fn validate_ssn(s: &str) -> bool {
+    akana_core::pii::validate_ssn(s)
+}
+
+#[pyfunction]
 fn harmonize_suffix(stem: &str, case: &str) -> PyResult<String> {
     let turkish_case = match case.to_lowercase().as_str() {
         "dative" | "dat" | "yonelme" => akana_core::pii::TurkishCase::Dative,
@@ -1006,8 +1011,12 @@ pub struct PyTurkishPiiEngine {
 #[pymethods]
 impl PyTurkishPiiEngine {
     #[new]
-    #[pyo3(signature = (use_embeddings=false, preserve_corporate_emails=true))]
-    fn new(use_embeddings: bool, preserve_corporate_emails: bool) -> Self {
+    #[pyo3(signature = (use_embeddings=false, preserve_corporate_emails=true, disabled_types=None))]
+    fn new(
+        use_embeddings: bool,
+        preserve_corporate_emails: bool,
+        disabled_types: Option<Vec<String>>,
+    ) -> Self {
         let mut engine = if use_embeddings {
             let emb = std::sync::Arc::new(akana_core::embeddings::TurkishEmbeddings::new());
             akana_core::pii::TurkishPiiEngine::with_embeddings(emb)
@@ -1015,7 +1024,58 @@ impl PyTurkishPiiEngine {
             akana_core::pii::TurkishPiiEngine::new()
         };
         engine.set_preserve_corporate_emails(preserve_corporate_emails);
+        if let Some(types) = disabled_types {
+            for t in types {
+                if let Some(pii_type) = akana_core::pii::PiiType::from_name(&t) {
+                    engine.disable_type(pii_type);
+                }
+            }
+        }
         Self { inner: engine }
+    }
+
+    fn disable_type(&mut self, pii_type: &str) -> PyResult<()> {
+        if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
+            self.inner.disable_type(pt);
+            Ok(())
+        } else {
+            Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Unknown PiiType: {}",
+                pii_type
+            )))
+        }
+    }
+
+    fn enable_type(&mut self, pii_type: &str) -> PyResult<()> {
+        if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
+            self.inner.enable_type(pt);
+            Ok(())
+        } else {
+            Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Unknown PiiType: {}",
+                pii_type
+            )))
+        }
+    }
+
+    fn set_type_enabled(&mut self, pii_type: &str, enabled: bool) -> PyResult<()> {
+        if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
+            self.inner.set_type_enabled(pt, enabled);
+            Ok(())
+        } else {
+            Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Unknown PiiType: {}",
+                pii_type
+            )))
+        }
+    }
+
+    fn is_type_enabled(&self, pii_type: &str) -> bool {
+        if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
+            self.inner.is_type_enabled(pt)
+        } else {
+            false
+        }
     }
 
     fn detect<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyList>> {
@@ -1100,6 +1160,7 @@ impl PyTurkishPiiEngine {
             let ent_dict = PyDict::new_bound(py);
             ent_dict.set_item("text", e.text)?;
             ent_dict.set_item("label", e.label)?;
+            ent_dict.set_item("pii_type", e.pii_type.as_str())?;
             let char_start = orig_text
                 .get(..e.start)
                 .map(|s| s.chars().count())
@@ -1239,6 +1300,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(validate_plate, m)?)?;
     m.add_function(wrap_pyfunction!(validate_vin, m)?)?;
     m.add_function(wrap_pyfunction!(validate_imei, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_ssn, m)?)?;
     m.add_function(wrap_pyfunction!(harmonize_suffix, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;

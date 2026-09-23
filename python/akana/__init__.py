@@ -61,6 +61,7 @@ try:
         validate_iban,
         validate_imei,
         validate_plate,
+        validate_ssn,
         validate_tckn,
         validate_vin,
         validate_vkn,
@@ -301,7 +302,7 @@ def check_grammar(text: str) -> GrammarCheckResult:
     return GrammarCheckResult(json.loads(raw_json))
 
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 __all__ = [
     "Chunk",
     "CompoundDecomposer",
@@ -373,6 +374,7 @@ __all__ = [
     "validate_iban",
     "validate_imei",
     "validate_plate",
+    "validate_ssn",
     "validate_tckn",
     "validate_vin",
     "validate_vkn",
@@ -385,6 +387,7 @@ def pii_mask(
     mode: str = "placeholder",
     use_embeddings: bool = False,
     preserve_corporate_emails: bool = True,
+    disabled_types: list[str] | set[str] | None = None,
     vault: Any | None = None,
 ) -> dict[str, Any]:
     """
@@ -400,6 +403,8 @@ def pii_mask(
         use_embeddings: If True, uses Akana's bundled 256-dim Model2Vec embedding prototype scorer.
         preserve_corporate_emails: If True (default), institutional support/functional emails
             (info@, destek@, satis@, etc.) are preserved and not masked as personal data.
+        disabled_types: Optional list or set of PiiTypes to disable (e.g. ['Name', 'Person', 'Age']).
+            Spans of disabled types are left completely verbatim.
         vault: Optional persistent PiiVault session instance to continue conversational context.
 
     Returns:
@@ -413,6 +418,7 @@ def pii_mask(
     engine = TurkishPiiEngine(
         use_embeddings=use_embeddings,
         preserve_corporate_emails=preserve_corporate_emails,
+        disabled_types=list(disabled_types) if disabled_types else None,
     )
     if vault is not None:
         return engine.mask_with_vault(text, vault, mode=mode)
