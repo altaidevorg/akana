@@ -170,42 +170,6 @@ pub fn has_mixed_character_classes(s: &str) -> bool {
     classes >= 3
 }
 
-/// Filters out tokens that should not be classified by the entropy scanner.
-fn is_suppressed_token(token: &str) -> bool {
-    if token.starts_with("http://") || token.starts_with("https://") {
-        return true;
-    }
-    if token.sz_find("://").is_some() {
-        return true;
-    }
-    if token.sz_find("@").is_some() || token.sz_find("/").is_some() || token.sz_find("\\").is_some()
-    {
-        return true;
-    }
-    if token.ends_with(".com")
-        || token.ends_with(".net")
-        || token.ends_with(".org")
-        || token.ends_with(".tr")
-    {
-        return true;
-    }
-    if token.starts_with("0x") && token.len() == 42 {
-        return true; // Ethereum address
-    }
-    if token.starts_with("bc1") {
-        return true; // Bitcoin address
-    }
-    if token.chars().all(|c| c.is_ascii_digit()) {
-        return true; // Pure numbers handled by other modules (phone, card, account)
-    }
-    if token.chars().all(|c| c.is_ascii_lowercase())
-        || token.chars().all(|c| c.is_ascii_uppercase())
-    {
-        return true; // Ordinary words
-    }
-    false
-}
-
 /// Detects all secrets, passwords, OTPs, API keys, and high-entropy credentials.
 pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     // 1. Contextual Secrets & OTPs (Fast SIMD pre-check for triggers before running unicode regex)
@@ -590,7 +554,7 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         if clean_token.len() < 8 || clean_token.len() > 64 {
             continue;
         }
-        if is_suppressed_token(clean_token) {
+        if is_suppressed_entropy_token(clean_token) {
             continue;
         }
 
@@ -613,6 +577,46 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
             });
         }
     }
+}
+
+/// Filters out tokens that should not be classified by the free-floating entropy scanner.
+///
+/// NOTE: Structured secrets (API keys, JWT, Webhooks, and Database connection URLs) are extracted
+/// by dedicated detectors (e.g. `DATABASE_URL_REGEX`) prior to this step and are NOT affected
+/// by this suppression filter.
+fn is_suppressed_entropy_token(token: &str) -> bool {
+    if token.starts_with("http://") || token.starts_with("https://") {
+        return true;
+    }
+    if token.sz_find("://").is_some() {
+        return true; // Protocol URIs (handled by dedicated database/webhook extractors)
+    }
+    if token.sz_find("@").is_some() || token.sz_find("/").is_some() || token.sz_find("\\").is_some()
+    {
+        return true;
+    }
+    if token.ends_with(".com")
+        || token.ends_with(".net")
+        || token.ends_with(".org")
+        || token.ends_with(".tr")
+    {
+        return true;
+    }
+    if token.starts_with("0x") && token.len() == 42 {
+        return true; // Ethereum address
+    }
+    if token.starts_with("bc1") {
+        return true; // Bitcoin address
+    }
+    if token.chars().all(|c| c.is_ascii_digit()) {
+        return true; // Pure numbers handled by other modules (phone, card, account)
+    }
+    if token.chars().all(|c| c.is_ascii_lowercase())
+        || token.chars().all(|c| c.is_ascii_uppercase())
+    {
+        return true; // Ordinary words
+    }
+    false
 }
 
 /// Tokenizes text into (byte_offset, token) pairs by splitting on whitespace.
