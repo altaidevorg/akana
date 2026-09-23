@@ -64,6 +64,7 @@ pub enum PiiType {
     Salary,
     Credentials,
     AccountNo,
+    Ssn,
 }
 
 impl PiiType {
@@ -96,6 +97,42 @@ impl PiiType {
             PiiType::Salary => "MAAS",
             PiiType::Credentials => "SIFRE",
             PiiType::AccountNo => "HESAP_NO",
+            PiiType::Ssn => "SSN",
+        }
+    }
+
+    pub fn from_name(s: &str) -> Option<Self> {
+        let normalized = s.trim().to_uppercase();
+        match normalized.as_str() {
+            "TCKN" => Some(PiiType::Tckn),
+            "VKN" => Some(PiiType::Vkn),
+            "IBAN" => Some(PiiType::Iban),
+            "KART" | "CREDITCARD" | "CREDIT_CARD" => Some(PiiType::CreditCard),
+            "TEL" | "PHONE" => Some(PiiType::Phone),
+            "EMAIL" | "E_MAIL" | "EPOSTA" | "E-POSTA" => Some(PiiType::Email),
+            "AD" | "NAME" => Some(PiiType::Name),
+            "KISI" | "PERSON" => Some(PiiType::Person),
+            "ADRES" | "ADDRESS" => Some(PiiType::Address),
+            "PASAPORT" | "PASSPORT" => Some(PiiType::Passport),
+            "EHLIYET" | "DRIVER_LICENSE" | "DRIVERLICENSE" => Some(PiiType::DriverLicense),
+            "PLAKA" | "PLATE" => Some(PiiType::Plate),
+            "SASI_NO" | "VIN" => Some(PiiType::Vin),
+            "IMEI" => Some(PiiType::Imei),
+            "IP_ADRES" | "IP" | "IPADDRESS" | "IP_ADDRESS" => Some(PiiType::IpAddress),
+            "PORT" => Some(PiiType::Port),
+            "YAS" | "AGE" => Some(PiiType::Age),
+            "YAS_ARALIGI" | "AGE_RANGE" | "AGERANGE" => Some(PiiType::AgeRange),
+            "DOGUM_TARIHI" | "BIRTH_DATE" | "BIRTHDATE" => Some(PiiType::BirthDate),
+            "OZEL_TARIH" | "PRIVATE_DATE" | "PRIVATEDATE" => Some(PiiType::PrivateDate),
+            "OZEL_URL" | "PRIVATE_URL" | "PRIVATEURL" => Some(PiiType::PrivateUrl),
+            "KAN_GRUBU" | "BLOOD_TYPE" | "BLOODTYPE" => Some(PiiType::BloodType),
+            "SAGLIK" | "HEALTH" => Some(PiiType::Health),
+            "CINSIYET" | "GENDER" => Some(PiiType::Gender),
+            "MAAS" | "SALARY" => Some(PiiType::Salary),
+            "SIFRE" | "CREDENTIALS" | "CREDENTIAL" | "SECRET" => Some(PiiType::Credentials),
+            "HESAP_NO" | "ACCOUNT_NO" | "ACCOUNTNO" => Some(PiiType::AccountNo),
+            "SSN" => Some(PiiType::Ssn),
+            _ => None,
         }
     }
 }
@@ -129,8 +166,9 @@ lazy_static::lazy_static! {
     static ref GROUPED_TCKN_REGEX: regex::Regex = regex::Regex::new(r"\b(?:\d{3}[- ]\d{3}[- ]\d{3}[- ]\d{2}|\d{4}[- ]\d{4}[- ]\d{3})\b").unwrap();
     static ref TCKN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:tc|tckn|tc\s*no|tc\s*kimlik|kimlik\s*no|tc\s*si)[:\s]*([0-9- ]{11,16})\b").unwrap();
     static ref VKN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b\d{10}\b").unwrap();
-    static ref IBAN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\bTR(?:\s*\d){24}\b").unwrap();
-    static ref IBAN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:iban|iban\s*no)[:\s]*(TR(?:\s*[0-9]){24})\b").unwrap();
+    static ref IBAN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b[A-Z]{2}\d{2}(?:[0-9A-Z]{11,30}|(?:\s+[0-9A-Z]{1,4}){3,8})\b").unwrap();
+    static ref IBAN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:iban|iban\s*no)[:\s]*([A-Z]{2}\d{2}(?:[0-9A-Z]{11,30}|(?:\s+[0-9A-Z]{1,4}){3,8}))\b").unwrap();
+    static ref SSN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap();
     static ref CARD_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b(?:\d[ -]?){13,19}\b").unwrap();
     static ref CARD_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:kart\s*no|kredi\s*kart[ıi]|kart)[:\s]*((?:\d[ -]?){13,19})\b").unwrap();
     static ref PLATE_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,5}\b").unwrap();
@@ -149,6 +187,7 @@ lazy_static::lazy_static! {
 pub struct TurkishPiiEngine {
     embedding_scorer: Option<PiiEmbeddingScorer>,
     preserve_corporate_emails: bool,
+    disabled_types: std::collections::HashSet<PiiType>,
 }
 
 impl Default for TurkishPiiEngine {
@@ -163,6 +202,7 @@ impl TurkishPiiEngine {
         Self {
             embedding_scorer: None,
             preserve_corporate_emails: true,
+            disabled_types: std::collections::HashSet::new(),
         }
     }
 
@@ -173,7 +213,42 @@ impl TurkishPiiEngine {
         Self {
             embedding_scorer: Some(PiiEmbeddingScorer::new(embeddings)),
             preserve_corporate_emails: true,
+            disabled_types: std::collections::HashSet::new(),
         }
+    }
+
+    /// Disables detection and masking for a specific `PiiType`.
+    /// When disabled, spans of this type are left verbatim in detect, mask, and vault.
+    pub fn disable_type(&mut self, pii_type: PiiType) -> &mut Self {
+        self.disabled_types.insert(pii_type);
+        self
+    }
+
+    /// Enables detection and masking for a specific `PiiType`.
+    pub fn enable_type(&mut self, pii_type: PiiType) -> &mut Self {
+        self.disabled_types.remove(&pii_type);
+        self
+    }
+
+    /// Sets whether a specific `PiiType` is enabled or disabled.
+    pub fn set_type_enabled(&mut self, pii_type: PiiType, enabled: bool) -> &mut Self {
+        if enabled {
+            self.disabled_types.remove(&pii_type);
+        } else {
+            self.disabled_types.insert(pii_type);
+        }
+        self
+    }
+
+    /// Returns `true` if the given `PiiType` is enabled.
+    pub fn is_type_enabled(&self, pii_type: PiiType) -> bool {
+        !self.disabled_types.contains(&pii_type)
+    }
+
+    /// Configures the engine with an initial set of disabled `PiiType`s.
+    pub fn with_disabled_types<I: IntoIterator<Item = PiiType>>(mut self, types: I) -> Self {
+        self.disabled_types = types.into_iter().collect();
+        self
     }
 
     /// Configures whether functional non-PII corporate support emails (e.g. info@, destek@, satis@)
@@ -194,25 +269,39 @@ impl TurkishPiiEngine {
         // 1. Algorithmic Checksum Detections
         self.detect_checksum_entities(text, &mut candidates);
 
-        // 2. Pattern and Regex Detections (Phone, Email, IP, Port, Age, Triggers)
+        // 2. Pattern and Regex Detections (Phone, Email, IP, Port, Age, SSN, Triggers)
         self.detect_pattern_entities(text, &mut candidates);
 
         // 3. Spelled-Out Numbers (Sözle Yazılmış Değerler)
         detect_spelled_numbers(text, &mut candidates);
 
         // 4. Secrets, Passwords, OTPs & API Tokens
-        detect_secrets(text, &mut candidates);
+        if self.is_type_enabled(PiiType::Credentials) {
+            detect_secrets(text, &mut candidates);
+        }
 
         // 5. Morphological & Lexical Person Name Detection
-        self.detect_names_and_persons(text, &mut candidates);
+        if self.is_type_enabled(PiiType::Name) || self.is_type_enabled(PiiType::Person) {
+            self.detect_names_and_persons(text, &mut candidates);
+        }
 
-        // 4. Address Detection
-        self.detect_addresses(text, &mut candidates);
+        // 6. Address Detection
+        if self.is_type_enabled(PiiType::Address) {
+            self.detect_addresses(text, &mut candidates);
+        }
 
-        // 5. KVKK Article 6 Sensitive Data (Blood type, Health, Religion)
-        self.detect_sensitive_categories(text, &mut candidates);
+        // 7. KVKK Article 6 Sensitive Data (Blood type, Health, Religion)
+        if self.is_type_enabled(PiiType::BloodType)
+            || self.is_type_enabled(PiiType::Health)
+            || self.is_type_enabled(PiiType::Gender)
+        {
+            self.detect_sensitive_categories(text, &mut candidates);
+        }
 
-        // 6. Conflict Resolution & Non-Overlapping Span Arbitration
+        // Retain only entities whose PiiType is currently enabled
+        candidates.retain(|e| self.is_type_enabled(e.pii_type));
+
+        // 8. Conflict Resolution & Non-Overlapping Span Arbitration
         resolve_conflicts(candidates)
     }
 
@@ -365,47 +454,66 @@ impl TurkishPiiEngine {
             }
         }
 
-        // IBAN candidates (TR + 24 digits, with or without spaces)
-        if text.sz_find("TR").is_some() || text.sz_find("tr").is_some() {
-            for mat in IBAN_CANDIDATE_REGEX.find_iter(text) {
-                let span_str = mat.as_str().trim();
-                let clean_digits: String =
-                    span_str.chars().filter(|c| c.is_ascii_digit()).collect();
-                if clean_digits.len() == 24 {
-                    let conf = if validate_iban(span_str) { 1.0 } else { 0.95 };
+        // IBAN candidates (any country with or without spaces, strictly verified via ISO 13616 & MOD 97)
+        for mat in IBAN_CANDIDATE_REGEX.find_iter(text) {
+            let matched_str = mat.as_str();
+            let mut curr = matched_str.trim();
+            loop {
+                if validate_iban(curr) {
+                    let start = mat.start();
+                    let end = start + curr.len();
                     out.push(PiiEntity {
-                        text: span_str.to_string(),
+                        text: curr.to_string(),
                         label: PiiType::Iban.as_str().to_string(),
                         pii_type: PiiType::Iban,
-                        start: mat.start(),
-                        end: mat.end(),
-                        confidence: conf,
-                        stem: span_str.to_string(),
+                        start,
+                        end,
+                        confidence: 1.0,
+                        stem: curr.to_string(),
                         suffix: None,
                     });
+                    break;
+                }
+                if let Some(last_space_idx) = curr.rfind(|c: char| c.is_whitespace()) {
+                    curr = curr[..last_space_idx].trim_end();
+                    if curr.len() < 15 {
+                        break;
+                    }
+                } else {
+                    break;
                 }
             }
         }
 
-        // Trigger-preceded IBAN (e.g. IBAN TR0325 8143... or aidat iadesi için iban paylaşıyorum TR...)
+        // Trigger-preceded IBAN
         if lower.sz_find("iban").is_some() {
             for cap in IBAN_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
-                    let clean_digits: String =
-                        span_str.chars().filter(|c| c.is_ascii_digit()).collect();
-                    if clean_digits.len() == 24 {
-                        let conf = if validate_iban(span_str) { 1.0 } else { 0.95 };
-                        out.push(PiiEntity {
-                            text: span_str.to_string(),
-                            label: PiiType::Iban.as_str().to_string(),
-                            pii_type: PiiType::Iban,
-                            start: val.start(),
-                            end: val.end(),
-                            confidence: conf,
-                            stem: span_str.to_string(),
-                            suffix: None,
-                        });
+                    let mut curr = val.as_str().trim();
+                    loop {
+                        if validate_iban(curr) {
+                            let start = val.start();
+                            let end = start + curr.len();
+                            out.push(PiiEntity {
+                                text: curr.to_string(),
+                                label: PiiType::Iban.as_str().to_string(),
+                                pii_type: PiiType::Iban,
+                                start,
+                                end,
+                                confidence: 1.0,
+                                stem: curr.to_string(),
+                                suffix: None,
+                            });
+                            break;
+                        }
+                        if let Some(last_space_idx) = curr.rfind(|c: char| c.is_whitespace()) {
+                            curr = curr[..last_space_idx].trim_end();
+                            if curr.len() < 15 {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
@@ -786,6 +894,25 @@ impl TurkishPiiEngine {
                     stem: span_str.to_string(),
                     suffix: None,
                 });
+            }
+        }
+
+        // US Social Security Number (hyphenated form only: 000-00-0000)
+        if has_digits && text.sz_find("-").is_some() {
+            for mat in SSN_CANDIDATE_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                if validate_ssn(span_str) {
+                    out.push(PiiEntity {
+                        text: span_str.to_string(),
+                        label: PiiType::Ssn.as_str().to_string(),
+                        pii_type: PiiType::Ssn,
+                        start: mat.start(),
+                        end: mat.end(),
+                        confidence: 1.0,
+                        stem: span_str.to_string(),
+                        suffix: None,
+                    });
+                }
             }
         }
 
@@ -2240,5 +2367,108 @@ mod tests {
         assert!(restored_final.contains("10000000146"));
         assert!(restored_final.contains("TR33 0006 1005 1978 6457 8413 26"));
         assert!(restored_final.contains("10000000214"));
+    }
+
+    #[test]
+    fn test_per_type_switch() {
+        let mut engine = TurkishPiiEngine::new();
+        let text = "Ahmet Yılmaz, 35 yaşında, ahmet@example.com ve IP adresi 192.168.1.1 üzerinden bağlandı.";
+
+        // Default: everything is enabled
+        let full_res = engine.mask(text, PiiMode::Placeholder);
+        assert!(full_res.masked_text.contains("{{AD_1}}"));
+        assert!(full_res.masked_text.contains("{{YAS_1}}"));
+        assert!(full_res.masked_text.contains("{{EMAIL_1}}"));
+        assert!(full_res.masked_text.contains("{{IP_ADRES_1}}"));
+
+        // Disable Name and Person
+        engine.disable_type(PiiType::Name);
+        engine.disable_type(PiiType::Person);
+        let name_disabled_res = engine.mask(text, PiiMode::Placeholder);
+        assert!(!name_disabled_res.masked_text.contains("{{AD_1}}"));
+        assert!(name_disabled_res.masked_text.contains("Ahmet Yılmaz")); // Left verbatim!
+        assert!(!name_disabled_res
+            .entities
+            .iter()
+            .any(|e| e.pii_type == PiiType::Name || e.pii_type == PiiType::Person));
+        assert!(!name_disabled_res
+            .vault
+            .get_mapping()
+            .values()
+            .any(|v| v.contains("Ahmet")));
+
+        // Disable Age, Email, IP as well
+        engine.disable_type(PiiType::Age);
+        engine.disable_type(PiiType::Email);
+        engine.disable_type(PiiType::IpAddress);
+        let all_disabled_res = engine.mask(text, PiiMode::Placeholder);
+        assert_eq!(all_disabled_res.masked_text, text); // Completely verbatim!
+        assert!(all_disabled_res.entities.is_empty());
+        assert!(all_disabled_res.vault.get_mapping().is_empty());
+
+        // Re-enable Name
+        engine.enable_type(PiiType::Name);
+        let re_enabled_res = engine.mask(text, PiiMode::Placeholder);
+        assert!(re_enabled_res.masked_text.contains("{{AD_1}}"));
+    }
+
+    #[test]
+    fn test_international_iban_detection() {
+        let engine = TurkishPiiEngine::new();
+
+        // Valid UK IBAN
+        let uk_valid = "Hesap transferi için GB82WEST12345698765432 numarasını kullanınız.";
+        let res_uk = engine.mask(uk_valid, PiiMode::Placeholder);
+        assert!(res_uk.masked_text.contains("{{IBAN_1}}"));
+        assert_eq!(res_uk.entities.len(), 1);
+        assert_eq!(res_uk.entities[0].pii_type, PiiType::Iban);
+        assert_eq!(res_uk.entities[0].label, "IBAN");
+
+        // Invalid UK IBAN (changed final digit from 2 to 3) -> MUST NOT be detected!
+        let uk_invalid = "Hesap transferi için GB82WEST12345698765433 numarasını kullanınız.";
+        let res_uk_invalid = engine.mask(uk_invalid, PiiMode::Placeholder);
+        assert!(!res_uk_invalid.masked_text.contains("{{IBAN_1}}"));
+        assert!(res_uk_invalid
+            .masked_text
+            .contains("GB82WEST12345698765433"));
+        assert!(res_uk_invalid.entities.is_empty());
+
+        // Spaced UK IBAN
+        let uk_spaced = "IBAN: GB82 WEST 1234 5698 7654 32 lütfen gönderin.";
+        let res_uk_spaced = engine.mask(uk_spaced, PiiMode::Placeholder);
+        assert!(res_uk_spaced.masked_text.contains("{{IBAN_1}}"));
+
+        // Turkish IBAN stays single PiiType::Iban
+        let tr_valid = "TR IBAN: TR330006100519786457841326";
+        let res_tr = engine.mask(tr_valid, PiiMode::Placeholder);
+        assert!(res_tr.masked_text.contains("{{IBAN_1}}"));
+        assert_eq!(res_tr.entities[0].pii_type, PiiType::Iban);
+    }
+
+    #[test]
+    fn test_us_ssn_detection() {
+        let engine = TurkishPiiEngine::new();
+
+        // Valid SSN: 219-09-9999 masks as {{SSN_1}} in Placeholder mode
+        let valid_text = "US customer SSN is 219-09-9999 for verification.";
+        let res = engine.mask(valid_text, PiiMode::Placeholder);
+        assert!(res.masked_text.contains("{{SSN_1}}"));
+        assert_eq!(res.entities.len(), 1);
+        assert_eq!(res.entities[0].pii_type, PiiType::Ssn);
+        assert_eq!(res.entities[0].label, "SSN");
+
+        // Invalid SSNs must NOT be detected
+        for invalid in [
+            "000-09-9999",
+            "666-09-9999",
+            "950-09-9999",
+            "219-00-9999",
+            "219-09-0000",
+        ] {
+            let inv_text = format!("Testing {invalid}");
+            let inv_res = engine.mask(&inv_text, PiiMode::Placeholder);
+            assert!(!inv_res.masked_text.contains("{{SSN_1}}"));
+            assert!(inv_res.entities.is_empty());
+        }
     }
 }

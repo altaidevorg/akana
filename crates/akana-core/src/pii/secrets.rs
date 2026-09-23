@@ -39,9 +39,9 @@ lazy_static! {
         ([^\s,;:.]{4,64})"
     ).unwrap();
 
-    /// OpenAI API Keys: sk-..., sk-proj-...
+    /// OpenAI API Keys: sk-..., sk-proj-..., sk-svcacct-...
     pub static ref OPENAI_KEY_REGEX: Regex = Regex::new(
-        r"\b(sk-(?:proj-)?[A-Za-z0-9_-]{32,128})\b"
+        r"\b(sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,128})\b"
     ).unwrap();
 
     /// Anthropic API Keys: sk-ant-api03-..., sk-ant-admin01-...
@@ -79,9 +79,39 @@ lazy_static! {
         r"\b(npm_[0-9A-Za-z]{32,45})\b"
     ).unwrap();
 
-    /// Stripe API Keys (sk_live_..., sk_test_..., rk_live_..., rk_test_...)
+    /// Stripe API Keys (sk_live_..., sk_test_..., rk_live_..., rk_test_..., pk_live_..., pk_test_...)
     pub static ref STRIPE_KEY_REGEX: Regex = Regex::new(
-        r"\b((?:sk|rk)_(?:live|test)_[0-9A-Za-z]{24,99})\b"
+        r"\b((?:sk|rk|pk)_(?:live|test)_[0-9A-Za-z]{24,99})\b"
+    ).unwrap();
+
+    /// DigitalOcean Personal Access Tokens (dop_v1_ + 64 lowercase hex digits)
+    pub static ref DIGITALOCEAN_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(dop_v1_[0-9a-f]{64})\b"
+    ).unwrap();
+
+    /// Shopify Tokens (shpat_, shpca_, shppa_, shpss_, shcap_ + >=32 lowercase hex digits)
+    pub static ref SHOPIFY_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(sh(?:pat|pca|ppa|pss|cap)_[0-9a-f]{32,})\b"
+    ).unwrap();
+
+    /// Square Tokens (sq0atp- and sq0csp- + token >=22 characters)
+    pub static ref SQUARE_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(sq0(?:atp|csp)-[0-9A-Za-z_-]{22,})\b"
+    ).unwrap();
+
+    /// Telegram Bot Tokens (8 to 10 digits:AA + 33 token characters)
+    pub static ref TELEGRAM_BOT_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(\d{8,10}:AA[0-9A-Za-z_-]{33})\b"
+    ).unwrap();
+
+    /// Azure Storage Connection String AccountKey value
+    pub static ref AZURE_STORAGE_KEY_REGEX: Regex = Regex::new(
+        r#"(?i)\bAccountKey\s*=\s*([^;\s"'\r\n]{16,128})"#
+    ).unwrap();
+
+    /// Assignment values for password, pwd, secret, and api_key / api-key
+    pub static ref ASSIGNMENT_SECRET_REGEX: Regex = Regex::new(
+        r#"(?i)\b(?:password|pwd|secret|api[_-]key)\s*[:=]\s*(?:"([^"\r\n]{2,128})"|'([^'\r\n]{2,128})'|([^\s,;:\r\n"'>}]+))"#
     ).unwrap();
 
     /// SendGrid API Keys (SG.xxx.yyy)
@@ -443,11 +473,13 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 15. Stripe API Keys (SIMD anchor: sk_live_, sk_test_, rk_live_, rk_test_)
+    // 15. Stripe API Keys (SIMD anchor: sk_live_, sk_test_, rk_live_, rk_test_, pk_live_, pk_test_)
     if text.sz_find("sk_live_").is_some()
         || text.sz_find("sk_test_").is_some()
         || text.sz_find("rk_live_").is_some()
         || text.sz_find("rk_test_").is_some()
+        || text.sz_find("pk_live_").is_some()
+        || text.sz_find("pk_test_").is_some()
     {
         for cap in STRIPE_KEY_REGEX.captures_iter(text) {
             let val = cap.get(1).unwrap();
@@ -547,6 +579,129 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
+    // 19. DigitalOcean Personal Access Tokens (SIMD anchor: dop_v1_)
+    if text.sz_find("dop_v1_").is_some() {
+        for cap in DIGITALOCEAN_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 20. Shopify Tokens (SIMD anchor: shpat_, shpca_, shppa_, shpss_, shcap_)
+    if text.sz_find("shpat_").is_some()
+        || text.sz_find("shpca_").is_some()
+        || text.sz_find("shppa_").is_some()
+        || text.sz_find("shpss_").is_some()
+        || text.sz_find("shcap_").is_some()
+    {
+        for cap in SHOPIFY_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 21. Square Tokens (SIMD anchor: sq0atp-, sq0csp-)
+    if text.sz_find("sq0atp-").is_some() || text.sz_find("sq0csp-").is_some() {
+        for cap in SQUARE_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 22. Telegram Bot Tokens (SIMD anchor: :AA)
+    if text.sz_find(":AA").is_some() {
+        for cap in TELEGRAM_BOT_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 23. Azure Storage Connection String AccountKey value (AccountName is not a secret)
+    if text.sz_find("AccountKey").is_some() || lower.sz_find("accountkey").is_some() {
+        for cap in AZURE_STORAGE_KEY_REGEX.captures_iter(text) {
+            if let Some(val) = cap.get(1) {
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "SIFRE".to_string(),
+                    pii_type: PiiType::Credentials,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 1.0,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+    }
+
+    // 24. Assignment values for password, pwd, secret, and api_key / api-key
+    if lower.sz_find("password").is_some()
+        || lower.sz_find("pwd").is_some()
+        || lower.sz_find("secret").is_some()
+        || lower.sz_find("api_key").is_some()
+        || lower.sz_find("api-key").is_some()
+    {
+        for cap in ASSIGNMENT_SECRET_REGEX.captures_iter(text) {
+            let matched = cap.get(1).or_else(|| cap.get(2)).or_else(|| cap.get(3));
+            if let Some(val) = matched {
+                let val_str = val.as_str().trim();
+                if val_str.len() >= 2
+                    && !val_str.eq_ignore_ascii_case("null")
+                    && !val_str.eq_ignore_ascii_case("none")
+                    && !val_str.eq_ignore_ascii_case("true")
+                    && !val_str.eq_ignore_ascii_case("false")
+                {
+                    out.push(PiiEntity {
+                        text: val_str.to_string(),
+                        label: "SIFRE".to_string(),
+                        pii_type: PiiType::Credentials,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 1.0,
+                        stem: val_str.to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+    }
+
     // 10. Free-Floating High-Entropy Secret Scanner
     for (start_idx, token) in tokenize_words_with_offsets(text) {
         let clean_token =
@@ -607,6 +762,40 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     }
     if token.starts_with("bc1") {
         return true; // Bitcoin address
+    }
+    // Suppress IBAN candidates (alphanumeric 15..34 starting with 2 letters and 2 digits)
+    let b = token.as_bytes();
+    if b.len() >= 15
+        && b.len() <= 34
+        && b[0].is_ascii_alphabetic()
+        && b[1].is_ascii_alphabetic()
+        && b[2].is_ascii_digit()
+        && b[3].is_ascii_digit()
+    {
+        return true;
+    }
+    // Suppress structured secrets handled by dedicated extractors
+    if token.starts_with("sk-")
+        || token.starts_with("gh")
+        || token.starts_with("glpat-")
+        || token.starts_with("dop_v1_")
+        || token.starts_with("shpat_")
+        || token.starts_with("shpca_")
+        || token.starts_with("shppa_")
+        || token.starts_with("shpss_")
+        || token.starts_with("shcap_")
+        || token.starts_with("sq0atp-")
+        || token.starts_with("sq0csp-")
+        || token.starts_with("hf_")
+        || token.starts_with("npm_")
+        || token.starts_with("AIza")
+        || token.starts_with("eyJ")
+        || token.starts_with("SG.")
+        || token.starts_with("AKIA")
+        || token.starts_with("ASIA")
+        || token.starts_with("xox")
+    {
+        return true;
     }
     if token.chars().all(|c| c.is_ascii_digit()) {
         return true; // Pure numbers handled by other modules (phone, card, account)
@@ -792,6 +981,77 @@ mod tests {
         assert!(detected
             .iter()
             .any(|s| s.starts_with("redis://:mypassword@")));
+
+        for entity in &out {
+            assert_eq!(entity.label, "SIFRE");
+            assert_eq!(entity.pii_type, PiiType::Credentials);
+        }
+    }
+
+    #[test]
+    fn test_detect_v052_credentials() {
+        let dop = [
+            "dop_v1_",
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        ]
+        .concat();
+        let shp = ["shpat_", "0123456789abcdef0123456789abcdef"].concat();
+        let sq0 = ["sq0atp-", "0123456789ABCDEFGHIJKLMNOPQRSTUV"].concat();
+        let tg = ["123456789", ":AA", "abcdefghijklmnopqrstuvwxyz0123456"].concat();
+        let azure_key = ["bXlfc3VwZXJfc2VjcmV0X2F6dXJlX2tleV9mb3JfdGVzdGluZw", "=="].concat();
+        let azure_cs = format!("DefaultEndpointsProtocol=https;AccountName=myacc;AccountKey={azure_key};EndpointSuffix=core.windows.net");
+        let openai_svc = ["sk-svcacct-", "0123456789abcdef0123456789abcdef0123456789"].concat();
+        let stripe_pk_live = ["pk_live_", "51ABCDEF0123456789abcdefghijklmnop"].concat();
+        let stripe_pk_test = ["pk_test_", "51ABCDEF0123456789abcdefghijklmnop"].concat();
+        let sk_ant = [
+            "sk-ant-",
+            "api03-",
+            "abcdefghijklmnopqrstuvwxyz0123456789_ABCD",
+        ]
+        .concat();
+
+        let text = format!(
+            "DigitalOcean: {dop}\n\
+             Shopify: {shp}\n\
+             Square: {sq0}\n\
+             Telegram: {tg}\n\
+             Azure: {azure_cs}\n\
+             OpenAI Svc: {openai_svc}\n\
+             Stripe PK Live: {stripe_pk_live}\n\
+             Stripe PK Test: {stripe_pk_test}\n\
+             Anthropic: {sk_ant}\n\
+             password = \"SecretPass123!\"\n\
+             pwd: 'pass456'\n\
+             secret = super_secret_token\n\
+             api_key = \"my_api_key_val\"\n\
+             api-key: my_api_key_val2"
+        );
+
+        let mut out = Vec::new();
+        detect_secrets(&text, &mut out);
+
+        let detected: Vec<&str> = out.iter().map(|e| e.text.as_str()).collect();
+        assert!(detected.contains(&dop.as_str()));
+        assert!(detected.contains(&shp.as_str()));
+        assert!(detected.contains(&sq0.as_str()));
+        assert!(detected.contains(&tg.as_str()));
+        assert!(detected.contains(&azure_key.as_str()));
+        // Verify AccountName is NOT in detected secrets
+        assert!(!detected.contains(&"myacc"));
+        assert!(detected.contains(&openai_svc.as_str()));
+        assert!(detected.contains(&stripe_pk_live.as_str()));
+        assert!(detected.contains(&stripe_pk_test.as_str()));
+        // Anthropic key is one single credential span
+        assert!(detected.contains(&sk_ant.as_str()));
+        let ant_count = detected.iter().filter(|&&s| s == sk_ant.as_str()).count();
+        assert_eq!(ant_count, 1);
+
+        // Assignment values
+        assert!(detected.contains(&"SecretPass123!"));
+        assert!(detected.contains(&"pass456"));
+        assert!(detected.contains(&"super_secret_token"));
+        assert!(detected.contains(&"my_api_key_val"));
+        assert!(detected.contains(&"my_api_key_val2"));
 
         for entity in &out {
             assert_eq!(entity.label, "SIFRE");

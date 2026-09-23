@@ -283,3 +283,97 @@ def test_anonymize_mode_output():
     assert "[AD]" in res["masked_text"]
     assert "[TCKN]" in res["masked_text"]
     assert "***" not in res["masked_text"]
+
+
+def test_disabled_types_switch_python():
+    text = "Ahmet Yılmaz, 35 yaşında, ahmet@example.com ve IP adresi 192.168.1.1 üzerinden bağlandı."
+
+    # Default: Name is masked
+    res_default = akana.pii_mask(text)
+    assert "{{AD_1}}" in res_default["masked_text"]
+    assert "Ahmet Yılmaz" not in res_default["masked_text"]
+
+    # Disable Name and Person: Name is left verbatim
+    res_disabled = akana.pii_mask(text, disabled_types=["Name", "Person"])
+    assert "{{AD_1}}" not in res_disabled["masked_text"]
+    assert "Ahmet Yılmaz" in res_disabled["masked_text"]
+    assert not any(e["pii_type"] in ("AD", "KISI") for e in res_disabled["entities"])
+
+    # Engine methods
+    engine = akana.TurkishPiiEngine()
+    assert engine.is_type_enabled("Name") is True
+    engine.disable_type("Name")
+    assert engine.is_type_enabled("Name") is False
+    res_engine = engine.mask(text, mode="placeholder")
+    assert "Ahmet Yılmaz" in res_engine["masked_text"]
+    engine.enable_type("Name")
+    assert engine.is_type_enabled("Name") is True
+
+
+def test_v052_credentials_python():
+    dop = "dop_v1_" + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    shp = "shpat_" + "0123456789abcdef0123456789abcdef"
+    sq0 = "sq0atp-" + "0123456789ABCDEFGHIJKLMNOPQRSTUV"
+    tg = "123456789" + ":AA" + "abcdefghijklmnopqrstuvwxyz0123456"
+    azure_key = "bXlfc3VwZXJfc2VjcmV0X2F6dXJlX2tleV9mb3JfdGVzdGluZw" + "=="
+    azure_cs = f"DefaultEndpointsProtocol=https;AccountName=myacc;AccountKey={azure_key};EndpointSuffix=core.windows.net"
+    openai_svc = "sk-svcacct-" + "0123456789abcdef0123456789abcdef0123456789"
+    stripe_pk = "pk_live_" + "51ABCDEF0123456789abcdefghijklmnop"
+
+    text = (
+        f"DO: {dop}, "
+        f"Shopify: {shp}, "
+        f"Square: {sq0}, "
+        f"Telegram: {tg}, "
+        f"Azure: {azure_cs}, "
+        f"OpenAI: {openai_svc}, "
+        f"Stripe: {stripe_pk}, "
+        f'password = "mySecretPassword!", '
+        f"pwd: 'pass456', "
+        f"secret = super_secret_token, "
+        f'api_key = "my_api_key_val"'
+    )
+
+    res = akana.pii_mask(text, mode="placeholder")
+    masked = res["masked_text"]
+
+    assert dop not in masked
+    assert shp not in masked
+    assert sq0 not in masked
+    assert tg not in masked
+    assert azure_key not in masked
+    assert "myacc" in masked  # AccountName is NOT a secret
+    assert openai_svc not in masked
+    assert stripe_pk not in masked
+    assert "mySecretPassword!" not in masked
+    assert "pass456" not in masked
+    assert "super_secret_token" not in masked
+    assert "my_api_key_val" not in masked
+
+
+def test_iban_iso13616_python():
+    assert akana.validate_iban("GB82WEST12345698765432") is True
+    assert akana.validate_iban("GB82WEST12345698765433") is False
+    assert akana.validate_iban("TR330006100519786457841326") is True
+
+    # In masking: valid is masked as {{IBAN_1}}, invalid is left verbatim
+    res_valid = akana.pii_mask("Hesap GB82WEST12345698765432 nolu.")
+    assert "{{IBAN_1}}" in res_valid["masked_text"]
+
+    res_invalid = akana.pii_mask("Hesap GB82WEST12345698765433 nolu.")
+    assert "{{IBAN_1}}" not in res_invalid["masked_text"]
+    assert "GB82WEST12345698765433" in res_invalid["masked_text"]
+
+
+def test_us_ssn_python():
+    assert akana.validate_ssn("219-09-9999") is True
+    assert akana.validate_ssn("000-09-9999") is False
+    assert akana.validate_ssn("666-09-9999") is False
+    assert akana.validate_ssn("950-09-9999") is False
+    assert akana.validate_ssn("219-00-9999") is False
+    assert akana.validate_ssn("219-09-0000") is False
+
+    res = akana.pii_mask("Customer SSN: 219-09-9999 is verified.")
+    assert "{{SSN_1}}" in res["masked_text"]
+    assert "219-09-9999" not in res["masked_text"]
+    assert res["entities"][0]["label"] == "SSN"
