@@ -12,6 +12,7 @@ Demonstrates:
 
 import akana
 
+
 def main():
     print("=" * 70)
     print(" AKANA TURKISH NLP SUITE DEMO")
@@ -24,7 +25,9 @@ def main():
         sylls = akana.syllabify(w)
         hyphenated = akana.hyphenate(w, "-")
         count = akana.count_syllables(w)
-        print(f"Word: {w:<16} -> Syllables: {sylls} (Count: {count}, Hyphenated: '{hyphenated}')")
+        print(
+            f"Word: {w:<16} -> Syllables: {sylls} (Count: {count}, Hyphenated: '{hyphenated}')"
+        )
 
     # 2. Number Conversion
     print("\n--- 2. TURKISH NUMBER CONVERSION ---")
@@ -35,7 +38,9 @@ def main():
         print(f"Number {n:<10} -> Cardinal: '{cardinal}' | Ordinal: '{ordinal}'")
 
     currency_val = 1450.75
-    print(f"Currency {currency_val} TL -> '{akana.currency_to_words(currency_val, 'TL')}'")
+    print(
+        f"Currency {currency_val} TL -> '{akana.currency_to_words(currency_val, 'TL')}'"
+    )
     print(f"Currency 250.50 USD -> '{akana.currency_to_words(250.50, 'USD')}'")
 
     parsed_num = akana.words_to_number("bin dokuz yüz yirmi üç")
@@ -43,7 +48,15 @@ def main():
 
     # 3. Stemmer & Stopwords
     print("\n--- 3. STEMMER & STOPWORD FILTERING ---")
-    sample_tokens = ["bu", "güzel", "kitaplarımızda", "ve", "defterlerimizde", "yazılan", "bilgiler"]
+    sample_tokens = [
+        "bu",
+        "güzel",
+        "kitaplarımızda",
+        "ve",
+        "defterlerimizde",
+        "yazılan",
+        "bilgiler",
+    ]
     cleaned_tokens = akana.remove_stopwords(sample_tokens)
     stems = [akana.stem(t) for t in cleaned_tokens]
     print(f"Original tokens: {sample_tokens}")
@@ -58,7 +71,7 @@ def main():
         "ve katılımcıların yüzde 80'i onayladı."
     )
     entities = akana.extract_entities(ner_text)
-    print(f"Text:\n\"{ner_text}\"\n")
+    print(f'Text:\n"{ner_text}"\n')
     print(f"Detected Entities ({len(entities)}):")
     for e in entities:
         print(f"  • [{e.label:<7}] '{e.text}' (Offset: {e.start}-{e.end})")
@@ -71,7 +84,7 @@ def main():
         "Sondan eklemeli dil yapısı nedeniyle Türkçe morfolojik çözümleme yüksek başarım gerektirir."
     )
     keywords = akana.extract_keywords(doc_text, top_k=5)
-    print(f"Text:\n\"{doc_text}\"\n")
+    print(f'Text:\n"{doc_text}"\n')
     print("Top Keywords & Keyphrases:")
     for kw in keywords:
         print(f"  • {kw['keyword']:<35} (Score: {kw['score']:.2f})")
@@ -110,6 +123,7 @@ def main():
     print("\n" + "=" * 70)
     print(" ALL DEMONSTRATIONS COMPLETED SUCCESSFULLY!")
     print("=" * 70)
+
 
 if __name__ == "__main__":
     main()

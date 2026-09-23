@@ -1,6 +1,6 @@
 //! Actionable LLM Humanizer Prompt and Feedback Generator.
 
-use super::detector::{TurkishStyleAuditor, StyleAuditReport};
+use super::detector::{StyleAuditReport, TurkishStyleAuditor};
 
 pub struct TurkishHumanizer;
 
@@ -54,9 +54,14 @@ impl TurkishHumanizer {
 
         // 3. Punctuation Cleanliness Rule
         let mut punct_items = Vec::new();
-        let has_semicolon_conj = report.findings.iter().any(|f| f.category == "SemicolonConjunction");
+        let has_semicolon_conj = report
+            .findings
+            .iter()
+            .any(|f| f.category == "SemicolonConjunction");
         if has_semicolon_conj {
-            punct_items.push("noktalı virgülden (;) sonra gelen bağlaçları kaldırıp cümleyi nokta ile böl");
+            punct_items.push(
+                "noktalı virgülden (;) sonra gelen bağlaçları kaldırıp cümleyi nokta ile böl",
+            );
         }
         if report.metrics.punctuation.em_dash_count > 0 {
             punct_items.push("cümle içi uzun tireleri (—) virgüle çevir veya cümleyi böl");
@@ -71,14 +76,21 @@ impl TurkishHumanizer {
         if !punct_items.is_empty() {
             instructions.push(format!(
                 "{}. **Noktalama Düzenlemesi:** TDK kurallarına ve doğal Türkçeye uygun olarak {}.",
-                step, punct_items.join(", ")
+                step,
+                punct_items.join(", ")
             ));
             step += 1;
         }
 
         // 4. Structure & Rhetoric (Tricolon & Hypophora)
-        let has_tricolon = report.findings.iter().any(|f| f.category == "TricolonParallelList");
-        let has_hypophora = report.findings.iter().any(|f| f.category == "HypophoraQuestion");
+        let has_tricolon = report
+            .findings
+            .iter()
+            .any(|f| f.category == "TricolonParallelList");
+        let has_hypophora = report
+            .findings
+            .iter()
+            .any(|f| f.category == "HypophoraQuestion");
         if has_tricolon || has_hypophora {
             let mut struct_items = Vec::new();
             if has_tricolon {
@@ -89,13 +101,16 @@ impl TurkishHumanizer {
             }
             instructions.push(format!(
                 "{}. **Yapay Retorik ve Liste Temizliği:** {}.",
-                step, struct_items.join(" ve ")
+                step,
+                struct_items.join(" ve ")
             ));
             step += 1;
         }
 
         // 5. Rhythm and Burstiness Rule
-        if report.metrics.rhythm.is_low_burstiness || report.metrics.rhythm.short_sentences_count == 0 {
+        if report.metrics.rhythm.is_low_burstiness
+            || report.metrics.rhythm.short_sentences_count == 0
+        {
             instructions.push(format!(
                 "{}. **Cümle Ritim ve Nefesini Canlandır (Burstiness):** Cümleler ortalama {:.1} kelime ile tekdüze uzunluktadır. En az bir uzun cümleyi bölerek araya 1-4 kelimelik kısa, net nefes cümleleri ekle.",
                 step, report.metrics.rhythm.mean_sentence_length
@@ -108,7 +123,10 @@ impl TurkishHumanizer {
             "Metin türü: **Hukuki-İdari**. Terimsel kesinliği koru, sadece yapay çeviri kalıplarını ve noktalama bozukluklarını temizle. Konuşma dili unsurları ekleme."
         } else if reg_lower.contains("akademi") || reg_lower.contains("kurumsal") {
             "Metin türü: **Akademik-Kurumsal**. Ciddiyeti ve nesnelliği koru, ancak '-mektedir' monotonluğunu ve 'bu bağlamda' gibi dolgu kalıplarını kaldır."
-        } else if reg_lower.contains("analitik") || reg_lower.contains("haber") || reg_lower.contains("gazete") {
+        } else if reg_lower.contains("analitik")
+            || reg_lower.contains("haber")
+            || reg_lower.contains("gazete")
+        {
             "Metin türü: **Analitik-Gazetecilik**. Akıcı, dinamik ve net bir üslup kullan. Gereksiz dolguları at, somut verilere ve eylemlere odaklan."
         } else if reg_lower.contains("edebi") || reg_lower.contains("yaratıcı") {
             "Metin türü: **Edebi-Yaratıcı**. Duyusal detayları, ritim çeşitliliğini ve canlı Türkçe metaforlarını zenginleştir."
@@ -120,8 +138,13 @@ impl TurkishHumanizer {
         let mut prompt = String::new();
         prompt.push_str("# Türkçe Metin Doğallaştırma (Humanizer) Yönergesi\n\n");
         prompt.push_str(&format!("**Hedef Register:** {register_guidance}\n"));
-        prompt.push_str(&format!("**Tespit Edilen AI Skoru:** {:.1} / 100 ({})\n\n", report.ai_score, report.verdict));
-        prompt.push_str("Lütfen aşağıdaki metni şu somut kurallara uyarak insan Türkçesine dönüştür:\n\n");
+        prompt.push_str(&format!(
+            "**Tespit Edilen AI Skoru:** {:.1} / 100 ({})\n\n",
+            report.ai_score, report.verdict
+        ));
+        prompt.push_str(
+            "Lütfen aşağıdaki metni şu somut kurallara uyarak insan Türkçesine dönüştür:\n\n",
+        );
 
         for inst in &instructions {
             prompt.push_str(inst);

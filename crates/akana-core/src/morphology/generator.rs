@@ -38,20 +38,33 @@ impl TurkishGenerator {
             match tag {
                 // Nominal Plural
                 "A3pl" => {
-                    let a_vowel = if is_inverse_harmony { 'e' } else { super::super::phonology::get_a_type_harmonic_vowel(&surface) };
+                    let a_vowel = if is_inverse_harmony {
+                        'e'
+                    } else {
+                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
+                    };
                     surface.push_str(if a_vowel == 'e' { "ler" } else { "lar" });
                 }
                 // Possessive 1sg
                 "P1sg" => {
                     if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(&surface, is_voicing, is_vowel_drop, is_doubling);
+                        surface = self.apply_stem_mutation(
+                            &surface,
+                            is_voicing,
+                            is_vowel_drop,
+                            is_doubling,
+                        );
                         has_applied_stem_mutation = true;
                     }
                     let last_c = surface.chars().last().unwrap_or(' ');
                     if super::super::phonology::is_turkish_vowel(last_c) {
                         surface.push('m');
                     } else {
-                        let i_vowel = if is_inverse_harmony { 'i' } else { super::super::phonology::get_i_type_harmonic_vowel(&surface) };
+                        let i_vowel = if is_inverse_harmony {
+                            'i'
+                        } else {
+                            super::super::phonology::get_i_type_harmonic_vowel(&surface)
+                        };
                         surface.push(i_vowel);
                         surface.push('m');
                     }
@@ -59,14 +72,23 @@ impl TurkishGenerator {
                 // Possessive 2sg
                 "P2sg" => {
                     if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(&surface, is_voicing, is_vowel_drop, is_doubling);
+                        surface = self.apply_stem_mutation(
+                            &surface,
+                            is_voicing,
+                            is_vowel_drop,
+                            is_doubling,
+                        );
                         has_applied_stem_mutation = true;
                     }
                     let last_c = surface.chars().last().unwrap_or(' ');
                     if super::super::phonology::is_turkish_vowel(last_c) {
                         surface.push('n');
                     } else {
-                        let i_vowel = if is_inverse_harmony { 'i' } else { super::super::phonology::get_i_type_harmonic_vowel(&surface) };
+                        let i_vowel = if is_inverse_harmony {
+                            'i'
+                        } else {
+                            super::super::phonology::get_i_type_harmonic_vowel(&surface)
+                        };
                         surface.push(i_vowel);
                         surface.push('n');
                     }
@@ -74,11 +96,20 @@ impl TurkishGenerator {
                 // Possessive 3sg
                 "P3sg" => {
                     if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(&surface, is_voicing, is_vowel_drop, is_doubling);
+                        surface = self.apply_stem_mutation(
+                            &surface,
+                            is_voicing,
+                            is_vowel_drop,
+                            is_doubling,
+                        );
                         has_applied_stem_mutation = true;
                     }
                     let last_c = surface.chars().last().unwrap_or(' ');
-                    let i_vowel = if is_inverse_harmony { 'i' } else { super::super::phonology::get_i_type_harmonic_vowel(&surface) };
+                    let i_vowel = if is_inverse_harmony {
+                        'i'
+                    } else {
+                        super::super::phonology::get_i_type_harmonic_vowel(&surface)
+                    };
                     if super::super::phonology::is_turkish_vowel(last_c) {
                         surface.push('s');
                     }
@@ -87,11 +118,20 @@ impl TurkishGenerator {
                 // Dative Case
                 "Dat" => {
                     if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(&surface, is_voicing, is_vowel_drop, is_doubling);
+                        surface = self.apply_stem_mutation(
+                            &surface,
+                            is_voicing,
+                            is_vowel_drop,
+                            is_doubling,
+                        );
                         has_applied_stem_mutation = true;
                     }
                     let last_c = surface.chars().last().unwrap_or(' ');
-                    let a_vowel = if is_inverse_harmony { 'e' } else { super::super::phonology::get_a_type_harmonic_vowel(&surface) };
+                    let a_vowel = if is_inverse_harmony {
+                        'e'
+                    } else {
+                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
+                    };
                     if super::super::phonology::is_turkish_vowel(last_c) {
                         surface.push('y');
                     }
@@ -100,11 +140,20 @@ impl TurkishGenerator {
                 // Accusative Case
                 "Acc" => {
                     if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(&surface, is_voicing, is_vowel_drop, is_doubling);
+                        surface = self.apply_stem_mutation(
+                            &surface,
+                            is_voicing,
+                            is_vowel_drop,
+                            is_doubling,
+                        );
                         has_applied_stem_mutation = true;
                     }
                     let last_c = surface.chars().last().unwrap_or(' ');
-                    let i_vowel = if is_inverse_harmony { 'i' } else { super::super::phonology::get_i_type_harmonic_vowel(&surface) };
+                    let i_vowel = if is_inverse_harmony {
+                        'i'
+                    } else {
+                        super::super::phonology::get_i_type_harmonic_vowel(&surface)
+                    };
                     if super::super::phonology::is_turkish_vowel(last_c) {
                         surface.push('y');
                     }
@@ -114,7 +163,11 @@ impl TurkishGenerator {
                 "Loc" => {
                     let last_c = surface.chars().last().unwrap_or(' ');
                     let is_hard = super::super::phonology::is_hard_consonant(last_c);
-                    let a_vowel = if is_inverse_harmony { 'e' } else { super::super::phonology::get_a_type_harmonic_vowel(&surface) };
+                    let a_vowel = if is_inverse_harmony {
+                        'e'
+                    } else {
+                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
+                    };
                     surface.push(if is_hard { 't' } else { 'd' });
                     surface.push(a_vowel);
                 }
@@ -122,7 +175,11 @@ impl TurkishGenerator {
                 "Abl" => {
                     let last_c = surface.chars().last().unwrap_or(' ');
                     let is_hard = super::super::phonology::is_hard_consonant(last_c);
-                    let a_vowel = if is_inverse_harmony { 'e' } else { super::super::phonology::get_a_type_harmonic_vowel(&surface) };
+                    let a_vowel = if is_inverse_harmony {
+                        'e'
+                    } else {
+                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
+                    };
                     surface.push(if is_hard { 't' } else { 'd' });
                     surface.push(a_vowel);
                     surface.push('n');
@@ -130,11 +187,20 @@ impl TurkishGenerator {
                 // Genitive Case
                 "Gen" => {
                     if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(&surface, is_voicing, is_vowel_drop, is_doubling);
+                        surface = self.apply_stem_mutation(
+                            &surface,
+                            is_voicing,
+                            is_vowel_drop,
+                            is_doubling,
+                        );
                         has_applied_stem_mutation = true;
                     }
                     let last_c = surface.chars().last().unwrap_or(' ');
-                    let i_vowel = if is_inverse_harmony { 'i' } else { super::super::phonology::get_i_type_harmonic_vowel(&surface) };
+                    let i_vowel = if is_inverse_harmony {
+                        'i'
+                    } else {
+                        super::super::phonology::get_i_type_harmonic_vowel(&surface)
+                    };
                     if super::super::phonology::is_turkish_vowel(last_c) {
                         surface.push('n');
                     }
@@ -198,7 +264,13 @@ impl TurkishGenerator {
         Some(surface)
     }
 
-    fn apply_stem_mutation(&self, stem: &str, is_voicing: bool, is_vowel_drop: bool, is_doubling: bool) -> String {
+    fn apply_stem_mutation(
+        &self,
+        stem: &str,
+        is_voicing: bool,
+        is_vowel_drop: bool,
+        is_doubling: bool,
+    ) -> String {
         if is_vowel_drop {
             if let Some(dropped) = super::super::phonology::apply_vowel_drop(stem) {
                 if is_voicing {

@@ -8,10 +8,7 @@ use crate::embeddings::cosine_similarity;
 /// When `window_size` is 1, it computes pairwise similarity between sentence `i` and sentence `i+1`.
 /// When `window_size` > 1, it pools embeddings within the left window `[i - window_size + 1 ..= i]`
 /// and right window `[i + 1 ..= i + window_size]` before calculating cosine similarity.
-pub fn compute_windowed_similarities(
-    embeddings: &[Vec<f32>],
-    window_size: usize,
-) -> Vec<f32> {
+pub fn compute_windowed_similarities(embeddings: &[Vec<f32>], window_size: usize) -> Vec<f32> {
     let n = embeddings.len();
     if n < 2 {
         return Vec::new();
@@ -160,11 +157,8 @@ pub fn calculate_threshold(scores: &[f32], mode: &ThresholdMode) -> f32 {
 
         ThresholdMode::StandardDeviation(k) => {
             let mean = scores.iter().sum::<f32>() / scores.len() as f32;
-            let variance = scores
-                .iter()
-                .map(|x| (x - mean).powi(2))
-                .sum::<f32>()
-                / scores.len() as f32;
+            let variance =
+                scores.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / scores.len() as f32;
             let std_dev = variance.sqrt();
             (mean - k * std_dev).clamp(0.0, 1.0)
         }

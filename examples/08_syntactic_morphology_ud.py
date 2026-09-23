@@ -9,10 +9,11 @@ Demonstrates:
 
 import akana
 
+
 def compare_morphology(word: str):
-    print(f"\n{'='*75}")
+    print(f"\n{'=' * 75}")
     print(f" MORPHOLOGICAL COMPARISON FOR: '{word}'")
-    print(f"{'='*75}")
+    print(f"{'=' * 75}")
 
     # 1. Traditional Zemberek / Oflazer Flat Parse (Broad 93k Lexicon)
     z_analyzer = akana.Morphology()
@@ -20,7 +21,9 @@ def compare_morphology(word: str):
 
     print("\n[1] Traditional Zemberek / Oflazer Flat Representation:")
     for i, p in enumerate(z_parses, 1):
-        print(f"    {i}. {p['formatted']} (Lemma: {p['lemma']}, POS: {p['primary_pos']})")
+        print(
+            f"    {i}. {p['formatted']} (Lemma: {p['lemma']}, POS: {p['primary_pos']})"
+        )
         print(f"       Morpheme Sequence: {' + '.join(p['morphemes'])}")
 
     # 2. Google Expressive / Syntactic Inflectional Group Parse (FSMNLP 2019)
@@ -31,8 +34,11 @@ def compare_morphology(word: str):
         print(f"    {i}. {p.formatted}")
         print(f"       Root: {p.root} [{p.root_pos}], Proper: {p.is_proper}")
         for j, ig in enumerate(p.inflectional_groups):
-            deriv_info = f" (Derivation: {ig.derivation})" if ig.derivation else " (Root Tier)"
+            deriv_info = (
+                f" (Derivation: {ig.derivation})" if ig.derivation else " (Root Tier)"
+            )
             print(f"       • IG_{j}: [{ig.pos}]{deriv_info} -> {ig.features}")
+
 
 def main():
     print("=" * 75)
@@ -49,9 +55,10 @@ def main():
     for w in test_words:
         compare_morphology(w)
 
-    print(f"\n{'='*75}")
+    print(f"\n{'=' * 75}")
     print(" DEMONSTRATION FINISHED SUCCESSFULLY!")
-    print(f"{'='*75}")
+    print(f"{'=' * 75}")
+
 
 if __name__ == "__main__":
     main()

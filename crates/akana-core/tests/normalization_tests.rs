@@ -11,7 +11,10 @@ fn test_asciifier() {
 fn test_deasciifier() {
     let text = "turkce nlp cok hizli calisiyor ve ogrenci kitap okuyor";
     let deasciified = TurkishDeasciifier::deasciify(text);
-    assert_eq!(deasciified, "türkçe nlp çok hızlı çalışıyor ve öğrenci kitap okuyor");
+    assert_eq!(
+        deasciified,
+        "türkçe nlp çok hızlı çalışıyor ve öğrenci kitap okuyor"
+    );
 }
 
 #[test]
@@ -29,17 +32,38 @@ fn test_spellchecker() {
 
 #[test]
 fn test_informal_normalizer() {
-    assert_eq!(TurkishInformalNormalizer::deduplicate_repeated_chars("çooookkkk"), "çok");
-    assert_eq!(TurkishInformalNormalizer::normalize_word("yapcam"), "yapacağım");
-    assert_eq!(TurkishInformalNormalizer::normalize_word("geliyom"), "geliyorum");
-    assert_eq!(TurkishInformalNormalizer::normalize_word("noldu"), "ne oldu");
+    assert_eq!(
+        TurkishInformalNormalizer::deduplicate_repeated_chars("çooookkkk"),
+        "çok"
+    );
+    assert_eq!(
+        TurkishInformalNormalizer::normalize_word("yapcam"),
+        "yapacağım"
+    );
+    assert_eq!(
+        TurkishInformalNormalizer::normalize_word("geliyom"),
+        "geliyorum"
+    );
+    assert_eq!(
+        TurkishInformalNormalizer::normalize_word("noldu"),
+        "ne oldu"
+    );
 }
 
 #[test]
 fn test_number_converter() {
-    assert_eq!(TurkishNumberConverter::number_to_words(1923), "bin dokuz yüz yirmi üç");
+    assert_eq!(
+        TurkishNumberConverter::number_to_words(1923),
+        "bin dokuz yüz yirmi üç"
+    );
     assert_eq!(TurkishNumberConverter::ordinal_to_words(1), "birinci");
     assert_eq!(TurkishNumberConverter::ordinal_to_words(4), "dördüncü");
-    assert_eq!(TurkishNumberConverter::currency_to_words(1250.50, "TL"), "bin iki yüz elli lira elli kuruş");
-    assert_eq!(TurkishNumberConverter::words_to_number("bin dokuz yüz yirmi üç").unwrap(), 1923);
+    assert_eq!(
+        TurkishNumberConverter::currency_to_words(1250.50, "TL"),
+        "bin iki yüz elli lira elli kuruş"
+    );
+    assert_eq!(
+        TurkishNumberConverter::words_to_number("bin dokuz yüz yirmi üç").unwrap(),
+        1923
+    );
 }

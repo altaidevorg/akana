@@ -56,7 +56,10 @@ impl TurkishMorphology {
     }
 
     /// Loads custom dictionary definitions from a file at runtime.
-    pub fn load_dictionary_file<P: AsRef<std::path::Path>>(&mut self, path: P) -> std::io::Result<()> {
+    pub fn load_dictionary_file<P: AsRef<std::path::Path>>(
+        &mut self,
+        path: P,
+    ) -> std::io::Result<()> {
         self.lexicon.load_from_file(path)
     }
 
@@ -79,11 +82,15 @@ impl TurkishMorphology {
         if let Some(items) = self.lexicon.get_items(&lower) {
             for item in items {
                 let tags = match item.primary_pos {
-                    PrimaryPos::Noun => vec!["Noun".to_string(), "A3sg".to_string(), "Nom".to_string()],
+                    PrimaryPos::Noun => {
+                        vec!["Noun".to_string(), "A3sg".to_string(), "Nom".to_string()]
+                    }
                     PrimaryPos::Verb => vec!["Verb".to_string(), "A3sg".to_string()],
                     PrimaryPos::Adj => vec!["Adj".to_string()],
                     PrimaryPos::Adv => vec!["Adv".to_string()],
-                    PrimaryPos::Pron => vec!["Pron".to_string(), "A3sg".to_string(), "Nom".to_string()],
+                    PrimaryPos::Pron => {
+                        vec!["Pron".to_string(), "A3sg".to_string(), "Nom".to_string()]
+                    }
                     PrimaryPos::Num => vec!["Num".to_string()],
                     PrimaryPos::Conj => vec!["Conj".to_string()],
                     PrimaryPos::Postp => vec!["Postp".to_string()],
@@ -94,7 +101,13 @@ impl TurkishMorphology {
                     PrimaryPos::Unknown => vec!["Unk".to_string()],
                 };
 
-                let formatted = format!("[{}:{}] {}:{}", item.lemma, item.primary_pos.as_str(), item.root, tags.join("+"));
+                let formatted = format!(
+                    "[{}:{}] {}:{}",
+                    item.lemma,
+                    item.primary_pos.as_str(),
+                    item.root,
+                    tags.join("+")
+                );
                 results.push(MorphParse {
                     surface: clean.to_string(),
                     lemma: item.lemma.clone(),
@@ -119,33 +132,78 @@ impl TurkishMorphology {
             }
 
             // a) Direct match
-            self.match_and_traverse(&candidate_stem, &suffix_part, clean, &mut results, false, false, false);
+            self.match_and_traverse(
+                &candidate_stem,
+                &suffix_part,
+                clean,
+                &mut results,
+                false,
+                false,
+                false,
+            );
 
             // b) Consonant softening / mutation (e.g. "kitab" from "kitap", "ağac" from "ağaç", "kanad" from "kanat", "ayağ" from "ayak")
             let hardened_stem = self.unsoften_stem(&candidate_stem);
             if hardened_stem != candidate_stem {
-                self.match_and_traverse(&hardened_stem, &suffix_part, clean, &mut results, true, false, false);
+                self.match_and_traverse(
+                    &hardened_stem,
+                    &suffix_part,
+                    clean,
+                    &mut results,
+                    true,
+                    false,
+                    false,
+                );
             }
 
             // c) Vowel drop (e.g. "burn" from "burun", "akl" from "akıl", "şehr" from "şehir")
             let restored_vowel_stems = self.unvoweldrop_stems(&candidate_stem);
             for restored in restored_vowel_stems {
-                self.match_and_traverse(&restored, &suffix_part, clean, &mut results, false, true, false);
+                self.match_and_traverse(
+                    &restored,
+                    &suffix_part,
+                    clean,
+                    &mut results,
+                    false,
+                    true,
+                    false,
+                );
             }
 
             // d) Consonant doubling (e.g. "hakk" from "hak", "hiss" from "his")
             let undoubled = self.undouble_stem(&candidate_stem);
             if let Some(undoubled_root) = undoubled {
-                self.match_and_traverse(&undoubled_root, &suffix_part, clean, &mut results, false, false, true);
+                self.match_and_traverse(
+                    &undoubled_root,
+                    &suffix_part,
+                    clean,
+                    &mut results,
+                    false,
+                    false,
+                    true,
+                );
             }
 
             // e) Diminutive k-drop (e.g. "küçü" from "küçük", "mini" from "minik", "sıca" from "sıcak")
             let with_k = format!("{candidate_stem}k");
-            self.match_and_traverse(&with_k, &suffix_part, clean, &mut results, false, false, false);
+            self.match_and_traverse(
+                &with_k,
+                &suffix_part,
+                clean,
+                &mut results,
+                false,
+                false,
+                false,
+            );
         }
 
         // Deduplicate results and sort by score descending
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal).then_with(|| a.formatted.cmp(&b.formatted)));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.formatted.cmp(&b.formatted))
+        });
         results.dedup_by(|a, b| a.formatted == b.formatted);
 
         results
@@ -176,7 +234,9 @@ impl TurkishMorphology {
         let mut candidates = Vec::new();
         let last = chars[len - 1];
         let prev = chars[len - 2];
-        if !super::super::phonology::is_turkish_vowel(last) && !super::super::phonology::is_turkish_vowel(prev) {
+        if !super::super::phonology::is_turkish_vowel(last)
+            && !super::super::phonology::is_turkish_vowel(prev)
+        {
             for &v in &['ı', 'i', 'u', 'ü'] {
                 let mut s: Vec<char> = chars[..len - 1].to_vec();
                 s.push(v);
@@ -190,7 +250,10 @@ impl TurkishMorphology {
     fn undouble_stem(&self, stem: &str) -> Option<String> {
         let chars: Vec<char> = stem.chars().collect();
         let len = chars.len();
-        if len >= 3 && chars[len - 1] == chars[len - 2] && !super::super::phonology::is_turkish_vowel(chars[len - 1]) {
+        if len >= 3
+            && chars[len - 1] == chars[len - 2]
+            && !super::super::phonology::is_turkish_vowel(chars[len - 1])
+        {
             let s: String = chars[..len - 1].iter().collect();
             Some(s)
         } else {
@@ -266,10 +329,23 @@ impl TurkishMorphology {
         }
 
         if remaining_suffix.is_empty() {
-            let formatted = format!("[{}:{}] {}:{}", item.lemma, item.primary_pos.as_str(), item.root, tags.join("+"));
-            let is_upper = original_surface.chars().next().is_some_and(|c| c.is_uppercase());
+            let formatted = format!(
+                "[{}:{}] {}:{}",
+                item.lemma,
+                item.primary_pos.as_str(),
+                item.root,
+                tags.join("+")
+            );
+            let is_upper = original_surface
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_uppercase());
             let score = if item.secondary_pos == SecondaryPos::ProperNoun {
-                if is_upper { 0.98 } else { 0.6 }
+                if is_upper {
+                    0.98
+                } else {
+                    0.6
+                }
             } else {
                 0.95
             };

@@ -4,6 +4,7 @@ Example 02: Spell Checking with StringZilla SIMD, De-asciification & Normalizati
 
 import akana
 
+
 def main():
     print("=" * 60)
     print("      AKANA: NORMALIZATION & SIMD SPELL CHECKING")
@@ -27,7 +28,7 @@ def main():
     ascii_texts = [
         "turkce nlp cok hizli calisiyor",
         "ogrenci kutuphanede kitap okuyor ve caliskan",
-        "agaclar ve cicekler ilkbaharda cok guzel aciyor"
+        "agaclar ve cicekler ilkbaharda cok guzel aciyor",
     ]
     for text in ascii_texts:
         restored = akana.deasciify(text)
@@ -40,12 +41,13 @@ def main():
         "nooldu ya neden gelmiyon",
         "yarin ben de yapcam",
         "slm nbr nasılsın tşk",
-        "çooookkk güzel bir film"
+        "çooookkk güzel bir film",
     ]
     for msg in chat_messages:
         normalized = akana.normalize_informal(msg)
         print(f"  Informal:   {msg}")
         print(f"  Normalized: {normalized}\n")
+
 
 if __name__ == "__main__":
     main()

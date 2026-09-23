@@ -1,4 +1,4 @@
-use akana_core::style::{TurkishStyleAuditor, TurkishHumanizer};
+use akana_core::style::{TurkishHumanizer, TurkishStyleAuditor};
 
 #[test]
 fn test_ai_style_auditor_on_synthetic_text() {

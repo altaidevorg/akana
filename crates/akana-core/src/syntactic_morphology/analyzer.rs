@@ -1,8 +1,8 @@
 //! Two-level Syntactic Morphological Analyzer with Inflectional Groups (IG) and zero-derivation elimination.
 
-use super::types::{SyntacticParse, InflectionalGroup};
 use super::lexicon::{SyntacticLexicon, SyntacticPOS};
-use crate::morphology::{TurkishMorphology, PrimaryPos};
+use super::types::{InflectionalGroup, SyntacticParse};
+use crate::morphology::{PrimaryPos, TurkishMorphology};
 use crate::phonology::to_turkish_lower;
 
 pub struct TurkishSyntacticMorphology {
@@ -171,38 +171,94 @@ impl TurkishSyntacticMorphology {
                     }
 
                     // Nominal Inflections
-                    "A1sg" => { current_ig.set_feature("PersonNumber", "A1sg"); }
-                    "A2sg" => { current_ig.set_feature("PersonNumber", "A2sg"); }
-                    "A3sg" => { current_ig.set_feature("PersonNumber", "A3sg"); }
-                    "A1pl" => { current_ig.set_feature("PersonNumber", "A1pl"); }
-                    "A2pl" => { current_ig.set_feature("PersonNumber", "A2pl"); }
-                    "A3pl" => { current_ig.set_feature("PersonNumber", "A3pl"); }
+                    "A1sg" => {
+                        current_ig.set_feature("PersonNumber", "A1sg");
+                    }
+                    "A2sg" => {
+                        current_ig.set_feature("PersonNumber", "A2sg");
+                    }
+                    "A3sg" => {
+                        current_ig.set_feature("PersonNumber", "A3sg");
+                    }
+                    "A1pl" => {
+                        current_ig.set_feature("PersonNumber", "A1pl");
+                    }
+                    "A2pl" => {
+                        current_ig.set_feature("PersonNumber", "A2pl");
+                    }
+                    "A3pl" => {
+                        current_ig.set_feature("PersonNumber", "A3pl");
+                    }
 
-                    "Pnon" => { current_ig.set_feature("Possessive", "Pnon"); }
-                    "P1sg" => { current_ig.set_feature("Possessive", "P1sg"); }
-                    "P2sg" => { current_ig.set_feature("Possessive", "P2sg"); }
-                    "P3sg" => { current_ig.set_feature("Possessive", "P3sg"); }
-                    "P1pl" => { current_ig.set_feature("Possessive", "P1pl"); }
-                    "P2pl" => { current_ig.set_feature("Possessive", "P2pl"); }
-                    "P3pl" => { current_ig.set_feature("Possessive", "P3pl"); }
+                    "Pnon" => {
+                        current_ig.set_feature("Possessive", "Pnon");
+                    }
+                    "P1sg" => {
+                        current_ig.set_feature("Possessive", "P1sg");
+                    }
+                    "P2sg" => {
+                        current_ig.set_feature("Possessive", "P2sg");
+                    }
+                    "P3sg" => {
+                        current_ig.set_feature("Possessive", "P3sg");
+                    }
+                    "P1pl" => {
+                        current_ig.set_feature("Possessive", "P1pl");
+                    }
+                    "P2pl" => {
+                        current_ig.set_feature("Possessive", "P2pl");
+                    }
+                    "P3pl" => {
+                        current_ig.set_feature("Possessive", "P3pl");
+                    }
 
-                    "Nom" => { current_ig.set_feature("Case", "Nom"); }
-                    "Acc" => { current_ig.set_feature("Case", "Acc"); }
-                    "Dat" => { current_ig.set_feature("Case", "Dat"); }
-                    "Loc" => { current_ig.set_feature("Case", "Loc"); }
-                    "Abl" => { current_ig.set_feature("Case", "Abl"); }
-                    "Gen" => { current_ig.set_feature("Case", "Gen"); }
-                    "Ins" => { current_ig.set_feature("Case", "Ins"); }
+                    "Nom" => {
+                        current_ig.set_feature("Case", "Nom");
+                    }
+                    "Acc" => {
+                        current_ig.set_feature("Case", "Acc");
+                    }
+                    "Dat" => {
+                        current_ig.set_feature("Case", "Dat");
+                    }
+                    "Loc" => {
+                        current_ig.set_feature("Case", "Loc");
+                    }
+                    "Abl" => {
+                        current_ig.set_feature("Case", "Abl");
+                    }
+                    "Gen" => {
+                        current_ig.set_feature("Case", "Gen");
+                    }
+                    "Ins" => {
+                        current_ig.set_feature("Case", "Ins");
+                    }
 
                     // Verbal Inflections
-                    "Past" => { current_ig.set_feature("Tense", "Past"); }
-                    "Narr" => { current_ig.set_feature("Tense", "Narr"); }
-                    "Fut" => { current_ig.set_feature("Tense", "Fut"); }
-                    "Prog1" | "Prog2" => { current_ig.set_feature("Aspect", "Prog"); }
-                    "Aor" => { current_ig.set_feature("Tense", "Aor"); }
-                    "Des" => { current_ig.set_feature("Mood", "Des"); }
-                    "Nec" => { current_ig.set_feature("Mood", "Nec"); }
-                    "Cop" => { current_ig.set_feature("Copula", "PresCop"); }
+                    "Past" => {
+                        current_ig.set_feature("Tense", "Past");
+                    }
+                    "Narr" => {
+                        current_ig.set_feature("Tense", "Narr");
+                    }
+                    "Fut" => {
+                        current_ig.set_feature("Tense", "Fut");
+                    }
+                    "Prog1" | "Prog2" => {
+                        current_ig.set_feature("Aspect", "Prog");
+                    }
+                    "Aor" => {
+                        current_ig.set_feature("Tense", "Aor");
+                    }
+                    "Des" => {
+                        current_ig.set_feature("Mood", "Des");
+                    }
+                    "Nec" => {
+                        current_ig.set_feature("Mood", "Nec");
+                    }
+                    "Cop" => {
+                        current_ig.set_feature("Copula", "PresCop");
+                    }
                     _ => {}
                 }
             }
@@ -210,13 +266,7 @@ impl TurkishSyntacticMorphology {
             groups.push(current_ig);
 
             let is_proper = bp.secondary_pos == crate::morphology::SecondaryPos::ProperNoun;
-            let parse = SyntacticParse::new(
-                word,
-                &root_lemma,
-                root_pos_str,
-                groups,
-                is_proper,
-            );
+            let parse = SyntacticParse::new(word, &root_lemma, root_pos_str, groups, is_proper);
 
             results.push(parse);
         }

@@ -1,9 +1,9 @@
 //! Lexicon layer for Syntactic Expressive Morphology.
 //! Incorporates gold-standard root categorization, zero-derivation elimination, and morphophonemic flags.
 
-use std::collections::HashMap;
-use lazy_static::lazy_static;
 use crate::phonology::to_turkish_lower;
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SyntacticPOS {
@@ -157,7 +157,10 @@ impl SyntacticLexicon {
                 flags |= SyntacticRootFlags::FRONT_HARMONY_EXCEPTION;
             }
 
-            let secondary = DUAL_CLASS_ROOTS.get(lower_word.as_str()).cloned().unwrap_or_default();
+            let secondary = DUAL_CLASS_ROOTS
+                .get(lower_word.as_str())
+                .cloned()
+                .unwrap_or_default();
 
             let entry = SyntacticRootEntry {
                 lemma: raw_word.to_string(),

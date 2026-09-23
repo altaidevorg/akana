@@ -1,6 +1,6 @@
 use akana_core::chunking::{
-    calculate_quantile, calculate_threshold, moving_average_filter,
-    savitzky_golay_filter, SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode,
+    calculate_quantile, calculate_threshold, moving_average_filter, savitzky_golay_filter,
+    SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode,
 };
 
 fn get_char_slice(text: &str, start: usize, end: usize) -> String {
@@ -15,7 +15,10 @@ fn test_sentence_chunker_spans_and_offsets() {
 
     assert!(!chunks.is_empty());
     for chunk in &chunks {
-        assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+        assert_eq!(
+            get_char_slice(text, chunk.start_index, chunk.end_index),
+            chunk.text
+        );
         assert!(chunk.token_count > 0);
         assert!(!chunk.sentences.is_empty());
     }
@@ -46,7 +49,10 @@ fn test_sentence_chunker_overlap() {
 
     assert!(chunks.len() >= 2);
     for chunk in &chunks {
-        assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+        assert_eq!(
+            get_char_slice(text, chunk.start_index, chunk.end_index),
+            chunk.text
+        );
     }
 }
 
@@ -62,18 +68,28 @@ fn test_semantic_chunker_topic_boundaries() {
 
     let chunks = chunker.chunk(text);
 
-    assert!(chunks.len() >= 2, "Expected multiple chunks for distinct topics, got {}", chunks.len());
+    assert!(
+        chunks.len() >= 2,
+        "Expected multiple chunks for distinct topics, got {}",
+        chunks.len()
+    );
 
     // Verify chunk slicing and offsets
     for chunk in &chunks {
-        assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+        assert_eq!(
+            get_char_slice(text, chunk.start_index, chunk.end_index),
+            chunk.text
+        );
         assert!(chunk.token_count > 0);
     }
 
     // First chunk should be physics-related
     assert!(chunks[0].text.contains("Kuantum"));
     // Last chunk should be food-related
-    assert!(chunks.last().unwrap().text.contains("mutfağında") || chunks.last().unwrap().text.contains("baklava"));
+    assert!(
+        chunks.last().unwrap().text.contains("mutfağında")
+            || chunks.last().unwrap().text.contains("baklava")
+    );
 }
 
 #[test]
@@ -92,7 +108,10 @@ fn test_semantic_chunker_threshold_modes() {
         let chunks = chunker.chunk(text);
         assert!(!chunks.is_empty());
         for chunk in &chunks {
-            assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+            assert_eq!(
+                get_char_slice(text, chunk.start_index, chunk.end_index),
+                chunk.text
+            );
         }
     }
 }
@@ -100,14 +119,18 @@ fn test_semantic_chunker_threshold_modes() {
 #[test]
 fn test_sdpm_chunker_double_pass_merge() {
     let chunker = SDPMChunker::new(512, ThresholdMode::Similarity(0.85), 0.50);
-    let text = "Makine öğrenmesi algoritmaları veri ile eğitilir. Denetimli öğrenme en yaygın yöntemdir. \
+    let text =
+        "Makine öğrenmesi algoritmaları veri ile eğitilir. Denetimli öğrenme en yaygın yöntemdir. \
                 Denetimsiz öğrenme ise etiketsiz verilerden örüntü çıkarır. \
                 Güneş sistemindeki en büyük gezegen Jüpiter'dir. Satürn ise halkalarıyla bilinir.";
 
     let chunks = chunker.chunk(text);
     assert!(!chunks.is_empty());
     for chunk in &chunks {
-        assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+        assert_eq!(
+            get_char_slice(text, chunk.start_index, chunk.end_index),
+            chunk.text
+        );
         assert!(chunk.token_count <= 512);
     }
 }
@@ -141,13 +164,17 @@ fn test_similarity_math_utilities() {
 #[test]
 fn test_sdpm_multibyte_turkish_merging() {
     let chunker = SDPMChunker::new(512, ThresholdMode::Similarity(0.70), 0.30);
-    let text = "Şiir ve edebiyat; Türkçe'nin zenginliğini, inceliğini ve çağrışım gücünü gösterir. \
+    let text =
+        "Şiir ve edebiyat; Türkçe'nin zenginliğini, inceliğini ve çağrışım gücünü gösterir. \
                 Öykücülük ve romancılık ise toplumsal dönüşümleri derinlemesine işler. \
                 İçerik çözümlemesi dilbilimsel yöntemlerle yürütülür.";
 
     let chunks = chunker.chunk(text);
     assert!(!chunks.is_empty());
     for chunk in &chunks {
-        assert_eq!(get_char_slice(text, chunk.start_index, chunk.end_index), chunk.text);
+        assert_eq!(
+            get_char_slice(text, chunk.start_index, chunk.end_index),
+            chunk.text
+        );
     }
 }

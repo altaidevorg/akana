@@ -1,8 +1,8 @@
 //! Types and structures for Google-style Syntactic Expressive Morphology (FSMNLP 2019).
 //! Represents hierarchical Inflectional Groups (IG) and Universal Dependencies (UD) features.
 
-use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// An Inflectional Group (IG) represents an overt derivational span or root tier in Turkish morphology.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,7 +89,10 @@ impl SyntacticParse {
                 formatted.push_str(&ig.format_ig(false, None));
             }
         }
-        formatted.push_str(&format!("+[Proper={}]", if is_proper { "True" } else { "False" }));
+        formatted.push_str(&format!(
+            "+[Proper={}]",
+            if is_proper { "True" } else { "False" }
+        ));
 
         Self {
             surface,

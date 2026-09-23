@@ -1,8 +1,8 @@
 //! Fast, zero-copy, rule-based Turkish tokenizer with SIMD and character-level fast dispatch.
 
+use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use lazy_static::lazy_static;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokenType {
@@ -96,7 +96,12 @@ impl TurkishTokenizer {
             if first_char == '#' {
                 if let Some(mat) = HASHTAG_REGEX.find(remaining) {
                     let token_text = mat.as_str();
-                    tokens.push(Token::new(token_text, TokenType::Hashtag, start_idx, start_idx + token_text.len()));
+                    tokens.push(Token::new(
+                        token_text,
+                        TokenType::Hashtag,
+                        start_idx,
+                        start_idx + token_text.len(),
+                    ));
                     idx += token_text.len();
                     continue;
                 }
@@ -106,7 +111,12 @@ impl TurkishTokenizer {
             if first_char == '@' {
                 if let Some(mat) = MENTION_REGEX.find(remaining) {
                     let token_text = mat.as_str();
-                    tokens.push(Token::new(token_text, TokenType::Mention, start_idx, start_idx + token_text.len()));
+                    tokens.push(Token::new(
+                        token_text,
+                        TokenType::Mention,
+                        start_idx,
+                        start_idx + token_text.len(),
+                    ));
                     idx += token_text.len();
                     continue;
                 }
@@ -116,7 +126,12 @@ impl TurkishTokenizer {
             if first_char == 'h' || first_char == 'H' || first_char == 'w' || first_char == 'W' {
                 if let Some(mat) = URL_REGEX.find(remaining) {
                     let token_text = mat.as_str();
-                    tokens.push(Token::new(token_text, TokenType::Url, start_idx, start_idx + token_text.len()));
+                    tokens.push(Token::new(
+                        token_text,
+                        TokenType::Url,
+                        start_idx,
+                        start_idx + token_text.len(),
+                    ));
                     idx += token_text.len();
                     continue;
                 }
@@ -126,14 +141,24 @@ impl TurkishTokenizer {
             if first_char.is_ascii_digit() || first_char == '+' || first_char == '-' {
                 if let Some(mat) = DATE_REGEX.find(remaining) {
                     let token_text = mat.as_str();
-                    tokens.push(Token::new(token_text, TokenType::Date, start_idx, start_idx + token_text.len()));
+                    tokens.push(Token::new(
+                        token_text,
+                        TokenType::Date,
+                        start_idx,
+                        start_idx + token_text.len(),
+                    ));
                     idx += token_text.len();
                     continue;
                 }
 
                 if let Some(mat) = TIME_REGEX.find(remaining) {
                     let token_text = mat.as_str();
-                    tokens.push(Token::new(token_text, TokenType::Time, start_idx, start_idx + token_text.len()));
+                    tokens.push(Token::new(
+                        token_text,
+                        TokenType::Time,
+                        start_idx,
+                        start_idx + token_text.len(),
+                    ));
                     idx += token_text.len();
                     continue;
                 }
@@ -141,7 +166,12 @@ impl TurkishTokenizer {
                 if let Some(mat) = NUMBER_REGEX.find(remaining) {
                     let token_text = mat.as_str();
                     if token_text.chars().any(|c| c.is_ascii_digit()) {
-                        tokens.push(Token::new(token_text, TokenType::Number, start_idx, start_idx + token_text.len()));
+                        tokens.push(Token::new(
+                            token_text,
+                            TokenType::Number,
+                            start_idx,
+                            start_idx + token_text.len(),
+                        ));
                         idx += token_text.len();
                         continue;
                     }
@@ -151,10 +181,19 @@ impl TurkishTokenizer {
             // 5. Alphabetic Words, Turkish Proper Nouns, and Abbreviations
             if first_char.is_alphabetic() {
                 // Quick check for email (if contains '@' before whitespace)
-                if remaining.split_whitespace().next().is_some_and(|w| w.contains('@')) {
+                if remaining
+                    .split_whitespace()
+                    .next()
+                    .is_some_and(|w| w.contains('@'))
+                {
                     if let Some(mat) = EMAIL_REGEX.find(remaining) {
                         let token_text = mat.as_str();
-                        tokens.push(Token::new(token_text, TokenType::Email, start_idx, start_idx + token_text.len()));
+                        tokens.push(Token::new(
+                            token_text,
+                            TokenType::Email,
+                            start_idx,
+                            start_idx + token_text.len(),
+                        ));
                         idx += token_text.len();
                         continue;
                     }
@@ -209,13 +248,20 @@ impl TurkishTokenizer {
 
             // 6. Check Punctuation & Symbols
             let char_len = first_char.len_utf8();
-            let token_type = if first_char.is_ascii_punctuation() || matches!(first_char, '…' | '“' | '”' | '‘' | '’' | '—' | '–') {
+            let token_type = if first_char.is_ascii_punctuation()
+                || matches!(first_char, '…' | '“' | '”' | '‘' | '’' | '—' | '–')
+            {
                 TokenType::Punctuation
             } else {
                 TokenType::Symbol
             };
 
-            tokens.push(Token::new(&text[start_idx..start_idx + char_len], token_type, start_idx, start_idx + char_len));
+            tokens.push(Token::new(
+                &text[start_idx..start_idx + char_len],
+                token_type,
+                start_idx,
+                start_idx + char_len,
+            ));
             idx += char_len;
         }
 

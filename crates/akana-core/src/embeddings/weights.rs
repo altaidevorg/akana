@@ -54,12 +54,16 @@ impl EmbeddingWeights {
         let mut embeddings = vec![0.0f32; vocab_size * EMBEDDING_DIM];
         for token_id in 0..vocab_size {
             let scale = f16_to_f32(scales[token_id]);
-            let packed_row = &packed_indices[token_id * PACKED_ROW_LEN..(token_id + 1) * PACKED_ROW_LEN];
+            let packed_row =
+                &packed_indices[token_id * PACKED_ROW_LEN..(token_id + 1) * PACKED_ROW_LEN];
             let emb_row = &mut embeddings[token_id * EMBEDDING_DIM..(token_id + 1) * EMBEDDING_DIM];
             dequantize_row(packed_row, scale, emb_row);
         }
 
-        Ok(Self { embeddings, vocab_size })
+        Ok(Self {
+            embeddings,
+            vocab_size,
+        })
     }
 
     /// Get the embedding vector for a given token ID (as a slice).
@@ -144,22 +148,30 @@ fn parse_npz(data: &[u8]) -> Result<(Vec<u8>, Vec<u16>, usize), WeightsError> {
 
         // Parse local file header fields
         let mut header = [0u8; 26]; // remaining 26 bytes of the local file header
-        cursor.read_exact(&mut header).map_err(|e| WeightsError::Io(e.to_string()))?;
+        cursor
+            .read_exact(&mut header)
+            .map_err(|e| WeightsError::Io(e.to_string()))?;
 
         let compression_method = u16::from_le_bytes([header[4], header[5]]);
-        let mut compressed_size = u32::from_le_bytes([header[14], header[15], header[16], header[17]]) as usize;
-        let mut uncompressed_size = u32::from_le_bytes([header[18], header[19], header[20], header[21]]) as usize;
+        let mut compressed_size =
+            u32::from_le_bytes([header[14], header[15], header[16], header[17]]) as usize;
+        let mut uncompressed_size =
+            u32::from_le_bytes([header[18], header[19], header[20], header[21]]) as usize;
         let filename_len = u16::from_le_bytes([header[22], header[23]]) as usize;
         let extra_len = u16::from_le_bytes([header[24], header[25]]) as usize;
 
         // Read filename
         let mut filename_bytes = vec![0u8; filename_len];
-        cursor.read_exact(&mut filename_bytes).map_err(|e| WeightsError::Io(e.to_string()))?;
+        cursor
+            .read_exact(&mut filename_bytes)
+            .map_err(|e| WeightsError::Io(e.to_string()))?;
         let filename = String::from_utf8_lossy(&filename_bytes).to_string();
 
         // Read extra field
         let mut extra = vec![0u8; extra_len];
-        cursor.read_exact(&mut extra).map_err(|e| WeightsError::Io(e.to_string()))?;
+        cursor
+            .read_exact(&mut extra)
+            .map_err(|e| WeightsError::Io(e.to_string()))?;
 
         // Handle ZIP64 extra fields if sizes are 0xFFFFFFFF
         if (compressed_size == 0xFFFFFFFF || uncompressed_size == 0xFFFFFFFF) && extra_len >= 4 {
@@ -189,7 +201,9 @@ fn parse_npz(data: &[u8]) -> Result<(Vec<u8>, Vec<u16>, usize), WeightsError> {
 
         // Read file data
         let mut raw_data = vec![0u8; compressed_size];
-        cursor.read_exact(&mut raw_data).map_err(|e| WeightsError::Io(e.to_string()))?;
+        cursor
+            .read_exact(&mut raw_data)
+            .map_err(|e| WeightsError::Io(e.to_string()))?;
 
         let file_data = match compression_method {
             0 => raw_data,
@@ -197,10 +211,16 @@ fn parse_npz(data: &[u8]) -> Result<(Vec<u8>, Vec<u16>, usize), WeightsError> {
                 use flate2::read::DeflateDecoder;
                 let mut decoder = DeflateDecoder::new(&raw_data[..]);
                 let mut decompressed = Vec::with_capacity(uncompressed_size);
-                decoder.read_to_end(&mut decompressed).map_err(|e| WeightsError::Io(e.to_string()))?;
+                decoder
+                    .read_to_end(&mut decompressed)
+                    .map_err(|e| WeightsError::Io(e.to_string()))?;
                 decompressed
             }
-            _ => return Err(WeightsError::InvalidNpy("unsupported zip compression method")),
+            _ => {
+                return Err(WeightsError::InvalidNpy(
+                    "unsupported zip compression method",
+                ))
+            }
         };
 
         // Parse the .npy inside
@@ -217,8 +237,10 @@ fn parse_npz(data: &[u8]) -> Result<(Vec<u8>, Vec<u16>, usize), WeightsError> {
                 let (array_data, _shape) = parse_npy_raw(&file_data, "f2")?;
                 // Convert raw bytes to u16 values (little-endian f16)
                 let u16_vec: Vec<u16> = array_data
-                    .chunks_exact(2)
-                    .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|chunk| u16::from_le_bytes(*chunk))
                     .collect();
                 scales_raw = Some(u16_vec);
             }
@@ -237,28 +259,29 @@ fn parse_npz(data: &[u8]) -> Result<(Vec<u8>, Vec<u16>, usize), WeightsError> {
 /// Parse a .npy file header and return raw data bytes and shape.
 ///
 /// We only need to handle simple cases: u1 (uint8) and f2 (float16).
-fn parse_npy_raw(data: &[u8], _expected_dtype: &str) -> Result<(Vec<u8>, Vec<usize>), WeightsError> {
+fn parse_npy_raw(
+    data: &[u8],
+    _expected_dtype: &str,
+) -> Result<(Vec<u8>, Vec<usize>), WeightsError> {
     // NPY format: \x93NUMPY + major + minor + header_len + header_str
     if data.len() < 10 || &data[0..6] != b"\x93NUMPY" {
         return Err(WeightsError::InvalidNpy("bad magic number"));
     }
 
     let major = data[6];
-    let header_len;
-    let header_start;
-
-    if major == 1 {
-        header_len = u16::from_le_bytes([data[8], data[9]]) as usize;
-        header_start = 10;
+    let (header_len, header_start) = if major == 1 {
+        (u16::from_le_bytes([data[8], data[9]]) as usize, 10)
     } else if major == 2 {
         if data.len() < 12 {
             return Err(WeightsError::InvalidNpy("truncated v2 header"));
         }
-        header_len = u32::from_le_bytes([data[8], data[9], data[10], data[11]]) as usize;
-        header_start = 12;
+        (
+            u32::from_le_bytes([data[8], data[9], data[10], data[11]]) as usize,
+            12,
+        )
     } else {
         return Err(WeightsError::InvalidNpy("unsupported npy version"));
-    }
+    };
 
     let header_bytes = &data[header_start..header_start + header_len];
     let header_str = std::str::from_utf8(header_bytes)
@@ -277,13 +300,16 @@ fn parse_npy_raw(data: &[u8], _expected_dtype: &str) -> Result<(Vec<u8>, Vec<usi
 ///
 /// Header format example: `{'descr': '<u1', 'fortran_order': False, 'shape': (39655, 64), }`
 fn parse_shape_from_header(header: &str) -> Result<Vec<usize>, WeightsError> {
-    let shape_start = header.find("'shape': (")
+    let shape_start = header
+        .find("'shape': (")
         .or_else(|| header.find("'shape':("))
         .ok_or(WeightsError::InvalidNpy("no shape in header"))?;
 
-    let paren_start = header[shape_start..].find('(')
+    let paren_start = header[shape_start..]
+        .find('(')
         .ok_or(WeightsError::InvalidNpy("no '(' in shape"))?;
-    let paren_end = header[shape_start..].find(')')
+    let paren_end = header[shape_start..]
+        .find(')')
         .ok_or(WeightsError::InvalidNpy("no ')' in shape"))?;
 
     let shape_str = &header[shape_start + paren_start + 1..shape_start + paren_end];
@@ -338,7 +364,8 @@ mod tests {
     use super::*;
 
     // Embed the actual weights for testing
-    static WEIGHTS_DATA: &[u8] = include_bytes!("../../../../data/embeddings/turboquant_weights.npz");
+    static WEIGHTS_DATA: &[u8] =
+        include_bytes!("../../../../data/embeddings/turboquant_weights.npz");
 
     #[test]
     fn test_load_weights() {
@@ -357,8 +384,11 @@ mod tests {
 
         // Known reference: scale = 0.9052734375
         // First value: q=0 → (0 - 1.5) * 0.905... = -1.357910...
-        assert!((emb[0] - (-1.3579102)).abs() < 0.001,
-            "expected ~-1.358, got {}", emb[0]);
+        assert!(
+            (emb[0] - (-1.3579102)).abs() < 0.001,
+            "expected ~-1.358, got {}",
+            emb[0]
+        );
     }
 
     #[test]

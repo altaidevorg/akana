@@ -7,8 +7,8 @@
 //! 4. Vowel Dropping / Syncope (*akılı* -> *aklı*, *şehire* -> *şehre*).
 //! 5. Vowel Narrowing in progressive tense (*başlayor* -> *başlıyor*).
 
-use std::collections::HashMap;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 use super::{ErrorCategory, GrammarFinding};
 use crate::morphology::TurkishMorphology;
@@ -106,11 +106,20 @@ impl PhonologicalRuleEngine {
     ) -> bool {
         // Look for unassimilated suffix patterns: "da", "de", "dan", "den", "dı", "di", "du", "dü", "dır", "dir", "dur", "dür", "ce", "ca"
         let unassimilated_suffixes = [
-            ("da", "ta"), ("de", "te"),
-            ("dan", "tan"), ("den", "ten"),
-            ("dı", "tı"), ("di", "ti"), ("du", "tu"), ("dü", "tü"),
-            ("dır", "tır"), ("dir", "tir"), ("dur", "tur"), ("dür", "tür"),
-            ("ca", "ça"), ("ce", "çe"),
+            ("da", "ta"),
+            ("de", "te"),
+            ("dan", "tan"),
+            ("den", "ten"),
+            ("dı", "tı"),
+            ("di", "ti"),
+            ("du", "tu"),
+            ("dü", "tü"),
+            ("dır", "tır"),
+            ("dir", "tir"),
+            ("dur", "tur"),
+            ("dür", "tür"),
+            ("ca", "ça"),
+            ("ce", "çe"),
         ];
 
         for (bad_suf, good_suf) in &unassimilated_suffixes {
@@ -123,11 +132,12 @@ impl PhonologicalRuleEngine {
                         if !parses.is_empty() {
                             let fixed_lower = format!("{stem}{good_suf}");
                             // Preserve original casing
-                            let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                                crate::phonology::to_turkish_title(&fixed_lower)
-                            } else {
-                                fixed_lower
-                            };
+                            let replacement =
+                                if original.chars().next().is_some_and(|c| c.is_uppercase()) {
+                                    crate::phonology::to_turkish_title(&fixed_lower)
+                                } else {
+                                    fixed_lower
+                                };
 
                             findings.push(GrammarFinding {
                                 category: ErrorCategory::ConsonantAssimilation,
@@ -165,11 +175,12 @@ impl PhonologicalRuleEngine {
                 if let Some(first_suf_char) = suf.chars().next() {
                     if is_turkish_vowel(first_suf_char) {
                         let fixed_lower = format!("{contracted}{suf}");
-                        let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                            crate::phonology::to_turkish_title(&fixed_lower)
-                        } else {
-                            fixed_lower
-                        };
+                        let replacement =
+                            if original.chars().next().is_some_and(|c| c.is_uppercase()) {
+                                crate::phonology::to_turkish_title(&fixed_lower)
+                            } else {
+                                fixed_lower
+                            };
 
                         findings.push(GrammarFinding {
                             category: ErrorCategory::VowelDropping,
@@ -205,8 +216,16 @@ impl PhonologicalRuleEngine {
             let stem = &lower[..lower.len() - 4];
             let ending = &lower[lower.len() - 4..];
             if !stem.is_empty() {
-                let verb_root = format!("{}{}", stem, if ending.starts_with('a') { "a" } else { "e" });
-                if morphology.analyze(&verb_root).iter().any(|p| p.primary_pos == crate::morphology::pos::PrimaryPos::Verb) {
+                let verb_root = format!(
+                    "{}{}",
+                    stem,
+                    if ending.starts_with('a') { "a" } else { "e" }
+                );
+                if morphology
+                    .analyze(&verb_root)
+                    .iter()
+                    .any(|p| p.primary_pos == crate::morphology::pos::PrimaryPos::Verb)
+                {
                     let last_v = last_vowel(stem).unwrap_or('a');
                     let narrow_v = harmony_i_type(last_v);
                     let fixed_lower = format!("{stem}{narrow_v}yor");
@@ -233,18 +252,30 @@ impl PhonologicalRuleEngine {
 
         // 3B. Check Over-Narrowing in non-progressive suffixes (Label 12: e.g. "başlıyan" -> "başlayan", "yapmıya" -> "yapmaya")
         const OVER_NARROWED_PATTERNS: &[(&str, &str)] = &[
-            ("mıyanlar", "mayanlar"), ("miyenler", "meyenler"),
-            ("mıyan", "mayan"), ("miyen", "meyen"),
-            ("mıyarak", "mayarak"), ("miyerek", "meyerek"),
-            ("mıyalım", "mayalım"), ("miyelim", "meyelim"),
-            ("mıya", "maya"), ("miye", "meye"),
-            ("başlıyan", "başlayan"), ("söyliyen", "söyleyen"),
-            ("bekliyen", "bekleyen"), ("yaşıyan", "yaşayan"),
-            ("anlıyan", "anlayan"), ("istiyen", "isteyen"),
-            ("izliyen", "izleyen"), ("dinliyen", "dinleyen"),
-            ("kutlıyan", "kutlayan"), ("özliyen", "özleyen"),
-            ("olmıyan", "olmayan"), ("görmiyen", "görmeyen"),
-            ("bilmiyen", "bilmeyen"), ("gelmiyen", "gelmeyen"),
+            ("mıyanlar", "mayanlar"),
+            ("miyenler", "meyenler"),
+            ("mıyan", "mayan"),
+            ("miyen", "meyen"),
+            ("mıyarak", "mayarak"),
+            ("miyerek", "meyerek"),
+            ("mıyalım", "mayalım"),
+            ("miyelim", "meyelim"),
+            ("mıya", "maya"),
+            ("miye", "meye"),
+            ("başlıyan", "başlayan"),
+            ("söyliyen", "söyleyen"),
+            ("bekliyen", "bekleyen"),
+            ("yaşıyan", "yaşayan"),
+            ("anlıyan", "anlayan"),
+            ("istiyen", "isteyen"),
+            ("izliyen", "izleyen"),
+            ("dinliyen", "dinleyen"),
+            ("kutlıyan", "kutlayan"),
+            ("özliyen", "özleyen"),
+            ("olmıyan", "olmayan"),
+            ("görmiyen", "görmeyen"),
+            ("bilmiyen", "bilmeyen"),
+            ("gelmiyen", "gelmeyen"),
         ];
 
         for &(narrowed, corrected) in OVER_NARROWED_PATTERNS {
@@ -271,14 +302,30 @@ impl PhonologicalRuleEngine {
 
         // 3C. Check Colloquial Pronoun Syncopes (Label 14: e.g. "burda" -> "burada", "dışarda" -> "dışarıda")
         const COLLOQUIAL_SYNCOPES: &[(&str, &str)] = &[
-            ("burda", "burada"), ("burdan", "buradan"), ("burdaki", "buradaki"),
-            ("şurda", "şurada"), ("şurdan", "şuradan"), ("şurdaki", "şuradaki"),
-            ("orda", "orada"), ("ordan", "oradan"), ("ordaki", "oradaki"),
-            ("dışarda", "dışarıda"), ("dışardan", "dışarıdan"), ("dışardaki", "dışarıdaki"),
-            ("içerde", "içeride"), ("içerden", "içeriden"), ("içerdeki", "içerideki"),
-            ("yukarda", "yukarıda"), ("yukardan", "yukarıdan"), ("yukardaki", "yukarıdaki"),
-            ("ilerde", "ileride"), ("ilerden", "ileriden"), ("ilerdeki", "ilerideki"),
-            ("yalınız", "yalnız"), ("yanlız", "yalnız"), ("yalnış", "yanlış"),
+            ("burda", "burada"),
+            ("burdan", "buradan"),
+            ("burdaki", "buradaki"),
+            ("şurda", "şurada"),
+            ("şurdan", "şuradan"),
+            ("şurdaki", "şuradaki"),
+            ("orda", "orada"),
+            ("ordan", "oradan"),
+            ("ordaki", "oradaki"),
+            ("dışarda", "dışarıda"),
+            ("dışardan", "dışarıdan"),
+            ("dışardaki", "dışarıdaki"),
+            ("içerde", "içeride"),
+            ("içerden", "içeriden"),
+            ("içerdeki", "içerideki"),
+            ("yukarda", "yukarıda"),
+            ("yukardan", "yukarıdan"),
+            ("yukardaki", "yukarıdaki"),
+            ("ilerde", "ileride"),
+            ("ilerden", "ileriden"),
+            ("ilerdeki", "ilerideki"),
+            ("yalınız", "yalnız"),
+            ("yanlız", "yalnız"),
+            ("yalnış", "yanlış"),
         ];
 
         for &(colloquial, standard) in COLLOQUIAL_SYNCOPES {
@@ -294,8 +341,11 @@ impl PhonologicalRuleEngine {
                     end_offset: end,
                     original_text: original.to_string(),
                     replacement,
-                    message_tr: "Konuşma dilindeki ünlü düşmesi yazı dilinde gösterilmez.".to_string(),
-                    message_en: "Colloquial syncope should not be written in standard Turkish orthography.".to_string(),
+                    message_tr: "Konuşma dilindeki ünlü düşmesi yazı dilinde gösterilmez."
+                        .to_string(),
+                    message_en:
+                        "Colloquial syncope should not be written in standard Turkish orthography."
+                            .to_string(),
                     confidence: 0.99,
                 });
                 return true;
@@ -317,10 +367,22 @@ impl PhonologicalRuleEngine {
         findings: &mut Vec<GrammarFinding>,
     ) -> bool {
         let softenable_roots = [
-            ("kitap", "kitab"), ("ağaç", "ağac"), ("kanat", "kanad"), ("renk", "reng"),
-            ("çocuk", "çocuğ"), ("ayak", "ayağ"), ("ekmek", "ekmeğ"), ("köpek", "köpeğ"),
-            ("dolap", "dolab"), ("kalp", "kalb"), ("hesap", "hesab"), ("cevap", "cevab"),
-            ("kulak", "kulağ"), ("bacak", "bacağ"), ("çiçek", "çiçeğ"), ("tarak", "tarağ"),
+            ("kitap", "kitab"),
+            ("ağaç", "ağac"),
+            ("kanat", "kanad"),
+            ("renk", "reng"),
+            ("çocuk", "çocuğ"),
+            ("ayak", "ayağ"),
+            ("ekmek", "ekmeğ"),
+            ("köpek", "köpeğ"),
+            ("dolap", "dolab"),
+            ("kalp", "kalb"),
+            ("hesap", "hesab"),
+            ("cevap", "cevab"),
+            ("kulak", "kulağ"),
+            ("bacak", "bacağ"),
+            ("çiçek", "çiçeğ"),
+            ("tarak", "tarağ"),
         ];
 
         for (unmutated, mutated) in &softenable_roots {
@@ -329,11 +391,12 @@ impl PhonologicalRuleEngine {
                 if let Some(first_suf_char) = suf.chars().next() {
                     if is_turkish_vowel(first_suf_char) {
                         let fixed_lower = format!("{mutated}{suf}");
-                        let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                            crate::phonology::to_turkish_title(&fixed_lower)
-                        } else {
-                            fixed_lower
-                        };
+                        let replacement =
+                            if original.chars().next().is_some_and(|c| c.is_uppercase()) {
+                                crate::phonology::to_turkish_title(&fixed_lower)
+                            } else {
+                                fixed_lower
+                            };
 
                         findings.push(GrammarFinding {
                             category: ErrorCategory::ConsonantSoftening,
@@ -379,11 +442,12 @@ impl PhonologicalRuleEngine {
                 if current_pl != expected_pl {
                     let fixed_lower = format!("{stem}{expected_pl}");
                     if !morphology.analyze(&fixed_lower).is_empty() {
-                        let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                            crate::phonology::to_turkish_title(&fixed_lower)
-                        } else {
-                            fixed_lower
-                        };
+                        let replacement =
+                            if original.chars().next().is_some_and(|c| c.is_uppercase()) {
+                                crate::phonology::to_turkish_title(&fixed_lower)
+                            } else {
+                                fixed_lower
+                            };
                         findings.push(GrammarFinding {
                             category: ErrorCategory::VowelHarmony,
                             start_offset: start,

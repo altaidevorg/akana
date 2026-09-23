@@ -1,9 +1,9 @@
 //! Normalization for informal Turkish, spoken contractions, slang, and repetitive elongated characters.
 
-use std::collections::HashMap;
-use lazy_static::lazy_static;
 use crate::morphology::TurkishMorphology;
 use crate::phonology::to_turkish_lower;
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 lazy_static! {
     static ref GLOBAL_MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
@@ -57,7 +57,10 @@ impl TurkishInformalNormalizer {
         // If the 2-char deduped word is not in the dictionary, try reducing to single chars
         if count >= 2 {
             let single_chars = Self::reduce_all_consecutive_duplicates(word);
-            if !GLOBAL_MORPHOLOGY.analyze(&to_turkish_lower(&single_chars)).is_empty() {
+            if !GLOBAL_MORPHOLOGY
+                .analyze(&to_turkish_lower(&single_chars))
+                .is_empty()
+            {
                 return single_chars;
             }
         }
@@ -87,27 +90,77 @@ impl TurkishInformalNormalizer {
         }
 
         // Apply productive future contraction rules (yapcam -> yapacağım, gelcem -> geleceğim, okucam -> okuyacağım)
-        if lower.ends_with("cam") || lower.ends_with("can") || lower.ends_with("caz") || lower.ends_with("cak") || lower.ends_with("caklar") ||
-           lower.ends_with("cem") || lower.ends_with("cen") || lower.ends_with("cez") || lower.ends_with("cek") || lower.ends_with("cekler") {
+        if lower.ends_with("cam")
+            || lower.ends_with("can")
+            || lower.ends_with("caz")
+            || lower.ends_with("cak")
+            || lower.ends_with("caklar")
+            || lower.ends_with("cem")
+            || lower.ends_with("cen")
+            || lower.ends_with("cez")
+            || lower.ends_with("cek")
+            || lower.ends_with("cekler")
+        {
             let (stem, ending) = if let Some(idx) = lower.rfind('c') {
-                (&lower[..idx], &lower[idx+1..])
+                (&lower[..idx], &lower[idx + 1..])
             } else {
                 ("", "")
             };
 
             if !stem.is_empty() {
-                let last_vowel = stem.chars().rev().find(|&c| super::super::phonology::is_turkish_vowel(c)).unwrap_or('a');
+                let last_vowel = stem
+                    .chars()
+                    .rev()
+                    .find(|&c| super::super::phonology::is_turkish_vowel(c))
+                    .unwrap_or('a');
                 let is_back = super::super::phonology::is_back_vowel(last_vowel);
-                let stem_ends_with_vowel = super::super::phonology::is_turkish_vowel(stem.chars().last().unwrap());
+                let stem_ends_with_vowel =
+                    super::super::phonology::is_turkish_vowel(stem.chars().last().unwrap());
 
-                let buffer = if stem_ends_with_vowel { "y" } else if is_back { "a" } else { "e" };
+                let buffer = if stem_ends_with_vowel {
+                    "y"
+                } else if is_back {
+                    "a"
+                } else {
+                    "e"
+                };
                 let harmonic_c = "c";
                 let suffix = match ending {
-                    "am" => if is_back { "ağım" } else { "eceğim" },
-                    "an" => if is_back { "aksın" } else { "eksin" },
-                    "az" => if is_back { "ağız" } else { "eceğiz" },
-                    "ak" => if is_back { "ak" } else { "ek" },
-                    "aklar" => if is_back { "aklar" } else { "ekler" },
+                    "am" => {
+                        if is_back {
+                            "ağım"
+                        } else {
+                            "eceğim"
+                        }
+                    }
+                    "an" => {
+                        if is_back {
+                            "aksın"
+                        } else {
+                            "eksin"
+                        }
+                    }
+                    "az" => {
+                        if is_back {
+                            "ağız"
+                        } else {
+                            "eceğiz"
+                        }
+                    }
+                    "ak" => {
+                        if is_back {
+                            "ak"
+                        } else {
+                            "ek"
+                        }
+                    }
+                    "aklar" => {
+                        if is_back {
+                            "aklar"
+                        } else {
+                            "ekler"
+                        }
+                    }
                     "em" => "eceğim",
                     "en" => "eksin",
                     "ez" => "eceğiz",
@@ -117,11 +170,21 @@ impl TurkishInformalNormalizer {
                 };
 
                 let candidate = if ending == "am" {
-                    format!("{}{}{}", stem, buffer, if is_back { "cağım" } else { "ceğim" })
+                    format!(
+                        "{}{}{}",
+                        stem,
+                        buffer,
+                        if is_back { "cağım" } else { "ceğim" }
+                    )
                 } else if ending == "em" {
                     format!("{}{}{}", stem, buffer, "ceğim")
                 } else if ending == "az" {
-                    format!("{}{}{}", stem, buffer, if is_back { "cağız" } else { "ceğiz" })
+                    format!(
+                        "{}{}{}",
+                        stem,
+                        buffer,
+                        if is_back { "cağız" } else { "ceğiz" }
+                    )
                 } else if ending == "ez" {
                     format!("{}{}{}", stem, buffer, "ceğiz")
                 } else {
@@ -182,7 +245,8 @@ impl TurkishInformalNormalizer {
 
         for token in tokens {
             let alphabetic_part: String = token.chars().filter(|c| c.is_alphabetic()).collect();
-            let non_alphabetic_part: String = token.chars().filter(|c| !c.is_alphabetic()).collect();
+            let non_alphabetic_part: String =
+                token.chars().filter(|c| !c.is_alphabetic()).collect();
 
             if alphabetic_part.is_empty() {
                 result.push_str(token);

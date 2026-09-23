@@ -1,6 +1,5 @@
 """Comprehensive and detailed tests for Akana Chunking Suite."""
 
-import pytest
 import akana
 
 
@@ -10,19 +9,21 @@ def test_chunking_unicode_and_emojis():
         "Batarya teknolojisi ve menzil performansı kullanıcılar tarafından beğenildi. 🔋 "
         "İstanbul ve Ankara gibi büyükşehirlerde şarj istasyonları hızla yaygınlaşıyor. 🔌"
     )
-    chunker = akana.SemanticChunker(chunk_size=256, threshold_mode="percentile", threshold_value=0.75)
+    chunker = akana.SemanticChunker(
+        chunk_size=256, threshold_mode="percentile", threshold_value=0.75
+    )
     chunks = chunker(text)
 
     assert len(chunks) >= 1
     for c in chunks:
-        assert text[c.start_index:c.end_index] == c.text
+        assert text[c.start_index : c.end_index] == c.text
         assert c.token_count > 0
 
 
 def test_chunking_numbers_abbreviations_and_quotes():
     text = (
         "Prof. Dr. Mehmet Özdemir ve Doç. Dr. Selin Vural saat 10.45'te 2. toplantı salonunda buluştu. "
-        "Toplantıda \"Türkiye Yüzyılı\" vizyonu ve Ar-Ge projeleri ele alındı. "
+        'Toplantıda "Türkiye Yüzyılı" vizyonu ve Ar-Ge projeleri ele alındı. '
         "Bütçe olarak 1.500.000 TL ayrılması kararlaştırıldı. "
         "Resmi duyuru www.resmigazete.gov.tr üzerinden ilan edilecek."
     )
@@ -31,28 +32,36 @@ def test_chunking_numbers_abbreviations_and_quotes():
 
     assert len(chunks) >= 1
     for c in chunks:
-        assert text[c.start_index:c.end_index] == c.text
+        assert text[c.start_index : c.end_index] == c.text
         assert c.token_count > 0
 
 
 def test_chunking_large_multi_domain_corpus():
     domains = [
         # Domain 1: Quantum Physics
-        "Kuantum teorisi mikroskobik dünyadaki fiziksel olayları betimler. "
-        "Heisenberg belirsizlik ilkesi bir parçacığın konum ve momentumunun aynı anda kesin olarak ölçülemeyeceğini belirtir. "
-        "Schrödinger dalga denklemi kuantum durumlarının zamana bağlı evrimini tanımlar.",
+        (
+            "Kuantum teorisi mikroskobik dünyadaki fiziksel olayları betimler. "
+            "Heisenberg belirsizlik ilkesi bir parçacığın konum ve momentumunun aynı anda kesin olarak ölçülemeyeceğini belirtir. "
+            "Schrödinger dalga denklemi kuantum durumlarının zamana bağlı evrimini tanımlar."
+        ),
         # Domain 2: Turkish History
-        "Kurtuluş Savaşı 1919 yılında Mustafa Kemal Atatürk'ün Samsun'a çıkışıyla başlamıştır. "
-        "Büyük Millet Meclisi 23 Nisan 1920'de Ankara'da açılarak milli iradeyi temsil etmiştir. "
-        "29 Ekim 1923 tarihinde Türkiye Cumhuriyeti resmen ilan edilmiştir.",
+        (
+            "Kurtuluş Savaşı 1919 yılında Mustafa Kemal Atatürk'ün Samsun'a çıkışıyla başlamıştır. "
+            "Büyük Millet Meclisi 23 Nisan 1920'de Ankara'da açılarak milli iradeyi temsil etmiştir. "
+            "29 Ekim 1923 tarihinde Türkiye Cumhuriyeti resmen ilan edilmiştir."
+        ),
         # Domain 3: Turkish Cuisine
-        "Gaziantep mutfağı zengin etli yemekleri ve tatlılarıyla UNESCO tescillidir. "
-        "Ali Nazik kebabı ve beyran çorbası kentin en bilinen simgelerindendir. "
-        "Fıstıklı baklava çıtır yufkası ve doğal şerbetiyle eşsiz bir lezzet sunar.",
+        (
+            "Gaziantep mutfağı zengin etli yemekleri ve tatlılarıyla UNESCO tescillidir. "
+            "Ali Nazik kebabı ve beyran çorbası kentin en bilinen simgelerindendir. "
+            "Fıstıklı baklava çıtır yufkası ve doğal şerbetiyle eşsiz bir lezzet sunar."
+        ),
         # Domain 4: Macroeconomics
-        "Merkez bankaları enflasyon oranını kontrol altında tutmak için politika faizini belirler. "
-        "Cari açık ve dış ticaret dengesi döviz kuru hareketlerinde belirleyici rol oynar. "
-        "Doğrudan yabancı yatırımlar ekonomik büyümeyi ve istihdamı destekler.",
+        (
+            "Merkez bankaları enflasyon oranını kontrol altında tutmak için politika faizini belirler. "
+            "Cari açık ve dış ticaret dengesi döviz kuru hareketlerinde belirleyici rol oynar. "
+            "Doğrudan yabancı yatırımlar ekonomik büyümeyi ve istihdamı destekler."
+        ),
     ]
 
     full_document = "\n\n".join(domains)
@@ -68,14 +77,16 @@ def test_chunking_large_multi_domain_corpus():
 
     assert len(sem_chunks) >= 3
     for c in sem_chunks:
-        assert full_document[c.start_index:c.end_index] == c.text
+        assert full_document[c.start_index : c.end_index] == c.text
         assert c.token_count > 0
 
     # Verify domain isolation in chunks
     assert "Kuantum" in sem_chunks[0].text
     assert "Mustafa Kemal" in full_document
     assert any("Gaziantep" in c.text or "kebap" in c.text for c in sem_chunks)
-    assert any("enflasyon" in c.text or "Merkez bankaları" in c.text for c in sem_chunks)
+    assert any(
+        "enflasyon" in c.text or "Merkez bankaları" in c.text for c in sem_chunks
+    )
 
     # 2. SDPM Chunker
     sdpm_chunker = akana.SDPMChunker(
@@ -87,7 +98,7 @@ def test_chunking_large_multi_domain_corpus():
     sdpm_chunks = sdpm_chunker(full_document)
     assert len(sdpm_chunks) >= 2
     for c in sdpm_chunks:
-        assert full_document[c.start_index:c.end_index] == c.text
+        assert full_document[c.start_index : c.end_index] == c.text
         assert c.token_count <= 512
 
 
@@ -115,9 +126,11 @@ def test_threshold_modes_consistency():
     )
 
     for mode in ["percentile", "similarity", "stdev", "iqr", "auto"]:
-        chunker = akana.SemanticChunker(chunk_size=512, threshold_mode=mode, min_chunk_size=5)
+        chunker = akana.SemanticChunker(
+            chunk_size=512, threshold_mode=mode, min_chunk_size=5
+        )
         chunks = chunker(text)
         assert len(chunks) >= 1
         for c in chunks:
-            assert text[c.start_index:c.end_index] == c.text
+            assert text[c.start_index : c.end_index] == c.text
             assert c.token_count > 0

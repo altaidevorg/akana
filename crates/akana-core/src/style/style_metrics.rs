@@ -1,9 +1,9 @@
 //! Style, rhythm, punctuation, and morphological predicate metric extractors.
 
-use serde::{Deserialize, Serialize};
-use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
 use crate::morphology::TurkishMorphology;
 use crate::phonology::to_turkish_lower;
+use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PunctuationMetrics {
@@ -88,8 +88,15 @@ impl StyleMetricsExtractor {
 
         for s in &sentences {
             let tokens = TurkishTokenizer::tokenize(s.text);
-            let count = tokens.into_iter()
-                .filter(|t| !matches!(t.token_type, crate::tokenization::TokenType::Punctuation | crate::tokenization::TokenType::Symbol))
+            let count = tokens
+                .into_iter()
+                .filter(|t| {
+                    !matches!(
+                        t.token_type,
+                        crate::tokenization::TokenType::Punctuation
+                            | crate::tokenization::TokenType::Symbol
+                    )
+                })
                 .count();
 
             total_words += count;
@@ -127,7 +134,10 @@ impl StyleMetricsExtractor {
     }
 
     /// Analyzes predicate verb tense variety and counts `-mektedir / -maktadır` occurrences.
-    pub fn extract_predicate_metrics(text: &str, morphology: &TurkishMorphology) -> PredicateMetrics {
+    pub fn extract_predicate_metrics(
+        text: &str,
+        morphology: &TurkishMorphology,
+    ) -> PredicateMetrics {
         let sentences = SentenceSegmenter::segment(text);
         let total_sentences = sentences.len();
         if total_sentences == 0 {
@@ -143,8 +153,15 @@ impl StyleMetricsExtractor {
 
         for s in &sentences {
             let tokens = TurkishTokenizer::tokenize(s.text);
-            let words: Vec<&str> = tokens.into_iter()
-                .filter(|t| matches!(t.token_type, crate::tokenization::TokenType::Word | crate::tokenization::TokenType::ProperNounWithApostrophe))
+            let words: Vec<&str> = tokens
+                .into_iter()
+                .filter(|t| {
+                    matches!(
+                        t.token_type,
+                        crate::tokenization::TokenType::Word
+                            | crate::tokenization::TokenType::ProperNounWithApostrophe
+                    )
+                })
                 .map(|t| t.text)
                 .collect();
 
@@ -152,8 +169,11 @@ impl StyleMetricsExtractor {
                 let clean = last_word.trim_matches(|c: char| !c.is_alphabetic());
                 let lower = to_turkish_lower(clean);
 
-                if lower.ends_with("mektedir") || lower.ends_with("maktadır") ||
-                   lower.ends_with("mektedirler") || lower.ends_with("maktadırlar") {
+                if lower.ends_with("mektedir")
+                    || lower.ends_with("maktadır")
+                    || lower.ends_with("mektedirler")
+                    || lower.ends_with("maktadırlar")
+                {
                     mektedir_count += 1;
                     total_predicates += 1;
                 } else {

@@ -1,10 +1,10 @@
 //! Cliché, bureaucratic connector, inflated hedges, and rhetorical translationese pattern matcher for Turkish text.
 //! Accelerated with StringZilla SIMD substring searching.
 
-use regex::Regex;
-use lazy_static::lazy_static;
-use stringzilla::StringZilla;
 use crate::phonology::to_turkish_lower;
+use lazy_static::lazy_static;
+use regex::Regex;
+use stringzilla::StringZilla;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClicheCategory {
@@ -371,7 +371,10 @@ impl ClicheMatcher {
                     };
 
                     if prev_ok && next_ok {
-                        let text_slice = if end <= text.len() && text.is_char_boundary(start) && text.is_char_boundary(end) {
+                        let text_slice = if end <= text.len()
+                            && text.is_char_boundary(start)
+                            && text.is_char_boundary(end)
+                        {
                             text[start..end].to_string()
                         } else {
                             needle.to_string()

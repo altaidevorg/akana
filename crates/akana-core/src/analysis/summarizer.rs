@@ -1,9 +1,9 @@
 //! Extractive Turkish Document Summarizer using Morphological Graph-based TextRank.
 
-use std::collections::HashSet;
-use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
 use crate::morphology::{TurkishStemmer, TurkishStopwords};
 use crate::phonology::to_turkish_lower;
+use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
+use std::collections::HashSet;
 
 pub struct TurkishSummarizer {
     stemmer: TurkishStemmer,
@@ -31,7 +31,10 @@ impl TurkishSummarizer {
             return Vec::new();
         }
         if raw_sentences.len() <= max_sentences {
-            return raw_sentences.into_iter().map(|s| s.text.to_string()).collect();
+            return raw_sentences
+                .into_iter()
+                .map(|s| s.text.to_string())
+                .collect();
         }
 
         // 1. Preprocess and lemmatize sentences into stemmed token bags
@@ -106,7 +109,8 @@ impl TurkishSummarizer {
         // Sort selected indices back to chronological order
         ranked_indices.sort();
 
-        ranked_indices.into_iter()
+        ranked_indices
+            .into_iter()
             .map(|idx| raw_sentences[idx].text.to_string())
             .collect()
     }

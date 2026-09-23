@@ -14,11 +14,23 @@ pub fn soften_consonant(c: char, is_nk_cluster: bool) -> char {
         'p' => 'b',
         'ç' => 'c',
         't' => 'd',
-        'k' => if is_nk_cluster { 'g' } else { 'ğ' },
+        'k' => {
+            if is_nk_cluster {
+                'g'
+            } else {
+                'ğ'
+            }
+        }
         'P' => 'B',
         'Ç' => 'C',
         'T' => 'D',
-        'K' => if is_nk_cluster { 'G' } else { 'Ğ' },
+        'K' => {
+            if is_nk_cluster {
+                'G'
+            } else {
+                'Ğ'
+            }
+        }
         _ => c,
     }
 }
@@ -47,7 +59,9 @@ pub fn apply_stem_softening(stem: &str) -> String {
     let len = chars.len();
     let last = chars[len - 1];
 
-    let is_nk = len >= 2 && (chars[len - 2] == 'n' || chars[len - 2] == 'N') && (last == 'k' || last == 'K');
+    let is_nk = len >= 2
+        && (chars[len - 2] == 'n' || chars[len - 2] == 'N')
+        && (last == 'k' || last == 'K');
     chars[len - 1] = soften_consonant(last, is_nk);
     chars.into_iter().collect()
 }

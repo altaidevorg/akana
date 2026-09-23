@@ -110,8 +110,12 @@ impl SDPMChunker {
 
                     if sim >= self.merge_threshold {
                         // Merge `chunk` into `prev`
-                        let start_char = prev.start_index.min(char_byte_offsets.len().saturating_sub(1));
-                        let end_char = chunk.end_index.min(char_byte_offsets.len().saturating_sub(1));
+                        let start_char = prev
+                            .start_index
+                            .min(char_byte_offsets.len().saturating_sub(1));
+                        let end_char = chunk
+                            .end_index
+                            .min(char_byte_offsets.len().saturating_sub(1));
                         let byte_start = char_byte_offsets[start_char];
                         let byte_end = char_byte_offsets[end_char];
                         let full_text = text[byte_start..byte_end].to_string();

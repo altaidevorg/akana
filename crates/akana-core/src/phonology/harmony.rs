@@ -1,6 +1,8 @@
 //! Turkish vowel harmony rules: 2-way (A/E - Büyük Ünlü Uyumu) and 4-way (I/İ/U/Ü - Küçük Ünlü Uyumu).
 
-use super::alphabet::{is_back_vowel, is_front_vowel, is_rounded_vowel, is_unrounded_vowel, last_vowel};
+use super::alphabet::{
+    is_back_vowel, is_front_vowel, is_rounded_vowel, is_unrounded_vowel, last_vowel,
+};
 
 /// Evaluates 2-way vowel harmony (A-type):
 /// - Back vowels (a, ı, o, u) -> 'a'
@@ -72,7 +74,10 @@ pub fn check_major_vowel_harmony(word: &str) -> bool {
 
 /// Checks if a word satisfies Minor Vowel Harmony (Küçük Ünlü Uyumu).
 pub fn check_minor_vowel_harmony(word: &str) -> bool {
-    let vowels: Vec<char> = word.chars().filter(|&c| super::alphabet::is_turkish_vowel(c)).collect();
+    let vowels: Vec<char> = word
+        .chars()
+        .filter(|&c| super::alphabet::is_turkish_vowel(c))
+        .collect();
     if vowels.len() <= 1 {
         return true;
     }

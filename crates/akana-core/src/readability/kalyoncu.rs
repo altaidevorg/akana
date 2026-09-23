@@ -1,11 +1,11 @@
 //! Kalyoncu (2025) Turkish Readability Formula implementation.
 //! Based on M. Rahman Kalyoncu's master's thesis "Türkçe İçin Yeni Bir Okunabilirlik Formülü" (Ondokuz Mayıs Üniversitesi, 2025).
 
-use std::collections::{HashMap, HashSet};
 use super::metrics::{FormulaResult, KalyoncuResults, TextStatistics};
 use crate::morphology::{PrimaryPos, SecondaryPos, TurkishMorphology};
 use crate::phonology;
 use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
+use std::collections::{HashMap, HashSet};
 
 pub struct KalyoncuAnalyzer {
     word_list: HashSet<&'static str>,
@@ -50,9 +50,12 @@ impl KalyoncuAnalyzer {
         let mut complex_sentences = 0;
 
         let conjunctions: HashSet<&str> = [
-            "ve", "veya", "yahut", "ki", "de", "da", "ama", "fakat", "lakin",
-            "ancak", "çünkü", "oysa", "oysaki", "halbuki", "ise", "madem", "ile"
-        ].iter().cloned().collect();
+            "ve", "veya", "yahut", "ki", "de", "da", "ama", "fakat", "lakin", "ancak", "çünkü",
+            "oysa", "oysaki", "halbuki", "ise", "madem", "ile",
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         for sent in &sentences {
             let tokens = TurkishTokenizer::tokenize_words(sent.text);
@@ -70,7 +73,10 @@ impl KalyoncuAnalyzer {
                 total_words += 1;
 
                 // Syllables (number of Turkish vowels)
-                let syllables = lower.chars().filter(|&c| phonology::is_turkish_vowel(c)).count();
+                let syllables = lower
+                    .chars()
+                    .filter(|&c| phonology::is_turkish_vowel(c))
+                    .count();
                 total_syllables += syllables;
                 if syllables >= 3 {
                     polysyllabic_words += 1;
@@ -83,20 +89,32 @@ impl KalyoncuAnalyzer {
 
                 // Morphological analysis for lemma, POS, and fiilimsi detection
                 let parses = self.morphology.analyze(&lower);
-                let (best_lemma, is_fiilimsi, is_proper_or_num) = if let Some(first_parse) = parses.first() {
-                    let fiilimsi = first_parse.morpheme_tags.iter().any(|tag| {
-                        matches!(
-                            tag.as_str(),
-                            "PresPart" | "PastPart" | "FutPart" | "AdvErek" | "AdvInce" |
-                            "AdvIp" | "Inf" | "ActN" | "Manner" | "DevN" | "DevGi" | "DevGin" | "DevGen"
-                        )
-                    });
-                    let proper_or_num = first_parse.secondary_pos == SecondaryPos::ProperNoun ||
-                                        first_parse.primary_pos == PrimaryPos::Num;
-                    (first_parse.root.clone(), fiilimsi, proper_or_num)
-                } else {
-                    (lower.clone(), false, false)
-                };
+                let (best_lemma, is_fiilimsi, is_proper_or_num) =
+                    if let Some(first_parse) = parses.first() {
+                        let fiilimsi = first_parse.morpheme_tags.iter().any(|tag| {
+                            matches!(
+                                tag.as_str(),
+                                "PresPart"
+                                    | "PastPart"
+                                    | "FutPart"
+                                    | "AdvErek"
+                                    | "AdvInce"
+                                    | "AdvIp"
+                                    | "Inf"
+                                    | "ActN"
+                                    | "Manner"
+                                    | "DevN"
+                                    | "DevGi"
+                                    | "DevGin"
+                                    | "DevGen"
+                            )
+                        });
+                        let proper_or_num = first_parse.secondary_pos == SecondaryPos::ProperNoun
+                            || first_parse.primary_pos == PrimaryPos::Num;
+                        (first_parse.root.clone(), fiilimsi, proper_or_num)
+                    } else {
+                        (lower.clone(), false, false)
+                    };
 
                 if is_fiilimsi {
                     sent_fiilimsi_count += 1;

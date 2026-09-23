@@ -26,7 +26,14 @@ impl DependencyNode {
     pub fn to_conllu_line(&self) -> String {
         format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t_\t_",
-            self.id, self.form, self.lemma, self.upos, self.xpos, self.feats, self.head, self.deprel
+            self.id,
+            self.form,
+            self.lemma,
+            self.upos,
+            self.xpos,
+            self.feats,
+            self.head,
+            self.deprel
         )
     }
 }

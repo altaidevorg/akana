@@ -17,7 +17,10 @@ fn test_turkish_casing() {
     assert_eq!(to_turkish_upper("ağaç"), "AĞAÇ");
 
     assert_eq!(to_turkish_title("istanbul ve ankara"), "İstanbul Ve Ankara");
-    assert_eq!(to_turkish_title("ılık süt ve taze ekmek"), "Ilık Süt Ve Taze Ekmek");
+    assert_eq!(
+        to_turkish_title("ılık süt ve taze ekmek"),
+        "Ilık Süt Ve Taze Ekmek"
+    );
     assert_eq!(to_turkish_title("türk dil kurumu"), "Türk Dil Kurumu");
 }
 

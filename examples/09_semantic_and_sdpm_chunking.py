@@ -8,6 +8,7 @@ Demonstrates high-performance text chunking strategies for Turkish RAG pipelines
 """
 
 import json
+
 import akana
 
 SAMPLE_TEXT = """
@@ -23,6 +24,7 @@ Geleneksel Türk mutfağı, zengin baharat çeşitliliği ve yüzlerce yıllık 
 Kayseri mantısı, Adana kebabı ve taş fırında pişen Karadeniz pidesi coğrafi işaret tesciliyle koruma altındadır. \
 Tatlı kültüründe ise fıstıklı Gaziantep baklavası ve fırın sütlaç vazgeçilmez lezzetlerdendir.
 """
+
 
 def main():
     print("=" * 70)
@@ -43,8 +45,10 @@ def main():
     semantic_chunks = semantic_chunker(SAMPLE_TEXT)
     print(f"Produced {len(semantic_chunks)} semantic topic chunks:")
     for idx, c in enumerate(semantic_chunks, 1):
-        print(f"\n  Chunk #{idx} [{c.token_count} tokens | chars {c.start_index}:{c.end_index}]:")
-        print(f"  \"{c.text[:90]}...\"")
+        print(
+            f"\n  Chunk #{idx} [{c.token_count} tokens | chars {c.start_index}:{c.end_index}]:"
+        )
+        print(f'  "{c.text[:90]}..."')
         print(f"  Sentences contained: {len(c.sentences)}")
 
     # ---------------------------------------------------------
@@ -60,7 +64,9 @@ def main():
     sentence_chunks = sentence_chunker(SAMPLE_TEXT)
     print(f"Produced {len(sentence_chunks)} sentence chunks:")
     for idx, c in enumerate(sentence_chunks, 1):
-        print(f"  Chunk #{idx} ({c.token_count} tokens, chars {c.start_index}-{c.end_index}): {c.text[:60]}...")
+        print(
+            f"  Chunk #{idx} ({c.token_count} tokens, chars {c.start_index}-{c.end_index}): {c.text[:60]}..."
+        )
 
     # ---------------------------------------------------------
     # 3. SDPMChunker (Semantic Double-Pass Merge)
@@ -85,7 +91,12 @@ def main():
     print("[4] Chunk Object Dict & JSON Serialization:")
     first_dict = semantic_chunks[0].to_dict()
     print("Dict representation keys:", list(first_dict.keys()))
-    print("JSON snippet:\n", json.dumps(first_dict, ensure_ascii=False, indent=2)[:300], "...\n}")
+    print(
+        "JSON snippet:\n",
+        json.dumps(first_dict, ensure_ascii=False, indent=2)[:300],
+        "...\n}",
+    )
+
 
 if __name__ == "__main__":
     main()

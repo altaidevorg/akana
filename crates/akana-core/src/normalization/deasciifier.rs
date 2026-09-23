@@ -1,23 +1,46 @@
 //! High-accuracy Turkish De-asciifier powered by morphological candidate validation and phonetic heuristics.
 
 use crate::morphology::TurkishMorphology;
-use crate::phonology::{to_turkish_lower, to_turkish_upper, to_turkish_title};
+use crate::phonology::{to_turkish_lower, to_turkish_title, to_turkish_upper};
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref GLOBAL_MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
-
     static ref FREQUENT_DEASCII: std::collections::HashMap<&'static str, &'static str> = {
         let mut m = std::collections::HashMap::new();
         let entries = [
-            ("cok", "çok"), ("icin", "için"), ("cunku", "çünkü"), ("eger", "eğer"),
-            ("simdi", "şimdi"), ("hizli", "hızlı"), ("turkce", "türkçe"), ("turkiye", "türkiye"),
-            ("guzel", "güzel"), ("kucuk", "küçük"), ("buyuk", "büyük"), ("ogrenci", "öğrenci"),
-            ("ogretmen", "öğretmen"), ("saglik", "sağlık"), ("yasam", "yaşam"), ("cagdas", "çağdaş"),
-            ("yazi", "yazı"), ("yazilim", "yazılım"), ("degil", "değil"), ("dunya", "dünya"),
-            ("gun", "gün"), ("gunes", "güneş"), ("goz", "göz"), ("yurek", "yürek"),
-            ("gonul", "gönül"), ("arkadas", "arkadaş"), ("kardes", "kardeş"), ("sehir", "şehir"),
-            ("ulke", "ülke"), ("caliskan", "çalışkan"), ("calismak", "çalışmak"), ("calisiyor", "çalışıyor"),
+            ("cok", "çok"),
+            ("icin", "için"),
+            ("cunku", "çünkü"),
+            ("eger", "eğer"),
+            ("simdi", "şimdi"),
+            ("hizli", "hızlı"),
+            ("turkce", "türkçe"),
+            ("turkiye", "türkiye"),
+            ("guzel", "güzel"),
+            ("kucuk", "küçük"),
+            ("buyuk", "büyük"),
+            ("ogrenci", "öğrenci"),
+            ("ogretmen", "öğretmen"),
+            ("saglik", "sağlık"),
+            ("yasam", "yaşam"),
+            ("cagdas", "çağdaş"),
+            ("yazi", "yazı"),
+            ("yazilim", "yazılım"),
+            ("degil", "değil"),
+            ("dunya", "dünya"),
+            ("gun", "gün"),
+            ("gunes", "güneş"),
+            ("goz", "göz"),
+            ("yurek", "yürek"),
+            ("gonul", "gönül"),
+            ("arkadas", "arkadaş"),
+            ("kardes", "kardeş"),
+            ("sehir", "şehir"),
+            ("ulke", "ülke"),
+            ("caliskan", "çalışkan"),
+            ("calismak", "çalışmak"),
+            ("calisiyor", "çalışıyor"),
         ];
         for (k, v) in entries {
             m.insert(k, v);
@@ -36,7 +59,8 @@ impl TurkishDeasciifier {
 
         for token in tokens {
             let alphabetic_part: String = token.chars().filter(|c| c.is_alphabetic()).collect();
-            let non_alphabetic_part: String = token.chars().filter(|c| !c.is_alphabetic()).collect();
+            let non_alphabetic_part: String =
+                token.chars().filter(|c| !c.is_alphabetic()).collect();
 
             if alphabetic_part.is_empty() {
                 result.push_str(token);
@@ -74,7 +98,7 @@ impl TurkishDeasciifier {
 
         // Check if the word as-is is already a valid Turkish word
         let direct_parses = GLOBAL_MORPHOLOGY.analyze(&lower);
-        
+
         // Find candidate letter substitutions: c->ç, g->ğ, s->ş, o->ö, u->ü, i->ı
         let mut ambiguous_positions: Vec<(usize, Vec<char>)> = Vec::new();
         for (idx, ch) in lower.chars().enumerate() {
@@ -123,7 +147,10 @@ impl TurkishDeasciifier {
             }
             let parses = GLOBAL_MORPHOLOGY.analyze(&cand);
             if !parses.is_empty() {
-                let diacritic_count = cand.chars().filter(|&c| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı')).count();
+                let diacritic_count = cand
+                    .chars()
+                    .filter(|&c| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı'))
+                    .count();
                 // Higher score for candidate matching morphotactics with more proper Turkish characters
                 let score = 1.0 + (diacritic_count as f32 * 0.2) + parses[0].score;
                 if score > best_score {

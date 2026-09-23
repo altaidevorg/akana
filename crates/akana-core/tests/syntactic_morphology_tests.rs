@@ -23,9 +23,15 @@ fn test_syntactic_morphology_inflectional_groups_derivation() {
     let parses = morph.analyze("geldiğimizde");
     assert!(!parses.is_empty());
 
-    let parse = parses.iter().find(|p| p.root == "gel").expect("Must parse 'gel'");
+    let parse = parses
+        .iter()
+        .find(|p| p.root == "gel")
+        .expect("Must parse 'gel'");
     assert_eq!(parse.root_pos, "VB");
-    assert!(parse.inflectional_groups.len() >= 2, "Must contain at least 2 Inflectional Groups");
+    assert!(
+        parse.inflectional_groups.len() >= 2,
+        "Must contain at least 2 Inflectional Groups"
+    );
 
     let ig0 = &parse.inflectional_groups[0];
     assert_eq!(ig0.pos, "VB");
@@ -44,7 +50,10 @@ fn test_syntactic_morphology_nominal_inflections() {
     let parses = morph.analyze("evlerimizde");
     assert!(!parses.is_empty());
 
-    let parse = parses.iter().find(|p| p.root == "ev").expect("Must parse 'ev'");
+    let parse = parses
+        .iter()
+        .find(|p| p.root == "ev")
+        .expect("Must parse 'ev'");
     assert_eq!(parse.root_pos, "NN");
 
     let ig = &parse.inflectional_groups[0];

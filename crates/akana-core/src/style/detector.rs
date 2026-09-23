@@ -1,9 +1,9 @@
 //! Multi-factor Turkish AI Style Detector and Diagnostic Pinpointer.
 
-use serde::{Deserialize, Serialize};
-use crate::morphology::TurkishMorphology;
-use super::cliches::{ClicheMatcher, ClicheCategory};
+use super::cliches::{ClicheCategory, ClicheMatcher};
 use super::style_metrics::{StyleMetricsExtractor, StyleMetricsSummary};
+use crate::morphology::TurkishMorphology;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DiagnosticFinding {
@@ -44,7 +44,8 @@ impl TurkishStyleAuditor {
     pub fn audit(&self, text: &str) -> StyleAuditReport {
         let punct_metrics = StyleMetricsExtractor::extract_punctuation_metrics(text);
         let rhythm_metrics = StyleMetricsExtractor::extract_rhythm_metrics(text);
-        let predicate_metrics = StyleMetricsExtractor::extract_predicate_metrics(text, &self.morphology);
+        let predicate_metrics =
+            StyleMetricsExtractor::extract_predicate_metrics(text, &self.morphology);
         let cliche_matches = ClicheMatcher::find_all(text);
 
         let mut findings = Vec::new();
@@ -69,27 +70,15 @@ impl TurkishStyleAuditor {
                     calque_count += 1;
                     ("RhetoricalCalque", "Critical", 22.0)
                 }
-                ClicheCategory::SemicolonConjunction => {
-                    ("SemicolonConjunction", "Critical", 18.0)
-                }
-                ClicheCategory::InflatedHedging => {
-                    ("InflatedHedging", "Warning", 8.0)
-                }
-                ClicheCategory::PassiveInflation => {
-                    ("PassiveInflation", "Warning", 10.0)
-                }
+                ClicheCategory::SemicolonConjunction => ("SemicolonConjunction", "Critical", 18.0),
+                ClicheCategory::InflatedHedging => ("InflatedHedging", "Warning", 8.0),
+                ClicheCategory::PassiveInflation => ("PassiveInflation", "Warning", 10.0),
                 ClicheCategory::IndefiniteArticleInflation => {
                     ("IndefiniteArticleInflation", "Info", 6.0)
                 }
-                ClicheCategory::TricolonParallelList => {
-                    ("TricolonParallelList", "Warning", 8.0)
-                }
-                ClicheCategory::HypophoraQuestion => {
-                    ("HypophoraQuestion", "Warning", 10.0)
-                }
-                ClicheCategory::CliticAnomaly => {
-                    ("CliticAnomaly", "Warning", 8.0)
-                }
+                ClicheCategory::TricolonParallelList => ("TricolonParallelList", "Warning", 8.0),
+                ClicheCategory::HypophoraQuestion => ("HypophoraQuestion", "Warning", 10.0),
+                ClicheCategory::CliticAnomaly => ("CliticAnomaly", "Warning", 8.0),
                 ClicheCategory::HumanAuthenticityMarker => {
                     ("HumanAuthenticityMarker", "Info", -10.0)
                 }
@@ -137,8 +126,13 @@ impl TurkishStyleAuditor {
             findings.push(DiagnosticFinding {
                 category: "PunctuationAnomaly".to_string(),
                 severity: "Warning".to_string(),
-                message: format!("Cümle içinde {} adet açıklama amaçlı iki nokta (:) bulundu.", punct_metrics.inline_colon_count),
-                suggestion: Some("İki noktaları kaldırıp doğal Türkçe açıklama yan cümlesi kurun.".to_string()),
+                message: format!(
+                    "Cümle içinde {} adet açıklama amaçlı iki nokta (:) bulundu.",
+                    punct_metrics.inline_colon_count
+                ),
+                suggestion: Some(
+                    "İki noktaları kaldırıp doğal Türkçe açıklama yan cümlesi kurun.".to_string(),
+                ),
                 start: 0,
                 end: 0,
             });
@@ -157,7 +151,10 @@ impl TurkishStyleAuditor {
             });
         }
 
-        if rhythm_metrics.total_sentences >= 3 && rhythm_metrics.short_sentences_count == 0 && rhythm_metrics.mean_sentence_length > 15.0 {
+        if rhythm_metrics.total_sentences >= 3
+            && rhythm_metrics.short_sentences_count == 0
+            && rhythm_metrics.mean_sentence_length > 15.0
+        {
             score += 10.0;
             findings.push(DiagnosticFinding {
                 category: "RhythmMonotony".to_string(),
@@ -187,7 +184,10 @@ impl TurkishStyleAuditor {
                 findings.push(DiagnosticFinding {
                     category: "PredicateRepetition".to_string(),
                     severity: "Warning".to_string(),
-                    message: format!("Yüklemlerin %{:.0}'ı '-mektedir/-maktadır' eki taşıyor ({} adet).", ratio_pct, predicate_metrics.mektedir_count),
+                    message: format!(
+                        "Yüklemlerin %{:.0}'ı '-mektedir/-maktadır' eki taşıyor ({} adet).",
+                        ratio_pct, predicate_metrics.mektedir_count
+                    ),
                     suggestion: Some("Tense çeşitliliği sağlayın.".to_string()),
                     start: 0,
                     end: 0,

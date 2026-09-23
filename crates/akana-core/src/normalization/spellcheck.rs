@@ -1,9 +1,9 @@
 //! High-speed Turkish Spell Checker with StringZilla SIMD edit distance acceleration and morphology engine.
 
+use crate::morphology::TurkishMorphology;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use stringzilla::StringZilla;
-use serde::{Deserialize, Serialize};
-use crate::morphology::TurkishMorphology;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpellSuggestion {
@@ -86,7 +86,12 @@ impl TurkishSpellChecker {
     }
 
     /// Suggests correctly spelled words using StringZilla SIMD-accelerated edit distance.
-    pub fn suggest(&self, word: &str, max_distance: usize, max_suggestions: usize) -> Vec<SpellSuggestion> {
+    pub fn suggest(
+        &self,
+        word: &str,
+        max_distance: usize,
+        max_suggestions: usize,
+    ) -> Vec<SpellSuggestion> {
         let lower = super::super::phonology::to_turkish_lower(word);
         if self.is_correct(&lower) {
             return vec![SpellSuggestion {
@@ -118,7 +123,8 @@ impl TurkishSpellChecker {
         }
 
         candidates.sort_by(|a, b| {
-            a.distance.cmp(&b.distance)
+            a.distance
+                .cmp(&b.distance)
                 .then_with(|| b.score.partial_cmp(&a.score).unwrap())
         });
 

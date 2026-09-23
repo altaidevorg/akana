@@ -1,13 +1,19 @@
-use akana_core::phonology::TurkishSyllabifier;
-use akana_core::morphology::{TurkishStopwords, TurkishStemmer};
-use akana_core::ner::TurkishNER;
 use akana_core::analysis::{TurkishKeywordExtractor, TurkishSummarizer};
+use akana_core::morphology::{TurkishStemmer, TurkishStopwords};
+use akana_core::ner::TurkishNER;
+use akana_core::phonology::TurkishSyllabifier;
 
 #[test]
 fn test_syllabifier_unit() {
     assert_eq!(TurkishSyllabifier::syllabify("Türkçe"), vec!["Türk", "çe"]);
-    assert_eq!(TurkishSyllabifier::syllabify("araba"), vec!["a", "ra", "ba"]);
-    assert_eq!(TurkishSyllabifier::hyphenate("bilgisayar", "-"), "bil-gi-sa-yar");
+    assert_eq!(
+        TurkishSyllabifier::syllabify("araba"),
+        vec!["a", "ra", "ba"]
+    );
+    assert_eq!(
+        TurkishSyllabifier::hyphenate("bilgisayar", "-"),
+        "bil-gi-sa-yar"
+    );
     assert_eq!(TurkishSyllabifier::count_syllables("öğretmenlerimiz"), 6);
 }
 

@@ -1,6 +1,5 @@
 """Tests for Akana Semantic, Sentence, and SDPM Chunkers."""
 
-import pytest
 import akana
 
 
@@ -18,7 +17,7 @@ def test_sentence_chunker():
     for c in chunks:
         assert isinstance(c, akana.Chunk)
         assert c.token_count > 0
-        assert text[c.start_index:c.end_index] == c.text
+        assert text[c.start_index : c.end_index] == c.text
         assert len(c.sentences) > 0
 
     assert chunks[0].start_index == 0
@@ -65,7 +64,7 @@ def test_semantic_chunker_multi_topic():
 
     assert len(chunks) >= 2
     for c in chunks:
-        assert text[c.start_index:c.end_index] == c.text
+        assert text[c.start_index : c.end_index] == c.text
         assert c.token_count > 0
 
     # Ensure topic isolation
@@ -83,11 +82,13 @@ def test_semantic_chunker_threshold_modes():
     )
 
     for mode in ["percentile", "similarity", "stdev", "iqr", "auto"]:
-        chunker = akana.SemanticChunker(chunk_size=256, threshold_mode=mode, min_chunk_size=5)
+        chunker = akana.SemanticChunker(
+            chunk_size=256, threshold_mode=mode, min_chunk_size=5
+        )
         chunks = chunker(text)
         assert len(chunks) >= 1
         for c in chunks:
-            assert text[c.start_index:c.end_index] == c.text
+            assert text[c.start_index : c.end_index] == c.text
 
 
 def test_sdpm_chunker():
@@ -107,7 +108,7 @@ def test_sdpm_chunker():
 
     assert len(chunks) >= 1
     for c in chunks:
-        assert text[c.start_index:c.end_index] == c.text
+        assert text[c.start_index : c.end_index] == c.text
         assert c.token_count <= 512
 
 
