@@ -10,6 +10,7 @@ use super::{PiiEntity, PiiType};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
+use stringzilla::StringZilla;
 
 lazy_static! {
     /// Contextual passwords, credentials, and OTP verification codes.
@@ -124,7 +125,8 @@ fn is_suppressed_token(token: &str) -> bool {
     if token.starts_with("http://") || token.starts_with("https://") {
         return true;
     }
-    if token.contains('@') || token.contains('/') || token.contains('\\') {
+    if token.sz_find("@").is_some() || token.sz_find("/").is_some() || token.sz_find("\\").is_some()
+    {
         return true;
     }
     if token.ends_with(".com")
@@ -153,145 +155,170 @@ fn is_suppressed_token(token: &str) -> bool {
 
 /// Detects all secrets, passwords, OTPs, API keys, and high-entropy credentials.
 pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
-    // 1. Contextual Secrets & OTPs
-    for cap in CONTEXTUAL_SECRET_REGEX.captures_iter(text) {
-        if let Some(val) = cap.get(1) {
-            let val_str = val
-                .as_str()
-                .trim_matches(|c: char| c == '.' || c == ',' || c == ';' || c == ':' || c == '?');
-            if val_str.len() >= 4 {
-                out.push(PiiEntity {
-                    text: val_str.to_string(),
-                    label: "SIFRE".to_string(),
-                    pii_type: PiiType::Credentials,
-                    start: val.start(),
-                    end: val.start() + val_str.len(),
-                    confidence: 0.98,
-                    stem: val_str.to_string(),
-                    suffix: None,
+    // 1. Contextual Secrets & OTPs (Fast SIMD pre-check for triggers before running unicode regex)
+    let lower = text.to_lowercase();
+    const CONTEXTUAL_TRIGGERS: &[&str] = &[
+        "şifre", "sifre", "parola", "pin", "kodu", "anahtar", "token", "key", "otp", "2fa",
+    ];
+    let has_context_trigger = CONTEXTUAL_TRIGGERS
+        .iter()
+        .any(|&trig| lower.sz_find(trig).is_some());
+    if has_context_trigger {
+        for cap in CONTEXTUAL_SECRET_REGEX.captures_iter(text) {
+            if let Some(val) = cap.get(1) {
+                let val_str = val.as_str().trim_matches(|c: char| {
+                    c == '.' || c == ',' || c == ';' || c == ':' || c == '?'
                 });
+                if val_str.len() >= 4 {
+                    out.push(PiiEntity {
+                        text: val_str.to_string(),
+                        label: "SIFRE".to_string(),
+                        pii_type: PiiType::Credentials,
+                        start: val.start(),
+                        end: val.start() + val_str.len(),
+                        confidence: 0.98,
+                        stem: val_str.to_string(),
+                        suffix: None,
+                    });
+                }
             }
         }
     }
 
-    // 2. OpenAI API Keys
-    for cap in OPENAI_KEY_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 2. OpenAI API Keys (SIMD anchor: sk-)
+    if text.sz_find("sk-").is_some() {
+        for cap in OPENAI_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 3. GitHub Tokens
-    for cap in GITHUB_TOKEN_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 3. GitHub Tokens (SIMD anchor: gh)
+    if text.sz_find("gh").is_some() {
+        for cap in GITHUB_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 4. AWS Keys
-    for cap in AWS_KEY_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 4. AWS Keys (SIMD anchor: AKIA or ASIA)
+    if text.sz_find("AKIA").is_some() || text.sz_find("ASIA").is_some() {
+        for cap in AWS_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 5. Slack Tokens
-    for cap in SLACK_TOKEN_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 5. Slack Tokens (SIMD anchor: xox)
+    if text.sz_find("xox").is_some() {
+        for cap in SLACK_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 6. Google API Keys
-    for cap in GOOGLE_API_KEY_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 6. Google API Keys (SIMD anchor: AIza)
+    if text.sz_find("AIza").is_some() {
+        for cap in GOOGLE_API_KEY_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 7. JWT Tokens
-    for cap in JWT_TOKEN_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 7. JWT Tokens (SIMD anchor: eyJ)
+    if text.sz_find("eyJ").is_some() {
+        for cap in JWT_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 8. Bearer Authorization Tokens
-    for cap in BEARER_TOKEN_REGEX.captures_iter(text) {
-        let val = cap.get(1).unwrap();
-        out.push(PiiEntity {
-            text: val.as_str().to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: val.start(),
-            end: val.end(),
-            confidence: 0.99,
-            stem: val.as_str().to_string(),
-            suffix: None,
-        });
+    // 8. Bearer Authorization Tokens (SIMD anchor: Bearer / bearer)
+    if text.sz_find("Bearer ").is_some() || text.sz_find("bearer ").is_some() {
+        for cap in BEARER_TOKEN_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 0.99,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
     }
 
-    // 9. PEM Private Key Blocks
-    for mat in PRIVATE_KEY_BLOCK_REGEX.find_iter(text) {
-        let span_str = mat.as_str();
-        out.push(PiiEntity {
-            text: span_str.to_string(),
-            label: "SIFRE".to_string(),
-            pii_type: PiiType::Credentials,
-            start: mat.start(),
-            end: mat.end(),
-            confidence: 1.0,
-            stem: span_str.to_string(),
-            suffix: None,
-        });
+    // 9. PEM Private Key Blocks (SIMD anchor: -----BEGIN)
+    if text.sz_find("-----BEGIN").is_some() {
+        for mat in PRIVATE_KEY_BLOCK_REGEX.find_iter(text) {
+            let span_str = mat.as_str();
+            out.push(PiiEntity {
+                text: span_str.to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: mat.start(),
+                end: mat.end(),
+                confidence: 1.0,
+                stem: span_str.to_string(),
+                suffix: None,
+            });
+        }
     }
 
     // 10. Free-Floating High-Entropy Secret Scanner

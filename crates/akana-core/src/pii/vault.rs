@@ -6,6 +6,7 @@
 use super::morphology::{detect_suffix_case, harmonize_suffix};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use stringzilla::StringZilla;
 
 /// Masking / Pseudonymization mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -97,6 +98,11 @@ impl PiiVault {
         entries.sort_by_key(|a| std::cmp::Reverse(a.0.len()));
 
         for (placeholder, entry) in entries {
+            // Fast SIMD presence check: if the placeholder isn't in result, skip suffix search and replace!
+            if result.sz_find(placeholder.as_str()).is_none() {
+                continue;
+            }
+
             // Check for placeholder with attached suffix: e.g. `{{NAME_1}}'e`, `{{NAME_1}}'in`, `Can Demir'e`
             let patterns_to_check = [
                 format!("{placeholder}'"),
@@ -104,31 +110,49 @@ impl PiiVault {
                 format!("{placeholder}´"),
             ];
 
+            const MAX_ITERATIONS: usize = 9999;
+            let mut iteration_count = 0;
+
             for prefix in &patterns_to_check {
-                while let Some(pos) = result.find(prefix.as_str()) {
-                    let after_prefix = pos + prefix.len();
-                    let suffix_len: usize = result[after_prefix..]
-                        .chars()
-                        .take_while(|c| c.is_alphabetic())
-                        .map(|c| c.len_utf8())
-                        .sum();
+                let mut search_start = 0;
+                while search_start < result.len() {
+                    iteration_count += 1;
+                    if iteration_count > MAX_ITERATIONS {
+                        break; // Prevent ReDoS / unbounded loops from adversarial input
+                    }
 
-                    let found_suffix = &result[after_prefix..after_prefix + suffix_len];
-                    let full_match_len: usize = prefix.len() + suffix_len;
+                    if let Some(rel_pos) = result[search_start..].sz_find(prefix.as_str()) {
+                        let pos = search_start + rel_pos;
+                        let after_prefix = pos + prefix.len();
+                        let suffix_len: usize = result[after_prefix..]
+                            .chars()
+                            .take_while(|c| c.is_alphabetic())
+                            .map(|c| c.len_utf8())
+                            .sum();
 
-                    // If a case suffix is detected on the placeholder, harmonize it onto the original stem!
-                    let replacement = if let Some(case) = detect_suffix_case(found_suffix) {
-                        harmonize_suffix(&entry.original_stem, case)
+                        let found_suffix = &result[after_prefix..after_prefix + suffix_len];
+                        let full_match_len: usize = prefix.len() + suffix_len;
+
+                        // If a case suffix is detected on the placeholder, harmonize it onto the original stem!
+                        let replacement = if let Some(case) = detect_suffix_case(found_suffix) {
+                            harmonize_suffix(&entry.original_stem, case)
+                        } else {
+                            format!("{}'{}", entry.original_stem, found_suffix)
+                        };
+
+                        let repl_len = replacement.len();
+                        result.replace_range(pos..pos + full_match_len, &replacement);
+                        search_start = pos + repl_len;
                     } else {
-                        format!("{}'{}", entry.original_stem, found_suffix)
-                    };
-
-                    result.replace_range(pos..pos + full_match_len, &replacement);
+                        break;
+                    }
                 }
             }
 
-            // Replace standard isolated placeholder
-            result = result.replace(placeholder.as_str(), &entry.original_text);
+            // Replace standard isolated placeholder (only if still present)
+            if result.sz_find(placeholder.as_str()).is_some() {
+                result = result.replace(placeholder.as_str(), &entry.original_text);
+            }
         }
 
         result
@@ -289,5 +313,43 @@ mod tests {
             restored,
             "Sayın Ahmet Yılmaz, telefonunuz 0532 123 45 67 güncellendi."
         );
+    }
+
+    #[test]
+    fn test_vault_redos_and_adversarial_patterns() {
+        let mut vault = PiiVault::new();
+        // Self-referential stem: replacement contains the exact placeholder prefix
+        vault.register(
+            "{{NAME_1}}'",
+            "NAME",
+            "{{NAME_1}}'",
+            None,
+            PiiMode::Placeholder,
+        );
+
+        let adversarial_input = "{{NAME_1}}'a ".repeat(500);
+        let start = std::time::Instant::now();
+        let restored = vault.restore(&adversarial_input);
+        let elapsed = start.elapsed();
+
+        // Must complete instantaneously without hanging or infinite loop
+        assert!(
+            elapsed.as_millis() < 500,
+            "Restore took too long: {:?}",
+            elapsed
+        );
+        assert!(!restored.is_empty());
+
+        // Extreme repetition test exceeding MAX_ITERATIONS (9999)
+        let extreme_input = "{{NAME_1}}'a ".repeat(15_000);
+        let start2 = std::time::Instant::now();
+        let restored2 = vault.restore(&extreme_input);
+        let elapsed2 = start2.elapsed();
+        assert!(
+            elapsed2.as_millis() < 1000,
+            "Extreme input took too long: {:?}",
+            elapsed2
+        );
+        assert!(!restored2.is_empty());
     }
 }

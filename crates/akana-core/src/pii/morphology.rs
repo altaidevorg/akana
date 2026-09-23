@@ -5,6 +5,7 @@
 //! - Vowel harmony and consonant mutation adjustment for restoring placeholders into LLM responses
 
 use crate::phonology::to_turkish_lower;
+use stringzilla::StringZilla;
 
 /// Result of splitting a word into its stem and suffix.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,8 +25,11 @@ pub struct StemmedToken<'a> {
 /// - `"Ayşe’ye"` -> stem: `"Ayşe"`, apostrophe: `Some("’")`, suffix: `Some("ye")`
 /// - `"Mehmet"` -> stem: `"Mehmet"`, apostrophe: `None`, suffix: `None`
 pub fn split_stem_suffix<'a>(token: &'a str, token_offset: usize) -> StemmedToken<'a> {
-    let apo_chars = ['\'', '’', '´'];
-    if let Some(apo_idx) = token.find(|c: char| apo_chars.contains(&c)) {
+    let apo_idx = [token.sz_find("'"), token.sz_find("’"), token.sz_find("´")]
+        .into_iter()
+        .flatten()
+        .min();
+    if let Some(apo_idx) = apo_idx {
         let stem = &token[..apo_idx];
         let apo_char_len = token[apo_idx..].chars().next().map_or(1, |c| c.len_utf8());
         let suffix_start = apo_idx + apo_char_len;

@@ -32,6 +32,7 @@ use crate::phonology::to_turkish_lower;
 use crate::tokenization::TurkishTokenizer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use stringzilla::StringZilla;
 
 /// Primary PII Entity Types supported by Akana.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -272,6 +273,11 @@ impl TurkishPiiEngine {
     // --- Private Extraction Steps ---
 
     fn detect_checksum_entities(&self, text: &str, out: &mut Vec<PiiEntity>) {
+        let has_digits = text.bytes().any(|b| b.is_ascii_digit());
+        if !has_digits {
+            return;
+        }
+
         // TCKN candidates (11-digit numbers)
         for mat in TCKN_CANDIDATE_REGEX.find_iter(text) {
             let span_str = mat.as_str();
@@ -308,27 +314,30 @@ impl TurkishPiiEngine {
         }
 
         // Trigger-preceded TCKN (e.g. TC Sİ 645-175-336-66, tc 12345678901)
-        for cap in TCKN_TRIGGER_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1) {
-                let span_str = val.as_str().trim();
-                let clean_digits: String =
-                    span_str.chars().filter(|c| c.is_ascii_digit()).collect();
-                if clean_digits.len() == 11 {
-                    let conf = if validate_tckn(&clean_digits) {
-                        1.0
-                    } else {
-                        0.95
-                    };
-                    out.push(PiiEntity {
-                        text: span_str.to_string(),
-                        label: PiiType::Tckn.as_str().to_string(),
-                        pii_type: PiiType::Tckn,
-                        start: val.start(),
-                        end: val.end(),
-                        confidence: conf,
-                        stem: span_str.to_string(),
-                        suffix: None,
-                    });
+        let lower = to_turkish_lower(text);
+        if lower.sz_find("tc").is_some() || lower.sz_find("kimlik").is_some() {
+            for cap in TCKN_TRIGGER_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1) {
+                    let span_str = val.as_str().trim();
+                    let clean_digits: String =
+                        span_str.chars().filter(|c| c.is_ascii_digit()).collect();
+                    if clean_digits.len() == 11 {
+                        let conf = if validate_tckn(&clean_digits) {
+                            1.0
+                        } else {
+                            0.95
+                        };
+                        out.push(PiiEntity {
+                            text: span_str.to_string(),
+                            label: PiiType::Tckn.as_str().to_string(),
+                            pii_type: PiiType::Tckn,
+                            start: val.start(),
+                            end: val.end(),
+                            confidence: conf,
+                            stem: span_str.to_string(),
+                            suffix: None,
+                        });
+                    }
                 }
             }
         }
@@ -351,28 +360,9 @@ impl TurkishPiiEngine {
         }
 
         // IBAN candidates (TR + 24 digits, with or without spaces)
-        for mat in IBAN_CANDIDATE_REGEX.find_iter(text) {
-            let span_str = mat.as_str().trim();
-            let clean_digits: String = span_str.chars().filter(|c| c.is_ascii_digit()).collect();
-            if clean_digits.len() == 24 {
-                let conf = if validate_iban(span_str) { 1.0 } else { 0.95 };
-                out.push(PiiEntity {
-                    text: span_str.to_string(),
-                    label: PiiType::Iban.as_str().to_string(),
-                    pii_type: PiiType::Iban,
-                    start: mat.start(),
-                    end: mat.end(),
-                    confidence: conf,
-                    stem: span_str.to_string(),
-                    suffix: None,
-                });
-            }
-        }
-
-        // Trigger-preceded IBAN (e.g. IBAN TR0325 8143... or aidat iadesi için iban paylaşıyorum TR...)
-        for cap in IBAN_TRIGGER_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1) {
-                let span_str = val.as_str().trim();
+        if text.sz_find("TR").is_some() || text.sz_find("tr").is_some() {
+            for mat in IBAN_CANDIDATE_REGEX.find_iter(text) {
+                let span_str = mat.as_str().trim();
                 let clean_digits: String =
                     span_str.chars().filter(|c| c.is_ascii_digit()).collect();
                 if clean_digits.len() == 24 {
@@ -381,8 +371,8 @@ impl TurkishPiiEngine {
                         text: span_str.to_string(),
                         label: PiiType::Iban.as_str().to_string(),
                         pii_type: PiiType::Iban,
-                        start: val.start(),
-                        end: val.end(),
+                        start: mat.start(),
+                        end: mat.end(),
                         confidence: conf,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -391,20 +381,46 @@ impl TurkishPiiEngine {
             }
         }
 
+        // Trigger-preceded IBAN (e.g. IBAN TR0325 8143... or aidat iadesi için iban paylaşıyorum TR...)
+        if lower.sz_find("iban").is_some() {
+            for cap in IBAN_TRIGGER_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1) {
+                    let span_str = val.as_str().trim();
+                    let clean_digits: String =
+                        span_str.chars().filter(|c| c.is_ascii_digit()).collect();
+                    if clean_digits.len() == 24 {
+                        let conf = if validate_iban(span_str) { 1.0 } else { 0.95 };
+                        out.push(PiiEntity {
+                            text: span_str.to_string(),
+                            label: PiiType::Iban.as_str().to_string(),
+                            pii_type: PiiType::Iban,
+                            start: val.start(),
+                            end: val.end(),
+                            confidence: conf,
+                            stem: span_str.to_string(),
+                            suffix: None,
+                        });
+                    }
+                }
+            }
+        }
+
         // Trigger-preceded Vehicle Plates
-        for cap in PLATE_TRIGGER_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1) {
-                let span_str = val.as_str().trim();
-                out.push(PiiEntity {
-                    text: span_str.to_string(),
-                    label: PiiType::Plate.as_str().to_string(),
-                    pii_type: PiiType::Plate,
-                    start: val.start(),
-                    end: val.end(),
-                    confidence: 0.98,
-                    stem: span_str.to_string(),
-                    suffix: None,
-                });
+        if lower.sz_find("plaka").is_some() {
+            for cap in PLATE_TRIGGER_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1) {
+                    let span_str = val.as_str().trim();
+                    out.push(PiiEntity {
+                        text: span_str.to_string(),
+                        label: PiiType::Plate.as_str().to_string(),
+                        pii_type: PiiType::Plate,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.98,
+                        stem: span_str.to_string(),
+                        suffix: None,
+                    });
+                }
             }
         }
 
@@ -426,27 +442,29 @@ impl TurkishPiiEngine {
         }
 
         // Trigger-preceded Card numbers (e.g. kart no 4147462686590570, kart 4500591135632828)
-        for cap in CARD_TRIGGER_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1) {
-                let span_str = val.as_str().trim();
-                let clean_digits: String =
-                    span_str.chars().filter(|c| c.is_ascii_digit()).collect();
-                if (13..=19).contains(&clean_digits.len()) {
-                    let conf = if validate_credit_card(span_str).is_some() {
-                        1.0
-                    } else {
-                        0.95
-                    };
-                    out.push(PiiEntity {
-                        text: span_str.to_string(),
-                        label: PiiType::CreditCard.as_str().to_string(),
-                        pii_type: PiiType::CreditCard,
-                        start: val.start(),
-                        end: val.end(),
-                        confidence: conf,
-                        stem: span_str.to_string(),
-                        suffix: None,
-                    });
+        if lower.sz_find("kart").is_some() {
+            for cap in CARD_TRIGGER_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1) {
+                    let span_str = val.as_str().trim();
+                    let clean_digits: String =
+                        span_str.chars().filter(|c| c.is_ascii_digit()).collect();
+                    if (13..=19).contains(&clean_digits.len()) {
+                        let conf = if validate_credit_card(span_str).is_some() {
+                            1.0
+                        } else {
+                            0.95
+                        };
+                        out.push(PiiEntity {
+                            text: span_str.to_string(),
+                            label: PiiType::CreditCard.as_str().to_string(),
+                            pii_type: PiiType::CreditCard,
+                            start: val.start(),
+                            end: val.end(),
+                            confidence: conf,
+                            stem: span_str.to_string(),
+                            suffix: None,
+                        });
+                    }
                 }
             }
         }
@@ -487,212 +505,169 @@ impl TurkishPiiEngine {
     }
 
     fn detect_pattern_entities(&self, text: &str, out: &mut Vec<PiiEntity>) {
+        let has_digits = text.bytes().any(|b| b.is_ascii_digit());
+        let lower = to_turkish_lower(text);
+
         // Phone numbers
-        for mat in PHONE_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::Phone.as_str().to_string(),
-                pii_type: PiiType::Phone,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
+        if has_digits {
+            for mat in PHONE_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: PiiType::Phone.as_str().to_string(),
+                    pii_type: PiiType::Phone,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Private URLs (URLs with sensitive query parameters, auth tokens, or private paths)
-        for mat in PRIVATE_URL_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::PrivateUrl.as_str().to_string(),
-                pii_type: PiiType::PrivateUrl,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-        for cap in PRIVATE_URL_TRIGGER_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            let span_str = val.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::PrivateUrl.as_str().to_string(),
-                pii_type: PiiType::PrivateUrl,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
+        if text.sz_find("http://").is_some() || text.sz_find("https://").is_some() {
+            for mat in PRIVATE_URL_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: PiiType::PrivateUrl.as_str().to_string(),
+                    pii_type: PiiType::PrivateUrl,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
+            for cap in PRIVATE_URL_TRIGGER_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                let span_str = val.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: PiiType::PrivateUrl.as_str().to_string(),
+                    pii_type: PiiType::PrivateUrl,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Email addresses (standard + obfuscated, preserving corporate support emails when configured)
-        for mat in EMAIL_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            if self.preserve_corporate_emails && is_corporate_email(span_str) {
-                continue;
+        if text.sz_find("@").is_some()
+            || lower.sz_find("[at]").is_some()
+            || lower.sz_find("(at)").is_some()
+        {
+            for mat in EMAIL_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                if self.preserve_corporate_emails && is_corporate_email(span_str) {
+                    continue;
+                }
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: PiiType::Email.as_str().to_string(),
+                    pii_type: PiiType::Email,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 1.0,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
             }
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::Email.as_str().to_string(),
-                pii_type: PiiType::Email,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 1.0,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-        for mat in EMAIL_OBFUSCATED_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            if self.preserve_corporate_emails && is_corporate_email(span_str) {
-                continue;
+            for mat in EMAIL_OBFUSCATED_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                if self.preserve_corporate_emails && is_corporate_email(span_str) {
+                    continue;
+                }
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: PiiType::Email.as_str().to_string(),
+                    pii_type: PiiType::Email,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.95,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
             }
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::Email.as_str().to_string(),
-                pii_type: PiiType::Email,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.95,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
         }
 
         // IP addresses
-        for mat in IPV4_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::IpAddress.as_str().to_string(),
-                pii_type: PiiType::IpAddress,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.95,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
+        if has_digits && text.sz_find(".").is_some() {
+            for mat in IPV4_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: PiiType::IpAddress.as_str().to_string(),
+                    pii_type: PiiType::IpAddress,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.95,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Port numbers
-        for cap in PORT_REGEX.captures_iter(text) {
-            let full = cap.get(0).unwrap();
-            let port_str = cap.get(1).or_else(|| cap.get(2)).unwrap().as_str();
-            if let Ok(p) = port_str.parse::<u32>() {
-                if (1..=65535).contains(&p) {
-                    out.push(PiiEntity {
-                        text: port_str.to_string(),
-                        label: PiiType::Port.as_str().to_string(),
-                        pii_type: PiiType::Port,
-                        start: full.start(),
-                        end: full.end(),
-                        confidence: 0.95,
-                        stem: port_str.to_string(),
-                        suffix: None,
-                    });
+        if has_digits && (lower.sz_find("port").is_some() || text.sz_find(":").is_some()) {
+            for cap in PORT_REGEX.captures_iter(text) {
+                let full = cap.get(0).unwrap();
+                let port_str = cap.get(1).or_else(|| cap.get(2)).unwrap().as_str();
+                if let Ok(p) = port_str.parse::<u32>() {
+                    if (1..=65535).contains(&p) {
+                        out.push(PiiEntity {
+                            text: port_str.to_string(),
+                            label: PiiType::Port.as_str().to_string(),
+                            pii_type: PiiType::Port,
+                            start: full.start(),
+                            end: full.end(),
+                            confidence: 0.95,
+                            stem: port_str.to_string(),
+                            suffix: None,
+                        });
+                    }
                 }
             }
         }
 
         // Passport numbers
-        for cap in PASSPORT_REGEX.captures_iter(text) {
-            let full = cap.get(0).unwrap();
-            let val = cap.get(1).unwrap().as_str();
-            out.push(PiiEntity {
-                text: val.to_string(),
-                label: PiiType::Passport.as_str().to_string(),
-                pii_type: PiiType::Passport,
-                start: full.start(),
-                end: full.end(),
-                confidence: 0.95,
-                stem: val.to_string(),
-                suffix: None,
-            });
-        }
-
-        // Age
-        for cap in AGE_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: PiiType::Age.as_str().to_string(),
-                pii_type: PiiType::Age,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Age range
-        for mat in AGE_RANGE_REGEX.find_iter(text) {
-            out.push(PiiEntity {
-                text: mat.as_str().to_string(),
-                label: PiiType::AgeRange.as_str().to_string(),
-                pii_type: PiiType::AgeRange,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.95,
-                stem: mat.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // CVV / CVC
-        for cap in CVV_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "CVV".to_string(),
-                pii_type: PiiType::CreditCard,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.98,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Card Expiry (SKT)
-        for cap in CARD_EXPIRY_REGEX.captures_iter(text) {
-            let full = cap.get(0).unwrap();
-            out.push(PiiEntity {
-                text: full.as_str().to_string(),
-                label: "KART_SKT".to_string(),
-                pii_type: PiiType::CreditCard,
-                start: full.start(),
-                end: full.end(),
-                confidence: 0.95,
-                stem: full.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Account / Customer No
-        for cap in ACCOUNT_NO_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1) {
+        if has_digits
+            && (lower.sz_find("pasaport").is_some()
+                || text.sz_find("U").is_some()
+                || text.sz_find("u").is_some()
+                || text.sz_find("A").is_some()
+                || text.sz_find("a").is_some()
+                || text.sz_find("EP").is_some()
+                || text.sz_find("ep").is_some())
+        {
+            for cap in PASSPORT_REGEX.captures_iter(text) {
+                let full = cap.get(0).unwrap();
+                let val = cap.get(1).unwrap().as_str();
                 out.push(PiiEntity {
-                    text: val.as_str().to_string(),
-                    label: "MUSTERI_NO".to_string(),
-                    pii_type: PiiType::AccountNo,
-                    start: val.start(),
-                    end: val.end(),
+                    text: val.to_string(),
+                    label: PiiType::Passport.as_str().to_string(),
+                    pii_type: PiiType::Passport,
+                    start: full.start(),
+                    end: full.end(),
                     confidence: 0.95,
-                    stem: val.as_str().to_string(),
+                    stem: val.to_string(),
                     suffix: None,
                 });
-            } else if let Some(val) = cap.get(2).or_else(|| cap.get(3)) {
+            }
+        }
+
+        // Age & Age range
+        if has_digits && (lower.sz_find("yaş").is_some() || lower.sz_find("yas").is_some()) {
+            for cap in AGE_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
                     text: val.as_str().to_string(),
-                    label: "HESAP_NO".to_string(),
-                    pii_type: PiiType::AccountNo,
+                    label: PiiType::Age.as_str().to_string(),
+                    pii_type: PiiType::Age,
                     start: val.start(),
                     end: val.end(),
                     confidence: 0.95,
@@ -700,415 +675,473 @@ impl TurkishPiiEngine {
                     suffix: None,
                 });
             }
-        }
-
-        // Bank account 4-7-3 format (e.g. 5427-5551073-146)
-        for mat in BANK_ACCOUNT_FORMAT_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "HESAP_NO".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.94,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-
-        // Tax ID (VKN / Vergi No)
-        for cap in VERGI_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "VERGI_NO".to_string(),
-                pii_type: PiiType::Tckn,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.98,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Disability Status (KVKK Article 6)
-        for cap in DISABILITY_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            let span_str = val.as_str().trim();
-            if !span_str.is_empty() {
+            for mat in AGE_RANGE_REGEX.find_iter(text) {
                 out.push(PiiEntity {
-                    text: span_str.to_string(),
-                    label: "ENGEL_DURUMU".to_string(),
-                    pii_type: PiiType::Health,
+                    text: mat.as_str().to_string(),
+                    label: PiiType::AgeRange.as_str().to_string(),
+                    pii_type: PiiType::AgeRange,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.95,
+                    stem: mat.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // CVV / CVC
+        if has_digits
+            && (lower.sz_find("cvv").is_some()
+                || lower.sz_find("cvc").is_some()
+                || lower.sz_find("güvenlik").is_some()
+                || lower.sz_find("guvenlik").is_some())
+        {
+            for cap in CVV_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "CVV".to_string(),
+                    pii_type: PiiType::CreditCard,
                     start: val.start(),
                     end: val.end(),
                     confidence: 0.98,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Card Expiry (SKT)
+        if has_digits
+            && (lower.sz_find("skt").is_some()
+                || lower.sz_find("son kullanma").is_some()
+                || lower.sz_find("exp").is_some())
+        {
+            for cap in CARD_EXPIRY_REGEX.captures_iter(text) {
+                let full = cap.get(0).unwrap();
+                out.push(PiiEntity {
+                    text: full.as_str().to_string(),
+                    label: "KART_SKT".to_string(),
+                    pii_type: PiiType::CreditCard,
+                    start: full.start(),
+                    end: full.end(),
+                    confidence: 0.95,
+                    stem: full.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Account / Customer No
+        if lower.sz_find("müşteri").is_some()
+            || lower.sz_find("musteri").is_some()
+            || lower.sz_find("hesap").is_some()
+            || lower.sz_find("ödeme").is_some()
+            || lower.sz_find("odeme").is_some()
+        {
+            for cap in ACCOUNT_NO_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1) {
+                    out.push(PiiEntity {
+                        text: val.as_str().to_string(),
+                        label: "MUSTERI_NO".to_string(),
+                        pii_type: PiiType::AccountNo,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.95,
+                        stem: val.as_str().to_string(),
+                        suffix: None,
+                    });
+                } else if let Some(val) = cap.get(2).or_else(|| cap.get(3)) {
+                    out.push(PiiEntity {
+                        text: val.as_str().to_string(),
+                        label: "HESAP_NO".to_string(),
+                        pii_type: PiiType::AccountNo,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.95,
+                        stem: val.as_str().to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+
+        // Bank account 4-7-3 format (e.g. 5427-5551073-146)
+        if has_digits && text.sz_find("-").is_some() {
+            for mat in BANK_ACCOUNT_FORMAT_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "HESAP_NO".to_string(),
+                    pii_type: PiiType::AccountNo,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.94,
                     stem: span_str.to_string(),
                     suffix: None,
                 });
             }
         }
 
-        // Credentials / Passwords
-        for cap in CREDENTIALS_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            let val_lower = val.as_str().to_lowercase();
-            if matches!(
-                val_lower.as_str(),
-                "sıfırlama"
-                    | "sifirlama"
-                    | "değiştirme"
-                    | "degistirme"
-                    | "güncelleme"
-                    | "guncelleme"
-                    | "işlemi"
-                    | "islemi"
-                    | "talebi"
-                    | "isteği"
-                    | "hatası"
-                    | "ekranı"
-            ) {
-                continue;
+        // Tax ID (VKN / Vergi No)
+        if has_digits && (lower.sz_find("vergi").is_some() || lower.sz_find("vkn").is_some()) {
+            for cap in VERGI_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "VERGI_NO".to_string(),
+                    pii_type: PiiType::Tckn,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.98,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
             }
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: PiiType::Credentials.as_str().to_string(),
-                pii_type: PiiType::Credentials,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
+        }
+
+        // Disability Status (KVKK Article 6)
+        if lower.sz_find("engel").is_some()
+            || lower.sz_find("özür").is_some()
+            || lower.sz_find("ozur").is_some()
+        {
+            for cap in DISABILITY_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                let span_str = val.as_str().trim();
+                if !span_str.is_empty() {
+                    out.push(PiiEntity {
+                        text: span_str.to_string(),
+                        label: "ENGEL_DURUMU".to_string(),
+                        pii_type: PiiType::Health,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.98,
+                        stem: span_str.to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+
+        // Credentials / Passwords
+        if lower.sz_find("şifre").is_some()
+            || lower.sz_find("sifre").is_some()
+            || lower.sz_find("parola").is_some()
+            || lower.sz_find("pin").is_some()
+        {
+            for cap in CREDENTIALS_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                let val_lower = val.as_str().to_lowercase();
+                if matches!(
+                    val_lower.as_str(),
+                    "sıfırlama"
+                        | "sifirlama"
+                        | "değiştirme"
+                        | "degistirme"
+                        | "güncelleme"
+                        | "guncelleme"
+                        | "işlemi"
+                        | "islemi"
+                        | "talebi"
+                        | "isteği"
+                        | "hatası"
+                        | "ekranı"
+                ) {
+                    continue;
+                }
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: PiiType::Credentials.as_str().to_string(),
+                    pii_type: PiiType::Credentials,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Salary / Income
-        for cap in SALARY_REGEX.captures_iter(text) {
-            let full = cap.get(0).unwrap();
-            out.push(PiiEntity {
-                text: full.as_str().to_string(),
-                label: PiiType::Salary.as_str().to_string(),
-                pii_type: PiiType::Salary,
-                start: full.start(),
-                end: full.end(),
-                confidence: 0.95,
-                stem: full.as_str().to_string(),
-                suffix: None,
-            });
+        if has_digits
+            && (lower.sz_find("maaş").is_some()
+                || lower.sz_find("maas").is_some()
+                || lower.sz_find("gelir").is_some()
+                || lower.sz_find("ücret").is_some()
+                || lower.sz_find("ucret").is_some())
+        {
+            for cap in SALARY_REGEX.captures_iter(text) {
+                let full = cap.get(0).unwrap();
+                out.push(PiiEntity {
+                    text: full.as_str().to_string(),
+                    label: PiiType::Salary.as_str().to_string(),
+                    pii_type: PiiType::Salary,
+                    start: full.start(),
+                    end: full.end(),
+                    confidence: 0.95,
+                    stem: full.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Driver's License
-        for cap in DRIVER_LICENSE_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: PiiType::DriverLicense.as_str().to_string(),
-                pii_type: PiiType::DriverLicense,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
+        if lower.sz_find("ehliyet").is_some()
+            || lower.sz_find("sürücü").is_some()
+            || lower.sz_find("surucu").is_some()
+            || lower.sz_find("şoför").is_some()
+            || lower.sz_find("sofor").is_some()
+        {
+            for cap in DRIVER_LICENSE_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: PiiType::DriverLicense.as_str().to_string(),
+                    pii_type: PiiType::DriverLicense,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // SGK No
-        for cap in SGK_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "SGK_NO".to_string(),
-                pii_type: PiiType::Tckn,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
+        if has_digits
+            && (lower.sz_find("sgk").is_some()
+                || lower.sz_find("ssk").is_some()
+                || lower.sz_find("bağkur").is_some()
+                || lower.sz_find("bagkur").is_some())
+        {
+            for cap in SGK_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "SGK_NO".to_string(),
+                    pii_type: PiiType::Tckn,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Positive Date of birth (explicit birth triggers)
-        for cap in BIRTH_DATE_POSITIVE_REGEX.captures_iter(text) {
-            let date_match = cap.get(1).or_else(|| cap.get(4)).or_else(|| cap.get(0));
-            if let Some(mat) = date_match {
-                out.push(PiiEntity {
-                    text: mat.as_str().to_string(),
-                    label: PiiType::BirthDate.as_str().to_string(),
-                    pii_type: PiiType::BirthDate,
-                    start: mat.start(),
-                    end: mat.end(),
-                    confidence: 0.98,
-                    stem: mat.as_str().to_string(),
-                    suffix: None,
-                });
-            }
-        }
-
-        // Positive Private Dates (fatura kesim, randevu, teslimat, mezuniyet, abonelik, etc.)
-        for cap in PRIVATE_DATE_TRIGGER_REGEX.captures_iter(text) {
-            if let Some(mat) = cap.get(1) {
-                out.push(PiiEntity {
-                    text: mat.as_str().to_string(),
-                    label: "OZEL_TARIH".to_string(),
-                    pii_type: PiiType::PrivateDate,
-                    start: mat.start(),
-                    end: mat.end(),
-                    confidence: 0.98,
-                    stem: mat.as_str().to_string(),
-                    suffix: None,
-                });
-            }
-        }
-        for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(text) {
-            if let Some(mat) = cap.get(1) {
-                out.push(PiiEntity {
-                    text: mat.as_str().to_string(),
-                    label: "OZEL_TARIH".to_string(),
-                    pii_type: PiiType::PrivateDate,
-                    start: mat.start(),
-                    end: mat.end(),
-                    confidence: 0.98,
-                    stem: mat.as_str().to_string(),
-                    suffix: None,
-                });
-            }
-        }
-
-        // Semantic embedding disambiguation for candidate dates (when embeddings are initialized)
-        if let Some(scorer) = self.embedding_scorer.as_ref() {
-            for mat in TURKISH_DATE_CANDIDATE_REGEX.find_iter(text) {
-                let ctx_start = if mat.start() >= 40 {
-                    mat.start() - 40
-                } else {
-                    0
-                };
-                let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
-                let ctx = &text[ctx_start..ctx_end];
-                if scorer.is_private_date_context(ctx) {
+        if has_digits && (lower.sz_find("doğ").is_some() || lower.sz_find("dog").is_some()) {
+            for cap in BIRTH_DATE_POSITIVE_REGEX.captures_iter(text) {
+                let date_match = cap.get(1).or_else(|| cap.get(4)).or_else(|| cap.get(0));
+                if let Some(mat) = date_match {
                     out.push(PiiEntity {
                         text: mat.as_str().to_string(),
                         label: PiiType::BirthDate.as_str().to_string(),
                         pii_type: PiiType::BirthDate,
                         start: mat.start(),
                         end: mat.end(),
-                        confidence: 0.90,
+                        confidence: 0.98,
                         stem: mat.as_str().to_string(),
                         suffix: None,
                     });
                 }
             }
-            for mat in NUMERIC_DATE_CANDIDATE_REGEX.find_iter(text) {
-                let ctx_start = if mat.start() >= 40 {
-                    mat.start() - 40
-                } else {
-                    0
-                };
-                let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
-                let ctx = &text[ctx_start..ctx_end];
-                if scorer.is_private_date_context(ctx) {
+        }
+
+        // Positive Private Dates (fatura kesim, randevu, teslimat, mezuniyet, abonelik, etc.)
+        const DATE_TRIGGERS: &[&str] = &[
+            "fatura",
+            "ödeme",
+            "odeme",
+            "itiraz",
+            "iptal",
+            "servis",
+            "abonelik",
+            "üyelik",
+            "uyelik",
+            "randevu",
+            "kurulum",
+            "muayene",
+            "teslim",
+            "rezervasyon",
+            "işlem",
+            "islem",
+            "mezuniyet",
+            "sınav",
+            "sinav",
+            "kayıt",
+            "kayit",
+            "üniversite",
+            "universite",
+            "işe",
+            "ise",
+            "işten",
+            "isten",
+            "sözleşme",
+            "sozlesme",
+            "başvuru",
+            "basvuru",
+            "talep",
+            "doğum",
+            "dogum",
+            "tarih",
+            "günü",
+            "gunu",
+        ];
+        if has_digits
+            && DATE_TRIGGERS
+                .iter()
+                .any(|&trig| lower.sz_find(trig).is_some())
+        {
+            for cap in PRIVATE_DATE_TRIGGER_REGEX.captures_iter(text) {
+                if let Some(mat) = cap.get(1) {
                     out.push(PiiEntity {
                         text: mat.as_str().to_string(),
-                        label: PiiType::BirthDate.as_str().to_string(),
-                        pii_type: PiiType::BirthDate,
+                        label: "OZEL_TARIH".to_string(),
+                        pii_type: PiiType::PrivateDate,
                         start: mat.start(),
                         end: mat.end(),
-                        confidence: 0.90,
+                        confidence: 0.98,
                         stem: mat.as_str().to_string(),
                         suffix: None,
                     });
+                }
+            }
+            if lower.sz_find("olan").is_some() {
+                for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(text) {
+                    if let Some(mat) = cap.get(1) {
+                        out.push(PiiEntity {
+                            text: mat.as_str().to_string(),
+                            label: "OZEL_TARIH".to_string(),
+                            pii_type: PiiType::PrivateDate,
+                            start: mat.start(),
+                            end: mat.end(),
+                            confidence: 0.98,
+                            stem: mat.as_str().to_string(),
+                            suffix: None,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Semantic embedding disambiguation for candidate dates (when embeddings are initialized)
+        if has_digits {
+            if let Some(scorer) = self.embedding_scorer.as_ref() {
+                for mat in TURKISH_DATE_CANDIDATE_REGEX.find_iter(text) {
+                    let ctx_start = if mat.start() >= 40 {
+                        mat.start() - 40
+                    } else {
+                        0
+                    };
+                    let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
+                    let ctx = &text[ctx_start..ctx_end];
+                    if scorer.is_private_date_context(ctx) {
+                        out.push(PiiEntity {
+                            text: mat.as_str().to_string(),
+                            label: PiiType::BirthDate.as_str().to_string(),
+                            pii_type: PiiType::BirthDate,
+                            start: mat.start(),
+                            end: mat.end(),
+                            confidence: 0.90,
+                            stem: mat.as_str().to_string(),
+                            suffix: None,
+                        });
+                    }
+                }
+                if text.sz_find(".").is_some()
+                    || text.sz_find("/").is_some()
+                    || text.sz_find("-").is_some()
+                {
+                    for mat in NUMERIC_DATE_CANDIDATE_REGEX.find_iter(text) {
+                        let ctx_start = if mat.start() >= 40 {
+                            mat.start() - 40
+                        } else {
+                            0
+                        };
+                        let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
+                        let ctx = &text[ctx_start..ctx_end];
+                        if scorer.is_private_date_context(ctx) {
+                            out.push(PiiEntity {
+                                text: mat.as_str().to_string(),
+                                label: PiiType::BirthDate.as_str().to_string(),
+                                pii_type: PiiType::BirthDate,
+                                start: mat.start(),
+                                end: mat.end(),
+                                confidence: 0.90,
+                                stem: mat.as_str().to_string(),
+                                suffix: None,
+                            });
+                        }
+                    }
                 }
             }
         }
 
         // IMEI device numbers
-        for cap in IMEI_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            let span_str = val.as_str();
-            let conf = if validate_imei(span_str) { 1.0 } else { 0.95 };
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "IMEI".to_string(),
-                pii_type: PiiType::Imei,
-                start: val.start(),
-                end: val.end(),
-                confidence: conf,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
+        if has_digits && (lower.sz_find("imei").is_some() || text.len() >= 15) {
+            for cap in IMEI_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                let span_str = val.as_str();
+                let conf = if validate_imei(span_str) { 1.0 } else { 0.95 };
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "IMEI".to_string(),
+                    pii_type: PiiType::Imei,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: conf,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // MAC Addresses
-        for cap in MAC_ADDRESS_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "MAC_ADRES".to_string(),
-                pii_type: PiiType::IpAddress,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.98,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
+        if text.sz_find(":").is_some() || text.sz_find("-").is_some() {
+            for cap in MAC_ADDRESS_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "MAC_ADRES".to_string(),
+                    pii_type: PiiType::IpAddress,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.98,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Cryptocurrency Wallets
-        for mat in CRYPTO_WALLET_REGEX.find_iter(text) {
-            out.push(PiiEntity {
-                text: mat.as_str().to_string(),
-                label: "KRIPTO_CUZDAN".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: mat.as_str().to_string(),
-                suffix: None,
-            });
+        if text.sz_find("bc1").is_some()
+            || text.sz_find("0x").is_some()
+            || text.sz_find("0X").is_some()
+            || text.sz_find("T").is_some()
+        {
+            for mat in CRYPTO_WALLET_REGEX.find_iter(text) {
+                out.push(PiiEntity {
+                    text: mat.as_str().to_string(),
+                    label: "KRIPTO_CUZDAN".to_string(),
+                    pii_type: PiiType::AccountNo,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: mat.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
         // Vehicle Registration (Ruhsat No)
-        for cap in RUHSAT_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "RUHSAT_NO".to_string(),
-                pii_type: PiiType::Plate,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Contract No
-        for cap in CONTRACT_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "SOZLESME_NO".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Policy No
-        for cap in POLICY_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "POLICE_NO".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Reference No
-        for cap in REFERENCE_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "REFERANS".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Vehicle Chassis / VIN No in context
-        for cap in CHASSIS_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "SASI_NO".to_string(),
-                pii_type: PiiType::Vin,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.98,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Engine / Motor No in context
-        for cap in MOTOR_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "MOTOR_NO".to_string(),
-                pii_type: PiiType::Plate,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // PIN in context
-        for cap in PIN_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "PIN".to_string(),
-                pii_type: PiiType::Credentials,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Credit rating / Findeks score
-        for cap in CREDIT_SCORE_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "KREDI_NOTU".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Mother's maiden name
-        for cap in MOTHER_MAIDEN_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "ANNE_KIZLIK".to_string(),
-                pii_type: PiiType::Name,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Gender
-        for cap in GENDER_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1).or_else(|| cap.get(2)) {
+        if lower.sz_find("ruhsat").is_some() {
+            for cap in RUHSAT_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
                     text: val.as_str().to_string(),
-                    label: "CINSIYET".to_string(),
-                    pii_type: PiiType::Gender,
+                    label: "RUHSAT_NO".to_string(),
+                    pii_type: PiiType::Plate,
                     start: val.start(),
                     end: val.end(),
                     confidence: 0.95,
@@ -1118,135 +1151,13 @@ impl TurkishPiiEngine {
             }
         }
 
-        // Device ID
-        for cap in DEVICE_ID_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "CIHAZ_ID".to_string(),
-                pii_type: PiiType::AccountNo,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Sicil No
-        for cap in SICIL_NO_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "SICIL_NO".to_string(),
-                pii_type: PiiType::Tckn,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Digital Signature / E-Signature
-        for mat in SIGNATURE_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "IMZA".to_string(),
-                pii_type: PiiType::Credentials,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-
-        // Criminal / Judicial record
-        for mat in CRIMINAL_RECORD_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "CEZA_KAYDI".to_string(),
-                pii_type: PiiType::Health,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-
-        // Nationality
-        for cap in NATIONALITY_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "UYRUK".to_string(),
-                pii_type: PiiType::Person,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Geolocation coordinates
-        for mat in COORDINATES_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "KONUM".to_string(),
-                pii_type: PiiType::Address,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-
-        // Health record
-        for cap in HEALTH_RECORD_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            let span_str = val.as_str().trim();
-            if !span_str.is_empty() {
-                out.push(PiiEntity {
-                    text: span_str.to_string(),
-                    label: "SAGLIK".to_string(),
-                    pii_type: PiiType::Health,
-                    start: val.start(),
-                    end: val.end(),
-                    confidence: 0.95,
-                    stem: span_str.to_string(),
-                    suffix: None,
-                });
-            }
-        }
-
-        // Trade union membership
-        for mat in TRADE_UNION_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "SENDIKA".to_string(),
-                pii_type: PiiType::Person,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-
-        // Username
-        for cap in USERNAME_REGEX.captures_iter(text) {
-            if let Some(val) = cap.get(1).or_else(|| cap.get(2)) {
+        // Contract No
+        if lower.sz_find("sözleşme").is_some() || lower.sz_find("sozlesme").is_some() {
+            for cap in CONTRACT_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
                     text: val.as_str().to_string(),
-                    label: "KULLANICI_ADI".to_string(),
+                    label: "SOZLESME_NO".to_string(),
                     pii_type: PiiType::AccountNo,
                     start: val.start(),
                     end: val.end(),
@@ -1257,47 +1168,458 @@ impl TurkishPiiEngine {
             }
         }
 
-        // Biometric data
-        for mat in BIOMETRIC_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "BIYOMETRIK".to_string(),
-                pii_type: PiiType::Health,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.98,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
+        // Policy No
+        if lower.sz_find("poliçe").is_some() || lower.sz_find("police").is_some() {
+            for cap in POLICY_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "POLICE_NO".to_string(),
+                    pii_type: PiiType::AccountNo,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
-        // Birthplace
-        for cap in BIRTHPLACE_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "DOGUM_YERI".to_string(),
-                pii_type: PiiType::Address,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
+        // Reference No
+        if lower.sz_find("referans").is_some()
+            || text.sz_find("REF-").is_some()
+            || text.sz_find("RF").is_some()
+        {
+            for cap in REFERENCE_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "REFERANS".to_string(),
+                    pii_type: PiiType::AccountNo,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
 
-        // Family status
-        for cap in FAMILY_STATUS_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            let span_str = val.as_str().trim();
-            if !span_str.is_empty() {
+        // Vehicle Chassis / VIN No in context
+        if lower.sz_find("şasi").is_some()
+            || lower.sz_find("sasi").is_some()
+            || lower.sz_find("vin").is_some()
+        {
+            for cap in CHASSIS_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "SASI_NO".to_string(),
+                    pii_type: PiiType::Vin,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.98,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Engine / Motor No in context
+        if lower.sz_find("motor").is_some() {
+            for cap in MOTOR_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "MOTOR_NO".to_string(),
+                    pii_type: PiiType::Plate,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // PIN in context
+        if has_digits && lower.sz_find("pin").is_some() {
+            for cap in PIN_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "PIN".to_string(),
+                    pii_type: PiiType::Credentials,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Credit rating / Findeks score
+        if has_digits && (lower.sz_find("kredi").is_some() || lower.sz_find("findeks").is_some()) {
+            for cap in CREDIT_SCORE_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "KREDI_NOTU".to_string(),
+                    pii_type: PiiType::AccountNo,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Mother's maiden name
+        if lower.sz_find("kızlık").is_some() || lower.sz_find("kizlik").is_some() {
+            for cap in MOTHER_MAIDEN_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "ANNE_KIZLIK".to_string(),
+                    pii_type: PiiType::Name,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Gender
+        if lower.sz_find("cinsiyet").is_some()
+            || lower.sz_find("kadın").is_some()
+            || lower.sz_find("kadin").is_some()
+            || lower.sz_find("erkek").is_some()
+            || lower.sz_find("bayan").is_some()
+            || lower.sz_find("dişi").is_some()
+            || lower.sz_find("disi").is_some()
+        {
+            for cap in GENDER_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1).or_else(|| cap.get(2)) {
+                    out.push(PiiEntity {
+                        text: val.as_str().to_string(),
+                        label: "CINSIYET".to_string(),
+                        pii_type: PiiType::Gender,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.95,
+                        stem: val.as_str().to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+
+        // Device ID
+        if lower.sz_find("cihaz").is_some() || lower.sz_find("device").is_some() {
+            for cap in DEVICE_ID_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "CIHAZ_ID".to_string(),
+                    pii_type: PiiType::AccountNo,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Sicil No
+        if lower.sz_find("sicil").is_some() {
+            for cap in SICIL_NO_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "SICIL_NO".to_string(),
+                    pii_type: PiiType::Tckn,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Digital Signature / E-Signature
+        if lower.sz_find("imza").is_some() {
+            for mat in SIGNATURE_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
                 out.push(PiiEntity {
                     text: span_str.to_string(),
-                    label: "AILE".to_string(),
+                    label: "IMZA".to_string(),
+                    pii_type: PiiType::Credentials,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Criminal / Judicial record
+        if lower.sz_find("ceza").is_some()
+            || lower.sz_find("kabahat").is_some()
+            || lower.sz_find("serbestlik").is_some()
+            || lower.sz_find("icra").is_some()
+            || lower.sz_find("sicil").is_some()
+            || lower.sz_find("sabıka").is_some()
+            || lower.sz_find("sabika").is_some()
+        {
+            for mat in CRIMINAL_RECORD_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "CEZA_KAYDI".to_string(),
+                    pii_type: PiiType::Health,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Nationality
+        if lower.sz_find("uyruk").is_some()
+            || lower.sz_find("uyruğu").is_some()
+            || lower.sz_find("uyrugu").is_some()
+            || lower.sz_find("vatandaş").is_some()
+            || lower.sz_find("vatandas").is_some()
+        {
+            for cap in NATIONALITY_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "UYRUK".to_string(),
                     pii_type: PiiType::Person,
                     start: val.start(),
                     end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Geolocation coordinates
+        if has_digits && text.sz_find(".").is_some() {
+            for mat in COORDINATES_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "KONUM".to_string(),
+                    pii_type: PiiType::Address,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Health record
+        if lower.sz_find("sağlık").is_some()
+            || lower.sz_find("saglik").is_some()
+            || lower.sz_find("rahatsızlık").is_some()
+            || lower.sz_find("rahatsizlik").is_some()
+            || lower.sz_find("kronik").is_some()
+            || lower.sz_find("engel").is_some()
+        {
+            for cap in HEALTH_RECORD_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                let span_str = val.as_str().trim();
+                if !span_str.is_empty() {
+                    out.push(PiiEntity {
+                        text: span_str.to_string(),
+                        label: "SAGLIK".to_string(),
+                        pii_type: PiiType::Health,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.95,
+                        stem: span_str.to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+
+        // Trade union membership
+        if lower.sz_find("sendika").is_some()
+            || lower.sz_find("sendikası").is_some()
+            || lower.sz_find("sendikasi").is_some()
+            || lower.sz_find("-iş").is_some()
+            || lower.sz_find("-is").is_some()
+            || lower.sz_find("sen ").is_some()
+            || lower.sz_find("sen\n").is_some()
+        {
+            for mat in TRADE_UNION_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "SENDIKA".to_string(),
+                    pii_type: PiiType::Person,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Username
+        if lower.sz_find("kullanıcı").is_some()
+            || lower.sz_find("kullanici").is_some()
+            || lower.sz_find("username").is_some()
+            || lower.sz_find("oturum").is_some()
+        {
+            for cap in USERNAME_REGEX.captures_iter(text) {
+                if let Some(val) = cap.get(1).or_else(|| cap.get(2)) {
+                    out.push(PiiEntity {
+                        text: val.as_str().to_string(),
+                        label: "KULLANICI_ADI".to_string(),
+                        pii_type: PiiType::AccountNo,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.95,
+                        stem: val.as_str().to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+
+        // Biometric data
+        if lower.sz_find("damar").is_some()
+            || lower.sz_find("parmak").is_some()
+            || lower.sz_find("yüz").is_some()
+            || lower.sz_find("yuz").is_some()
+            || lower.sz_find("iris").is_some()
+            || lower.sz_find("retina").is_some()
+            || lower.sz_find("biyometrik").is_some()
+        {
+            for mat in BIOMETRIC_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "BIYOMETRIK".to_string(),
+                    pii_type: PiiType::Health,
+                    start: mat.start(),
+                    end: mat.end(),
+                    confidence: 0.98,
+                    stem: span_str.to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Birthplace
+        if lower.sz_find("doğum").is_some() || lower.sz_find("dogum").is_some() {
+            for cap in BIRTHPLACE_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "DOGUM_YERI".to_string(),
+                    pii_type: PiiType::Address,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Family status
+        if lower.sz_find("aile").is_some() || lower.sz_find("medeni").is_some() {
+            for cap in FAMILY_STATUS_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                let span_str = val.as_str().trim();
+                if !span_str.is_empty() {
+                    out.push(PiiEntity {
+                        text: span_str.to_string(),
+                        label: "AILE".to_string(),
+                        pii_type: PiiType::Person,
+                        start: val.start(),
+                        end: val.end(),
+                        confidence: 0.95,
+                        stem: span_str.to_string(),
+                        suffix: None,
+                    });
+                }
+            }
+        }
+
+        // Ethnic origin
+        if lower.sz_find("etnik").is_some() {
+            for cap in ETHNIC_ORIGIN_REGEX.captures_iter(text) {
+                let val = cap.get(1).unwrap();
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: "ETNIK_KOKEN".to_string(),
+                    pii_type: PiiType::Person,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
+        }
+
+        // Workplace / Institution
+        const WORKPLACE_TRIGGERS: &[&str] = &[
+            "işyeri",
+            "isyeri",
+            "kurum",
+            "şirket",
+            "sirket",
+            "hastane",
+            "hastanes",
+            "belediye",
+            "belediyes",
+            "müdürlük",
+            "müdürlüğ",
+            "mudurluk",
+            "mudurlug",
+            "bakanlık",
+            "bakanlığ",
+            "bakanlik",
+            "bakanlig",
+            "a.ş",
+            "aş",
+            "ltd",
+            "üniversite",
+            "universite",
+            "holding",
+        ];
+        if WORKPLACE_TRIGGERS
+            .iter()
+            .any(|&trig| lower.sz_find(trig).is_some())
+        {
+            for mat in WORKPLACE_REGEX.find_iter(text) {
+                let span_str = mat.as_str();
+                out.push(PiiEntity {
+                    text: span_str.to_string(),
+                    label: "ISYERI".to_string(),
+                    pii_type: PiiType::Address,
+                    start: mat.start(),
+                    end: mat.end(),
                     confidence: 0.95,
                     stem: span_str.to_string(),
                     suffix: None,
@@ -1305,55 +1627,27 @@ impl TurkishPiiEngine {
             }
         }
 
-        // Ethnic origin
-        for cap in ETHNIC_ORIGIN_REGEX.captures_iter(text) {
-            let val = cap.get(1).unwrap();
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: "ETNIK_KOKEN".to_string(),
-                pii_type: PiiType::Person,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
-        }
-
-        // Workplace / Institution
-        for mat in WORKPLACE_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: "ISYERI".to_string(),
-                pii_type: PiiType::Address,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.95,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
-
         // Mother / Father given names
-        for cap in PARENT_NAMES_REGEX.captures_iter(text) {
-            let full_match = cap.get(0).unwrap().as_str().to_lowercase();
-            let val = cap.get(1).unwrap();
-            let label = if full_match.starts_with("anne") {
-                "ANNE_ADI"
-            } else {
-                "BABA_ADI"
-            };
-            out.push(PiiEntity {
-                text: val.as_str().to_string(),
-                label: label.to_string(),
-                pii_type: PiiType::Name,
-                start: val.start(),
-                end: val.end(),
-                confidence: 0.95,
-                stem: val.as_str().to_string(),
-                suffix: None,
-            });
+        if lower.sz_find("anne").is_some() || lower.sz_find("baba").is_some() {
+            for cap in PARENT_NAMES_REGEX.captures_iter(text) {
+                let full_match = cap.get(0).unwrap().as_str().to_lowercase();
+                let val = cap.get(1).unwrap();
+                let label = if full_match.starts_with("anne") {
+                    "ANNE_ADI"
+                } else {
+                    "BABA_ADI"
+                };
+                out.push(PiiEntity {
+                    text: val.as_str().to_string(),
+                    label: label.to_string(),
+                    pii_type: PiiType::Name,
+                    start: val.start(),
+                    end: val.end(),
+                    confidence: 0.95,
+                    stem: val.as_str().to_string(),
+                    suffix: None,
+                });
+            }
         }
     }
 
@@ -1560,7 +1854,7 @@ impl TurkishPiiEngine {
 
         // Blood types
         for bt in BLOOD_TYPES.iter() {
-            if let Some(pos) = lower.find(bt.as_str()) {
+            if let Some(pos) = lower.sz_find(bt.as_str()) {
                 out.push(PiiEntity {
                     text: text[pos..pos + bt.len()].to_string(),
                     label: PiiType::BloodType.as_str().to_string(),
@@ -1577,7 +1871,7 @@ impl TurkishPiiEngine {
         // Health terms
         for ht in HEALTH_TERMS.iter() {
             let mut start_idx = 0;
-            while let Some(pos) = lower[start_idx..].find(ht.as_str()) {
+            while let Some(pos) = lower[start_idx..].sz_find(ht.as_str()) {
                 let actual_pos = start_idx + pos;
                 let end_pos = actual_pos + ht.len();
                 out.push(PiiEntity {
@@ -1596,7 +1890,7 @@ impl TurkishPiiEngine {
 
         // Religion terms
         for rt in RELIGION_TERMS.iter() {
-            if let Some(pos) = lower.find(rt.as_str()) {
+            if let Some(pos) = lower.sz_find(rt.as_str()) {
                 out.push(PiiEntity {
                     text: text[pos..pos + rt.len()].to_string(),
                     label: "DIN".to_string(),
@@ -1626,7 +1920,7 @@ impl TurkishPiiEngine {
             ];
             for trig in CLINICAL_TRIGGERS {
                 let mut start_idx = 0;
-                while let Some(pos) = lower[start_idx..].find(trig) {
+                while let Some(pos) = lower[start_idx..].sz_find(trig) {
                     let actual_pos = start_idx + pos;
                     let window_start = actual_pos.saturating_sub(40);
                     let candidate_context = text[window_start..actual_pos].trim();
@@ -1636,7 +1930,8 @@ impl TurkishPiiEngine {
                             && scorer.score_similarity(clean_word, PiiPrototypeCategory::Health)
                                 >= 0.25
                         {
-                            if let Some(word_pos) = text[window_start..actual_pos].rfind(clean_word)
+                            if let Some(word_pos) =
+                                text[window_start..actual_pos].sz_rfind(clean_word)
                             {
                                 let w_start = window_start + word_pos;
                                 let w_end = w_start + clean_word.len();
@@ -1696,7 +1991,7 @@ fn resolve_conflicts(mut candidates: Vec<PiiEntity>) -> Vec<PiiEntity> {
 /// Helper function to check if an email local-part represents a public corporate or support desk.
 fn is_corporate_email(email: &str) -> bool {
     let lower = email.to_lowercase();
-    if let Some(at_idx) = lower.find('@') {
+    if let Some(at_idx) = lower.sz_find("@") {
         let prefix = &lower[..at_idx];
         if crate::pii::gazetteer::CORPORATE_EMAIL_PREFIXES.contains(prefix) {
             return true;
@@ -1876,5 +2171,26 @@ mod tests {
         let text2 = "Yaz tatilinde deniz kenarında yürüyüş yaptık.";
         let res2 = engine.mask(text2, PiiMode::Tag);
         assert!(!res2.masked_text.contains("[AD]"));
+    }
+
+    #[test]
+    fn test_simd_fast_path_non_numeric_and_triggers() {
+        let engine = TurkishPiiEngine::new();
+
+        // 1. Text with zero digits: SIMD bypasses all numeric regexes fast
+        let text_no_digits = "Sayın Ahmet Bey Ankara ilindeki toplantıya katılacağını bildirdi.";
+        let res1 = engine.mask(text_no_digits, PiiMode::Tag);
+        assert!(res1.masked_text.contains("[AD]"));
+
+        // 2. Text with secrets matching via StringZilla SIMD anchors
+        let secret_text = "API key: sk-proj-12345678901234567890123456789012 ve token: ghp_1234567890abcdef1234567890abcdef1234";
+        let res_secret = engine.mask(secret_text, PiiMode::Tag);
+        assert!(res_secret.masked_text.contains("[SIFRE]"));
+
+        // 3. Text with KVKK Article 6 sensitive data via StringZilla SIMD
+        let sensitive_text = "Hastanın kan grubu 0 rh pozitif olup diyabet tanısı mevcuttur.";
+        let res_sens = engine.mask(sensitive_text, PiiMode::Tag);
+        assert!(res_sens.masked_text.contains("[KAN_GRUBU]"));
+        assert!(res_sens.masked_text.contains("[SAGLIK]"));
     }
 }

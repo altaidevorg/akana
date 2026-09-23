@@ -10,6 +10,7 @@
 use super::{PiiEntity, PiiType};
 use lazy_static::lazy_static;
 use regex::Regex;
+use stringzilla::StringZilla;
 
 lazy_static! {
     /// Matches a consecutive sequence of Turkish number words (3 or more tokens).
@@ -50,6 +51,31 @@ lazy_static! {
 
 /// Detects spelled-out Turkish numbers preceded by financial/identity context triggers.
 pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
+    // Fast SIMD pre-filter: A spelled number sequence is ONLY emitted if preceded by a context trigger
+    let lower = text.to_lowercase();
+    const SPELLED_TRIGGERS: &[&str] = &[
+        "tc",
+        "kimlik",
+        "iban",
+        "kart",
+        "müşteri",
+        "musteri",
+        "hesap",
+        "ödeme",
+        "odeme",
+        "cvv",
+        "cvc",
+        "pin",
+        "güvenlik",
+        "guvenlik",
+    ];
+    let has_trigger = SPELLED_TRIGGERS
+        .iter()
+        .any(|&trig| lower.sz_find(trig).is_some());
+    if !has_trigger {
+        return;
+    }
+
     for mat in SPELLED_NUMBER_SEQUENCE_REGEX.find_iter(text) {
         let seq_start = mat.start();
         let seq_end = mat.end();
@@ -85,8 +111,8 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
             let (final_start, final_text) =
                 if cap.name("tr").is_some() || prefix.to_uppercase().ends_with("TR ") {
                     let tr_idx = prefix
-                        .rfind("TR ")
-                        .or_else(|| prefix.rfind("tr "))
+                        .sz_rfind("TR ")
+                        .or_else(|| prefix.sz_rfind("tr "))
                         .unwrap_or(seq_start - lookback_start);
                     let actual_start = lookback_start + tr_idx;
                     (actual_start, text[actual_start..seq_end].to_string())
