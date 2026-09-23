@@ -246,7 +246,7 @@ impl std::error::Error for TokenizerError {}
 mod tests {
     use super::*;
 
-    static TOKENIZER_DATA: &[u8] = include_bytes!("../../../../data/embeddings/tokenizer.json");
+    static TOKENIZER_DATA: &[u8] = include_bytes!("../../data/embeddings/tokenizer.json");
 
     #[test]
     fn test_load_tokenizer() {

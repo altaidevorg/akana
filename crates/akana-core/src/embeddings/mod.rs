@@ -23,8 +23,8 @@ use tokenizer::UnigramTokenizer;
 use weights::{EmbeddingWeights, EMBEDDING_DIM};
 
 /// Embedded model data (compiled into the binary).
-static WEIGHTS_NPZ: &[u8] = include_bytes!("../../../../data/embeddings/turboquant_weights.npz");
-static TOKENIZER_JSON: &[u8] = include_bytes!("../../../../data/embeddings/tokenizer.json");
+static WEIGHTS_NPZ: &[u8] = include_bytes!("../../data/embeddings/turboquant_weights.npz");
+static TOKENIZER_JSON: &[u8] = include_bytes!("../../data/embeddings/tokenizer.json");
 
 /// Turkish sentence embedding engine.
 ///

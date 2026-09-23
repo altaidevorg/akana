@@ -364,8 +364,7 @@ mod tests {
     use super::*;
 
     // Embed the actual weights for testing
-    static WEIGHTS_DATA: &[u8] =
-        include_bytes!("../../../../data/embeddings/turboquant_weights.npz");
+    static WEIGHTS_DATA: &[u8] = include_bytes!("../../data/embeddings/turboquant_weights.npz");
 
     #[test]
     fn test_load_weights() {
