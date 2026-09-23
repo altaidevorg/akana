@@ -1,21 +1,22 @@
 //! Turkish Number-to-Words, Words-to-Number, Ordinals, and Currency Converter.
 
-use std::collections::HashMap;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 
 lazy_static! {
-    static ref DIGITS: [&'static str; 10] = [
-        "sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"
-    ];
-
-    static ref TENS: [&'static str; 10] = [
-        "", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"
-    ];
-
+    static ref DIGITS: [&'static str; 10] =
+        ["sıfır", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"];
+    static ref TENS: [&'static str; 10] =
+        ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"];
     static ref SCALES: [&'static str; 7] = [
-        "", "bin", "milyon", "milyar", "trilyon", "katrilyon", "kentilyon"
+        "",
+        "bin",
+        "milyon",
+        "milyar",
+        "trilyon",
+        "katrilyon",
+        "kentilyon"
     ];
-
     static ref WORD_TO_VAL: HashMap<&'static str, i64> = {
         let mut m = HashMap::new();
         m.insert("sıfır", 0);

@@ -13,9 +13,9 @@ pub enum PrimaryPos {
     Conj,
     Postp,
     Interj,
-    Q,       // Question particle (mi/mı/mu/mü)
+    Q, // Question particle (mi/mı/mu/mü)
     Punc,
-    Dup,     // Duplication (ikileme)
+    Dup, // Duplication (ikileme)
     Unknown,
 }
 

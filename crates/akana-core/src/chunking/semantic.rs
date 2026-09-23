@@ -244,14 +244,18 @@ mod tests {
 
     #[test]
     fn test_semantic_chunker_multi_topic() {
-        let chunker = SemanticChunker::new(512, ThresholdMode::Percentile(0.75))
-            .with_min_chunk_size(10);
+        let chunker =
+            SemanticChunker::new(512, ThresholdMode::Percentile(0.75)).with_min_chunk_size(10);
 
         let text = "Kuantum fiziği, atom ve atom altı parçacıkların davranışlarını inceler. Dalga-parçacık ikiliği bu teorinin temelidir. \
                     Fenerbahçe, Süper Lig'de dün akşam kritik bir galibiyet aldı. Forvet oyuncusu iki gol atarak maça damgasını vurdu.";
 
         let chunks = chunker.chunk(text);
-        assert!(chunks.len() >= 2, "Expected at least 2 topic chunks, got {}", chunks.len());
+        assert!(
+            chunks.len() >= 2,
+            "Expected at least 2 topic chunks, got {}",
+            chunks.len()
+        );
         assert!(chunks[0].text.contains("Kuantum"));
         assert!(chunks.iter().any(|c| c.text.contains("Fenerbahçe")));
     }

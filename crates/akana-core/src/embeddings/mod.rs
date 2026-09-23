@@ -23,8 +23,8 @@ use tokenizer::UnigramTokenizer;
 use weights::{EmbeddingWeights, EMBEDDING_DIM};
 
 /// Embedded model data (compiled into the binary).
-static WEIGHTS_NPZ: &[u8] = include_bytes!("../../../../data/embeddings/turboquant_weights.npz");
-static TOKENIZER_JSON: &[u8] = include_bytes!("../../../../data/embeddings/tokenizer.json");
+static WEIGHTS_NPZ: &[u8] = include_bytes!("../../data/embeddings/turboquant_weights.npz");
+static TOKENIZER_JSON: &[u8] = include_bytes!("../../data/embeddings/tokenizer.json");
 
 /// Turkish sentence embedding engine.
 ///
@@ -49,8 +49,8 @@ impl TurkishEmbeddings {
     pub fn new() -> Self {
         let tokenizer = UnigramTokenizer::from_json_bytes(TOKENIZER_JSON)
             .expect("failed to load embedded tokenizer");
-        let weights = EmbeddingWeights::from_npz_bytes(WEIGHTS_NPZ)
-            .expect("failed to load embedded weights");
+        let weights =
+            EmbeddingWeights::from_npz_bytes(WEIGHTS_NPZ).expect("failed to load embedded weights");
 
         Self { tokenizer, weights }
     }
@@ -176,16 +176,20 @@ mod tests {
 
         // L2 norm should be ~1.0
         let norm: f32 = vec.iter().map(|x| x * x).sum::<f32>().sqrt();
-        assert!((norm - 1.0).abs() < 0.01,
-            "expected L2 norm ~1.0, got {norm}");
+        assert!(
+            (norm - 1.0).abs() < 0.01,
+            "expected L2 norm ~1.0, got {norm}"
+        );
     }
 
     #[test]
     fn test_similarity_identical() {
         let emb = TurkishEmbeddings::new();
         let score = emb.similarity("kedi", "kedi");
-        assert!((score - 1.0).abs() < 0.01,
-            "identical texts should have similarity ~1.0, got {score}");
+        assert!(
+            (score - 1.0).abs() < 0.01,
+            "identical texts should have similarity ~1.0, got {score}"
+        );
     }
 
     #[test]
@@ -195,8 +199,10 @@ mod tests {
         let score_unrelated = emb.similarity("ev", "araba");
 
         // Related words should have higher similarity than unrelated
-        assert!(score_related > score_unrelated,
-            "expected 'ev-evler' ({score_related}) > 'ev-araba' ({score_unrelated})");
+        assert!(
+            score_related > score_unrelated,
+            "expected 'ev-evler' ({score_related}) > 'ev-araba' ({score_unrelated})"
+        );
     }
 
     #[test]

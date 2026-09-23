@@ -8,8 +8,8 @@
 //! 5. Sentence-initial & Proper Noun Capitalization.
 //! 6. Reduplication orthography (*el ele*, *yan yana*).
 
-use std::collections::HashSet;
 use lazy_static::lazy_static;
+use std::collections::HashSet;
 use stringzilla::StringZilla;
 
 use super::{ErrorCategory, GrammarFinding};
@@ -118,13 +118,34 @@ impl OrthographyRuleEngine {
     ) {
         let mi_particles = ["mi", "mı", "mu", "mü"];
         let mi_suffixes = [
-            "misin", "mısın", "musun", "müsün", "miyiz", "mıyız", "muyuz", "müyüz",
-            "misiniz", "mısınız", "musunuz", "müsünüz", "miler", "mılar",
+            "misin",
+            "mısın",
+            "musun",
+            "müsün",
+            "miyiz",
+            "mıyız",
+            "muyuz",
+            "müyüz",
+            "misiniz",
+            "mısınız",
+            "musunuz",
+            "müsünüz",
+            "miler",
+            "mılar",
         ];
 
         for (i, &tok) in tokens.iter().enumerate() {
             let (start, end) = token_spans[i];
-            let trimmed_tok = tok.trim_end_matches(|c: char| c.is_ascii_punctuation() || c == '?' || c == '!' || c == '.' || c == ',' || c == ':' || c == '"' || c == '\'');
+            let trimmed_tok = tok.trim_end_matches(|c: char| {
+                c.is_ascii_punctuation()
+                    || c == '?'
+                    || c == '!'
+                    || c == '.'
+                    || c == ','
+                    || c == ':'
+                    || c == '"'
+                    || c == '\''
+            });
             let punct = &tok[trimmed_tok.len()..];
             let raw_lower = to_turkish_lower(trimmed_tok);
             let lower = raw_lower.as_str();
@@ -143,7 +164,17 @@ impl OrthographyRuleEngine {
                             _ => "mi",
                         };
 
-                        if p == expected_p && (stem.ends_with('r') || stem.ends_with('n') || stem.ends_with('k') || stem.ends_with('z') || stem.ends_with('d') || stem.ends_with('t') || stem.ends_with('m') || stem.ends_with('ş') || stem.ends_with('l')) {
+                        if p == expected_p
+                            && (stem.ends_with('r')
+                                || stem.ends_with('n')
+                                || stem.ends_with('k')
+                                || stem.ends_with('z')
+                                || stem.ends_with('d')
+                                || stem.ends_with('t')
+                                || stem.ends_with('m')
+                                || stem.ends_with('ş')
+                                || stem.ends_with('l'))
+                        {
                             let original_stem = &trimmed_tok[..trimmed_tok.len() - p.len()];
                             let replacement = format!("{original_stem} {expected_p}{punct}");
                             findings.push(GrammarFinding {
@@ -174,7 +205,9 @@ impl OrthographyRuleEngine {
                         original_text: tok.to_string(),
                         replacement,
                         message_tr: "Soru eki ve eklenen şahıs ekleri ayrı yazılır.".to_string(),
-                        message_en: "Question particles and person suffixes must be written separately.".to_string(),
+                        message_en:
+                            "Question particles and person suffixes must be written separately."
+                                .to_string(),
                         confidence: 0.98,
                     });
                     break;
@@ -246,10 +279,31 @@ impl OrthographyRuleEngine {
         ];
 
         const SPLIT_LOCATIVE_STEMS: &[&str] = &[
-            "hakkın", "arasın", "konusun", "tarafın", "yolun", "zamanın", "adın",
-            "için", "üzerin", "yanın", "durumun", "sayesin", "karşısın", "altın",
-            "üstün", "önün", "arkasın", "peşin", "başın", "sonun", "boyun",
-            "halin", "yüzün", "içerisin", "dışarısın"
+            "hakkın",
+            "arasın",
+            "konusun",
+            "tarafın",
+            "yolun",
+            "zamanın",
+            "adın",
+            "için",
+            "üzerin",
+            "yanın",
+            "durumun",
+            "sayesin",
+            "karşısın",
+            "altın",
+            "üstün",
+            "önün",
+            "arkasın",
+            "peşin",
+            "başın",
+            "sonun",
+            "boyun",
+            "halin",
+            "yüzün",
+            "içerisin",
+            "dışarısın",
         ];
 
         for (i, &tok) in tokens.iter().enumerate() {
@@ -257,16 +311,19 @@ impl OrthographyRuleEngine {
             let (start, end) = token_spans[i];
 
             // Case A: Standalone "te" or "ta"
-            if (lower == "te" || lower == "ta")
-                && i > 0 {
-                    let prev_tok = tokens[i - 1];
-                    let prev_lower = to_turkish_lower(prev_tok);
-                    let correct_clitic = if let Some(v) = last_vowel(&prev_lower) {
-                        if is_front_vowel(v) { "de" } else { "da" }
-                    } else {
+            if (lower == "te" || lower == "ta") && i > 0 {
+                let prev_tok = tokens[i - 1];
+                let prev_lower = to_turkish_lower(prev_tok);
+                let correct_clitic = if let Some(v) = last_vowel(&prev_lower) {
+                    if is_front_vowel(v) {
                         "de"
-                    };
-                    findings.push(GrammarFinding {
+                    } else {
+                        "da"
+                    }
+                } else {
+                    "de"
+                };
+                findings.push(GrammarFinding {
                         category: ErrorCategory::CliticDeDa,
                         start_offset: start,
                         end_offset: end,
@@ -276,7 +333,7 @@ impl OrthographyRuleEngine {
                         message_en: "The conjunction 'de/da' is written separately and never undergoes consonant hardening to 'te/ta'.".to_string(),
                         confidence: 0.99,
                     });
-                }
+            }
 
             // Case B: High frequency pronoun/adverb clitic merges & apostrophes (e.g. "yada", "hemde", "ya'da")
             for &(merged, split) in FREQUENT_CLITIC_MERGES {
@@ -301,7 +358,14 @@ impl OrthographyRuleEngine {
             }
 
             // Case C: Erroneously split locative/ablative suffix on noun stems (e.g. "hakkın da" -> "hakkında", "arasın da" -> "arasında")
-            if (lower == "da" || lower == "de" || lower == "dan" || lower == "den" || lower == "nda" || lower == "nde") && i > 0 {
+            if (lower == "da"
+                || lower == "de"
+                || lower == "dan"
+                || lower == "den"
+                || lower == "nda"
+                || lower == "nde")
+                && i > 0
+            {
                 let prev_tok = tokens[i - 1];
                 let prev_lower = to_turkish_lower(prev_tok);
                 if SPLIT_LOCATIVE_STEMS.contains(&prev_lower.as_str()) {
@@ -321,26 +385,44 @@ impl OrthographyRuleEngine {
             }
 
             // Case D: Attached "de/da" on finite verbs (e.g. "gittide", "bilsede", "yaparda", "gelmişde")
-            if (lower.ends_with("de") || lower.ends_with("da") || lower.ends_with("te") || lower.ends_with("ta"))
-                && lower.len() > 4 {
-                    let stem = &lower[..lower.len() - 2];
-                    let parses = morphology.analyze(stem);
-                    let is_common_noun = parses.iter().any(|p| p.primary_pos == PrimaryPos::Noun && (p.morpheme_tags.is_empty() || p.morpheme_tags == vec!["Noun".to_string()]));
-                    let is_finite_verb = !is_common_noun && parses.iter().any(|p| {
-                        p.primary_pos == PrimaryPos::Verb && (
-                            p.morpheme_tags.iter().any(|t| t.contains("Past") || t.contains("Pres") || t.contains("Fut") || t.contains("Aor") || t.contains("Cond"))
-                        )
+            if (lower.ends_with("de")
+                || lower.ends_with("da")
+                || lower.ends_with("te")
+                || lower.ends_with("ta"))
+                && lower.len() > 4
+            {
+                let stem = &lower[..lower.len() - 2];
+                let parses = morphology.analyze(stem);
+                let is_common_noun = parses.iter().any(|p| {
+                    p.primary_pos == PrimaryPos::Noun
+                        && (p.morpheme_tags.is_empty()
+                            || p.morpheme_tags == vec!["Noun".to_string()])
+                });
+                let is_finite_verb = !is_common_noun
+                    && parses.iter().any(|p| {
+                        p.primary_pos == PrimaryPos::Verb
+                            && (p.morpheme_tags.iter().any(|t| {
+                                t.contains("Past")
+                                    || t.contains("Pres")
+                                    || t.contains("Fut")
+                                    || t.contains("Aor")
+                                    || t.contains("Cond")
+                            }))
                     });
 
-                    if is_finite_verb {
-                        let original_stem = &tok[..tok.len() - 2];
-                        let correct_clitic = if let Some(v) = last_vowel(stem) {
-                            if is_front_vowel(v) { "de" } else { "da" }
-                        } else {
+                if is_finite_verb {
+                    let original_stem = &tok[..tok.len() - 2];
+                    let correct_clitic = if let Some(v) = last_vowel(stem) {
+                        if is_front_vowel(v) {
                             "de"
-                        };
-                        let replacement = format!("{original_stem} {correct_clitic}");
-                        findings.push(GrammarFinding {
+                        } else {
+                            "da"
+                        }
+                    } else {
+                        "de"
+                    };
+                    let replacement = format!("{original_stem} {correct_clitic}");
+                    findings.push(GrammarFinding {
                             category: ErrorCategory::CliticDeDa,
                             start_offset: start,
                             end_offset: end,
@@ -350,8 +432,8 @@ impl OrthographyRuleEngine {
                             message_en: "The clitic 'de/da' following finite verbs is a conjunction and must be written separately.".to_string(),
                             confidence: 0.96,
                         });
-                    }
                 }
+            }
         }
     }
 
@@ -384,7 +466,10 @@ impl OrthographyRuleEngine {
                 let compound = format!("{}{}", prev_tok, "ki");
                 if SOMBAHCEMI_EXCEPTIONS.contains(compound.as_str()) {
                     let prev_start = token_spans[i - 1].0;
-                    let is_upper = tokens[i - 1].chars().next().is_some_and(|c| c.is_uppercase());
+                    let is_upper = tokens[i - 1]
+                        .chars()
+                        .next()
+                        .is_some_and(|c| c.is_uppercase());
                     let replacement = if is_upper {
                         to_turkish_title(&compound)
                     } else {
@@ -427,7 +512,10 @@ impl OrthographyRuleEngine {
             }
 
             // Case C: Attached "ki" on verbs (e.g. "duydumki", "gördümki", "biliyorki")
-            if lower.ends_with("ki") && lower.len() > 4 && !SOMBAHCEMI_EXCEPTIONS.contains(lower.as_str()) {
+            if lower.ends_with("ki")
+                && lower.len() > 4
+                && !SOMBAHCEMI_EXCEPTIONS.contains(lower.as_str())
+            {
                 let stem = &lower[..lower.len() - 2];
                 let parses = morphology.analyze(stem);
                 let is_verb = parses.iter().any(|p| p.primary_pos == PrimaryPos::Verb);
@@ -459,11 +547,16 @@ impl OrthographyRuleEngine {
         findings: &mut Vec<GrammarFinding>,
     ) {
         // Full-text StringZilla SIMD search for double ordinal suffixes on numbers (e.g. "2.'nci" -> "2'nci")
-        let ordinal_double_patterns = [".'nci", ".'ncı", ".'ncu", ".'ncü", ".'inci", ".'ıncı", ".'uncu", ".'üncü"];
+        let ordinal_double_patterns = [
+            ".'nci", ".'ncı", ".'ncu", ".'ncü", ".'inci", ".'ıncı", ".'uncu", ".'üncü",
+        ];
         for &pat in &ordinal_double_patterns {
             if let Some(offset) = text.sz_find(pat) {
                 let prefix = &text[..offset];
-                let digit_start = prefix.rfind(|c: char| !c.is_ascii_digit()).map(|i| i + 1).unwrap_or(0);
+                let digit_start = prefix
+                    .rfind(|c: char| !c.is_ascii_digit())
+                    .map(|i| i + 1)
+                    .unwrap_or(0);
                 let num_str = &prefix[digit_start..];
                 if !num_str.is_empty() {
                     let end = offset + pat.len();
@@ -491,10 +584,17 @@ impl OrthographyRuleEngine {
             let prefix = &text[..apos_pos];
             let suffix = &text[apos_pos + 1..];
 
-            let start = prefix.rfind(|c: char| c.is_whitespace() || c == '.' || c == ',' || c == '(' || c == '"' || c == '!').map(|i| i + 1).unwrap_or(0);
+            let start = prefix
+                .rfind(|c: char| {
+                    c.is_whitespace() || c == '.' || c == ',' || c == '(' || c == '"' || c == '!'
+                })
+                .map(|i| i + 1)
+                .unwrap_or(0);
             let root = &prefix[start..];
 
-            let suf_len = suffix.find(|c: char| !c.is_alphabetic()).unwrap_or(suffix.len());
+            let suf_len = suffix
+                .find(|c: char| !c.is_alphabetic())
+                .unwrap_or(suffix.len());
             let suf = &suffix[..suf_len];
             let end = apos_pos + 1 + suf_len;
 
@@ -506,18 +606,22 @@ impl OrthographyRuleEngine {
                     let is_voiceless_digit = matches!(last_digit, '3' | '4' | '5');
 
                     if is_voiceless_digit
-                        && (suf_lower.starts_with("de") || suf_lower.starts_with("da") || suf_lower.starts_with("den") || suf_lower.starts_with("dan")) {
-                            let hardened_suf = if suf_lower.starts_with("de") {
-                                format!("te{}", &suf[2..])
-                            } else if suf_lower.starts_with("da") {
-                                format!("ta{}", &suf[2..])
-                            } else if suf_lower.starts_with("den") {
-                                format!("ten{}", &suf[3..])
-                            } else {
-                                format!("tan{}", &suf[3..])
-                            };
-                            let replacement = format!("{root}'{hardened_suf}");
-                            findings.push(GrammarFinding {
+                        && (suf_lower.starts_with("de")
+                            || suf_lower.starts_with("da")
+                            || suf_lower.starts_with("den")
+                            || suf_lower.starts_with("dan"))
+                    {
+                        let hardened_suf = if suf_lower.starts_with("de") {
+                            format!("te{}", &suf[2..])
+                        } else if suf_lower.starts_with("da") {
+                            format!("ta{}", &suf[2..])
+                        } else if suf_lower.starts_with("den") {
+                            format!("ten{}", &suf[3..])
+                        } else {
+                            format!("tan{}", &suf[3..])
+                        };
+                        let replacement = format!("{root}'{hardened_suf}");
+                        findings.push(GrammarFinding {
                                 category: ErrorCategory::ApostropheNumberDate,
                                 start_offset: start,
                                 end_offset: end,
@@ -527,13 +631,36 @@ impl OrthographyRuleEngine {
                                 message_en: "Suffixes attached to numbers must follow consonant assimilation.".to_string(),
                                 confidence: 0.99,
                             });
-                        }
+                    }
                 } else {
                     // B. Plural / derivational on proper noun (e.g. Ahmetler'in, Türk'ler)
                     let root_lower = to_turkish_lower(root);
                     let suf_lower = to_turkish_lower(suf);
-                    let is_plural_or_deriv_root = root_lower.ends_with("ler") || root_lower.ends_with("lar") || root_lower.ends_with("li") || root_lower.ends_with("lı") || root_lower.ends_with("lu") || root_lower.ends_with("lü") || root_lower.ends_with("lik") || root_lower.ends_with("lık") || root_lower.ends_with("luk") || root_lower.ends_with("lük") || root_lower.ends_with("gil");
-                    let is_plural_or_deriv_suffix = suf_lower.starts_with("ler") || suf_lower.starts_with("lar") || suf_lower.starts_with("li") || suf_lower.starts_with("lı") || suf_lower.starts_with("lu") || suf_lower.starts_with("lü") || suf_lower.starts_with("siz") || suf_lower.starts_with("sız") || suf_lower.starts_with("suz") || suf_lower.starts_with("süz") || suf_lower.starts_with("lik") || suf_lower.starts_with("lık") || suf_lower.starts_with("luk") || suf_lower.starts_with("lük");
+                    let is_plural_or_deriv_root = root_lower.ends_with("ler")
+                        || root_lower.ends_with("lar")
+                        || root_lower.ends_with("li")
+                        || root_lower.ends_with("lı")
+                        || root_lower.ends_with("lu")
+                        || root_lower.ends_with("lü")
+                        || root_lower.ends_with("lik")
+                        || root_lower.ends_with("lık")
+                        || root_lower.ends_with("luk")
+                        || root_lower.ends_with("lük")
+                        || root_lower.ends_with("gil");
+                    let is_plural_or_deriv_suffix = suf_lower.starts_with("ler")
+                        || suf_lower.starts_with("lar")
+                        || suf_lower.starts_with("li")
+                        || suf_lower.starts_with("lı")
+                        || suf_lower.starts_with("lu")
+                        || suf_lower.starts_with("lü")
+                        || suf_lower.starts_with("siz")
+                        || suf_lower.starts_with("sız")
+                        || suf_lower.starts_with("suz")
+                        || suf_lower.starts_with("süz")
+                        || suf_lower.starts_with("lik")
+                        || suf_lower.starts_with("lık")
+                        || suf_lower.starts_with("luk")
+                        || suf_lower.starts_with("lük");
 
                     if is_plural_or_deriv_root || is_plural_or_deriv_suffix {
                         let replacement = format!("{root}{suf}");
@@ -607,11 +734,46 @@ impl OrthographyRuleEngine {
         findings: &mut Vec<GrammarFinding>,
     ) {
         const MODAL_VERB_STEMS: &[&str] = &[
-            "ola", "yapa", "gele", "gide", "bula", "ala", "vere", "kura", "duya",
-            "çıkara", "sağlaya", "tanıya", "basa", "koşa", "baka", "yaza", "kalka",
-            "anlata", "göstere", "başlaya", "anlaya", "isteye", "söyleye", "büyüte",
-            "değiştire", "duruma", "kavuşa", "oluşa", "ulaşa", "kaça", "tutuna",
-            "öne", "sora", "seve", "döne", "göre", "bile", "öğrene", "çeke", "kora"
+            "ola",
+            "yapa",
+            "gele",
+            "gide",
+            "bula",
+            "ala",
+            "vere",
+            "kura",
+            "duya",
+            "çıkara",
+            "sağlaya",
+            "tanıya",
+            "basa",
+            "koşa",
+            "baka",
+            "yaza",
+            "kalka",
+            "anlata",
+            "göstere",
+            "başlaya",
+            "anlaya",
+            "isteye",
+            "söyleye",
+            "büyüte",
+            "değiştire",
+            "duruma",
+            "kavuşa",
+            "oluşa",
+            "ulaşa",
+            "kaça",
+            "tutuna",
+            "öne",
+            "sora",
+            "seve",
+            "döne",
+            "göre",
+            "bile",
+            "öğrene",
+            "çeke",
+            "kora",
         ];
 
         for (i, &tok) in tokens.iter().enumerate() {
@@ -621,7 +783,17 @@ impl OrthographyRuleEngine {
             let lower = to_turkish_lower(tok);
             let prev_lower = to_turkish_lower(tokens[i - 1]);
 
-            if (lower.starts_with("bilir") || lower.starts_with("bile") || lower.starts_with("bildi") || lower.starts_with("bilecek") || lower.starts_with("bilse") || lower.starts_with("bilmiş") || lower.starts_with("biliyor") || lower.starts_with("bilsin") || lower.starts_with("bilen") || lower.starts_with("bilip") || lower.starts_with("bilmek"))
+            if (lower.starts_with("bilir")
+                || lower.starts_with("bile")
+                || lower.starts_with("bildi")
+                || lower.starts_with("bilecek")
+                || lower.starts_with("bilse")
+                || lower.starts_with("bilmiş")
+                || lower.starts_with("biliyor")
+                || lower.starts_with("bilsin")
+                || lower.starts_with("bilen")
+                || lower.starts_with("bilip")
+                || lower.starts_with("bilmek"))
                 && (prev_lower.ends_with('a') || prev_lower.ends_with('e'))
                 && (MODAL_VERB_STEMS.contains(&prev_lower.as_str()) || prev_lower.len() >= 3)
             {
@@ -672,7 +844,10 @@ impl OrthographyRuleEngine {
             };
 
             if let Some(comp_str) = compound {
-                let is_upper = tokens[i - 1].chars().next().is_some_and(|c| c.is_uppercase());
+                let is_upper = tokens[i - 1]
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_uppercase());
                 let replacement = if is_upper {
                     to_turkish_title(comp_str)
                 } else {

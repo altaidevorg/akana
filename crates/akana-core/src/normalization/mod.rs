@@ -2,12 +2,12 @@
 
 pub mod asciifier;
 pub mod deasciifier;
-pub mod spellcheck;
 pub mod informal;
 pub mod numbers;
+pub mod spellcheck;
 
 pub use asciifier::*;
 pub use deasciifier::*;
-pub use spellcheck::*;
 pub use informal::*;
 pub use numbers::*;
+pub use spellcheck::*;

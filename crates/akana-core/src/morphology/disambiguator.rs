@@ -57,7 +57,8 @@ impl MorphologicalDisambiguator {
                 continue;
             }
 
-            let is_sentence_final = i == n - 1 || (i == n - 2 && matches!(tokens[n - 1], "." | "!" | "?" | "…"));
+            let is_sentence_final =
+                i == n - 1 || (i == n - 2 && matches!(tokens[n - 1], "." | "!" | "?" | "…"));
             let is_first_char_upper = tokens[i].chars().next().is_some_and(|c| c.is_uppercase());
 
             let mut best_idx = 0;
@@ -76,15 +77,23 @@ impl MorphologicalDisambiguator {
                 }
 
                 // 2. Proper Noun Capitalization Constraint
-                if is_first_char_upper && parse.secondary_pos == super::pos::SecondaryPos::ProperNoun {
+                if is_first_char_upper
+                    && parse.secondary_pos == super::pos::SecondaryPos::ProperNoun
+                {
                     score += 5.0;
                 }
 
                 // 3. Pre-nominal modifier constraint (Adj / Demons before Noun)
                 if i + 1 < n {
                     let next_parses = &analyses_per_token[i + 1];
-                    let next_likely_noun = next_parses.iter().any(|np| np.primary_pos == PrimaryPos::Noun && np.secondary_pos != super::pos::SecondaryPos::ProperNoun);
-                    if next_likely_noun && (parse.primary_pos == PrimaryPos::Adj || parse.secondary_pos == super::pos::SecondaryPos::Demonstrative) {
+                    let next_likely_noun = next_parses.iter().any(|np| {
+                        np.primary_pos == PrimaryPos::Noun
+                            && np.secondary_pos != super::pos::SecondaryPos::ProperNoun
+                    });
+                    if next_likely_noun
+                        && (parse.primary_pos == PrimaryPos::Adj
+                            || parse.secondary_pos == super::pos::SecondaryPos::Demonstrative)
+                    {
                         score += 2.0;
                     }
                 }

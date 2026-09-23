@@ -15,8 +15,8 @@ def main():
     print("🚀 AKANA vs HUGGINGFACE TOKENIZER: EXTENSIVE DEEP BENCHMARK & STRESS TEST")
     print("=" * 80)
 
-    hf_tokenizer = Tokenizer.from_file("data/embeddings/tokenizer.json")
-    data = np.load("data/embeddings/turboquant_weights.npz")
+    hf_tokenizer = Tokenizer.from_file("crates/akana-core/data/embeddings/tokenizer.json")
+    data = np.load("crates/akana-core/data/embeddings/turboquant_weights.npz")
     packed = data["packed_indices"]
     scales = data["scales"]
 

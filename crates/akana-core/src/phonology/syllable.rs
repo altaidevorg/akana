@@ -16,7 +16,9 @@ impl TurkishSyllabifier {
         }
 
         // Count vowels
-        let vowel_indices: Vec<usize> = chars.iter().enumerate()
+        let vowel_indices: Vec<usize> = chars
+            .iter()
+            .enumerate()
             .filter(|(_, &c)| is_turkish_vowel(c))
             .map(|(i, _)| i)
             .collect();

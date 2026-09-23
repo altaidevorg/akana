@@ -3,10 +3,10 @@
 //! Provides a high-speed, SIMD-accelerated, rule-and-morphology-driven grammar checker.
 //! Covers 25 core Turkish grammatical, phonological, orthographic, and morphosyntactic error categories.
 
-pub mod orthography;
-pub mod phonological_rules;
 pub mod agreement;
 pub mod lexicon_rules;
+pub mod orthography;
+pub mod phonological_rules;
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -161,10 +161,22 @@ impl TurkishGrammarChecker {
         let mut findings: Vec<GrammarFinding> = Vec::new();
 
         // Pass 1: Orthography & Clitic Rules Engine (SIMD accelerated)
-        orthography::OrthographyRuleEngine::check(text, &tokens, &token_spans, &self.morphology, &mut findings);
+        orthography::OrthographyRuleEngine::check(
+            text,
+            &tokens,
+            &token_spans,
+            &self.morphology,
+            &mut findings,
+        );
 
         // Pass 2: Phonological Suffix Rules Engine
-        phonological_rules::PhonologicalRuleEngine::check(text, &tokens, &token_spans, &self.morphology, &mut findings);
+        phonological_rules::PhonologicalRuleEngine::check(
+            text,
+            &tokens,
+            &token_spans,
+            &self.morphology,
+            &mut findings,
+        );
 
         // Pass 3: Morphosyntactic Agreement & Concord Engine
         agreement::AgreementRuleEngine::check(
@@ -209,13 +221,18 @@ impl TurkishGrammarChecker {
         let mut result = original.to_string();
         let mut sorted_findings = findings.to_vec();
         // Sort descending by start_offset so earlier offsets remain valid after string replacements
-        sorted_findings.sort_by(|a, b| b.start_offset.cmp(&a.start_offset));
+        sorted_findings.sort_by_key(|a| std::cmp::Reverse(a.start_offset));
 
         for finding in sorted_findings {
             if finding.start_offset <= finding.end_offset && finding.end_offset <= result.len() {
                 // Ensure character boundaries are respected
-                if result.is_char_boundary(finding.start_offset) && result.is_char_boundary(finding.end_offset) {
-                    result.replace_range(finding.start_offset..finding.end_offset, &finding.replacement);
+                if result.is_char_boundary(finding.start_offset)
+                    && result.is_char_boundary(finding.end_offset)
+                {
+                    result.replace_range(
+                        finding.start_offset..finding.end_offset,
+                        &finding.replacement,
+                    );
                 }
             }
         }

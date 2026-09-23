@@ -1,10 +1,10 @@
 //! Turkish Keyword and Keyphrase Extraction using Turkish-adapted RAKE and Morphological Stemming.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use crate::morphology::{TurkishStopwords, TurkishStemmer};
-use crate::tokenization::TurkishTokenizer;
+use crate::morphology::{TurkishStemmer, TurkishStopwords};
 use crate::phonology::to_turkish_lower;
+use crate::tokenization::TurkishTokenizer;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct KeywordScore {
@@ -92,7 +92,8 @@ impl TurkishKeywordExtractor {
         let mut phrase_scores: HashMap<String, f32> = HashMap::new();
         for phrase in candidate_phrases {
             let phrase_text = phrase.join(" ");
-            let score: f32 = phrase.iter()
+            let score: f32 = phrase
+                .iter()
                 .map(|w| *word_scores.get(w).unwrap_or(&1.0))
                 .sum();
 
@@ -102,11 +103,16 @@ impl TurkishKeywordExtractor {
             }
         }
 
-        let mut results: Vec<KeywordScore> = phrase_scores.into_iter()
+        let mut results: Vec<KeywordScore> = phrase_scores
+            .into_iter()
             .map(|(keyword, score)| KeywordScore { keyword, score })
             .collect();
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(top_k);
 
         results

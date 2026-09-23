@@ -66,6 +66,18 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - **Full GECTurk 25-Category Coverage**: High-precision rule-based grammar and orthography checker covering clitic separations (`de/da`, `ki`, `mi`), consonant assimilation (*kitapda* $\rightarrow$ *kitapta*), vowel syncope (*akılı* $\rightarrow$ *aklı*), consonant softening (*kitapı* $\rightarrow$ *kitabı*), over-narrowing (*başlıyan* $\rightarrow$ *başlayan*), proper noun / numeric apostrophes (*Ahmetler'in* $\rightarrow$ *Ahmetlerin*, *1923'de* $\rightarrow$ *1923'te*), compound modal verbs (*ola bilir* $\rightarrow$ *olabilir*), indefinite determiners (*bir çok* $\rightarrow$ *birçok*), reduplications (*elele* $\rightarrow$ *el ele*), and tautologies.
   - **Hardware SIMD Acceleration**: Accelerated with **StringZilla** for zero-regex, full-text substring and edit-distance scanning reaching **>1,470 sentences/sec** (>16,000 tokens/sec) on a single CPU core.
   - **Linguistic Diagnostics**: Detailed Turkish and English explanations with character-level finding offsets and confidence scores.
+- **Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)**:
+  - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum), Credit Card (Luhn check), Turkish person names and surnames (with polysemy disambiguation), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens, and OTP codes.
+  - **Positive Private Date & URL Detection**: Accurately isolates private personal dates (birth dates, appointment schedules, billing due dates) without false positives on calendar holidays or campaign end dates. Recognizes private URLs containing sensitive authentication and session tokens.
+  - **Bi-Directional Restoration with Morphological Vowel Harmony**: Automatically tracks an in-memory or serializable mapping dictionary to restore masked entities losslessly, adapting case and possessive suffixes in downstream text according to Turkish 2-way and 4-way vowel harmony (e.g. `{{AD_1}}'a` $\rightarrow$ `Ahmet Yılmaz'a`, `{{AD_1}}'e` $\rightarrow$ `Mehmet Demir'e`).
+  - **Multiple Masking Modes**:
+    - `placeholder`: Standard structured tokens (`{{AD_1}}`, `{{TCKN_1}}`, `{{IBAN_1}}`) designed for clean downstream processing and 100% reversible restoration.
+    - `surrogate`: Statistically and morphologically valid Turkish synthetic replacements (e.g., valid surrogate TCKNs, realistic Turkish names, valid surrogate IBANs).
+    - `tag`: Standard semantic entity tags (`[AD]`, `[TCKN]`, `[IBAN]`).
+    - `anonymize`: Irreversible fixed-length masking (`***` or `[GİZLENDİ]`).
+  - **Smart Non-PII Filtering**: Preserves corporate/functional emails (`info@`, `destek@`, `satis@`) and public dates while filtering individual personal data.
+  - **Zero-Dependency Model2Vec Disambiguation**: Employs Akana's built-in 256-dim Turkish embeddings to contextually distinguish ambiguous names (*Deniz*, *Barış*, *Gül*, *Kaya*) from common nouns and verbs based on contextual semantic similarity.
+  - **High Performance**: **>3,500 docs/sec** (< 280 µs per document) on CPU.
 - **High-Performance Architecture**:
   - Pure Rust core with zero JVM dependency.
   - Python package via `pyo3` and `maturin` (compatible with `uv`).
@@ -90,6 +102,7 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 | **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
 | **Sentence Chunking** | N/A | **`1,120,000 words/sec`** | **Zero-Allocation Slicing** (<3 ms / doc) |
 | **Semantic Chunking (TurboQuant)** | ~80 words/sec (Neural) | **`62,500 words/sec`** | **~780x faster** (~40 ms for 200 sents) |
+| **Turkish PII Masking & Restoration** | N/A (Standard Regex / Spacy) | **`3,570 docs/sec`** | **Ultra-Fast KVKK Pipeline** (<0.28 ms / doc, 50+ entity types) |
 | **Hardware Acceleration** | Pure Python loops | **StringZilla AVX-512 / AVX2 / NEON** | **Native SIMD Instructions** |
 
 ### Turkish Text Chunking Performance Benchmark (`scripts/benchmark_chunking.py`)
@@ -130,6 +143,20 @@ Evaluated on standard Turkish Semantic Textual Similarity Benchmark (STSb) test 
 
 * ⚡ **880x Model Compression:** Compressed from **~2,200 MB** to **2.50 MB** embedded directly into the binary with zero runtime dependencies.
 * 🚀 **253x Speedup:** Delivers **20,013 sentences/sec** on CPU with high retention of semantic quality against the teacher model.
+
+### Turkish PII Detection & Masking Benchmark (Saturday Labs & Belgin Datasets)
+
+Evaluated across established Turkish PII and privacy benchmarks:
+
+| Benchmark / Dataset | Evaluated Dimension | Akana Performance / Accuracy | Key Strength |
+| :--- | :--- | :---: | :--- |
+| **Saturday Labs Benchmark** (`cagrigungor/turkish-pii-masking-benchmark`) | **Recall (200 diverse samples)** | **94.1%** | **100% recall across 34 core categories** (TCKN, VKN, IBAN, Credit Card, Passports, Plates, Phone, Email, Coordinates, MAC, IMEI, Passwords) |
+| **Belgin Dataset** (`negentropi/belgin-pii-dataset`) | **Private Date Recall** | **100.0%** (270/270) | Specific detection of birth dates, medical appointments, and billing due dates |
+| **Belgin Dataset** (`negentropi/belgin-pii-dataset`) | **Public Date Preservation** | **100.0%** (300/300) | Zero false positives on calendar holidays and campaign deadlines |
+| **Throughput & Latency** | **CPU Throughput (Single-Core)** | **`3,570 docs/sec`** | **0.28 ms** average latency per document with zero neural network overhead |
+
+* 🛡️ **KVKK Compliance**: Algorithmic validation for Turkish IDs (TCKN, VKN, IBAN, Driving License, Plate) prevents false positives while capturing authentic identifiers.
+* 🔄 **100% Reversible Restoration**: Restores anonymized text losslessly with Turkish morphological vowel harmony adjustment on inflected suffixes.
 
 ---
 
@@ -277,6 +304,32 @@ sdpm_chunks = sdpm_chunker("Uzun doküman...")
 # D. Dict / JSON serialization
 chunk_dict = chunks[0].to_dict()
 print(chunk_dict["text"], chunk_dict["start_index"], chunk_dict["end_index"])
+
+# 13. Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)
+raw_text = (
+    "Müşterimiz Ahmet Yılmaz, 10000000146 nolu TCKN ve TR33 0006 1005 1978 6457 8413 26 "
+    "nolu IBAN ile 12.05.1988 doğumludur. Şifresi: Limon004_."
+)
+
+# A. Reversible Structured Placeholder Masking
+masked = akana.pii_mask(raw_text, mode="placeholder")
+print("Masked:", masked["masked_text"])
+# -> "Müşterimiz {{AD_1}}, {{TCKN_1}} nolu TCKN ve {{IBAN_1}} nolu IBAN ile {{OZEL_TARIH_1}} doğumludur. Şifresi: {{SIFRE_1}}."
+print("Mapping:", masked["mapping"])
+
+# B. Lossless Restoration with Turkish Vowel Harmony
+restored = akana.pii_restore(masked["masked_text"], masked["mapping"])
+assert restored == raw_text
+
+# Downstream inflected text restoration (vowel harmony preserved automatically):
+inflected_text = "Ödeme {{AD_1}}'a yapılmış ve {{AD_1}}'ın dosyası onaylanmıştır."
+print(akana.pii_restore(inflected_text, masked["mapping"]))
+# -> "Ödeme Ahmet Yılmaz'a yapılmış ve Ahmet Yılmaz'ın dosyası onaylanmıştır."
+
+# C. Realistic Turkish Synthetic Surrogates Mode
+surrogate = akana.pii_mask(raw_text, mode="surrogate")
+print("Surrogate:", surrogate["masked_text"])
+# -> "Müşterimiz Can Demir, 52381940562 nolu TCKN ve TR92 0006 1000 ... doğumludur..."
 ```
 
 ---
@@ -286,6 +339,12 @@ print(chunk_dict["text"], chunk_dict["start_index"], chunk_dict["end_index"])
 The `akana` CLI supports direct text arguments or reading from file via `-f, --file`:
 
 ```bash
+# Turkish PII Masking & Restoration (KVKK-Aligned)
+akana pii-mask "Ahmet Yılmaz 10000000146 nolu TCKN ile başvurdu." --mode placeholder
+akana pii-mask "Ali Kaya Kadıköy şubesine geldi." --mode surrogate
+akana pii-mask -f confidential.txt --mode placeholder --json
+akana pii-restore "Ödeme {{AD_1}}'a yapıldı." --mapping mapping.json
+
 # AI style auditing
 akana ai-audit "Bu bağlamda kritik bir rol oynamaktadır."
 akana ai-audit -f article.txt
@@ -330,7 +389,7 @@ akana chunk --strategy sdpm --chunk-size 512 --json -f document.txt
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-akana-core = { version = "0.3", default-features = true }
+akana-core = { version = "0.5", default-features = true }
 ```
 
 ```rust
@@ -339,6 +398,7 @@ use akana_core::grammar::TurkishGrammarChecker;
 use akana_core::morphology::TurkishMorphology;
 use akana_core::syntactic_morphology::TurkishSyntacticMorphology;
 use akana_core::embeddings::TurkishEmbeddings;
+use akana_core::pii::{TurkishPiiEngine, PiiMode};
 use akana_core::phonology::to_turkish_lower;
 
 fn main() {
@@ -367,19 +427,34 @@ fn main() {
         println!("[{:?}] '{}' -> '{}'", f.category, f.original_text, f.replacement);
     }
 
-    // 3. Standard Morphology
+    // 4. Standard Morphology
     let morph = TurkishMorphology::new();
     let parses = morph.analyze("kitabım");
     for p in parses {
         println!("{}", p.formatted);
     }
 
-    // 4. Syntactic Expressive Morphology (Inflectional Groups)
+    // 5. Syntactic Expressive Morphology (Inflectional Groups)
     let syn_morph = TurkishSyntacticMorphology::new();
     let syn_parses = syn_morph.analyze("geldiğimizde");
     for p in syn_parses {
         println!("{}", p.formatted);
     }
+
+    // 6. Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)
+    let pii_engine = TurkishPiiEngine::new();
+    let pii_res = pii_engine.mask(
+        "Ahmet Yılmaz 10000000146 nolu TCKN ile TR33 0006 1005 1978 6457 8413 26 nolu hesaptan işlem yaptı.",
+        PiiMode::Placeholder,
+    );
+    println!("Masked: {}", pii_res.masked_text);
+
+    // Lossless restoration with automatic vowel harmony adjustment
+    let restored = pii_engine.restore_with_mapping(
+        &format!("İşlem {}'a ait hesaba başarıyla yansıtıldı.", "{{AD_1}}"),
+        &pii_res.mapping,
+    );
+    println!("Restored: {}", restored);
 }
 ```
 

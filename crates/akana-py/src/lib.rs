@@ -1,4 +1,7 @@
 //! PyO3 Python bindings for the Akana Turkish NLP toolkit.
+#![allow(clippy::useless_conversion)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::redundant_closure)]
 
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -137,9 +140,9 @@ impl PyMorphology {
     }
 
     fn load_dictionary_file(&mut self, path: &str) -> PyResult<()> {
-        self.inner.load_dictionary_file(path).map_err(|e| {
-            pyo3::exceptions::PyIOError::new_err(e.to_string())
-        })
+        self.inner
+            .load_dictionary_file(path)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
     }
 
     fn load_dictionary_str(&mut self, text: &str) {
@@ -243,7 +246,11 @@ impl PyDisambiguator {
         }
     }
 
-    fn disambiguate<'py>(&self, py: Python<'py>, tokens: Vec<String>) -> PyResult<Bound<'py, PyList>> {
+    fn disambiguate<'py>(
+        &self,
+        py: Python<'py>,
+        tokens: Vec<String>,
+    ) -> PyResult<Bound<'py, PyList>> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let parses = self.inner.disambiguate(&token_refs);
         let list = PyList::empty_bound(py);
@@ -294,7 +301,8 @@ fn analyze_document_json(text: &str) -> PyResult<String> {
 #[pyfunction]
 fn analyze_readability_json(text: &str) -> PyResult<String> {
     let report = akana_core::readability::analyze_readability(text);
-    serde_json::to_string(&report).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    serde_json::to_string(&report)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
 }
 
 #[pyfunction]
@@ -353,13 +361,17 @@ fn is_stopword(word: &str) -> bool {
 fn remove_stopwords(tokens: Vec<String>) -> Vec<String> {
     let sw = akana_core::morphology::TurkishStopwords::new();
     let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
-    sw.filter_tokens(&token_refs).into_iter().map(|s| s.to_string()).collect()
+    sw.filter_tokens(&token_refs)
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect()
 }
 
 #[pyfunction]
 fn extract_entities_json(text: &str) -> PyResult<String> {
     let entities = akana_core::ner::TurkishNER::extract_entities(text);
-    serde_json::to_string(&entities).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    serde_json::to_string(&entities)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
 }
 
 #[pyfunction]
@@ -367,7 +379,8 @@ fn extract_entities_json(text: &str) -> PyResult<String> {
 fn extract_keywords_json(text: &str, top_k: Option<usize>) -> PyResult<String> {
     let extractor = akana_core::analysis::TurkishKeywordExtractor::new();
     let keywords = extractor.extract_keywords(text, top_k.unwrap_or(10));
-    serde_json::to_string(&keywords).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    serde_json::to_string(&keywords)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
 }
 
 #[pyfunction]
@@ -381,7 +394,8 @@ fn summarize(text: &str, max_sentences: Option<usize>) -> Vec<String> {
 fn audit_ai_style_json(text: &str) -> PyResult<String> {
     let auditor = akana_core::style::TurkishStyleAuditor::new();
     let report = auditor.audit(text);
-    serde_json::to_string(&report).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    serde_json::to_string(&report)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
 }
 
 #[pyfunction]
@@ -407,7 +421,8 @@ impl PyGrammarChecker {
 
     fn check_json(&self, text: &str) -> PyResult<String> {
         let res = self.inner.check(text);
-        serde_json::to_string(&res).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+        serde_json::to_string(&res)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
     }
 
     fn correct(&self, text: &str) -> String {
@@ -851,6 +866,312 @@ fn chunk_sdpm(
     chunker.chunk(text)
 }
 
+#[pyfunction]
+fn validate_tckn(s: &str) -> bool {
+    akana_core::pii::validate_tckn(s)
+}
+
+#[pyfunction]
+fn validate_vkn(s: &str) -> bool {
+    akana_core::pii::validate_vkn(s)
+}
+
+#[pyfunction]
+fn validate_iban(s: &str) -> bool {
+    akana_core::pii::validate_iban(s)
+}
+
+#[pyfunction]
+fn validate_credit_card(s: &str) -> Option<String> {
+    akana_core::pii::validate_credit_card(s).map(|b| format!("{:?}", b))
+}
+
+#[pyfunction]
+fn validate_plate(s: &str) -> bool {
+    akana_core::pii::validate_plate(s)
+}
+
+#[pyfunction]
+fn validate_vin(s: &str) -> bool {
+    akana_core::pii::validate_vin(s)
+}
+
+#[pyfunction]
+fn validate_imei(s: &str) -> bool {
+    akana_core::pii::validate_imei(s)
+}
+
+#[pyfunction]
+fn harmonize_suffix(stem: &str, case: &str) -> PyResult<String> {
+    let turkish_case = match case.to_lowercase().as_str() {
+        "dative" | "dat" | "yonelme" => akana_core::pii::TurkishCase::Dative,
+        "genitive" | "gen" | "ilgi" | "tamlayan" => akana_core::pii::TurkishCase::Genitive,
+        "accusative" | "acc" | "belirtme" => akana_core::pii::TurkishCase::Accusative,
+        "locative" | "loc" | "bulunma" => akana_core::pii::TurkishCase::Locative,
+        "ablative" | "abl" | "ayrilma" => akana_core::pii::TurkishCase::Ablative,
+        "instrumental" | "ins" | "vasita" => akana_core::pii::TurkishCase::Instrumental,
+        "plural" | "plu" | "cogul" => akana_core::pii::TurkishCase::Plural,
+        _ => {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "Unknown case: {}",
+                case
+            )))
+        }
+    };
+    Ok(akana_core::pii::harmonize_suffix(stem, turkish_case))
+}
+
+#[pyclass(name = "PiiVault")]
+pub struct PyPiiVault {
+    inner: akana_core::pii::PiiVault,
+}
+
+#[pymethods]
+impl PyPiiVault {
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: akana_core::pii::PiiVault::new(),
+        }
+    }
+
+    fn restore(&self, llm_response: &str) -> String {
+        self.inner.restore(llm_response)
+    }
+
+    fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(&self.inner)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    }
+
+    #[staticmethod]
+    fn from_json(json_str: &str) -> PyResult<Self> {
+        let vault: akana_core::pii::PiiVault = serde_json::from_str(json_str)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+        Ok(Self { inner: vault })
+    }
+
+    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new_bound(py);
+        for (k, v) in &self.inner.placeholder_to_entry {
+            let entry_dict = PyDict::new_bound(py);
+            entry_dict.set_item("placeholder", &v.placeholder)?;
+            entry_dict.set_item("original_text", &v.original_text)?;
+            entry_dict.set_item("pii_label", &v.pii_label)?;
+            entry_dict.set_item("original_stem", &v.original_stem)?;
+            entry_dict.set_item("original_suffix", &v.original_suffix)?;
+            dict.set_item(k, entry_dict)?;
+        }
+        Ok(dict)
+    }
+
+    fn get_mapping<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new_bound(py);
+        for (k, v) in &self.inner.placeholder_to_entry {
+            dict.set_item(k, &v.original_text)?;
+        }
+        Ok(dict)
+    }
+
+    #[staticmethod]
+    fn restore_with_mapping(llm_response: &str, mapping: &Bound<'_, PyDict>) -> PyResult<String> {
+        let mut map = std::collections::HashMap::new();
+        for (k, v) in mapping.iter() {
+            let key: String = k.extract()?;
+            if let Ok(val_str) = v.extract::<String>() {
+                map.insert(key, val_str);
+            } else if let Ok(sub_dict) = v.downcast::<PyDict>() {
+                if let Some(orig) = sub_dict.get_item("original_text")? {
+                    let val_str: String = orig.extract()?;
+                    map.insert(key, val_str);
+                }
+            }
+        }
+        Ok(akana_core::pii::PiiVault::restore_with_mapping(
+            llm_response,
+            &map,
+        ))
+    }
+
+    fn __len__(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+#[pyclass(name = "TurkishPiiEngine")]
+pub struct PyTurkishPiiEngine {
+    inner: akana_core::pii::TurkishPiiEngine,
+}
+
+#[pymethods]
+impl PyTurkishPiiEngine {
+    #[new]
+    #[pyo3(signature = (use_embeddings=false, preserve_corporate_emails=true))]
+    fn new(use_embeddings: bool, preserve_corporate_emails: bool) -> Self {
+        let mut engine = if use_embeddings {
+            let emb = std::sync::Arc::new(akana_core::embeddings::TurkishEmbeddings::new());
+            akana_core::pii::TurkishPiiEngine::with_embeddings(emb)
+        } else {
+            akana_core::pii::TurkishPiiEngine::new()
+        };
+        engine.set_preserve_corporate_emails(preserve_corporate_emails);
+        Self { inner: engine }
+    }
+
+    fn detect<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyList>> {
+        let entities = self.inner.detect(text);
+        let list = PyList::empty_bound(py);
+        for e in entities {
+            let dict = PyDict::new_bound(py);
+            dict.set_item("text", e.text)?;
+            dict.set_item("label", e.label)?;
+            dict.set_item("pii_type", e.pii_type.as_str())?;
+            let char_start = text
+                .get(..e.start)
+                .map(|s| s.chars().count())
+                .unwrap_or(e.start);
+            let char_end = text
+                .get(..e.end)
+                .map(|s| s.chars().count())
+                .unwrap_or(e.end);
+            dict.set_item("start", char_start)?;
+            dict.set_item("end", char_end)?;
+            dict.set_item("confidence", e.confidence)?;
+            dict.set_item("stem", e.stem)?;
+            dict.set_item("suffix", e.suffix)?;
+            list.append(dict)?;
+        }
+        Ok(list)
+    }
+
+    #[pyo3(signature = (text, mode="placeholder"))]
+    fn mask<'py>(&self, py: Python<'py>, text: &str, mode: &str) -> PyResult<Bound<'py, PyDict>> {
+        let pii_mode = match mode.to_lowercase().as_str() {
+            "placeholder" => akana_core::pii::PiiMode::Placeholder,
+            "tag" => akana_core::pii::PiiMode::Tag,
+            "anonymize" => akana_core::pii::PiiMode::Anonymize,
+            "surrogate" | "syntheticsurrogate" => akana_core::pii::PiiMode::SyntheticSurrogate,
+            _ => {
+                return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                    "Invalid mode: {}",
+                    mode
+                )))
+            }
+        };
+
+        let result = self.inner.mask(text, pii_mode);
+        let dict = PyDict::new_bound(py);
+        dict.set_item("original_text", &result.original_text)?;
+        dict.set_item("masked_text", &result.masked_text)?;
+
+        // Plain string mapping: { placeholder_or_surrogate: original_text }
+        let mapping_dict = PyDict::new_bound(py);
+        for (k, v) in &result.mapping {
+            mapping_dict.set_item(k, v)?;
+        }
+        dict.set_item("mapping", mapping_dict)?;
+
+        // Detailed mapping: { placeholder: { original_text, pii_label, stem, suffix } }
+        let detailed_dict = PyDict::new_bound(py);
+        for (k, v) in &result.vault.placeholder_to_entry {
+            let entry_dict = PyDict::new_bound(py);
+            entry_dict.set_item("placeholder", &v.placeholder)?;
+            entry_dict.set_item("original_text", &v.original_text)?;
+            entry_dict.set_item("pii_label", &v.pii_label)?;
+            entry_dict.set_item("original_stem", &v.original_stem)?;
+            entry_dict.set_item("original_suffix", &v.original_suffix)?;
+            detailed_dict.set_item(k, entry_dict)?;
+        }
+        dict.set_item("detailed_mapping", detailed_dict)?;
+
+        let orig_text = &result.original_text;
+        let ent_list = PyList::empty_bound(py);
+        for e in result.entities {
+            let ent_dict = PyDict::new_bound(py);
+            ent_dict.set_item("text", e.text)?;
+            ent_dict.set_item("label", e.label)?;
+            let char_start = orig_text
+                .get(..e.start)
+                .map(|s| s.chars().count())
+                .unwrap_or(e.start);
+            let char_end = orig_text
+                .get(..e.end)
+                .map(|s| s.chars().count())
+                .unwrap_or(e.end);
+            ent_dict.set_item("start", char_start)?;
+            ent_dict.set_item("end", char_end)?;
+            ent_dict.set_item("confidence", e.confidence)?;
+            ent_list.append(ent_dict)?;
+        }
+        dict.set_item("entities", ent_list)?;
+        dict.set_item(
+            "vault",
+            Py::new(
+                py,
+                PyPiiVault {
+                    inner: result.vault,
+                },
+            )?,
+        )?;
+
+        Ok(dict)
+    }
+
+    /// Flexible restore function: restores LLM response using either a PiiVault instance,
+    /// a plain dictionary mapping (e.g. `{"{{AD_1}}": "Ahmet"}`), a detailed mapping, or a JSON string.
+    #[pyo3(signature = (llm_response, mapping_or_vault))]
+    fn restore(
+        &self,
+        _py: Python<'_>,
+        llm_response: &str,
+        mapping_or_vault: &Bound<'_, PyAny>,
+    ) -> PyResult<String> {
+        if let Ok(vault) = mapping_or_vault.extract::<PyRef<PyPiiVault>>() {
+            Ok(self.inner.restore_response(llm_response, &vault.inner))
+        } else if let Ok(dict) = mapping_or_vault.downcast::<PyDict>() {
+            let mut map = std::collections::HashMap::new();
+            for (k, v) in dict.iter() {
+                let key: String = k.extract()?;
+                if let Ok(val_str) = v.extract::<String>() {
+                    map.insert(key, val_str);
+                } else if let Ok(sub_dict) = v.downcast::<PyDict>() {
+                    if let Some(orig) = sub_dict.get_item("original_text")? {
+                        let val_str: String = orig.extract()?;
+                        map.insert(key, val_str);
+                    }
+                }
+            }
+            Ok(akana_core::pii::PiiVault::restore_with_mapping(
+                llm_response,
+                &map,
+            ))
+        } else if let Ok(json_str) = mapping_or_vault.extract::<&str>() {
+            if let Ok(vault) = serde_json::from_str::<akana_core::pii::PiiVault>(json_str) {
+                Ok(self.inner.restore_response(llm_response, &vault))
+            } else if let Ok(map) =
+                serde_json::from_str::<std::collections::HashMap<String, String>>(json_str)
+            {
+                Ok(akana_core::pii::PiiVault::restore_with_mapping(
+                    llm_response,
+                    &map,
+                ))
+            } else {
+                Err(pyo3::exceptions::PyValueError::new_err(
+                    "Invalid JSON format for mapping or vault",
+                ))
+            }
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err(
+                "Expected PiiVault, dict mapping, or JSON string for restoration",
+            ))
+        }
+    }
+
+    fn restore_response(&self, llm_response: &str, vault: &PyPiiVault) -> String {
+        self.inner.restore_response(llm_response, &vault.inner)
+    }
+}
+
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -889,6 +1210,14 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(chunk_semantic, m)?)?;
     m.add_function(wrap_pyfunction!(chunk_sentences, m)?)?;
     m.add_function(wrap_pyfunction!(chunk_sdpm, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_tckn, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_vkn, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_iban, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_credit_card, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_plate, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_vin, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_imei, m)?)?;
+    m.add_function(wrap_pyfunction!(harmonize_suffix, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PySyntacticMorphology>()?;
@@ -901,5 +1230,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySemanticChunker>()?;
     m.add_class::<PySentenceChunker>()?;
     m.add_class::<PySDPMChunker>()?;
+    m.add_class::<PyPiiVault>()?;
+    m.add_class::<PyTurkishPiiEngine>()?;
     Ok(())
 }

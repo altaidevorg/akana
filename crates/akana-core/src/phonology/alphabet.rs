@@ -2,15 +2,13 @@
 
 /// Turkish specific letters
 pub const TURKISH_LOWER_ALPHABET: [char; 29] = [
-    'a', 'b', 'c', 'ç', 'd', 'e', 'f', 'g', 'ğ', 'h',
-    'ı', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'ö', 'p',
-    'r', 's', 'ş', 't', 'u', 'ü', 'v', 'y', 'z',
+    'a', 'b', 'c', 'ç', 'd', 'e', 'f', 'g', 'ğ', 'h', 'ı', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'ö',
+    'p', 'r', 's', 'ş', 't', 'u', 'ü', 'v', 'y', 'z',
 ];
 
 pub const TURKISH_UPPER_ALPHABET: [char; 29] = [
-    'A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'Ğ', 'H',
-    'I', 'İ', 'J', 'K', 'L', 'M', 'N', 'O', 'Ö', 'P',
-    'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z',
+    'A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'Ğ', 'H', 'I', 'İ', 'J', 'K', 'L', 'M', 'N', 'O', 'Ö',
+    'P', 'R', 'S', 'Ş', 'T', 'U', 'Ü', 'V', 'Y', 'Z',
 ];
 
 /// Turkish vowels: a, e, ı, i, o, ö, u, ü
@@ -45,14 +43,38 @@ pub const MUTABLE_CONSONANTS: [char; 4] = ['p', 'ç', 't', 'k'];
 
 #[inline]
 pub fn is_turkish_vowel(c: char) -> bool {
-    matches!(c, 'a' | 'e' | 'ı' | 'i' | 'o' | 'ö' | 'u' | 'ü' |
-                'A' | 'E' | 'I' | 'İ' | 'O' | 'Ö' | 'U' | 'Ü' |
-                'â' | 'î' | 'û' | 'Â' | 'Î' | 'Û')
+    matches!(
+        c,
+        'a' | 'e'
+            | 'ı'
+            | 'i'
+            | 'o'
+            | 'ö'
+            | 'u'
+            | 'ü'
+            | 'A'
+            | 'E'
+            | 'I'
+            | 'İ'
+            | 'O'
+            | 'Ö'
+            | 'U'
+            | 'Ü'
+            | 'â'
+            | 'î'
+            | 'û'
+            | 'Â'
+            | 'Î'
+            | 'Û'
+    )
 }
 
 #[inline]
 pub fn is_back_vowel(c: char) -> bool {
-    matches!(c, 'a' | 'ı' | 'o' | 'u' | 'A' | 'I' | 'O' | 'U' | 'â' | 'û' | 'Â' | 'Û')
+    matches!(
+        c,
+        'a' | 'ı' | 'o' | 'u' | 'A' | 'I' | 'O' | 'U' | 'â' | 'û' | 'Â' | 'Û'
+    )
 }
 
 #[inline]
@@ -67,19 +89,64 @@ pub fn is_rounded_vowel(c: char) -> bool {
 
 #[inline]
 pub fn is_unrounded_vowel(c: char) -> bool {
-    matches!(c, 'a' | 'e' | 'ı' | 'i' | 'A' | 'E' | 'I' | 'İ' | 'â' | 'î' | 'Â' | 'Î')
+    matches!(
+        c,
+        'a' | 'e' | 'ı' | 'i' | 'A' | 'E' | 'I' | 'İ' | 'â' | 'î' | 'Â' | 'Î'
+    )
 }
 
 #[inline]
 pub fn is_hard_consonant(c: char) -> bool {
-    matches!(c, 'f' | 's' | 't' | 'k' | 'ç' | 'ş' | 'h' | 'p' |
-                'F' | 'S' | 'T' | 'K' | 'Ç' | 'Ş' | 'H' | 'P')
+    matches!(
+        c,
+        'f' | 's'
+            | 't'
+            | 'k'
+            | 'ç'
+            | 'ş'
+            | 'h'
+            | 'p'
+            | 'F'
+            | 'S'
+            | 'T'
+            | 'K'
+            | 'Ç'
+            | 'Ş'
+            | 'H'
+            | 'P'
+    )
 }
 
 #[inline]
 pub fn is_soft_consonant(c: char) -> bool {
-    matches!(c, 'b' | 'c' | 'd' | 'g' | 'ğ' | 'j' | 'l' | 'm' | 'n' | 'r' | 'v' | 'y' | 'z' |
-                'B' | 'C' | 'D' | 'G' | 'Ğ' | 'J' | 'L' | 'M' | 'N' | 'R' | 'V' | 'Y' | 'Z')
+    matches!(
+        c,
+        'b' | 'c'
+            | 'd'
+            | 'g'
+            | 'ğ'
+            | 'j'
+            | 'l'
+            | 'm'
+            | 'n'
+            | 'r'
+            | 'v'
+            | 'y'
+            | 'z'
+            | 'B'
+            | 'C'
+            | 'D'
+            | 'G'
+            | 'Ğ'
+            | 'J'
+            | 'L'
+            | 'M'
+            | 'N'
+            | 'R'
+            | 'V'
+            | 'Y'
+            | 'Z'
+    )
 }
 
 /// Converts a single character to lower case following Turkish casing rules.

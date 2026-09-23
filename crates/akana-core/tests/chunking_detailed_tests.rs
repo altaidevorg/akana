@@ -1,6 +1,4 @@
-use akana_core::chunking::{
-    SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode,
-};
+use akana_core::chunking::{SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode};
 
 fn get_char_slice(text: &str, start: usize, end: usize) -> String {
     text.chars().skip(start).take(end - start).collect()
@@ -36,13 +34,17 @@ fn test_edge_cases_single_word_and_special_characters() {
     let u_chunks = chunker.chunk(unicode_text);
     assert!(!u_chunks.is_empty());
     for c in &u_chunks {
-        assert_eq!(get_char_slice(unicode_text, c.start_index, c.end_index), c.text);
+        assert_eq!(
+            get_char_slice(unicode_text, c.start_index, c.end_index),
+            c.text
+        );
     }
 }
 
 #[test]
 fn test_abbreviations_and_decimals_boundary_integrity() {
-    let text = "Prof. Dr. Ahmet Yılmaz ve Doç. Dr. Ayşe Kaya saat 14.30'da 3. katta toplantı yaptı. \
+    let text =
+        "Prof. Dr. Ahmet Yılmaz ve Doç. Dr. Ayşe Kaya saat 14.30'da 3. katta toplantı yaptı. \
                 Toplantıda T.C. kanunları ve AB standartları görüşüldü. \
                 Sonuç bildirgesi www.tubitak.gov.tr adresinde yayımlandı.";
 
@@ -81,7 +83,11 @@ fn test_large_multi_topic_document_segmentation() {
     let chunks = chunker.chunk(text);
 
     // Expect at least 3 distinct topic chunks
-    assert!(chunks.len() >= 3, "Expected at least 3 topic chunks, got {}", chunks.len());
+    assert!(
+        chunks.len() >= 3,
+        "Expected at least 3 topic chunks, got {}",
+        chunks.len()
+    );
 
     // Verify all character offsets and token counts
     for c in &chunks {
@@ -93,8 +99,13 @@ fn test_large_multi_topic_document_segmentation() {
     // Verify topic separation
     assert!(chunks[0].text.contains("Kuantum"));
     assert!(chunks.iter().any(|c| c.text.contains("Osmanlı")));
-    assert!(chunks.iter().any(|c| c.text.contains("Gastronomi") || c.text.contains("kebap")));
-    assert!(chunks.last().unwrap().text.contains("finans") || chunks.last().unwrap().text.contains("para"));
+    assert!(chunks
+        .iter()
+        .any(|c| c.text.contains("Gastronomi") || c.text.contains("kebap")));
+    assert!(
+        chunks.last().unwrap().text.contains("finans")
+            || chunks.last().unwrap().text.contains("para")
+    );
 }
 
 #[test]
@@ -135,9 +146,19 @@ fn test_sentence_chunker_exact_overlaps() {
 
     assert!(chunks.len() >= 2);
     for i in 0..chunks.len() {
-        assert_eq!(get_char_slice(text, chunks[i].start_index, chunks[i].end_index), chunks[i].text);
+        assert_eq!(
+            get_char_slice(text, chunks[i].start_index, chunks[i].end_index),
+            chunks[i].text
+        );
         if i > 0 {
-            assert!(chunks[i].start_index < chunks[i - 1].end_index, "chunk[{}].start ({}) should be < chunk[{}].end ({})", i, chunks[i].start_index, i-1, chunks[i - 1].end_index);
+            assert!(
+                chunks[i].start_index < chunks[i - 1].end_index,
+                "chunk[{}].start ({}) should be < chunk[{}].end ({})",
+                i,
+                chunks[i].start_index,
+                i - 1,
+                chunks[i - 1].end_index
+            );
         }
     }
 }

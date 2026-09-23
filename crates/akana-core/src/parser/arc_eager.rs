@@ -39,7 +39,9 @@ impl TurkishDependencyParser {
         // 1. Locate the primary root of the sentence (typically the sentence-final verb or copular predicate)
         let mut root_idx = n - 1;
         for (i, p) in disambiguated.iter().enumerate().rev() {
-            if p.primary_pos == PrimaryPos::Verb || p.morpheme_tags.iter().any(|t| t.starts_with("Cop")) {
+            if p.primary_pos == PrimaryPos::Verb
+                || p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
+            {
                 root_idx = i;
                 break;
             }
@@ -53,7 +55,13 @@ impl TurkishDependencyParser {
             let lemma = parse.lemma.clone();
 
             let upos = match parse.primary_pos {
-                PrimaryPos::Noun => if parse.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun { "PROPN" } else { "NOUN" },
+                PrimaryPos::Noun => {
+                    if parse.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun {
+                        "PROPN"
+                    } else {
+                        "NOUN"
+                    }
+                }
                 PrimaryPos::Verb => "VERB",
                 PrimaryPos::Adj => "ADJ",
                 PrimaryPos::Adv => "ADV",
@@ -64,7 +72,8 @@ impl TurkishDependencyParser {
                 PrimaryPos::Interj => "INTJ",
                 PrimaryPos::Punc => "PUNCT",
                 _ => "X",
-            }.to_string();
+            }
+            .to_string();
 
             let xpos = parse.primary_pos.as_str().to_string();
             let feats = parse.morpheme_tags.join("|");
@@ -98,7 +107,8 @@ impl TurkishDependencyParser {
                     head = root_idx + 1;
                     deprel = "cc".to_string();
                 }
-            } else if parse.primary_pos == PrimaryPos::Noun || parse.primary_pos == PrimaryPos::Pron {
+            } else if parse.primary_pos == PrimaryPos::Noun || parse.primary_pos == PrimaryPos::Pron
+            {
                 // Check case features
                 if parse.morpheme_tags.contains(&"Acc".to_string()) {
                     head = root_idx + 1;
@@ -106,7 +116,8 @@ impl TurkishDependencyParser {
                 } else if parse.morpheme_tags.contains(&"Dat".to_string())
                     || parse.morpheme_tags.contains(&"Loc".to_string())
                     || parse.morpheme_tags.contains(&"Abl".to_string())
-                    || parse.morpheme_tags.contains(&"Ins".to_string()) {
+                    || parse.morpheme_tags.contains(&"Ins".to_string())
+                {
                     head = root_idx + 1;
                     deprel = "obl".to_string();
                 } else if parse.morpheme_tags.contains(&"Gen".to_string()) {

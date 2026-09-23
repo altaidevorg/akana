@@ -7,10 +7,10 @@
 use ahash::AHashMap;
 
 /// Special token IDs.
-pub const BOS_ID: usize = 0;  // <s>
-pub const PAD_ID: usize = 1;  // <pad>
-pub const EOS_ID: usize = 2;  // </s>
-pub const UNK_ID: usize = 3;  // <unk>
+pub const BOS_ID: usize = 0; // <s>
+pub const PAD_ID: usize = 1; // <pad>
+pub const EOS_ID: usize = 2; // </s>
+pub const UNK_ID: usize = 3; // <unk>
 
 /// The Unicode replacement character used by SentencePiece Metaspace (▁ = U+2581).
 const METASPACE: char = '\u{2581}';
@@ -45,10 +45,12 @@ impl UnigramTokenizer {
         let root: serde_json::Value = serde_json::from_str(json_str)
             .map_err(|e| TokenizerError::InvalidJson(Box::leak(e.to_string().into_boxed_str())))?;
 
-        let model = root.get("model")
+        let model = root
+            .get("model")
             .ok_or(TokenizerError::InvalidJson("missing 'model' key"))?;
 
-        let model_type = model.get("type")
+        let model_type = model
+            .get("type")
             .and_then(|v| v.as_str())
             .ok_or(TokenizerError::InvalidJson("missing model type"))?;
 
@@ -56,11 +58,13 @@ impl UnigramTokenizer {
             return Err(TokenizerError::InvalidJson("expected Unigram model type"));
         }
 
-        let unk_id = model.get("unk_id")
+        let unk_id = model
+            .get("unk_id")
             .and_then(|v| v.as_u64())
             .unwrap_or(UNK_ID as u64) as usize;
 
-        let vocab_array = model.get("vocab")
+        let vocab_array = model
+            .get("vocab")
             .and_then(|v| v.as_array())
             .ok_or(TokenizerError::InvalidJson("missing 'vocab' array"))?;
 
@@ -68,24 +72,33 @@ impl UnigramTokenizer {
         let mut piece_to_id = AHashMap::with_capacity(vocab_array.len());
 
         for (idx, entry) in vocab_array.iter().enumerate() {
-            let arr = entry.as_array()
+            let arr = entry
+                .as_array()
                 .ok_or(TokenizerError::InvalidJson("vocab entry is not an array"))?;
 
             if arr.len() < 2 {
-                return Err(TokenizerError::InvalidJson("vocab entry has fewer than 2 elements"));
+                return Err(TokenizerError::InvalidJson(
+                    "vocab entry has fewer than 2 elements",
+                ));
             }
 
-            let piece = arr[0].as_str()
+            let piece = arr[0]
+                .as_str()
                 .ok_or(TokenizerError::InvalidJson("vocab piece is not a string"))?
                 .to_string();
-            let score = arr[1].as_f64()
+            let score = arr[1]
+                .as_f64()
                 .ok_or(TokenizerError::InvalidJson("vocab score is not a number"))?;
 
             piece_to_id.insert(piece.clone(), idx);
             vocab.push(VocabEntry { piece, score });
         }
 
-        Ok(Self { vocab, piece_to_id, unk_id })
+        Ok(Self {
+            vocab,
+            piece_to_id,
+            unk_id,
+        })
     }
 
     /// Tokenize a text string into token IDs without special tokens (standard for Model2Vec static embeddings).
@@ -175,9 +188,7 @@ impl UnigramTokenizer {
                 pos -= 1;
             } else {
                 let piece: String = chars[pos - len..pos].iter().collect();
-                let id = self.piece_to_id.get(&piece)
-                    .copied()
-                    .unwrap_or(self.unk_id);
+                let id = self.piece_to_id.get(&piece).copied().unwrap_or(self.unk_id);
                 result.push(id);
                 pos -= len;
             }
@@ -235,17 +246,19 @@ impl std::error::Error for TokenizerError {}
 mod tests {
     use super::*;
 
-    static TOKENIZER_DATA: &[u8] = include_bytes!("../../../../data/embeddings/tokenizer.json");
+    static TOKENIZER_DATA: &[u8] = include_bytes!("../../data/embeddings/tokenizer.json");
 
     #[test]
     fn test_load_tokenizer() {
-        let tok = UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
+        let tok =
+            UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
         assert_eq!(tok.vocab_size(), 39655);
     }
 
     #[test]
     fn test_special_tokens() {
-        let tok = UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
+        let tok =
+            UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
         assert_eq!(tok.id_to_piece(BOS_ID), Some("<s>"));
         assert_eq!(tok.id_to_piece(PAD_ID), Some("<pad>"));
         assert_eq!(tok.id_to_piece(EOS_ID), Some("</s>"));
@@ -254,7 +267,8 @@ mod tests {
 
     #[test]
     fn test_known_tokens() {
-        let tok = UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
+        let tok =
+            UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
 
         // Known from our verification: ▁merhaba -> id 38114
         assert_eq!(tok.piece_to_id.get("▁merhaba"), Some(&38114));
@@ -264,7 +278,8 @@ mod tests {
 
     #[test]
     fn test_encode_wraps_with_bos_eos() {
-        let tok = UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
+        let tok =
+            UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
         let ids_special = tok.encode_with_special("merhaba dünya");
 
         // Should start with BOS and end with EOS
@@ -277,13 +292,16 @@ mod tests {
 
     #[test]
     fn test_encode_contains_known_tokens() {
-        let tok = UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
+        let tok =
+            UnigramTokenizer::from_json_bytes(TOKENIZER_DATA).expect("failed to load tokenizer");
         let ids = tok.encode("merhaba dünya");
 
         // ▁merhaba (38114) should be in the output (if it's a single piece)
         // or the constituent pieces should be present
-        assert!(ids.contains(&38114) || ids.len() > 4,
-            "expected ▁merhaba token or sub-pieces, got {ids:?}");
+        assert!(
+            ids.contains(&38114) || ids.len() > 4,
+            "expected ▁merhaba token or sub-pieces, got {ids:?}"
+        );
     }
 
     #[test]

@@ -21,7 +21,10 @@ fn test_sentence_segmenter() {
     let sentences = SentenceSegmenter::segment(text);
 
     assert_eq!(sentences.len(), 4);
-    assert_eq!(sentences[0].text, "Ak Ana, Türk mitolojisinde deniz tanrıçasıdır.");
+    assert_eq!(
+        sentences[0].text,
+        "Ak Ana, Türk mitolojisinde deniz tanrıçasıdır."
+    );
     assert_eq!(sentences[1].text, "Prof. Dr. Ayşe Hanım geldi!");
     assert_eq!(sentences[2].text, "Sen de gelecek misin?");
     assert_eq!(sentences[3].text, "Evet...");

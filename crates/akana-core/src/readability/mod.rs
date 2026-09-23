@@ -3,13 +3,13 @@
 //! Provides the modern 2025 Kalyoncu multi-regression readability equations (up to R²=0.99)
 //! along with classical Turkish metrics (Ateşman, Çetinkaya-Uzun, Bezirci-Yılmaz).
 
-pub mod metrics;
 pub mod kalyoncu;
 pub mod legacy;
+pub mod metrics;
 
-pub use metrics::*;
 pub use kalyoncu::KalyoncuAnalyzer;
 pub use legacy::LegacyReadability;
+pub use metrics::*;
 
 /// High-level convenience function to analyze Turkish text readability.
 pub fn analyze_readability(text: &str) -> ReadabilityReport {

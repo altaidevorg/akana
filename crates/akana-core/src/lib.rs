@@ -1,32 +1,34 @@
 //! Akana: Modern and blazingly fast Turkish NLP toolkit in Rust.
 
-pub mod phonology;
-pub mod tokenization;
-pub mod normalization;
-pub mod morphology;
-pub mod parser;
-pub mod readability;
-pub mod ner;
 pub mod analysis;
+pub mod chunking;
+pub mod embeddings;
+pub mod grammar;
+pub mod morphology;
+pub mod ner;
+pub mod normalization;
+pub mod parser;
+pub mod phonology;
+pub mod pii;
+pub mod readability;
 pub mod style;
 pub mod syntactic_morphology;
-pub mod grammar;
-pub mod embeddings;
-pub mod chunking;
+pub mod tokenization;
 
-pub use phonology::*;
-pub use tokenization::*;
-pub use normalization::*;
-pub use morphology::*;
-pub use parser::*;
-pub use readability::*;
-pub use ner::*;
 pub use analysis::*;
+pub use chunking::{Chunk, SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode};
+pub use embeddings::{cosine_similarity, TurkishEmbeddings};
+pub use grammar::*;
+pub use morphology::*;
+pub use ner::*;
+pub use normalization::*;
+pub use parser::*;
+pub use phonology::*;
+pub use pii::*;
+pub use readability::*;
 pub use style::*;
 pub use syntactic_morphology::*;
-pub use grammar::*;
-pub use embeddings::{TurkishEmbeddings, cosine_similarity};
-pub use chunking::{Chunk, SemanticChunker, SentenceChunker, SDPMChunker, ThresholdMode};
+pub use tokenization::*;
 
 /// High-level document model for Turkish NLP analysis.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

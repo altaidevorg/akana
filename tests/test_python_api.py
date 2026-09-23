@@ -2,8 +2,8 @@
 Comprehensive Python unit test suite for Akana.
 """
 
-import pytest
 import akana
+
 
 def test_casing_and_harmony():
     # Turkish specific casing
@@ -21,18 +21,29 @@ def test_casing_and_harmony():
     assert akana.check_minor_vowel_harmony("çocuk") is True
     assert akana.check_minor_vowel_harmony("odun") is True
 
+
 def test_normalization():
     # Asciification
     assert akana.asciify("Türkçe, Çağdaş, Şiir, Ağaç") == "Turkce, Cagdas, Siir, Agac"
 
     # Deasciification
-    assert akana.deasciify("turkce nlp cok hizli calisiyor") == "türkçe nlp çok hızlı çalışıyor"
-    assert akana.deasciify("ogrenci kutuphanede kitap okuyor") == "öğrenci kütüphanede kitap okuyor"
+    assert (
+        akana.deasciify("turkce nlp cok hizli calisiyor")
+        == "türkçe nlp çok hızlı çalışıyor"
+    )
+    assert (
+        akana.deasciify("ogrenci kutuphanede kitap okuyor")
+        == "öğrenci kütüphanede kitap okuyor"
+    )
 
     # Informal text normalization
-    assert akana.normalize_informal("yapcam dedim ve geliyom") == "yapacağım dedim ve geliyorum"
+    assert (
+        akana.normalize_informal("yapcam dedim ve geliyom")
+        == "yapacağım dedim ve geliyorum"
+    )
     assert akana.normalize_informal("nooldu ya") == "ne oldu ya"
     assert akana.normalize_informal("çooookk güzel") == "çok güzel"
+
 
 def test_morphology_analysis():
     morph = akana.Morphology()
@@ -70,6 +81,7 @@ def test_morphology_analysis():
     assert len(parses_evcik) > 0
     assert any("Dim" in p["morphemes"] for p in parses_evcik)
 
+
 def test_compound_decomposer():
     analyses = akana.decompose_compound("denizaltı")
     assert len(analyses) > 0
@@ -81,6 +93,7 @@ def test_compound_decomposer():
     assert analyses2[0]["part1"] == "ak"
     assert analyses2[0]["part2"] == "baba"
 
+
 def test_dynamic_dictionary_loading():
     morph = akana.Morphology()
     morph.load_dictionary_str("blokzincir blokzincir Noun\nkuvars kuvars Noun")
@@ -88,6 +101,7 @@ def test_dynamic_dictionary_loading():
     parses = morph.analyze("blokzincir")
     assert len(parses) > 0
     assert parses[0]["root"] == "blokzincir"
+
 
 def test_morphology_generation():
     morph = akana.Morphology()
@@ -108,6 +122,7 @@ def test_morphology_generation():
     surface4 = morph.generate("gel", ["Verb", "Prog", "A1sg"])
     assert surface4 == "geliyorum"
 
+
 def test_spellchecker():
     spell = akana.SpellChecker()
     assert spell.is_correct("kitap") is True
@@ -116,6 +131,7 @@ def test_spellchecker():
     suggestions = spell.suggest("ktap", max_distance=2, max_suggestions=5)
     assert len(suggestions) > 0
     assert any(s["word"] == "kitap" for s in suggestions)
+
 
 def test_disambiguation():
     disambiguator = akana.Disambiguator()
@@ -128,6 +144,7 @@ def test_disambiguation():
     assert parses[2]["primary_pos"] == "Noun"
     assert parses[3]["primary_pos"] == "Verb"
 
+
 def test_dependency_parser():
     parser = akana.DependencyParser()
     tokens = ["Ali", "güzel", "kitabı", "okudu"]
@@ -138,12 +155,16 @@ def test_dependency_parser():
     assert "nsubj" in conllu
     assert "amod" in conllu
 
+
 def test_document_pipeline():
-    doc = akana.analyze("Ak Ana, Türk mitolojisinde deniz tanrıçasıdır. Ali güzel bir kitap okudu.")
+    doc = akana.analyze(
+        "Ak Ana, Türk mitolojisinde deniz tanrıçasıdır. Ali güzel bir kitap okudu."
+    )
     assert len(doc.sentences) == 2
     assert "Ak" in doc.sentences[0].tokens
     assert "kitap" in doc.sentences[1].tokens
     assert len(doc.sentences[0].parses) > 0
+
 
 def test_readability_analysis():
     sample_text = (
@@ -159,11 +180,13 @@ def test_readability_analysis():
     assert report.atesman.score > 0
     assert len(report.atesman.grade_level) > 0
 
+
 def test_syllabification():
     assert akana.syllabify("Türkçe") == ["Türk", "çe"]
     assert akana.syllabify("araba") == ["a", "ra", "ba"]
     assert akana.hyphenate("bilgisayar") == "bil-gi-sa-yar"
     assert akana.count_syllables("öğretmenlerimiz") == 6
+
 
 def test_number_conversion():
     assert akana.number_to_words(1923) == "bin dokuz yüz yirmi üç"
@@ -174,6 +197,7 @@ def test_number_conversion():
     assert akana.currency_to_words(1250.50, "TL") == "bin iki yüz elli lira elli kuruş"
     assert akana.words_to_number("bin dokuz yüz yirmi üç") == 1923
 
+
 def test_stemmer_and_stopwords():
     assert akana.stem("kitaplarımızda") in ["kitap", "kitab"]
     assert akana.is_stopword("ve") is True
@@ -183,6 +207,7 @@ def test_stemmer_and_stopwords():
     assert "bu" not in filtered
     assert "kitap" in filtered
 
+
 def test_named_entity_recognition():
     text = "Prof. Dr. Ahmet Yılmaz 16 Ağustos 2026 tarihinde İstanbul Üniversitesi bünyesinde 500 TL ödeme yaptı."
     entities = akana.extract_entities(text)
@@ -191,12 +216,14 @@ def test_named_entity_recognition():
     assert "PER" in labels or "DATE" in labels
     assert "MONEY" in labels
 
+
 def test_keyword_extraction():
     text = "Doğal dil işleme ve morfolojik analiz algoritmaları Türkçe metinlerin çözümlenmesinde büyük rol oynar."
     keywords = akana.extract_keywords(text, top_k=5)
     assert len(keywords) > 0
     assert "keyword" in keywords[0]
     assert "score" in keywords[0]
+
 
 def test_summarization():
     text = (
@@ -206,6 +233,7 @@ def test_summarization():
     )
     summary = akana.summarize(text, max_sentences=2)
     assert len(summary) == 2
+
 
 def test_ai_style_auditor():
     text = (
@@ -221,6 +249,7 @@ def test_ai_style_auditor():
     prompt = akana.humanize_prompt(text, register="akademik")
     assert "Doğallaştırma" in prompt or "Humanizer" in prompt
     assert "Hedef Register" in prompt
+
 
 def test_syntactic_morphology():
     parses = akana.syntactic_analyze("geldiğimizde")
@@ -249,11 +278,13 @@ def test_syntactic_morphology():
     assert human_report.ai_score < 25.0
     assert human_report.verdict == "Doğal İnsan Metni"
 
+
 def test_humanize_prompt():
     synthetic_ai_text = "Bu doğrultuda eğitim sistemleri hayati bir önem taşımaktadır."
     prompt = akana.humanize_prompt(synthetic_ai_text, register="blog")
     assert "Humanizer" in prompt
     assert "İşlenecek Metin" in prompt
+
 
 def test_embeddings():
     # Single embedding

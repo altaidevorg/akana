@@ -4,8 +4,8 @@
 //! 1. Auxiliary Compound Verbs (*terketmek* -> *terk etmek*, *hiss etmek* -> *hissetmek*).
 //! 2. Tautology and Pleonasm Detection (*henüz hala*, *birlikte beraber*, *geri iade*).
 
-use std::collections::HashMap;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 use stringzilla::StringZilla;
 
 use super::{ErrorCategory, GrammarFinding};
@@ -122,7 +122,11 @@ impl LexiconRuleEngine {
         // Check two-token pairs that should be attached (e.g. "hiss etmek", "kayıp olmak")
         for i in 0..n {
             if i + 1 < n {
-                let pair = format!("{} {}", to_turkish_lower(tokens[i]), to_turkish_lower(tokens[i + 1]));
+                let pair = format!(
+                    "{} {}",
+                    to_turkish_lower(tokens[i]),
+                    to_turkish_lower(tokens[i + 1])
+                );
                 if let Some(&attached_form) = ATTACHED_COMPOUND_VERBS.get(pair.as_str()) {
                     let start = token_spans[i].0;
                     let end = token_spans[i + 1].1;
@@ -142,10 +146,7 @@ impl LexiconRuleEngine {
     }
 
     /// 2. Tautologies & Pleonasms (Accelerated with StringZilla SIMD find):
-    fn check_tautologies(
-        text: &str,
-        findings: &mut Vec<GrammarFinding>,
-    ) {
+    fn check_tautologies(text: &str, findings: &mut Vec<GrammarFinding>) {
         let text_lower = to_turkish_lower(text);
 
         for (&bad_phrase, &(replacement, explanation)) in TAUTOLOGY_PAIRS.iter() {

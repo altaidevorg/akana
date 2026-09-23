@@ -7,16 +7,14 @@
 //! 4. Negation Concord (*Kimse / Hiçbiri* requires negative verb: *Kimse geldi* -> *Kimse gelmedi*).
 //! 5. Subject-Verb Agreement (Inanimate plural subjects take singular verb: *Ağaçlar döküldüler* -> *Ağaçlar döküldü*).
 
-use std::collections::HashSet;
 use lazy_static::lazy_static;
+use std::collections::HashSet;
 
 use super::{ErrorCategory, GrammarFinding};
 use crate::morphology::pos::{PrimaryPos, SecondaryPos};
 use crate::morphology::{MorphParse, MorphologicalDisambiguator, TurkishMorphology};
 use crate::parser::TurkishDependencyParser;
-use crate::phonology::{
-    get_i_type_harmonic_vowel, is_turkish_vowel, to_turkish_lower,
-};
+use crate::phonology::{get_i_type_harmonic_vowel, is_turkish_vowel, to_turkish_lower};
 
 lazy_static! {
     /// Quantity words and numerical determiners that disallow plural suffix on the head noun
@@ -88,10 +86,22 @@ impl AgreementRuleEngine {
         let disambiguated = disambiguator.disambiguate(tokens);
 
         Self::check_quantity_plural_agreement(tokens, token_spans, &disambiguated, findings);
-        Self::check_genitive_possessive_concord(tokens, token_spans, &disambiguated, morphology, findings);
+        Self::check_genitive_possessive_concord(
+            tokens,
+            token_spans,
+            &disambiguated,
+            morphology,
+            findings,
+        );
         Self::check_correlative_conjunctions(tokens, token_spans, &disambiguated, findings);
         Self::check_negation_concord(tokens, token_spans, &disambiguated, findings);
-        Self::check_subject_verb_inanimate_plural(tokens, token_spans, &disambiguated, parser, findings);
+        Self::check_subject_verb_inanimate_plural(
+            tokens,
+            token_spans,
+            &disambiguated,
+            parser,
+            findings,
+        );
     }
 
     /// 1. Quantity Determiner + Noun Plural Redundancy:
@@ -106,7 +116,8 @@ impl AgreementRuleEngine {
         let n = tokens.len();
         for i in 0..n {
             let curr_lower = to_turkish_lower(tokens[i]);
-            let is_qty = QUANTITY_MODIFIERS.contains(curr_lower.as_str()) || curr_lower.chars().all(|c| c.is_ascii_digit());
+            let is_qty = QUANTITY_MODIFIERS.contains(curr_lower.as_str())
+                || curr_lower.chars().all(|c| c.is_ascii_digit());
 
             if is_qty && i + 1 < n {
                 let next_tok = tokens[i + 1];
@@ -120,8 +131,13 @@ impl AgreementRuleEngine {
                 }
 
                 // Check if next token is a plural noun
-                if (next_lower.ends_with("ler") || next_lower.ends_with("lar")) && next_lower.len() > 3 {
-                    let has_plural_tag = next_parse.morpheme_tags.iter().any(|t| t.contains("Plur") || t.contains("A3pl"));
+                if (next_lower.ends_with("ler") || next_lower.ends_with("lar"))
+                    && next_lower.len() > 3
+                {
+                    let has_plural_tag = next_parse
+                        .morpheme_tags
+                        .iter()
+                        .any(|t| t.contains("Plur") || t.contains("A3pl"));
                     if has_plural_tag || next_parse.primary_pos == PrimaryPos::Noun {
                         // Strip plural suffix to obtain singular form
                         let singular_form = &next_tok[..next_tok.len() - 3];
@@ -176,7 +192,12 @@ impl AgreementRuleEngine {
                     }
 
                     // If noun is bare root (no possessive) after "benim" (e.g. "benim araba" -> "benim arabam")
-                    let is_bare_noun = noun_parses.iter().any(|p| p.primary_pos == PrimaryPos::Noun && p.morpheme_tags.iter().all(|t| !t.contains("P1sg") && !t.contains("P2sg") && !t.contains("P3sg")));
+                    let is_bare_noun = noun_parses.iter().any(|p| {
+                        p.primary_pos == PrimaryPos::Noun
+                            && p.morpheme_tags.iter().all(|t| {
+                                !t.contains("P1sg") && !t.contains("P2sg") && !t.contains("P3sg")
+                            })
+                    });
 
                     if is_bare_noun && person == 1 {
                         let last_ch = next_lower.chars().last().unwrap_or('a');
@@ -211,7 +232,11 @@ impl AgreementRuleEngine {
         parses: &[MorphParse],
         findings: &mut Vec<GrammarFinding>,
     ) {
-        let has_ne_ne = tokens.iter().filter(|&&t| to_turkish_lower(t) == "ne").count() >= 2;
+        let has_ne_ne = tokens
+            .iter()
+            .filter(|&&t| to_turkish_lower(t) == "ne")
+            .count()
+            >= 2;
         if !has_ne_ne {
             return;
         }
@@ -225,11 +250,17 @@ impl AgreementRuleEngine {
                     let (start, end) = token_spans[i];
                     let lower = to_turkish_lower(tok);
                     // Remove negative marker "-me/-ma"
-                    let fixed = lower.replace("medi", "di").replace("madı", "dı")
-                                     .replace("miyor", "iyor").replace("mıyor", "ıyor")
-                                     .replace("müyor", "üyor").replace("muyor", "uyor")
-                                     .replace("meyecek", "ecek").replace("mayacak", "acak")
-                                     .replace("mez", "r").replace("maz", "r");
+                    let fixed = lower
+                        .replace("medi", "di")
+                        .replace("madı", "dı")
+                        .replace("miyor", "iyor")
+                        .replace("mıyor", "ıyor")
+                        .replace("müyor", "üyor")
+                        .replace("muyor", "uyor")
+                        .replace("meyecek", "ecek")
+                        .replace("mayacak", "acak")
+                        .replace("mez", "r")
+                        .replace("maz", "r");
 
                     findings.push(GrammarFinding {
                         category: ErrorCategory::CorrelativeConjunctionPolarity,
@@ -255,14 +286,23 @@ impl AgreementRuleEngine {
         parses: &[MorphParse],
         findings: &mut Vec<GrammarFinding>,
     ) {
-        let has_negation_trigger = tokens.iter().any(|&t| NEGATION_TRIGGERS.contains(to_turkish_lower(t).as_str()));
+        let has_negation_trigger = tokens
+            .iter()
+            .any(|&t| NEGATION_TRIGGERS.contains(to_turkish_lower(t).as_str()));
         if !has_negation_trigger {
             return;
         }
 
         // Find the final verb predicate
-        if let Some((i, parse)) = parses.iter().enumerate().rfind(|(_, p)| p.primary_pos == PrimaryPos::Verb) {
-            let has_neg = parse.morpheme_tags.iter().any(|t| t.contains("Neg") || t.contains("Yok") || t.contains("Değil"));
+        if let Some((i, parse)) = parses
+            .iter()
+            .enumerate()
+            .rfind(|(_, p)| p.primary_pos == PrimaryPos::Verb)
+        {
+            let has_neg = parse
+                .morpheme_tags
+                .iter()
+                .any(|t| t.contains("Neg") || t.contains("Yok") || t.contains("Değil"));
             if !has_neg {
                 let tok = tokens[i];
                 let (start, end) = token_spans[i];
@@ -297,10 +337,18 @@ impl AgreementRuleEngine {
 
         // Look for plural inanimate subject at sentence start followed by plural verb at sentence end
         let first_parse = &parses[0];
-        let is_plural_noun = first_parse.primary_pos == PrimaryPos::Noun && first_parse.morpheme_tags.iter().any(|t| t.contains("Plur") || t.contains("A3pl"));
+        let is_plural_noun = first_parse.primary_pos == PrimaryPos::Noun
+            && first_parse
+                .morpheme_tags
+                .iter()
+                .any(|t| t.contains("Plur") || t.contains("A3pl"));
 
         if is_plural_noun {
-            if let Some((last_idx, _last_parse)) = parses.iter().enumerate().rfind(|(_, p)| p.primary_pos == PrimaryPos::Verb) {
+            if let Some((last_idx, _last_parse)) = parses
+                .iter()
+                .enumerate()
+                .rfind(|(_, p)| p.primary_pos == PrimaryPos::Verb)
+            {
                 let last_tok = tokens[last_idx];
                 let last_lower = to_turkish_lower(last_tok);
                 let (start, end) = token_spans[last_idx];
