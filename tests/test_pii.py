@@ -377,3 +377,38 @@ def test_us_ssn_python():
     assert "{{SSN_1}}" in res["masked_text"]
     assert "219-09-9999" not in res["masked_text"]
     assert res["entities"][0]["label"] == "SSN"
+
+
+def test_file_mentions_not_masked_as_email():
+    engine = akana.TurkishPiiEngine()
+
+    # Exact cases reported by Yada team
+    res1 = akana.pii_mask("update @README.md")
+    assert res1["masked_text"] == "update @README.md"
+    assert len(res1["entities"]) == 0
+
+    res2 = akana.pii_mask("and @handoff.md")
+    assert res2["masked_text"] == "and @handoff.md"
+    assert len(res2["entities"]) == 0
+
+    res3 = akana.pii_mask("see @file.ext")
+    assert res3["masked_text"] == "see @file.ext"
+    assert len(res3["entities"]) == 0
+
+    # Ensure engine.detect() returns no entities for file mentions
+    entities = engine.detect("update @README.md and @handoff.md see @file.ext")
+    assert len(entities) == 0
+
+    # Other common mentions
+    res4 = akana.pii_mask("Review @Cargo.toml, @main.rs, and @script.py")
+    assert res4["masked_text"] == "Review @Cargo.toml, @main.rs, and @script.py"
+    assert len(res4["entities"]) == 0
+
+    # Valid emails must still be detected
+    res_valid = akana.pii_mask(
+        "İletişim: ahmet.yilmaz@example.com veya ali [at] domain [dot] com"
+    )
+    assert "{{EMAIL_1}}" in res_valid["masked_text"]
+    assert "{{EMAIL_2}}" in res_valid["masked_text"]
+    assert len(res_valid["entities"]) == 2
+
