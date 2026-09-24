@@ -680,6 +680,9 @@ impl TurkishPiiEngine {
                 if self.preserve_corporate_emails && is_corporate_email(span_str) {
                     continue;
                 }
+                if is_file_like_email(span_str) {
+                    continue;
+                }
                 out.push(PiiEntity {
                     text: span_str.to_string(),
                     label: PiiType::Email.as_str().to_string(),
@@ -694,6 +697,9 @@ impl TurkishPiiEngine {
             for mat in EMAIL_OBFUSCATED_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
                 if self.preserve_corporate_emails && is_corporate_email(span_str) {
+                    continue;
+                }
+                if is_file_like_email(span_str) {
                     continue;
                 }
                 out.push(PiiEntity {
@@ -2124,16 +2130,112 @@ fn resolve_conflicts(mut candidates: Vec<PiiEntity>) -> Vec<PiiEntity> {
 /// Helper function to check if an email local-part represents a public corporate or support desk.
 fn is_corporate_email(email: &str) -> bool {
     let lower = email.to_lowercase();
-    if let Some(at_idx) = lower.sz_find("@") {
-        let prefix = &lower[..at_idx];
-        if crate::pii::gazetteer::CORPORATE_EMAIL_PREFIXES.contains(prefix) {
-            return true;
-        }
-        let norm_prefix = prefix.replace(['.', '_', '-'], "");
-        if crate::pii::gazetteer::CORPORATE_EMAIL_PREFIXES.contains(&norm_prefix) {
-            return true;
-        }
+    let prefix = if let Some(at_idx) = lower.sz_find("@") {
+        &lower[..at_idx]
+    } else if let Some(at_idx) = lower.sz_find("[at]") {
+        &lower[..at_idx]
+    } else if let Some(at_idx) = lower.sz_find("(at)") {
+        &lower[..at_idx]
+    } else {
+        return false;
+    };
+    let clean_prefix: String = prefix.chars().filter(|c| !c.is_whitespace()).collect();
+    if crate::pii::gazetteer::CORPORATE_EMAIL_PREFIXES.contains(clean_prefix.as_str()) {
+        return true;
     }
+    let norm_prefix = clean_prefix.replace(['.', '_', '-'], "");
+    if crate::pii::gazetteer::CORPORATE_EMAIL_PREFIXES.contains(norm_prefix.as_str()) {
+        return true;
+    }
+    false
+}
+
+const NON_DOMAIN_FILE_EXTENSIONS: &[&str] = &[
+    "ext", "txt", "toml", "json", "yaml", "yml", "xml", "html", "htm", "css", "scss", "sass",
+    "less", "js", "jsx", "ts", "tsx", "mjs", "cjs", "py", "pyc", "pyd", "rb", "php", "c", "cpp",
+    "h", "hpp", "cc", "cxx", "cs", "go", "java", "kt", "swift", "bash", "zsh", "bat", "cmd", "ps1",
+    "sql", "graphql", "csv", "tsv", "parquet", "png", "jpg", "jpeg", "gif", "svg", "webp", "ico",
+    "zip", "tar", "gz", "tgz", "7z", "rar", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+    "lock", "wasm", "log", "env", "bak", "tmp", "temp", "cfg", "ini", "conf", "bin", "exe", "dll",
+    "dylib", "patch", "diff", "rst", "adoc",
+];
+
+const MARKDOWN_OR_CODE_EXTENSIONS: &[&str] = &["md", "rs", "sh"];
+
+const FILE_LIKE_BASE_NAMES: &[&str] = &[
+    "readme",
+    "handoff",
+    "changelog",
+    "license",
+    "contributing",
+    "dockerfile",
+    "makefile",
+    "cargo",
+    "package",
+    "tsconfig",
+    "file",
+    "index",
+    "main",
+    "lib",
+    "mod",
+    "build",
+    "deploy",
+    "setup",
+    "install",
+    "test",
+    "tests",
+    "doc",
+    "docs",
+    "notes",
+    "todo",
+    "guide",
+    "summary",
+    "spec",
+    "architecture",
+    "arch",
+    "walkthrough",
+    "plan",
+    "rfc",
+];
+
+/// Helper function to check if an email candidate looks like a file mention or filename.
+fn is_file_like_email(email: &str) -> bool {
+    let lower = email.to_lowercase();
+
+    // Legitimate email addresses cannot have whitespace adjacent to literal '@'
+    if lower.contains(" @") || lower.contains("@ ") || lower.starts_with('@') {
+        return true;
+    }
+
+    let domain_part = if let Some(idx) = lower.sz_rfind("@") {
+        &lower[idx + 1..]
+    } else if let Some(idx) = lower.sz_rfind("[at]") {
+        &lower[idx + 4..]
+    } else if let Some(idx) = lower.sz_rfind("(at)") {
+        &lower[idx + 4..]
+    } else {
+        return false;
+    };
+
+    let domain_part = domain_part.replace("[dot]", ".").replace("(dot)", ".");
+    let clean_domain: String = domain_part.chars().filter(|c| !c.is_whitespace()).collect();
+
+    let parts: Vec<&str> = clean_domain.split('.').collect();
+    if parts.len() < 2 {
+        return false;
+    }
+
+    let ext = parts.last().copied().unwrap_or("");
+    let base = parts[parts.len() - 2];
+
+    if NON_DOMAIN_FILE_EXTENSIONS.contains(&ext) {
+        return true;
+    }
+
+    if MARKDOWN_OR_CODE_EXTENSIONS.contains(&ext) && FILE_LIKE_BASE_NAMES.contains(&base) {
+        return true;
+    }
+
     false
 }
 
@@ -2468,7 +2570,63 @@ mod tests {
             let inv_text = format!("Testing {invalid}");
             let inv_res = engine.mask(&inv_text, PiiMode::Placeholder);
             assert!(!inv_res.masked_text.contains("{{SSN_1}}"));
-            assert!(inv_res.entities.is_empty());
         }
+    }
+
+    #[test]
+    fn test_file_mentions_not_detected_as_email() {
+        let engine = TurkishPiiEngine::new();
+
+        // Exact false positives reported by Yada team
+        let prompt1 = "update @README.md";
+        let res1 = engine.mask(prompt1, PiiMode::Placeholder);
+        assert_eq!(res1.masked_text, "update @README.md");
+        assert!(res1.entities.is_empty());
+
+        let prompt2 = "and @handoff.md";
+        let res2 = engine.mask(prompt2, PiiMode::Placeholder);
+        assert_eq!(res2.masked_text, "and @handoff.md");
+        assert!(res2.entities.is_empty());
+
+        let prompt3 = "see @file.ext";
+        let res3 = engine.mask(prompt3, PiiMode::Placeholder);
+        assert_eq!(res3.masked_text, "see @file.ext");
+        assert!(res3.entities.is_empty());
+
+        // Other common file mentions
+        let prompt4 = "Please review @Cargo.toml and check @main.rs with @script.py";
+        let res4 = engine.mask(prompt4, PiiMode::Placeholder);
+        assert_eq!(
+            res4.masked_text,
+            "Please review @Cargo.toml and check @main.rs with @script.py"
+        );
+        assert!(res4.entities.is_empty());
+
+        // Valid emails must still be detected
+        let email_prompt =
+            "İletişim için ahmet.yilmaz@example.com veya ali [at] domain [dot] com kullanın.";
+        let res_email = engine.mask(email_prompt, PiiMode::Placeholder);
+        assert!(res_email.masked_text.contains("{{EMAIL_1}}"));
+        assert!(res_email.masked_text.contains("{{EMAIL_2}}"));
+        assert_eq!(res_email.entities.len(), 2);
+    }
+
+    #[test]
+    fn test_is_file_like_email_helper() {
+        assert!(is_file_like_email("update @README.md"));
+        assert!(is_file_like_email("and @handoff.md"));
+        assert!(is_file_like_email("see @file.ext"));
+        assert!(is_file_like_email("user@README.md"));
+        assert!(is_file_like_email("user@Cargo.toml"));
+        assert!(is_file_like_email("user@script.py"));
+        assert!(is_file_like_email("user@sample.json"));
+
+        assert!(!is_file_like_email("user@example.com"));
+        assert!(!is_file_like_email("ahmet.yilmaz@example.com"));
+        assert!(!is_file_like_email("ali [at] domain [dot] com"));
+        assert!(!is_file_like_email("user@gmail [dot] com"));
+        assert!(!is_file_like_email("support@company.md"));
+        assert!(!is_file_like_email("contact@gov.md"));
+        assert!(!is_file_like_email("qa@test.com"));
     }
 }

@@ -45,7 +45,7 @@ lazy_static! {
 
     /// Obfuscated email regex (e.g. `ahmet [at] gmail [dot] com`, `ali (at) sirket . com`).
     pub static ref EMAIL_OBFUSCATED_REGEX: Regex = Regex::new(
-        r"(?i)\b[A-Z0-9._%+-]+\s*(?:\[at\]|\(at\)|@)\s*[A-Z0-9.-]+\s*(?:\[dot\]|\(dot\)|\.)\s*[A-Z]{2,}\b"
+        r"(?i)\b(?:[A-Z0-9._%+-]+\s*(?:\[at\]|\(at\))\s*[A-Z0-9.-]+\s*(?:\[dot\]|\(dot\)|\.)\s*[A-Z]{2,}|[A-Z0-9._%+-]+@[A-Z0-9.-]+\s*(?:\[dot\]|\(dot\)|\.)\s*[A-Z]{2,})\b"
     ).unwrap();
 
     /// IPv4 address regex.
@@ -393,6 +393,21 @@ mod tests {
         let text = "İletişim: ahmet.yilmaz@example.com veya ali [at] domain [dot] com";
         assert!(EMAIL_REGEX.is_match(text));
         assert!(EMAIL_OBFUSCATED_REGEX.is_match(text));
+
+        // Obfuscated email variations
+        assert!(EMAIL_OBFUSCATED_REGEX.is_match("ali (at) sirket . com"));
+        assert!(EMAIL_OBFUSCATED_REGEX.is_match("user@gmail [dot] com"));
+        assert!(EMAIL_OBFUSCATED_REGEX.is_match("user@gmail (dot) com"));
+        assert!(EMAIL_OBFUSCATED_REGEX.is_match("mehmet [at] sirket.com"));
+        assert!(EMAIL_OBFUSCATED_REGEX.is_match("mehmet (at) sirket.com"));
+
+        // File mentions must NOT match EMAIL_OBFUSCATED_REGEX or EMAIL_REGEX
+        assert!(!EMAIL_OBFUSCATED_REGEX.is_match("update @README.md"));
+        assert!(!EMAIL_OBFUSCATED_REGEX.is_match("and @handoff.md"));
+        assert!(!EMAIL_OBFUSCATED_REGEX.is_match("see @file.ext"));
+        assert!(!EMAIL_REGEX.is_match("update @README.md"));
+        assert!(!EMAIL_REGEX.is_match("and @handoff.md"));
+        assert!(!EMAIL_REGEX.is_match("see @file.ext"));
     }
 
     #[test]
