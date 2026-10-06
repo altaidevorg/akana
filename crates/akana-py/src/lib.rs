@@ -4,7 +4,7 @@
 #![allow(clippy::redundant_closure)]
 
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::{PyBytes, PyDict, PyList};
 
 #[pyfunction]
 fn to_turkish_lower(text: &str) -> String {
@@ -433,6 +433,8 @@ impl PyGrammarChecker {
 lazy_static::lazy_static! {
     static ref GLOBAL_GRAMMAR_CHECKER: akana_core::grammar::TurkishGrammarChecker = akana_core::grammar::TurkishGrammarChecker::new();
     static ref GLOBAL_EMBEDDINGS: akana_core::TurkishEmbeddings = akana_core::TurkishEmbeddings::new();
+    static ref GLOBAL_HYBRID_EMBEDDINGS: akana_core::TurkishHybridEmbeddings = akana_core::TurkishHybridEmbeddings::new();
+    static ref GLOBAL_SPARSE_ENCODER: akana_core::MorphologicalSparseEncoder = akana_core::MorphologicalSparseEncoder::new();
 }
 
 #[pyfunction]
@@ -464,6 +466,118 @@ impl PyEmbeddings {
         self.inner.embed(text)
     }
 
+    fn embed_packed_2bit<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+        let packed = self.inner.embed_packed_2bit(text);
+        PyBytes::new_bound(py, &packed)
+    }
+
+    fn embed_packed_1bit<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+        let packed = self.inner.embed_packed_1bit(text);
+        PyBytes::new_bound(py, &packed)
+    }
+
+    fn embed_batch_packed_2bit<'py>(
+        &self,
+        py: Python<'py>,
+        texts: Vec<String>,
+    ) -> Bound<'py, PyList> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        let packed_vecs = self.inner.embed_batch_packed_2bit(&text_refs);
+        let list = PyList::empty_bound(py);
+        for p in packed_vecs {
+            list.append(PyBytes::new_bound(py, &p)).unwrap();
+        }
+        list
+    }
+
+    fn embed_batch_packed_1bit<'py>(
+        &self,
+        py: Python<'py>,
+        texts: Vec<String>,
+    ) -> Bound<'py, PyList> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        let packed_vecs = self.inner.embed_batch_packed_1bit(&text_refs);
+        let list = PyList::empty_bound(py);
+        for p in packed_vecs {
+            list.append(PyBytes::new_bound(py, &p)).unwrap();
+        }
+        list
+    }
+
+    fn sparse_embed<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyDict>> {
+        let sparse = GLOBAL_SPARSE_ENCODER.encode_sparse(text);
+        let dict = PyDict::new_bound(py);
+        dict.set_item("indices", sparse.indices)?;
+        dict.set_item("values", sparse.values)?;
+        dict.set_item("terms", sparse.terms)?;
+        Ok(dict)
+    }
+
+    fn hybrid_embed<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+        let hybrid = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid(text);
+        PyBytes::new_bound(py, &hybrid)
+    }
+
+    fn embed_hybrid<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+        self.hybrid_embed(py, text)
+    }
+
+    fn embed_batch_hybrid<'py>(&self, py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        let hybrid_vecs = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs);
+        let list = PyList::empty_bound(py);
+        for h in hybrid_vecs {
+            list.append(PyBytes::new_bound(py, &h)).unwrap();
+        }
+        list
+    }
+
+    fn similarity_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
+        if a.len() != 64 || b.len() != 64 {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "2-bit packed vectors must be exactly 64 bytes",
+            ));
+        }
+        let arr_a: &[u8; 64] = a.try_into().unwrap();
+        let arr_b: &[u8; 64] = b.try_into().unwrap();
+        Ok(akana_core::dot_product_2bit_64(arr_a, arr_b))
+    }
+
+    fn distance_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
+        if a.len() != 64 || b.len() != 64 {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "2-bit packed vectors must be exactly 64 bytes",
+            ));
+        }
+        let arr_a: &[u8; 64] = a.try_into().unwrap();
+        let arr_b: &[u8; 64] = b.try_into().unwrap();
+        Ok(akana_core::cosine_distance_2bit_64(arr_a, arr_b))
+    }
+
+    fn distance_packed_1bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
+        if a.len() != 32 || b.len() != 32 {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "1-bit packed vectors must be exactly 32 bytes",
+            ));
+        }
+        let arr_a: &[u8; 32] = a.try_into().unwrap();
+        let arr_b: &[u8; 32] = b.try_into().unwrap();
+        Ok(akana_core::hamming_distance_1bit_32(arr_a, arr_b))
+    }
+
+    #[pyo3(signature = (a, b, alpha=None))]
+    fn distance_hybrid(&self, a: &[u8], b: &[u8], alpha: Option<f32>) -> PyResult<f32> {
+        if a.len() != 128 || b.len() != 128 {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "hybrid vectors must be exactly 128 bytes",
+            ));
+        }
+        let arr_a: &[u8; 128] = a.try_into().unwrap();
+        let arr_b: &[u8; 128] = b.try_into().unwrap();
+        let a_val = alpha.unwrap_or(0.5);
+        Ok(akana_core::hybrid_distance_128(arr_a, arr_b, a_val))
+    }
+
     fn tokenize(&self, text: &str) -> Vec<usize> {
         self.inner.tokenize(text)
     }
@@ -491,6 +605,113 @@ impl PyEmbeddings {
 #[pyfunction]
 fn embed(text: &str) -> Vec<f32> {
     GLOBAL_EMBEDDINGS.embed(text)
+}
+
+#[pyfunction]
+fn embed_packed_2bit<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+    let packed = GLOBAL_EMBEDDINGS.embed_packed_2bit(text);
+    PyBytes::new_bound(py, &packed)
+}
+
+#[pyfunction]
+fn embed_packed_1bit<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+    let packed = GLOBAL_EMBEDDINGS.embed_packed_1bit(text);
+    PyBytes::new_bound(py, &packed)
+}
+
+#[pyfunction]
+fn embed_batch_packed_2bit<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
+    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+    let packed_vecs = GLOBAL_EMBEDDINGS.embed_batch_packed_2bit(&text_refs);
+    let list = PyList::empty_bound(py);
+    for p in packed_vecs {
+        list.append(PyBytes::new_bound(py, &p)).unwrap();
+    }
+    list
+}
+
+#[pyfunction]
+fn embed_batch_packed_1bit<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
+    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+    let packed_vecs = GLOBAL_EMBEDDINGS.embed_batch_packed_1bit(&text_refs);
+    let list = PyList::empty_bound(py);
+    for p in packed_vecs {
+        list.append(PyBytes::new_bound(py, &p)).unwrap();
+    }
+    list
+}
+
+#[pyfunction]
+fn sparse_embed<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyDict>> {
+    let sparse = GLOBAL_SPARSE_ENCODER.encode_sparse(text);
+    let dict = PyDict::new_bound(py);
+    dict.set_item("indices", sparse.indices)?;
+    dict.set_item("values", sparse.values)?;
+    dict.set_item("terms", sparse.terms)?;
+    Ok(dict)
+}
+
+#[pyfunction]
+fn hybrid_embed<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+    let hybrid = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid(text);
+    PyBytes::new_bound(py, &hybrid)
+}
+
+#[pyfunction]
+fn embed_hybrid<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+    hybrid_embed(py, text)
+}
+
+#[pyfunction]
+fn embed_batch_hybrid<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
+    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+    let hybrid_vecs = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs);
+    let list = PyList::empty_bound(py);
+    for h in hybrid_vecs {
+        list.append(PyBytes::new_bound(py, &h)).unwrap();
+    }
+    list
+}
+
+#[pyfunction]
+fn get_usearch_metric_pointer_2bit() -> usize {
+    akana_core::get_usearch_metric_pointer_2bit()
+}
+
+#[pyfunction]
+fn get_usearch_metric_pointer_1bit() -> usize {
+    akana_core::get_usearch_metric_pointer_1bit()
+}
+
+#[pyfunction]
+#[pyo3(signature = (alpha=None))]
+fn get_usearch_metric_pointer_hybrid(alpha: Option<f32>) -> usize {
+    akana_core::get_usearch_metric_pointer_hybrid(alpha)
+}
+
+#[pyfunction]
+fn set_hybrid_metric_alpha(alpha: f32) {
+    akana_core::set_hybrid_metric_alpha(alpha);
+}
+
+#[pyfunction]
+fn get_hybrid_metric_alpha() -> f32 {
+    akana_core::embeddings::hybrid::get_hybrid_metric_alpha()
+}
+
+#[pyfunction]
+#[pyo3(signature = (dense_results, sparse_results, k=None, alpha=None))]
+fn reciprocal_rank_fusion(
+    dense_results: Vec<(u64, f32)>,
+    sparse_results: Vec<(u64, f32)>,
+    k: Option<f32>,
+    alpha: Option<f32>,
+) -> Vec<(u64, f32)> {
+    let k_val = k.unwrap_or(60.0);
+    let alpha_val = alpha.unwrap_or(1.0);
+    let fused =
+        akana_core::reciprocal_rank_fusion(&dense_results, &sparse_results, k_val, alpha_val);
+    fused.into_iter().map(|f| (f.id, f.score)).collect()
 }
 
 #[pyfunction]
@@ -1286,6 +1507,24 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(check_grammar_json, m)?)?;
     m.add_function(wrap_pyfunction!(correct_grammar, m)?)?;
     m.add_function(wrap_pyfunction!(embed, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_packed_2bit, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_packed_1bit, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_batch_packed_2bit, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_batch_packed_1bit, m)?)?;
+    m.add_function(wrap_pyfunction!(sparse_embed, m)?)?;
+    m.add_function(wrap_pyfunction!(hybrid_embed, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_hybrid, m)?)?;
+    m.add_function(wrap_pyfunction!(embed_batch_hybrid, m)?)?;
+    m.add_function(wrap_pyfunction!(get_usearch_metric_pointer_2bit, m)?)?;
+    m.add_function(wrap_pyfunction!(get_usearch_metric_pointer_1bit, m)?)?;
+    m.add_function(wrap_pyfunction!(get_usearch_metric_pointer_hybrid, m)?)?;
+    m.add_function(wrap_pyfunction!(set_hybrid_metric_alpha, m)?)?;
+    m.add_function(wrap_pyfunction!(get_hybrid_metric_alpha, m)?)?;
+    m.add_function(wrap_pyfunction!(reciprocal_rank_fusion, m)?)?;
+    m.add("EMBEDDING_SCALE_2BIT", akana_core::EMBEDDING_SCALE_2BIT)?;
+    m.add("HYBRID_VECTOR_BYTES", akana_core::HYBRID_VECTOR_BYTES)?;
+    m.add("PACKED_2BIT_BYTES", akana_core::PACKED_2BIT_BYTES)?;
+    m.add("PACKED_1BIT_BYTES", akana_core::PACKED_1BIT_BYTES)?;
     m.add_function(wrap_pyfunction!(tokenize_embedding_text, m)?)?;
     m.add_function(wrap_pyfunction!(embed_batch, m)?)?;
     m.add_function(wrap_pyfunction!(similarity, m)?)?;

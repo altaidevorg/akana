@@ -26,6 +26,7 @@ wheels/
 htmlcov/
 
 # Local Benchmark Caches & Data
+.cache/
 .cache_gecturk/
 
 # IDE & OS files
