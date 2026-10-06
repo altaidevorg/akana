@@ -176,13 +176,14 @@ def main():
             sparse_scores[doc_id] += tf
 
     sparse_hits = sorted(sparse_scores.items(), key=lambda x: x[1], reverse=True)
-    dense_hits = [(m.key, -m.distance) for m in matches]
+    dense_hits_1bit = [(m.key, -m.distance) for m in matches_1bit]
+    dense_hits_2bit = [(m.key, -m.distance) for m in matches]
 
-    # Fuse with Akana's native Rust RRF function
-    fused_results = akana.reciprocal_rank_fusion(dense_hits, sparse_hits, k=60.0, alpha=1.0)
+    # Fuse 1-bit Binary search + Morphological BM25 with Akana's native Rust RRF
+    fused_1bit = akana.reciprocal_rank_fusion(dense_hits_1bit, sparse_hits, k=60.0, alpha=1.0)
 
-    print("  Fused RRF Rankings:")
-    for rank, (doc_id, score) in enumerate(fused_results[:3], start=1):
+    print("  Fused RRF (1-Bit Binary + Morphological BM25) Rankings:")
+    for rank, (doc_id, score) in enumerate(fused_1bit[:3], start=1):
         doc = doc_lookup[doc_id]
         print(f"    Rank #{rank} [Doc ID {doc_id} | RRF Score: {score:.5f}]: {doc['title']}")
 

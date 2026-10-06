@@ -362,6 +362,7 @@ def evaluate_retrieval(
         "Dense 1-bit (32B)",
         "Single-Buffer Hybrid (128B)",
         "Dual-Index RRF (2-bit + BM25)",
+        "Dual-Index RRF (1-bit + BM25)",
     ]
 
     metrics = {m: {"rec1": 0, "rec3": 0, "rec5": 0, "rec10": 0, "mrr": 0.0, "total_time": 0.0} for m in methods}
@@ -385,6 +386,7 @@ def evaluate_retrieval(
         hits_1bit = index_1bit.search(np.frombuffer(q_b1, dtype=np.uint8), count=10)
         t_elapsed = time.perf_counter() - t_start
         keys_1bit = [h.key for h in hits_1bit]
+        scores_1bit = [(h.key, -h.distance) for h in hits_1bit]
         _record(metrics["Dense 1-bit (32B)"], keys_1bit, gold, t_elapsed)
 
         # --- Method 3: Single-Buffer Hybrid ---
@@ -395,13 +397,24 @@ def evaluate_retrieval(
         keys_hybrid = [h.key for h in hits_hybrid]
         _record(metrics["Single-Buffer Hybrid (128B)"], keys_hybrid, gold, t_elapsed)
 
-        # --- Method 4: Dual-Index RRF ---
-        t_start = time.perf_counter()
+        # Common sparse search for RRF
+        t_start_sp = time.perf_counter()
         sparse_hits = sparse_index.search(q_text, top_k=20)
-        fused = akana.reciprocal_rank_fusion(scores_2bit, sparse_hits, k=60.0, alpha=1.0)
-        t_elapsed = time.perf_counter() - t_start
-        keys_rrf = [fid for fid, _ in fused[:10]]
-        _record(metrics["Dual-Index RRF (2-bit + BM25)"], keys_rrf, gold, t_elapsed)
+        t_elapsed_sp = time.perf_counter() - t_start_sp
+
+        # --- Method 4: Dual-Index RRF (2-bit + BM25) ---
+        t_start = time.perf_counter()
+        fused_2b = akana.reciprocal_rank_fusion(scores_2bit, sparse_hits, k=60.0, alpha=1.0)
+        t_elapsed_rrf2 = (time.perf_counter() - t_start) + t_elapsed + t_elapsed_sp
+        keys_rrf2 = [fid for fid, _ in fused_2b[:10]]
+        _record(metrics["Dual-Index RRF (2-bit + BM25)"], keys_rrf2, gold, t_elapsed_rrf2)
+
+        # --- Method 5: Dual-Index RRF (1-bit + BM25) ---
+        t_start = time.perf_counter()
+        fused_1b = akana.reciprocal_rank_fusion(scores_1bit, sparse_hits, k=60.0, alpha=1.0)
+        t_elapsed_rrf1 = (time.perf_counter() - t_start) + t_elapsed + t_elapsed_sp
+        keys_rrf1 = [fid for fid, _ in fused_1b[:10]]
+        _record(metrics["Dual-Index RRF (1-bit + BM25)"], keys_rrf1, gold, t_elapsed_rrf1)
 
     n_q = len(queries)
     print("\n| Retrieval Engine | Bytes/Vector | RAM (1M docs) | Recall@1 | Recall@3 | Recall@5 | Recall@10 | MRR@10 | Latency (µs) |")
@@ -412,6 +425,7 @@ def evaluate_retrieval(
         "Dense 1-bit (32B)": ("32 B", "32 MB"),
         "Single-Buffer Hybrid (128B)": ("128 B", "128 MB"),
         "Dual-Index RRF (2-bit + BM25)": ("64 B + Inverted", "~180 MB"),
+        "Dual-Index RRF (1-bit + BM25)": ("32 B + Inverted", "~148 MB"),
     }
 
     for m in methods:
