@@ -483,11 +483,7 @@ impl PyEmbeddings {
     ) -> Bound<'py, PyList> {
         let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
         let packed_vecs = self.inner.embed_batch_packed_2bit(&text_refs);
-        let list = PyList::empty_bound(py);
-        for p in packed_vecs {
-            list.append(PyBytes::new_bound(py, &p)).unwrap();
-        }
-        list
+        PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
     }
 
     fn embed_batch_packed_1bit<'py>(
@@ -497,11 +493,7 @@ impl PyEmbeddings {
     ) -> Bound<'py, PyList> {
         let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
         let packed_vecs = self.inner.embed_batch_packed_1bit(&text_refs);
-        let list = PyList::empty_bound(py);
-        for p in packed_vecs {
-            list.append(PyBytes::new_bound(py, &p)).unwrap();
-        }
-        list
+        PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
     }
 
     fn sparse_embed<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyDict>> {
@@ -525,55 +517,63 @@ impl PyEmbeddings {
     fn embed_batch_hybrid<'py>(&self, py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
         let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
         let hybrid_vecs = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs);
-        let list = PyList::empty_bound(py);
-        for h in hybrid_vecs {
-            list.append(PyBytes::new_bound(py, &h)).unwrap();
-        }
-        list
+        PyList::new_bound(py, hybrid_vecs.iter().map(|h| PyBytes::new_bound(py, h)))
     }
 
     fn similarity_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        if a.len() != 64 || b.len() != 64 {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+        let arr_a: &[u8; 64] = a
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
                 "2-bit packed vectors must be exactly 64 bytes",
-            ));
-        }
-        let arr_a: &[u8; 64] = a.try_into().unwrap();
-        let arr_b: &[u8; 64] = b.try_into().unwrap();
+            ))?;
+        let arr_b: &[u8; 64] = b
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
+                "2-bit packed vectors must be exactly 64 bytes",
+            ))?;
         Ok(akana_core::dot_product_2bit_64(arr_a, arr_b))
     }
 
     fn distance_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        if a.len() != 64 || b.len() != 64 {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+        let arr_a: &[u8; 64] = a
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
                 "2-bit packed vectors must be exactly 64 bytes",
-            ));
-        }
-        let arr_a: &[u8; 64] = a.try_into().unwrap();
-        let arr_b: &[u8; 64] = b.try_into().unwrap();
+            ))?;
+        let arr_b: &[u8; 64] = b
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
+                "2-bit packed vectors must be exactly 64 bytes",
+            ))?;
         Ok(akana_core::cosine_distance_2bit_64(arr_a, arr_b))
     }
 
     fn distance_packed_1bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        if a.len() != 32 || b.len() != 32 {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+        let arr_a: &[u8; 32] = a
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
                 "1-bit packed vectors must be exactly 32 bytes",
-            ));
-        }
-        let arr_a: &[u8; 32] = a.try_into().unwrap();
-        let arr_b: &[u8; 32] = b.try_into().unwrap();
+            ))?;
+        let arr_b: &[u8; 32] = b
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
+                "1-bit packed vectors must be exactly 32 bytes",
+            ))?;
         Ok(akana_core::hamming_distance_1bit_32(arr_a, arr_b))
     }
 
     #[pyo3(signature = (a, b, alpha=None))]
     fn distance_hybrid(&self, a: &[u8], b: &[u8], alpha: Option<f32>) -> PyResult<f32> {
-        if a.len() != 128 || b.len() != 128 {
-            return Err(pyo3::exceptions::PyValueError::new_err(
+        let arr_a: &[u8; 128] = a
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
                 "hybrid vectors must be exactly 128 bytes",
-            ));
-        }
-        let arr_a: &[u8; 128] = a.try_into().unwrap();
-        let arr_b: &[u8; 128] = b.try_into().unwrap();
+            ))?;
+        let arr_b: &[u8; 128] = b
+            .try_into()
+            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
+                "hybrid vectors must be exactly 128 bytes",
+            ))?;
         let a_val = alpha.unwrap_or(0.5);
         Ok(akana_core::hybrid_distance_128(arr_a, arr_b, a_val))
     }
@@ -623,22 +623,14 @@ fn embed_packed_1bit<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
 fn embed_batch_packed_2bit<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
     let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
     let packed_vecs = GLOBAL_EMBEDDINGS.embed_batch_packed_2bit(&text_refs);
-    let list = PyList::empty_bound(py);
-    for p in packed_vecs {
-        list.append(PyBytes::new_bound(py, &p)).unwrap();
-    }
-    list
+    PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
 }
 
 #[pyfunction]
 fn embed_batch_packed_1bit<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
     let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
     let packed_vecs = GLOBAL_EMBEDDINGS.embed_batch_packed_1bit(&text_refs);
-    let list = PyList::empty_bound(py);
-    for p in packed_vecs {
-        list.append(PyBytes::new_bound(py, &p)).unwrap();
-    }
-    list
+    PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
 }
 
 #[pyfunction]
@@ -666,11 +658,7 @@ fn embed_hybrid<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
 fn embed_batch_hybrid<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
     let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
     let hybrid_vecs = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs);
-    let list = PyList::empty_bound(py);
-    for h in hybrid_vecs {
-        list.append(PyBytes::new_bound(py, &h)).unwrap();
-    }
-    list
+    PyList::new_bound(py, hybrid_vecs.iter().map(|h| PyBytes::new_bound(py, h)))
 }
 
 #[pyfunction]

@@ -141,8 +141,8 @@ pub fn hybrid_distance_128(
     b: &[u8; HYBRID_VECTOR_BYTES],
     alpha: f32,
 ) -> f32 {
-    let dense_a: &[u8; 64] = a[..64].try_into().unwrap();
-    let dense_b: &[u8; 64] = b[..64].try_into().unwrap();
+    let dense_a = &a.as_chunks::<64>().0[0];
+    let dense_b = &b.as_chunks::<64>().0[0];
 
     let dense_dist = cosine_distance_2bit_64(dense_a, dense_b);
 
@@ -189,10 +189,8 @@ pub fn hybrid_distance_128(
         let off_a = 64 + i * 4;
         let off_b = 64 + j * 4;
 
-        let id_a =
-            ((a[off_a] as u32) << 16) | ((a[off_a + 1] as u32) << 8) | (a[off_a + 2] as u32);
-        let id_b =
-            ((b[off_b] as u32) << 16) | ((b[off_b + 1] as u32) << 8) | (b[off_b + 2] as u32);
+        let id_a = ((a[off_a] as u32) << 16) | ((a[off_a + 1] as u32) << 8) | (a[off_a + 2] as u32);
+        let id_b = ((b[off_b] as u32) << 16) | ((b[off_b + 1] as u32) << 8) | (b[off_b + 2] as u32);
 
         if id_a == id_b {
             let w_a = a[off_a + 3] as u32;

@@ -83,9 +83,11 @@ pub fn cosine_distance_2bit_64(a: &[u8; 64], b: &[u8; 64]) -> f32 {
 #[inline]
 pub fn hamming_distance_1bit_32(a: &[u8; 32], b: &[u8; 32]) -> f32 {
     let mut diff: u32 = 0;
-    for i in 0..4 {
-        let chunk_a = u64::from_ne_bytes(a[i * 8..(i + 1) * 8].try_into().unwrap());
-        let chunk_b = u64::from_ne_bytes(b[i * 8..(i + 1) * 8].try_into().unwrap());
+    let chunks_a = a.as_chunks::<8>().0;
+    let chunks_b = b.as_chunks::<8>().0;
+    for (ca, cb) in chunks_a.iter().zip(chunks_b.iter()) {
+        let chunk_a = u64::from_ne_bytes(*ca);
+        let chunk_b = u64::from_ne_bytes(*cb);
         diff += (chunk_a ^ chunk_b).count_ones();
     }
     diff as f32 / 256.0
@@ -101,11 +103,7 @@ pub fn hamming_distance_1bit_32(a: &[u8; 32], b: &[u8; 32]) -> f32 {
 /// # Safety
 /// Pointers `a` and `b` must point to at least 64 valid bytes.
 #[no_mangle]
-pub unsafe extern "C" fn akana_usearch_metric_2bit(
-    a: *const u8,
-    b: *const u8,
-    _dim: usize,
-) -> f32 {
+pub unsafe extern "C" fn akana_usearch_metric_2bit(a: *const u8, b: *const u8, _dim: usize) -> f32 {
     if a.is_null() || b.is_null() {
         return 1.0;
     }
@@ -122,11 +120,7 @@ pub unsafe extern "C" fn akana_usearch_metric_2bit(
 /// # Safety
 /// Pointers `a` and `b` must point to at least 32 valid bytes.
 #[no_mangle]
-pub unsafe extern "C" fn akana_usearch_metric_1bit(
-    a: *const u8,
-    b: *const u8,
-    _dim: usize,
-) -> f32 {
+pub unsafe extern "C" fn akana_usearch_metric_1bit(a: *const u8, b: *const u8, _dim: usize) -> f32 {
     if a.is_null() || b.is_null() {
         return 1.0;
     }
@@ -173,7 +167,10 @@ mod tests {
             "identical vectors must have cosine similarity ~1.0, got {sim}"
         );
         let dist = cosine_distance_2bit_64(&vec_a, &vec_a);
-        assert!(dist.abs() < 1e-5, "identical vectors must have distance 0.0");
+        assert!(
+            dist.abs() < 1e-5,
+            "identical vectors must have distance 0.0"
+        );
     }
 
     #[test]

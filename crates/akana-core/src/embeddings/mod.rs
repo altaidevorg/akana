@@ -23,16 +23,14 @@ pub mod tokenizer;
 pub mod usearch_metrics;
 pub mod weights;
 
-use tokenizer::UnigramTokenizer;
 pub use hybrid::{
     get_usearch_metric_pointer_hybrid, hybrid_distance_128, pack_hybrid_vector,
     set_hybrid_metric_alpha, TurkishHybridEmbeddings, HYBRID_DENSE_BYTES, HYBRID_MAX_SPARSE_SLOTS,
     HYBRID_SPARSE_BYTES, HYBRID_VECTOR_BYTES,
 };
 pub use rrf::{reciprocal_rank_fusion, FusedResult};
-pub use sparse::{
-    hash_term_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector,
-};
+pub use sparse::{hash_term_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector};
+use tokenizer::UnigramTokenizer;
 pub use usearch_metrics::{
     akana_usearch_metric_1bit, akana_usearch_metric_2bit, cosine_distance_2bit_64,
     dot_product_2bit_64, get_usearch_metric_pointer_1bit, get_usearch_metric_pointer_2bit,
@@ -72,7 +70,7 @@ pub fn quantize_f32_to_2bit(val: f32) -> u8 {
 pub fn pack_2bit_vector(vec: &[f32]) -> [u8; PACKED_2BIT_BYTES] {
     assert_eq!(vec.len(), EMBEDDING_DIM, "vector must have 256 dimensions");
     let mut packed = [0u8; PACKED_2BIT_BYTES];
-    for (byte_idx, chunk) in vec.chunks_exact(4).enumerate() {
+    for (byte_idx, chunk) in vec.as_chunks::<4>().0.iter().enumerate() {
         let q0 = quantize_f32_to_2bit(chunk[0]);
         let q1 = quantize_f32_to_2bit(chunk[1]);
         let q2 = quantize_f32_to_2bit(chunk[2]);
@@ -98,7 +96,7 @@ pub fn dequantize_2bit_vector(packed: &[u8; PACKED_2BIT_BYTES]) -> [f32; EMBEDDI
 pub fn pack_1bit_vector(vec: &[f32]) -> [u8; PACKED_1BIT_BYTES] {
     assert_eq!(vec.len(), EMBEDDING_DIM, "vector must have 256 dimensions");
     let mut packed = [0u8; PACKED_1BIT_BYTES];
-    for (byte_idx, chunk) in vec.chunks_exact(8).enumerate() {
+    for (byte_idx, chunk) in vec.as_chunks::<8>().0.iter().enumerate() {
         let mut b = 0u8;
         for (bit_idx, &val) in chunk.iter().enumerate() {
             if val > 0.0 {
@@ -210,10 +208,7 @@ impl TurkishEmbeddings {
     }
 
     /// Compute cosine similarity between two 2-bit packed vectors.
-    pub fn similarity_packed_2bit(
-        a: &[u8; PACKED_2BIT_BYTES],
-        b: &[u8; PACKED_2BIT_BYTES],
-    ) -> f32 {
+    pub fn similarity_packed_2bit(a: &[u8; PACKED_2BIT_BYTES], b: &[u8; PACKED_2BIT_BYTES]) -> f32 {
         dot_product_2bit_64(a, b)
     }
 
@@ -446,4 +441,3 @@ mod tests {
         );
     }
 }
-

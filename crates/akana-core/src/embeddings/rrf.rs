@@ -47,7 +47,11 @@ pub fn reciprocal_rank_fusion(
         .collect();
 
     // Sort descending by combined RRF score (highest score first)
-    fused.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    fused.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     fused
 }
 

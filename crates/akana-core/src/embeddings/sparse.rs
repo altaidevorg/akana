@@ -91,10 +91,9 @@ impl MorphologicalSparseEncoder {
                         PrimaryPos::Verb => 1.0,
                         PrimaryPos::Adj => 1.0,
                         PrimaryPos::Adv => 0.7,
-                        PrimaryPos::Pron
-                        | PrimaryPos::Conj
-                        | PrimaryPos::Postp
-                        | PrimaryPos::Q => 0.2,
+                        PrimaryPos::Pron | PrimaryPos::Conj | PrimaryPos::Postp | PrimaryPos::Q => {
+                            0.2
+                        }
                         _ => 0.8,
                     }
                 }
