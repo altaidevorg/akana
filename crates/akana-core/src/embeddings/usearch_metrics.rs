@@ -7,6 +7,8 @@
 //! - 2-Bit TurboQuant cosine distance with 64 KB L2-cache Lookup Table (LUT)
 //! - 1-Bit binary Hamming distance with hardware `POPCNT`
 
+use super::{PACKED_1BIT_BYTES, PACKED_2BIT_BYTES};
+
 /// Compile-time precomputed 256x256 lookup table for partial dot products.
 ///
 /// For byte `u` and byte `v`, each packs 4 coordinates with centered values
@@ -101,14 +103,14 @@ pub fn hamming_distance_1bit_32(a: &[u8; 32], b: &[u8; 32]) -> f32 {
 /// `float metric(const void* a, const void* b, size_t dim)`
 ///
 /// # Safety
-/// Pointers `a` and `b` must point to at least 64 valid bytes.
+/// Pointers `a` and `b` must point to at least 64 valid initialized bytes, and `dim` must be >= 64.
 #[no_mangle]
-pub unsafe extern "C" fn akana_usearch_metric_2bit(a: *const u8, b: *const u8, _dim: usize) -> f32 {
-    if a.is_null() || b.is_null() {
+pub unsafe extern "C" fn akana_usearch_metric_2bit(a: *const u8, b: *const u8, dim: usize) -> f32 {
+    if a.is_null() || b.is_null() || dim < PACKED_2BIT_BYTES {
         return 1.0;
     }
-    let slice_a = &*(a as *const [u8; 64]);
-    let slice_b = &*(b as *const [u8; 64]);
+    let slice_a = &*(a as *const [u8; PACKED_2BIT_BYTES]);
+    let slice_b = &*(b as *const [u8; PACKED_2BIT_BYTES]);
     cosine_distance_2bit_64(slice_a, slice_b)
 }
 
@@ -118,14 +120,14 @@ pub unsafe extern "C" fn akana_usearch_metric_2bit(a: *const u8, b: *const u8, _
 /// `float metric(const void* a, const void* b, size_t dim)`
 ///
 /// # Safety
-/// Pointers `a` and `b` must point to at least 32 valid bytes.
+/// Pointers `a` and `b` must point to at least 32 valid initialized bytes, and `dim` must be >= 32.
 #[no_mangle]
-pub unsafe extern "C" fn akana_usearch_metric_1bit(a: *const u8, b: *const u8, _dim: usize) -> f32 {
-    if a.is_null() || b.is_null() {
+pub unsafe extern "C" fn akana_usearch_metric_1bit(a: *const u8, b: *const u8, dim: usize) -> f32 {
+    if a.is_null() || b.is_null() || dim < PACKED_1BIT_BYTES {
         return 1.0;
     }
-    let slice_a = &*(a as *const [u8; 32]);
-    let slice_b = &*(b as *const [u8; 32]);
+    let slice_a = &*(a as *const [u8; PACKED_1BIT_BYTES]);
+    let slice_b = &*(b as *const [u8; PACKED_1BIT_BYTES]);
     hamming_distance_1bit_32(slice_a, slice_b)
 }
 
@@ -215,6 +217,60 @@ mod tests {
             let vec_a = [0x55u8; 64];
             let dist = akana_usearch_metric_2bit(vec_a.as_ptr(), vec_a.as_ptr(), 64);
             assert!(dist < 1e-5);
+        }
+    }
+
+    #[test]
+    fn test_c_abi_metrics_bounds_and_null_checks() {
+        unsafe {
+            // Null pointer checks
+            assert_eq!(
+                akana_usearch_metric_2bit(std::ptr::null(), std::ptr::null(), 64),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_1bit(std::ptr::null(), std::ptr::null(), 32),
+                1.0
+            );
+
+            let vec_64 = [0u8; 64];
+            let vec_32 = [0u8; 32];
+
+            // Partial null checks
+            assert_eq!(
+                akana_usearch_metric_2bit(vec_64.as_ptr(), std::ptr::null(), 64),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_2bit(std::ptr::null(), vec_64.as_ptr(), 64),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_1bit(vec_32.as_ptr(), std::ptr::null(), 32),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_1bit(std::ptr::null(), vec_32.as_ptr(), 32),
+                1.0
+            );
+
+            // Buffer underflow / undersized dim checks
+            assert_eq!(
+                akana_usearch_metric_2bit(vec_64.as_ptr(), vec_64.as_ptr(), 0),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_2bit(vec_64.as_ptr(), vec_64.as_ptr(), 63),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_1bit(vec_32.as_ptr(), vec_32.as_ptr(), 0),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_1bit(vec_32.as_ptr(), vec_32.as_ptr(), 31),
+                1.0
+            );
         }
     }
 }

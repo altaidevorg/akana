@@ -2,15 +2,16 @@
 Integration tests for Akana's low-memory packed embeddings and compiled USearch metrics.
 """
 
-import numpy as np
 import pytest
 import akana
 
 try:
+    import numpy as np
     from usearch.index import CompiledMetric, Index, MetricKind, MetricSignature
     HAS_USEARCH = True
 except ImportError:
     HAS_USEARCH = False
+    np = None
 
 
 def test_packed_2bit_constants_and_types():
@@ -104,7 +105,7 @@ def test_reciprocal_rank_fusion():
     assert fused_dict[102] > fused_dict[104]
 
 
-@pytest.mark.skipif(not HAS_USEARCH, reason="usearch not installed")
+@pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
 def test_usearch_2bit_compiled_metric():
     ptr = akana.get_usearch_metric_pointer_2bit()
     assert ptr > 0
@@ -143,7 +144,7 @@ def test_usearch_2bit_compiled_metric():
     assert top_match.distance == pytest.approx(0.0, abs=1e-3)
 
 
-@pytest.mark.skipif(not HAS_USEARCH, reason="usearch not installed")
+@pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
 def test_usearch_1bit_compiled_metric():
     ptr = akana.get_usearch_metric_pointer_1bit()
     assert ptr > 0
@@ -175,7 +176,7 @@ def test_usearch_1bit_compiled_metric():
     assert matches[0].distance == pytest.approx(0.0, abs=1e-3)
 
 
-@pytest.mark.skipif(not HAS_USEARCH, reason="usearch not installed")
+@pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
 def test_usearch_hybrid_compiled_metric():
     ptr = akana.get_usearch_metric_pointer_hybrid(0.5)
     assert ptr > 0

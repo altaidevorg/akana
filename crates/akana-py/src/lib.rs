@@ -521,59 +521,43 @@ impl PyEmbeddings {
     }
 
     fn similarity_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        let arr_a: &[u8; 64] = a
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "2-bit packed vectors must be exactly 64 bytes",
-            ))?;
-        let arr_b: &[u8; 64] = b
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "2-bit packed vectors must be exactly 64 bytes",
-            ))?;
+        let arr_a: &[u8; 64] = a.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
+        })?;
+        let arr_b: &[u8; 64] = b.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
+        })?;
         Ok(akana_core::dot_product_2bit_64(arr_a, arr_b))
     }
 
     fn distance_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        let arr_a: &[u8; 64] = a
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "2-bit packed vectors must be exactly 64 bytes",
-            ))?;
-        let arr_b: &[u8; 64] = b
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "2-bit packed vectors must be exactly 64 bytes",
-            ))?;
+        let arr_a: &[u8; 64] = a.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
+        })?;
+        let arr_b: &[u8; 64] = b.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
+        })?;
         Ok(akana_core::cosine_distance_2bit_64(arr_a, arr_b))
     }
 
     fn distance_packed_1bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        let arr_a: &[u8; 32] = a
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "1-bit packed vectors must be exactly 32 bytes",
-            ))?;
-        let arr_b: &[u8; 32] = b
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "1-bit packed vectors must be exactly 32 bytes",
-            ))?;
+        let arr_a: &[u8; 32] = a.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("1-bit packed vectors must be exactly 32 bytes")
+        })?;
+        let arr_b: &[u8; 32] = b.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("1-bit packed vectors must be exactly 32 bytes")
+        })?;
         Ok(akana_core::hamming_distance_1bit_32(arr_a, arr_b))
     }
 
     #[pyo3(signature = (a, b, alpha=None))]
     fn distance_hybrid(&self, a: &[u8], b: &[u8], alpha: Option<f32>) -> PyResult<f32> {
-        let arr_a: &[u8; 128] = a
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "hybrid vectors must be exactly 128 bytes",
-            ))?;
-        let arr_b: &[u8; 128] = b
-            .try_into()
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err(
-                "hybrid vectors must be exactly 128 bytes",
-            ))?;
+        let arr_a: &[u8; 128] = a.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("hybrid vectors must be exactly 128 bytes")
+        })?;
+        let arr_b: &[u8; 128] = b.try_into().map_err(|_| {
+            pyo3::exceptions::PyValueError::new_err("hybrid vectors must be exactly 128 bytes")
+        })?;
         let a_val = alpha.unwrap_or(0.5);
         Ok(akana_core::hybrid_distance_128(arr_a, arr_b, a_val))
     }

@@ -229,14 +229,14 @@ pub fn hybrid_distance_128(
 /// `float metric(const void* a, const void* b, size_t dim)`
 ///
 /// # Safety
-/// Pointers `a` and `b` must point to at least 128 valid bytes.
+/// Pointers `a` and `b` must point to at least 128 valid initialized bytes, and `dim` must be >= 128.
 #[no_mangle]
 pub unsafe extern "C" fn akana_usearch_metric_hybrid(
     a: *const u8,
     b: *const u8,
-    _dim: usize,
+    dim: usize,
 ) -> f32 {
-    if a.is_null() || b.is_null() {
+    if a.is_null() || b.is_null() || dim < HYBRID_VECTOR_BYTES {
         return 1.0;
     }
     let slice_a = &*(a as *const [u8; HYBRID_VECTOR_BYTES]);
@@ -297,6 +297,37 @@ mod tests {
             let vec_a = engine.embed_hybrid("deneme metni");
             let dist = akana_usearch_metric_hybrid(vec_a.as_ptr(), vec_a.as_ptr(), 128);
             assert!(dist < 1e-4);
+        }
+    }
+
+    #[test]
+    fn test_c_abi_hybrid_bounds_and_null_checks() {
+        unsafe {
+            // Null pointer checks
+            assert_eq!(
+                akana_usearch_metric_hybrid(std::ptr::null(), std::ptr::null(), 128),
+                1.0
+            );
+
+            let vec_128 = [0u8; 128];
+            assert_eq!(
+                akana_usearch_metric_hybrid(vec_128.as_ptr(), std::ptr::null(), 128),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_hybrid(std::ptr::null(), vec_128.as_ptr(), 128),
+                1.0
+            );
+
+            // Buffer underflow / undersized dim checks
+            assert_eq!(
+                akana_usearch_metric_hybrid(vec_128.as_ptr(), vec_128.as_ptr(), 0),
+                1.0
+            );
+            assert_eq!(
+                akana_usearch_metric_hybrid(vec_128.as_ptr(), vec_128.as_ptr(), 127),
+                1.0
+            );
         }
     }
 }
