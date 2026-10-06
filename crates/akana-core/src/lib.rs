@@ -17,7 +17,14 @@ pub mod tokenization;
 
 pub use analysis::*;
 pub use chunking::{Chunk, SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode};
-pub use embeddings::{cosine_similarity, TurkishEmbeddings};
+pub use embeddings::{
+    cosine_distance_2bit_64, cosine_similarity, dot_product_2bit_64,
+    get_usearch_metric_pointer_1bit, get_usearch_metric_pointer_2bit,
+    get_usearch_metric_pointer_hybrid, hamming_distance_1bit_32, hybrid_distance_128,
+    reciprocal_rank_fusion, set_hybrid_metric_alpha, FusedResult, MorphologicalSparseEncoder,
+    MorphologicalSparseVector, TurkishEmbeddings, TurkishHybridEmbeddings, EMBEDDING_SCALE_2BIT,
+    HYBRID_VECTOR_BYTES, PACKED_1BIT_BYTES, PACKED_2BIT_BYTES,
+};
 pub use grammar::*;
 pub use morphology::*;
 pub use ner::*;
