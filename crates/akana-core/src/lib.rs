@@ -1,5 +1,6 @@
 //! Akana: Modern and blazingly fast Turkish NLP toolkit in Rust.
 
+pub mod aidetect;
 pub mod analysis;
 pub mod chunking;
 pub mod embeddings;

@@ -43,6 +43,10 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
 - **Turkish AI Writing Style Auditor & Humanizer Engine**:
   - Detects LLM writing signatures: punctuation anomalies (excessive em-dashes, semicolons with conjunctions, colons), predicate tense repetition (`-mektedir` ratio), rhythm monotony ($CV = \sigma / \mu$), bureaucratic connectors, translationese calques, tricolon lists, and hypophora questions.
   - Actionable prompt generation across 5 registers (*hukuki-idari, akademik-kurumsal, analitik-gazetecilik, deneme-blog, edebi-yaratıcı*).
+- **Turkish AI-Generated Text Detection (`akana.ai_text_detect`)**:
+  - Calibrated AI probability from 500 gradient-boosted trees over 75 signals: content statistics, mined AI phrases (*"Elbette"*, *"önemli bir rol oynar"*) and BERTurk token-transition scores. Runs offline on CPU in milliseconds.
+  - Held-out golden set: about 95 of 100 OpenAI texts caught at 1% false alarms on human text. Explains every decision (per-signal contributions, found phrases, most AI-like sections) in a Turkish "why AI" report. Not proof of authorship; poems are out of scope, texts under 65 words are not judged.
+  - `akana.humanize` turns the report into a targeted rewrite prompt, only for texts judged AI.
 - **Syntax & Universal Dependencies**:
   - Transition-based parser outputting Universal Dependencies (UD) format and CoNLL-U trees.
 - **High-Level NLP Primitives**:
@@ -277,6 +281,16 @@ print(f"AI Score: {audit.ai_score}/100 ({audit.verdict})")
 
 prompt = akana.humanize_prompt("Bu doğrultuda hayati önem taşımaktadır.", register="blog")
 print(prompt)
+
+# AI-generated text detection with a "why AI" report (probability, not proof)
+text = open("answer.txt", encoding="utf-8").read()  # at least 65 words
+result = akana.ai_text_detect(text)
+print(result["ai_probability"], result["verdict"])  # e.g. 0.97 'ai' (ai / uncertain / human / too_short / out_of_scope)
+print(result["report"])
+
+# Detect -> report -> rewrite prompt (prompt is None unless the text is judged AI)
+r = akana.humanize(text, register="blog")
+print(r["prompt"])
 
 # 10. High-Level Turkish NLP Suite
 # Syllabification & Hyphenation
@@ -558,6 +572,7 @@ Akana builds upon decades of pioneering linguistic and natural language processi
 - **Ender Ateşman (1997), Çetinkaya-Uzun (2010), Bezirci-Yılmaz (2010)**: Classical readability research for the Turkish education system.
 - **Ash Vardanian & Unum Cloud**: **StringZilla**, providing hardware-accelerated SIMD vector search and edit distance algorithms.
 - **Bushra Beg (Turkce-Humanizer)**: Research into Turkish AI writing style signatures, calques, and stylistic heuristics.
+- **MDZ Digital Library team (dbmdz), Bavarian State Library**: **BERTurk** (`dbmdz/bert-base-turkish-uncased`, MIT License), whose WordPiece vocabulary the AI-text detector embeds (see `crates/akana-core/data/aidetect/LICENSE-BERTurk`).
 
 ---
 
