@@ -43,10 +43,8 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
 - **Turkish AI Writing Style Auditor & Humanizer Engine**:
   - Detects LLM writing signatures: punctuation anomalies (excessive em-dashes, semicolons with conjunctions, colons), predicate tense repetition (`-mektedir` ratio), rhythm monotony ($CV = \sigma / \mu$), bureaucratic connectors, translationese calques, tricolon lists, and hypophora questions.
   - Actionable prompt generation across 5 registers (*hukuki-idari, akademik-kurumsal, analitik-gazetecilik, deneme-blog, edebi-yaratıcı*).
-- **Turkish AI-Generated Text Detection (`akana.ai_text_detect`)**:
-  - Calibrated AI probability from 500 gradient-boosted trees over 75 signals: content statistics, mined AI phrases (*"Elbette"*, *"önemli bir rol oynar"*) and BERTurk token-transition scores. Runs offline on CPU in milliseconds.
-  - Held-out golden set: about 95 of 100 OpenAI texts caught at 1% false alarms on human text. Explains every decision (per-signal contributions, found phrases, most AI-like sections) in a Turkish "why AI" report. Not proof of authorship; poems are out of scope, texts under 65 words are not judged.
-  - `akana.humanize` turns the report into a targeted rewrite prompt, only for texts judged AI.
+  - Trained AI-text detector in every audit report (`report.ai_detection`, next to the rule-based `ai_score`, which counts style findings): calibrated probability that the text is AI-written, from 500 gradient-boosted trees over 75 signals (content statistics, mined AI phrases such as *"Elbette"*, *"önemli bir rol oynar"*, token-transition scores over Akana's own embedding tokenizer), with a Turkish "why AI" report. On a held-out OpenAI evaluation set it flags about 95 of 100 AI texts long enough to judge (65+ words), at 1% false alarms on separate human texts. Not proof of authorship; poems get no decision, academic text a warning, shorter or highly repetitive texts are not judged.
+  - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
   - Transition-based parser outputting Universal Dependencies (UD) format and CoNLL-U trees.
 - **High-Level NLP Primitives**:
@@ -100,7 +98,7 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 | **Morphological Parse (10.5k words)** | `55,349.7 ms` (55.3s) | **`989.7 ms`** (0.98s) | **55.9x faster** (`10,609 words/sec`) |
 | **Tokenization (Zero-Allocation)** | ~230 words/sec | **`949,991 tokens/sec`** | **>4,000x faster** (<21 ms for 19.5k tokens) |
 | **Informal Normalization** | N/A | **`36,222 words/sec`** | **High Throughput** (Zero-Regex Suffix Matching) |
-| **AI Writing Style Audit** | N/A | **`27,179 words/sec`** | **StringZilla SIMD** (10.2k words in 375 ms) |
+| **AI Writing Style Audit** | N/A | **`54,700 words/sec`** | **StringZilla SIMD** rules + trained AI-text detector (10.2k words in 187 ms with `benchmarks/benchmark_stringzilla_optimizations.py`; the rules alone run at ~120k words/sec in the same script on the same machine) |
 | **Named Entity Recognition (NER)** | N/A | **`1.14 MB/sec`** | **Linear Token Stream** (1,500 entities in 37 ms) |
 | **Grammar Correction (GEC)** | ~22–55 sent/s (Neural) | **`1,471 sent/s`** | **~27x–67x faster** (20.7k sentences in 14.1s) |
 | **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
@@ -277,20 +275,25 @@ print(f"Ateşman: {report.atesman.score} ({report.atesman.grade_level})")
 
 # 9. Turkish AI Writing Style Auditor & Actionable Humanizer Prompt
 audit = akana.audit_ai_style("Yapay zeka teknolojileri, modern dünyada kritik bir rol oynamaktadır. Bu bağlamda —özellikle veri alanında— hayati önem taşımaktadır.")
-print(f"AI Score: {audit.ai_score}/100 ({audit.verdict})")
+print(f"Style score: {audit.ai_score}/100 ({audit.verdict})")  # rule-based style findings
 
 prompt = akana.humanize_prompt("Bu doğrultuda hayati önem taşımaktadır.", register="blog")
 print(prompt)
 
-# AI-generated text detection with a "why AI" report (probability, not proof)
-text = open("answer.txt", encoding="utf-8").read()  # at least 65 words
-result = akana.ai_text_detect(text)
-print(result["ai_probability"], result["verdict"])  # e.g. 0.97 'ai' (ai / uncertain / human / too_short / out_of_scope)
-print(result["report"])
-
-# Detect -> report -> rewrite prompt (prompt is None unless the text is judged AI)
-r = akana.humanize(text, register="blog")
-print(r["prompt"])
+# Trained AI-text detector inside the audit report (a probability, not proof; needs 65+ words)
+story = (  # Turkish Wikisource, public domain
+    "Nasreddin Hoca'nın bir oğlu varmış. Ne denirse tam tersini yaparmış. Bir gün Nasreddin Hoca "
+    "ile oğlu Akşehir'e gidip oradan iki çuval tuz almışlar. Eşeğe yükleyip köylerine dönmek için "
+    "yola koyulmuşlar. Köylerinin yakınındaki dereye geldiklerinde, Nasreddin Hoca, derenin en sığ "
+    "yerinden karşı tarafa geçmiş. Oğlu da eşeği sudan geçirmeye çalışıyormuş. Ama eşeğin "
+    "sırtındaki çuvallardan biri, neredeyse suya değmek üzereymiş. Hoca, oğlunun ters huyunu "
+    "bildiği için seslenmiş: Sevgili oğlum. Çuvallardan biri suya değecek. Biraz daha asıl da, "
+    "iyice suya gömülsün. Ne var ki çocuğun o gün uysallığı üzerindeymiş. Tutup, babasının "
+    "dediğini yapmış. Neticede iki çuval birden suyun içine düşmüş."
+)
+detection = akana.audit_ai_style(story).ai_detection
+print(detection["verdict"], detection["ai_probability"])  # -> human 0.006… (ai / uncertain / human / too_short / out_of_scope)
+print(detection["report"])  # Turkish "why AI" report
 
 # 10. High-Level Turkish NLP Suite
 # Syllabification & Hyphenation
@@ -572,7 +575,6 @@ Akana builds upon decades of pioneering linguistic and natural language processi
 - **Ender Ateşman (1997), Çetinkaya-Uzun (2010), Bezirci-Yılmaz (2010)**: Classical readability research for the Turkish education system.
 - **Ash Vardanian & Unum Cloud**: **StringZilla**, providing hardware-accelerated SIMD vector search and edit distance algorithms.
 - **Bushra Beg (Turkce-Humanizer)**: Research into Turkish AI writing style signatures, calques, and stylistic heuristics.
-- **MDZ Digital Library team (dbmdz), Bavarian State Library**: **BERTurk** (`dbmdz/bert-base-turkish-uncased`, MIT License), whose WordPiece vocabulary the AI-text detector embeds (see `crates/akana-core/data/aidetect/LICENSE-BERTurk`).
 
 ---
 

@@ -1448,86 +1448,6 @@ impl PyTurkishPiiEngine {
     }
 }
 
-// ---------------------------------------------------------------------------
-// AI-text detector (akana_core::aidetect)
-// ---------------------------------------------------------------------------
-
-fn json_to_py(py: Python<'_>, v: &serde_json::Value) -> PyResult<PyObject> {
-    use serde_json::Value;
-    Ok(match v {
-        Value::Null => py.None(),
-        Value::Bool(b) => b.into_py(py),
-        Value::Number(n) => {
-            if let Some(u) = n.as_u64() {
-                u.into_py(py)
-            } else if let Some(i) = n.as_i64() {
-                i.into_py(py)
-            } else {
-                n.as_f64().unwrap_or(f64::NAN).into_py(py)
-            }
-        }
-        Value::String(s) => s.into_py(py),
-        Value::Array(items) => {
-            let list = PyList::empty_bound(py);
-            for item in items {
-                list.append(json_to_py(py, item)?)?;
-            }
-            list.into_py(py)
-        }
-        Value::Object(map) => {
-            let dict = PyDict::new_bound(py);
-            for (k, item) in map {
-                dict.set_item(k, json_to_py(py, item)?)?;
-            }
-            dict.into_py(py)
-        }
-    })
-}
-
-fn to_py_json<T: serde::Serialize>(py: Python<'_>, value: &T) -> PyResult<PyObject> {
-    let v = serde_json::to_value(value)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-    json_to_py(py, &v)
-}
-
-/// Detects AI-written Turkish text and explains why. Returns a dict: ai_probability,
-/// verdict (ai / uncertain / human / too_short / out_of_scope), scope warning, features
-/// (with contributions), patterns, tokens, sections and the Turkish "why AI" report.
-/// The output is a probability, not proof of authorship.
-#[pyfunction]
-fn ai_text_detect(py: Python<'_>, text: &str) -> PyResult<PyObject> {
-    let a = py.allow_threads(|| akana_core::aidetect::ai_text_detect(text));
-    to_py_json(py, &a)
-}
-
-/// Detect → "why AI" report → targeted rewrite prompt. Returns
-/// {"analysis": ai_text_detect(text), "prompt": str or None (None unless judged AI)}.
-#[pyfunction]
-#[pyo3(signature = (text, register=None))]
-fn humanize(py: Python<'_>, text: &str, register: Option<&str>) -> PyResult<PyObject> {
-    let reg = register.unwrap_or("blog").to_string();
-    let r = py.allow_threads(|| akana_core::style::TurkishHumanizer::humanize(text, &reg));
-    to_py_json(py, &r)
-}
-
-/// Internal (model training): content-channel cleaning used by the detector.
-#[pyfunction]
-fn _ai_preprocess(py: Python<'_>, text: &str) -> String {
-    let opts = akana_core::aidetect::PreprocessOptions::default();
-    py.allow_threads(|| akana_core::aidetect::preprocess(text, &opts))
-}
-
-/// Internal (model training): the 71 content features of cleaned text, as a dict.
-#[pyfunction]
-fn _ai_features(py: Python<'_>, clean: &str) -> PyResult<PyObject> {
-    let features = py.allow_threads(|| akana_core::aidetect::content_features(clean));
-    let dict = PyDict::new_bound(py);
-    for (name, value) in features.named() {
-        dict.set_item(name, value)?;
-    }
-    Ok(dict.into_py(py))
-}
-
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
@@ -1593,10 +1513,6 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(validate_imei, m)?)?;
     m.add_function(wrap_pyfunction!(validate_ssn, m)?)?;
     m.add_function(wrap_pyfunction!(harmonize_suffix, m)?)?;
-    m.add_function(wrap_pyfunction!(ai_text_detect, m)?)?;
-    m.add_function(wrap_pyfunction!(humanize, m)?)?;
-    m.add_function(wrap_pyfunction!(_ai_preprocess, m)?)?;
-    m.add_function(wrap_pyfunction!(_ai_features, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PySyntacticMorphology>()?;

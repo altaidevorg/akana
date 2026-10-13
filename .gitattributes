@@ -1,0 +1,3 @@
+# Generated model data of the style auditor's AI-text detector: no text diffs, collapsed in reviews.
+crates/akana-core/data/ai_detector/** -diff linguist-generated
+crates/akana-core/tests/data/ai_detector_reference.json linguist-generated

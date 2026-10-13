@@ -21,9 +21,6 @@ try:
         SpellChecker,
         SyntacticMorphology,
         TurkishPiiEngine,
-        _ai_features,
-        _ai_preprocess,
-        ai_text_detect,
         analyze_document_json,
         analyze_readability_json,
         asciify,
@@ -62,7 +59,6 @@ try:
         extract_keywords_json,
         generate_humanizer_prompt,
         harmonize_suffix,
-        humanize,
         hyphenate,
         is_stopword,
         normalize_informal,
@@ -116,9 +112,20 @@ class StyleAuditReport:
             DiagnosticFinding(f) for f in raw.get("findings", [])
         ]
         self.metrics: dict[str, Any] = raw.get("metrics", {})
+        # Trained AI-text detector, independent of the rule-based ai_score (a count of style
+        # findings): verdict ("ai" / "uncertain" / "human" / "too_short" / "out_of_scope"),
+        # ai_probability (None without a decision), scope warning, the strongest signals, the
+        # AI patterns found and a Turkish "why AI" report. A probability, not proof.
+        self.ai_detection: dict[str, Any] | None = raw.get("ai_detection")
 
     def __repr__(self) -> str:
-        return f"<StyleAuditReport: Score={self.ai_score}/100 ({self.verdict}), {len(self.findings)} findings>"
+        detector = ""
+        if self.ai_detection is not None:
+            detector = f", AI detector: {self.ai_detection.get('verdict')}"
+        return (
+            f"<StyleAuditReport: Style score={self.ai_score}/100 ({self.verdict}), "
+            f"{len(self.findings)} findings{detector}>"
+        )
 
 
 class NamedEntity:
@@ -246,14 +253,23 @@ def extract_keywords(text: str, top_k: int = 10) -> list[dict[str, Any]]:
 
 
 def audit_ai_style(text: str) -> StyleAuditReport:
-    """Audits Turkish text for AI writing signatures, punctuation inflation, and clichés."""
+    """Audits Turkish text for AI writing signatures, punctuation inflation, and clichés.
+
+    ``ai_score`` and ``verdict`` summarise the rule-based style findings. Whether the text
+    is AI-written is estimated by the trained detector in ``ai_detection`` (its
+    ``verdict`` and ``ai_probability``).
+    """
     json_str = audit_ai_style_json(text)
     data = json.loads(json_str)
     return StyleAuditReport(data)
 
 
 def humanize_prompt(text: str, register: str = "blog") -> str:
-    """Generates an actionable LLM rewrite prompt to humanize Turkish text."""
+    """Generates an actionable LLM rewrite prompt to humanize Turkish text.
+
+    When the AI-text detector judges the text AI, the prompt starts with the signals that
+    made it look AI; otherwise it is the rule-based prompt.
+    """
     return generate_humanizer_prompt(text, register)
 
 
@@ -352,7 +368,6 @@ __all__ = [
     "SyntacticParse",
     "TextStatistics",
     "TurkishPiiEngine",
-    "ai_text_detect",
     "analyze",
     "analyze_readability",
     "asciify",
@@ -391,7 +406,6 @@ __all__ = [
     "PACKED_1BIT_BYTES",
     "PACKED_2BIT_BYTES",
     "harmonize_suffix",
-    "humanize",
     "humanize_prompt",
     "hyphenate",
     "is_stopword",

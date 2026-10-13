@@ -1,157 +1,175 @@
 //! Actionable LLM Humanizer Prompt and Feedback Generator.
 //!
-//! Two entry points:
-//!
-//! - [`TurkishHumanizer::humanize`]: the detector-driven pipeline. The AI-text detector
-//!   ([`crate::aidetect::ai_text_detect`]) decides first; only a text judged AI gets a
-//!   "why AI" report ([`crate::aidetect::why_ai_report`]) and a rewrite prompt aimed at
-//!   exactly the signals that made it look AI (strongest features, found patterns, most
-//!   AI-like sections), followed by the style auditor's rules.
-//! - [`TurkishHumanizer::generate_prompt`]: the style-auditor-only prompt, for any text.
+//! [`TurkishHumanizer::generate_prompt`] audits the text ([`TurkishStyleAuditor::audit`]).
+//! When the audit's AI-text detector ([`StyleAuditReport::ai_detection`]) judges the text AI,
+//! the prompt starts with the signals that made it look AI (strongest model inputs, found AI
+//! phrases, most AI-like sections) and continues with the rule-based instructions; otherwise
+//! it is the rule-based prompt alone.
 
-use serde::Serialize;
+use std::fmt::Write as _;
 
+use super::ai_detector::{
+    ai_signals, pct, sections, signal_sentence, AiDetection, AiPattern, AiSignal, PatternKind,
+};
 use super::detector::{StyleAuditReport, TurkishStyleAuditor};
-use crate::aidetect::{ai_reasons, ai_text_detect, feature_sentence, AiAnalysis};
 
 pub struct TurkishHumanizer;
 
-/// Result of [`TurkishHumanizer::humanize`].
-#[derive(Debug, Clone, Serialize)]
-pub struct HumanizeResult {
-    /// Detector output with its explanation and "why AI" report.
-    pub analysis: AiAnalysis,
-    /// Rewrite prompt; `None` unless the detector judged the text AI.
-    pub prompt: Option<String>,
+/// Detector instructions listed at most, AI phrases listed at most, and AI-like sections
+/// pointed to at most.
+const MAX_DETECTOR_RULES: usize = 6;
+const MAX_PROMPT_PATTERNS: usize = 12;
+const MAX_HOT_SECTIONS: usize = 3;
+/// Characters of a section quoted in the prompt.
+const SECTION_QUOTE_CHARS: usize = 80;
+
+/// Model inputs that are no writing advice: moving them towards human text would mean adding
+/// typos or slang (`oov_rate`), lower-case sentence starts, `!!` / `?!` / `...`, changing the
+/// length, or chasing abstract statistics. They stay in the "why AI" report.
+const NO_ADVICE: &[&str] = &[
+    "oov_rate",
+    "log_words",
+    "lower_start_share",
+    "multi_excl",
+    "interrobang",
+    "multi_q",
+    "ellipsis",
+    "word_entropy",
+    "heaps_exponent",
+    "compression_ratio",
+];
+
+/// Inputs that share one instruction.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum AdviceGroup {
+    /// Token-transition scores.
+    WordChoice,
+    /// Mined AI pattern counts.
+    Patterns,
 }
 
-/// How to move a feature towards human text, by feature key; `None` falls back to a
-/// generic sentence built from the AI and human averages.
-fn feature_advice(key: &str) -> Option<&'static str> {
-    Some(match key {
-        "wordlm_llr_mean" | "wordlm_ai_share" => {
-            "Kelime seçimi ve ek dizilimi kalıplaşmış AI Türkçesine benziyor: hazır, \
-             cilalı ifadeler yerine gündelik, somut ve kişisel kelimeler kullan; aynı \
-             fikri kendi cümlenle söyle."
+const WORD_CHOICE_INPUTS: &[&str] = &["wordlm_llr_mean", "wordlm_ai_share"];
+const PATTERN_INPUTS: &[&str] = &[
+    "pat_evidence",
+    "pat_phrase_n",
+    "pat_sent_start_n",
+    "pat_opener",
+    "pat_closer",
+];
+
+impl AdviceGroup {
+    fn of(key: &str) -> Option<Self> {
+        if WORD_CHOICE_INPUTS.contains(&key) {
+            Some(Self::WordChoice)
+        } else if PATTERN_INPUTS.contains(&key) {
+            Some(Self::Patterns)
+        } else {
+            None
         }
-        "pat_evidence" | "pat_phrase_n" | "pat_sent_start_n" | "pat_opener" | "pat_closer" => {
-            "Aşağıda listelenen AI kalıplarını (giriş, kapanış, cümle başı ve hazır \
-             ifadeler) metinden çıkar ya da tamamen farklı sözcüklerle yeniden yaz."
+    }
+
+    fn instruction(self) -> &'static str {
+        match self {
+            Self::WordChoice => {
+                "**Kelime ve ek dizilimi:** Kelime seçimi ve ek dizilimi kalıplaşmış AI \
+                 Türkçesine benziyor: hazır, cilalı ifadeler yerine gündelik, somut ve kişisel \
+                 kelimeler kullan; aynı fikri kendi cümlenle söyle."
+            }
+            Self::Patterns => {
+                "**AI kalıpları:** Aşağıda listelenen AI kalıplarını (giriş, kapanış, cümle başı \
+                 ve hazır ifadeler) metinden çıkar ya da tamamen farklı sözcüklerle yeniden yaz."
+            }
         }
-        _ => return None,
-    })
+    }
 }
 
-/// Rewrite advice for a feature: move this text's value towards the human average. The
+/// Conjunctions that make a two-word phrase a topic pair ("ve enerji", "sanat ve") rather
+/// than a style habit ("öneme sahiptir", "katkıda bulunur").
+const TOPIC_PAIR_WORDS: &[&str] = &["ve", "ile", "veya"];
+
+/// Found patterns worth a rewrite instruction: all but two-word topic pairs, which stay in
+/// the "why AI" report only.
+fn rewrite_patterns(d: &AiDetection) -> impl Iterator<Item = &AiPattern> {
+    d.patterns.iter().filter(|p| !is_topic_pair(p))
+}
+
+fn is_topic_pair(p: &AiPattern) -> bool {
+    let words: Vec<&str> = p.pattern.split(' ').collect();
+    p.kind == PatternKind::Phrase
+        && words.len() == 2
+        && words.iter().any(|w| TOPIC_PAIR_WORDS.contains(w))
+}
+
+/// Rewrite advice for one input: move this text's value towards the human average. The
 /// direction comes from where the value is, not from the averages alone (a value can be
 /// AI-like while already past the human average).
-fn generic_advice(f: &crate::aidetect::FeatureContribution) -> String {
-    let dir = match (f.ai_mean, f.human_mean) {
-        (_, Some(h)) if f.value > h => "azalt (insan metinlerindeki düzeye yaklaştır)",
-        (_, Some(h)) if f.value < h => "artır (insan metinlerindeki düzeye yaklaştır)",
-        (Some(a), Some(h)) if h < a => "azalt (insan metinlerindeki düzeye yaklaştır)",
-        (Some(_), Some(_)) => "artır (insan metinlerindeki düzeye yaklaştır)",
-        _ => "insan metinlerindeki düzeye yaklaştır",
+fn signal_advice(s: &AiSignal) -> String {
+    let towards = "(insan metinlerindeki düzeye yaklaştır)";
+    let reduce = if s.value == s.human_mean {
+        s.human_mean < s.ai_mean
+    } else {
+        s.value > s.human_mean
     };
-    format!("{} Bunu {dir}.", feature_sentence(f))
+    let verb = if reduce { "azalt" } else { "artır" };
+    format!("{} Bunu {verb} {towards}.", signal_sentence(s))
+}
+
+/// Rewrite instructions from the detector's strongest AI-ward signals (unnumbered).
+fn detector_instructions(d: &AiDetection) -> Vec<String> {
+    let has_patterns = rewrite_patterns(d).next().is_some();
+    let mut instructions = Vec::new();
+    let mut groups_done: Vec<AdviceGroup> = Vec::new();
+    let signals = ai_signals(d)
+        .filter(|s| !NO_ADVICE.contains(&s.key.as_str()))
+        .take(MAX_DETECTOR_RULES);
+    for s in signals {
+        match AdviceGroup::of(&s.key) {
+            Some(g) if groups_done.contains(&g) => {}
+            Some(AdviceGroup::Patterns) if !has_patterns => {}
+            Some(g) => {
+                groups_done.push(g);
+                instructions.push(g.instruction().to_string());
+            }
+            None => instructions.push(signal_advice(s)),
+        }
+    }
+    if has_patterns && !groups_done.contains(&AdviceGroup::Patterns) {
+        instructions.push(AdviceGroup::Patterns.instruction().to_string());
+    }
+    instructions
+}
+
+/// The found AI phrases and the most AI-like sections of the text, as prompt sections.
+fn push_detector_sections(prompt: &mut String, d: &AiDetection, text: &str) {
+    let mut patterns = rewrite_patterns(d).take(MAX_PROMPT_PATTERNS).peekable();
+    if patterns.peek().is_some() {
+        prompt.push_str("\n### Çıkarılacak / yeniden yazılacak kalıplar:\n");
+        for p in patterns {
+            let _ = writeln!(prompt, "- «{}» ({})", p.pattern, p.kind.label_tr());
+        }
+    }
+    // The most AI-like sections above the threshold, shown in text order.
+    let mut hot: Vec<_> = sections(text)
+        .into_iter()
+        .filter(|s| s.ai_probability >= d.threshold)
+        .collect();
+    hot.sort_by(|a, b| b.ai_probability.total_cmp(&a.ai_probability));
+    hot.truncate(MAX_HOT_SECTIONS);
+    hot.sort_by_key(|s| s.start_word);
+    if !hot.is_empty() {
+        prompt.push_str("\n### Önce bu bölümlere odaklan (en çok AI'a benzeyenler):\n");
+        for s in hot {
+            let quote: String = s.text.chars().take(SECTION_QUOTE_CHARS).collect();
+            let _ = writeln!(
+                prompt,
+                "- {}–{}. kelimeler: «{quote}…»",
+                s.start_word, s.end_word
+            );
+        }
+    }
 }
 
 impl TurkishHumanizer {
-    /// Detector-driven pipeline: detect → "why AI" report → targeted rewrite prompt (only
-    /// when the text is judged AI).
-    pub fn humanize(text: &str, register: &str) -> HumanizeResult {
-        let analysis = ai_text_detect(text);
-        let prompt = analysis.is_ai().then(|| {
-            let audit = TurkishStyleAuditor::new().audit(text);
-            Self::format_targeted_prompt(text, register, &analysis, &audit)
-        });
-        HumanizeResult { analysis, prompt }
-    }
-
-    /// Rewrite prompt built from the detector's explanation, then the style audit rules.
-    pub fn format_targeted_prompt(
-        text: &str,
-        register: &str,
-        analysis: &AiAnalysis,
-        audit: &StyleAuditReport,
-    ) -> String {
-        let mut instructions: Vec<String> = Vec::new();
-        let mut pattern_rule = false;
-        let mut token_rule = false;
-        for f in ai_reasons(analysis, 6) {
-            match feature_advice(&f.key) {
-                Some(advice) if f.key.starts_with("pat_") => {
-                    if !pattern_rule && !analysis.patterns.is_empty() {
-                        pattern_rule = true;
-                        instructions.push(format!("**AI kalıpları:** {advice}"));
-                    }
-                }
-                Some(advice) => {
-                    if !token_rule {
-                        token_rule = true;
-                        instructions.push(format!("**Kelime ve ek dizilimi:** {advice}"));
-                    }
-                }
-                None => instructions.push(generic_advice(f)),
-            }
-        }
-        if !pattern_rule && !analysis.patterns.is_empty() {
-            instructions.push(format!(
-                "**AI kalıpları:** {}",
-                feature_advice("pat_evidence").unwrap_or_default()
-            ));
-        }
-        instructions.extend(Self::audit_instructions(audit));
-
-        let mut prompt = String::new();
-        prompt.push_str("# Türkçe Metin Doğallaştırma (Humanizer) Yönergesi\n\n");
-        prompt.push_str(&format!(
-            "**Hedef Register:** {}\n",
-            Self::register_guidance(register)
-        ));
-        prompt.push_str(&format!(
-            "**AI tespiti:** AI olasılığı %{:.0} (eşik %{:.0}). Aşağıdaki kurallar, metni AI \
-             gibi gösteren ölçümlerden çıkarıldı; en etkiliden başlayarak uygula. Anlamı, \
-             bilgileri ve dili (Türkçe) koru.\n\n",
-            analysis.ai_probability * 100.0,
-            analysis.threshold * 100.0
-        ));
-        prompt.push_str(
-            "Lütfen aşağıdaki metni şu somut kurallara uyarak insan Türkçesine dönüştür:\n\n",
-        );
-        for (i, inst) in instructions.iter().enumerate() {
-            prompt.push_str(&format!("{}. {inst}\n", i + 1));
-        }
-        if !analysis.patterns.is_empty() {
-            prompt.push_str("\n### Çıkarılacak / yeniden yazılacak kalıplar:\n");
-            for p in analysis.patterns.iter().take(12) {
-                prompt.push_str(&format!("- «{}» ({})\n", p.pattern, p.kind));
-            }
-        }
-        let hot: Vec<_> = analysis
-            .sections
-            .iter()
-            .filter(|s| s.ai_probability >= analysis.threshold)
-            .take(3)
-            .collect();
-        if !hot.is_empty() {
-            prompt.push_str("\n### Önce bu bölümlere odaklan (en çok AI'a benzeyenler):\n");
-            for s in hot {
-                prompt.push_str(&format!(
-                    "- {}–{}. kelimeler: «{}…»\n",
-                    s.start_word,
-                    s.end_word,
-                    s.text.chars().take(80).collect::<String>()
-                ));
-            }
-        }
-        prompt.push_str("\n### İşlenecek Metin:\n");
-        prompt.push_str("```text\n");
-        prompt.push_str(text.trim());
-        prompt.push_str("\n```\n");
-        prompt
-    }
-
     /// Generates a structured, actionable prompt instructing an LLM (or human editor)
     /// to humanize the text according to its detected AI signatures and register.
     pub fn generate_prompt(text: &str, register: &str) -> String {
@@ -162,23 +180,59 @@ impl TurkishHumanizer {
     }
 
     /// Formats the audit report into a ready-to-paste prompt.
+    ///
+    /// When the report's AI-text detector (`ai_detection`) judges the text AI, the prompt
+    /// starts with the signals that made it look AI (strongest model features, found AI
+    /// phrases, most AI-like sections) before the rule-based instructions; otherwise it is
+    /// the rule-based prompt alone.
     pub fn format_prompt(text: &str, register: &str, report: &StyleAuditReport) -> String {
-        let instructions = Self::audit_instructions(report);
+        let detected = report
+            .ai_detection
+            .as_ref()
+            .filter(|a| a.is_ai() && a.ai_probability.is_some());
+        let mut instructions = detected.map(detector_instructions).unwrap_or_default();
+        instructions.extend(Self::audit_instructions(report));
         let register_guidance = Self::register_guidance(register);
 
         let mut prompt = String::new();
         prompt.push_str("# Türkçe Metin Doğallaştırma (Humanizer) Yönergesi\n\n");
         prompt.push_str(&format!("**Hedef Register:** {register_guidance}\n"));
-        prompt.push_str(&format!(
-            "**Tespit Edilen AI Skoru:** {:.1} / 100 ({})\n\n",
-            report.ai_score, report.verdict
-        ));
+        match detected {
+            // One headline verdict: the trained detector's. The rule-based score is shown
+            // as what it is, a count of style findings, without its own verdict.
+            Some(a) => {
+                let _ = writeln!(
+                    prompt,
+                    "**AI tespiti:** AI olasılığı {} (eşik {}). İlk kurallar, metni AI gibi \
+                     gösteren ölçümlerden çıkarıldı; en etkiliden başlayarak uygula. Anlamı, \
+                     bilgileri ve dili (Türkçe) koru.",
+                    pct(a.ai_probability.unwrap_or_default()),
+                    pct(a.threshold)
+                );
+                let _ = writeln!(
+                    prompt,
+                    "**Stil bulguları skoru:** {:.1} / 100",
+                    report.ai_score
+                );
+            }
+            None => {
+                let _ = writeln!(
+                    prompt,
+                    "**Tespit Edilen AI Skoru:** {:.1} / 100 ({})",
+                    report.ai_score, report.verdict
+                );
+            }
+        }
+        prompt.push('\n');
         prompt.push_str(
             "Lütfen aşağıdaki metni şu somut kurallara uyarak insan Türkçesine dönüştür:\n\n",
         );
 
         for (i, inst) in instructions.iter().enumerate() {
-            prompt.push_str(&format!("{}. {inst}\n", i + 1));
+            let _ = writeln!(prompt, "{}. {inst}", i + 1);
+        }
+        if let Some(a) = detected {
+            push_detector_sections(&mut prompt, a, text);
         }
 
         prompt.push_str("\n### İşlenecek Metin:\n");
@@ -190,7 +244,7 @@ impl TurkishHumanizer {
     }
 
     /// Rule-based rewrite instructions from a style audit (unnumbered).
-    pub fn audit_instructions(report: &StyleAuditReport) -> Vec<String> {
+    fn audit_instructions(report: &StyleAuditReport) -> Vec<String> {
         let mut instructions: Vec<String> = Vec::new();
 
         // 1. Predicate Tense Variety Rule
@@ -289,7 +343,7 @@ impl TurkishHumanizer {
     }
 
     /// Register-specific tone guidance line.
-    pub fn register_guidance(register: &str) -> &'static str {
+    fn register_guidance(register: &str) -> &'static str {
         let reg_lower = register.to_lowercase();
         if reg_lower.contains("hukuk") || reg_lower.contains("idari") {
             "Metin türü: **Hukuki-İdari**. Terimsel kesinliği koru, sadece yapay çeviri kalıplarını ve noktalama bozukluklarını temizle. Konuşma dili unsurları ekleme."
@@ -311,18 +365,18 @@ impl TurkishHumanizer {
 
 #[cfg(test)]
 mod tests {
-    use super::generic_advice;
-    use crate::aidetect::FeatureContribution;
+    use super::*;
+    use crate::style::ai_detector::detect;
+    use crate::style::ai_detector::model_input_keys;
+    use crate::style::ai_detector::samples::AI_TEXT;
 
-    fn feature(value: f64, ai_mean: f64, human_mean: f64) -> FeatureContribution {
-        FeatureContribution {
+    fn signal(value: f64, ai_mean: f64, human_mean: f64) -> AiSignal {
+        AiSignal {
             key: "k".into(),
             name: "n".into(),
-            group: "g".into(),
-            desc: "d".into(),
             value,
-            ai_mean: Some(ai_mean),
-            human_mean: Some(human_mean),
+            ai_mean,
+            human_mean,
             contribution: 0.1,
         }
     }
@@ -330,10 +384,68 @@ mod tests {
     #[test]
     fn advice_moves_the_value_towards_the_human_average() {
         // AI average below the human one, but this text is already above it: reduce.
-        assert!(generic_advice(&feature(4.5, 1.6, 2.3)).contains("Bunu azalt"));
-        assert!(generic_advice(&feature(1.0, 1.6, 2.3)).contains("Bunu artır"));
-        assert!(generic_advice(&feature(1.0, 0.95, 0.52)).contains("Bunu azalt"));
+        assert!(signal_advice(&signal(4.5, 1.6, 2.3)).contains("Bunu azalt"));
+        assert!(signal_advice(&signal(1.0, 1.6, 2.3)).contains("Bunu artır"));
+        assert!(signal_advice(&signal(1.0, 0.95, 0.52)).contains("Bunu azalt"));
         // At the human average: fall back to the direction of the averages.
-        assert!(generic_advice(&feature(0.52, 0.95, 0.52)).contains("Bunu azalt"));
+        assert!(signal_advice(&signal(0.52, 0.95, 0.52)).contains("Bunu azalt"));
+    }
+
+    #[test]
+    fn no_advice_inputs_never_become_instructions() {
+        let d = detect(AI_TEXT);
+        assert!(d.is_ai());
+        for line in detector_instructions(&d) {
+            for s in d
+                .signals
+                .iter()
+                .filter(|s| NO_ADVICE.contains(&s.key.as_str()))
+            {
+                assert!(!line.contains(&format!("**{}**", s.name)), "{line}");
+            }
+        }
+    }
+
+    #[test]
+    fn advice_keys_are_model_inputs() {
+        let keys = model_input_keys();
+        for key in NO_ADVICE
+            .iter()
+            .chain(WORD_CHOICE_INPUTS)
+            .chain(PATTERN_INPUTS)
+        {
+            assert!(keys.contains(key), "{key} is not a model input");
+        }
+    }
+
+    #[test]
+    fn topic_pairs_are_not_rewrite_instructions() {
+        let d = detect(AI_TEXT);
+        let (pairs, kept): (Vec<_>, Vec<_>) = d.patterns.iter().partition(|p| is_topic_pair(p));
+        assert!(!pairs.is_empty() && !kept.is_empty());
+        let prompt = TurkishHumanizer::generate_prompt(AI_TEXT, "blog");
+        for p in pairs {
+            assert!(
+                !prompt.contains(&format!("«{}»", p.pattern)),
+                "{}",
+                p.pattern
+            );
+        }
+        for p in kept.iter().take(MAX_PROMPT_PATTERNS) {
+            assert!(
+                prompt.contains(&format!("«{}»", p.pattern)),
+                "{}",
+                p.pattern
+            );
+        }
+    }
+
+    #[test]
+    fn ai_prompt_has_one_headline_verdict() {
+        let prompt = TurkishHumanizer::generate_prompt(AI_TEXT, "blog");
+        assert!(prompt.contains("**AI tespiti:**"));
+        assert!(prompt.contains("**Stil bulguları skoru:**"));
+        assert!(!prompt.contains("Tespit Edilen AI Skoru"));
+        assert!(prompt.contains("### Çıkarılacak / yeniden yazılacak kalıplar:"));
     }
 }

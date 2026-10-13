@@ -1,5 +1,6 @@
 //! Multi-factor Turkish AI Style Detector and Diagnostic Pinpointer.
 
+use super::ai_detector::{detect, AiDetection};
 use super::cliches::{ClicheCategory, ClicheMatcher};
 use super::style_metrics::{StyleMetricsExtractor, StyleMetricsSummary};
 use crate::morphology::TurkishMorphology;
@@ -17,10 +18,19 @@ pub struct DiagnosticFinding {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StyleAuditReport {
-    pub ai_score: f32, // 0.0 to 100.0
+    /// Rule-based style-signature score (0–100): how many AI writing habits the style rules
+    /// found. It is not an authorship estimate; see `ai_detection` for that.
+    pub ai_score: f32,
+    /// Turkish verdict of the rule-based `ai_score`.
     pub verdict: String,
     pub findings: Vec<DiagnosticFinding>,
     pub metrics: StyleMetricsSummary,
+    /// Trained AI-text detector: calibrated probability that the text is AI-written,
+    /// decision and Turkish "why AI" report, independent of the rule-based `ai_score`.
+    /// Always set by [`TurkishStyleAuditor::audit`]; `None` only when deserialising a report
+    /// written without it.
+    #[serde(default)]
+    pub ai_detection: Option<AiDetection>,
 }
 
 pub struct TurkishStyleAuditor {
@@ -220,6 +230,7 @@ impl TurkishStyleAuditor {
             verdict,
             findings,
             metrics,
+            ai_detection: Some(detect(text)),
         }
     }
 }
