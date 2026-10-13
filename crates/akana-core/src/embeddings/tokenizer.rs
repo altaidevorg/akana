@@ -26,6 +26,9 @@ struct VocabEntry {
 }
 
 /// Minimal Unigram tokenizer.
+///
+/// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
+/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
 pub struct UnigramTokenizer {
     /// Vocabulary entries indexed by token ID.
     vocab: Vec<VocabEntry>,
@@ -33,6 +36,9 @@ pub struct UnigramTokenizer {
     piece_to_id: AHashMap<String, usize>,
     /// UNK token ID.
     unk_id: usize,
+    /// Longest vocabulary piece in chars (capped at `MAX_PIECE_LEN`); longer candidate
+    /// pieces cannot match.
+    max_piece_chars: usize,
 }
 
 impl UnigramTokenizer {
@@ -94,10 +100,17 @@ impl UnigramTokenizer {
             vocab.push(VocabEntry { piece, score });
         }
 
+        let max_piece_chars = vocab
+            .iter()
+            .map(|e| e.piece.chars().count())
+            .max()
+            .unwrap_or(1)
+            .min(MAX_PIECE_LEN);
         Ok(Self {
             vocab,
             piece_to_id,
             unk_id,
+            max_piece_chars,
         })
     }
 
@@ -137,35 +150,40 @@ impl UnigramTokenizer {
             return vec![];
         }
 
-        let chars: Vec<char> = text.chars().collect();
-        let n = chars.len();
+        // Byte offset of every char boundary, so candidate pieces are borrowed slices of
+        // `text` instead of freshly allocated strings.
+        let bounds: Vec<usize> = text
+            .char_indices()
+            .map(|(b, _)| b)
+            .chain(std::iter::once(text.len()))
+            .collect();
+        let n = bounds.len() - 1;
 
         // best_score[i] = best log-probability to segment chars[0..i]
-        // best_end[i] = length of the last piece ending at position i
+        // best_end[i] = length of the last piece ending at position i, best_id[i] its id
         let mut best_score = vec![f64::NEG_INFINITY; n + 1];
         let mut best_end = vec![0usize; n + 1];
+        let mut best_id = vec![self.unk_id; n + 1];
         best_score[0] = 0.0;
 
         for i in 1..=n {
             // Try all possible last pieces ending at position i
-            let max_len = i.min(MAX_PIECE_LEN);
+            let max_len = i.min(self.max_piece_chars);
             for len in 1..=max_len {
                 let start = i - len;
                 if best_score[start] == f64::NEG_INFINITY {
                     continue;
                 }
 
-                let piece: String = chars[start..i].iter().collect();
-                let (score, _id) = if let Some(&id) = self.piece_to_id.get(&piece) {
-                    (self.vocab[id].score, id)
-                } else {
+                let Some(&id) = self.piece_to_id.get(&text[bounds[start]..bounds[i]]) else {
                     continue; // This piece is not in vocab
                 };
 
-                let candidate = best_score[start] + score;
+                let candidate = best_score[start] + self.vocab[id].score;
                 if candidate > best_score[i] {
                     best_score[i] = candidate;
                     best_end[i] = len;
+                    best_id[i] = id;
                 }
             }
 
@@ -174,6 +192,7 @@ impl UnigramTokenizer {
                 // Use UNK for single character
                 best_score[i] = best_score[i - 1] + self.vocab[self.unk_id].score;
                 best_end[i] = 1;
+                best_id[i] = self.unk_id;
             }
         }
 
@@ -187,9 +206,7 @@ impl UnigramTokenizer {
                 result.push(self.unk_id);
                 pos -= 1;
             } else {
-                let piece: String = chars[pos - len..pos].iter().collect();
-                let id = self.piece_to_id.get(&piece).copied().unwrap_or(self.unk_id);
-                result.push(id);
+                result.push(best_id[pos]);
                 pos -= len;
             }
         }

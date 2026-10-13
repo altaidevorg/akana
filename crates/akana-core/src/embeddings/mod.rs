@@ -42,6 +42,14 @@ pub use weights::{EmbeddingWeights, EMBEDDING_DIM};
 static WEIGHTS_NPZ: &[u8] = include_bytes!("../../data/embeddings/turboquant_weights.npz");
 static TOKENIZER_JSON: &[u8] = include_bytes!("../../data/embeddings/tokenizer.json");
 
+/// The embedded tokenizer, parsed once and shared by every embedding engine and by code that
+/// needs token ids but not the embedding weights (the style auditor's AI-text detector).
+pub(crate) static TOKENIZER: std::sync::LazyLock<UnigramTokenizer> =
+    std::sync::LazyLock::new(|| {
+        UnigramTokenizer::from_json_bytes(TOKENIZER_JSON)
+            .expect("failed to load embedded tokenizer")
+    });
+
 /// Global coordinate standard deviation for 256-dim unit-normalized Haar-rotated vectors.
 /// sigma = 1 / sqrt(256) = 0.0625.
 pub const EMBEDDING_SCALE_2BIT: f32 = 0.0625;
@@ -129,7 +137,7 @@ pub fn dequantize_1bit_vector(packed: &[u8; PACKED_1BIT_BYTES]) -> [f32; EMBEDDI
 /// Wraps the bundled Model2Vec TurboQuant 2-bit model for zero-config
 /// Turkish text embeddings. Thread-safe and reusable.
 pub struct TurkishEmbeddings {
-    tokenizer: UnigramTokenizer,
+    tokenizer: &'static UnigramTokenizer,
     weights: EmbeddingWeights,
 }
 
@@ -145,8 +153,7 @@ impl TurkishEmbeddings {
     /// This dequantizes all 39,655 token embeddings from 2-bit to f32 at init,
     /// using ~38 MB of RAM. The init cost is a one-time ~50-100ms operation.
     pub fn new() -> Self {
-        let tokenizer = UnigramTokenizer::from_json_bytes(TOKENIZER_JSON)
-            .expect("failed to load embedded tokenizer");
+        let tokenizer = &*TOKENIZER;
         let weights =
             EmbeddingWeights::from_npz_bytes(WEIGHTS_NPZ).expect("failed to load embedded weights");
 

@@ -52,7 +52,7 @@ impl TurkishSpellChecker {
     }
 
     fn load_default_vocabulary(&mut self) {
-        let lex_str = include_str!("../morphology/zemberek_lexicon.txt");
+        let lex_str = crate::morphology::ZEMBEREK_LEXICON;
         for line in lex_str.lines() {
             let line = line.trim();
             if line.is_empty() {

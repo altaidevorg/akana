@@ -2834,7 +2834,7 @@ impl RootLexicon {
         }
 
         // Ingest the complete ~93,000 Turkish dictionary entries and roots
-        let full_lex = include_str!("zemberek_lexicon.txt");
+        let full_lex = crate::morphology::ZEMBEREK_LEXICON;
         self.load_from_str(full_lex);
     }
 }

@@ -19,7 +19,7 @@ pub struct NamedEntity {
 lazy_static! {
     static ref PERSON_NAMES: HashSet<String> = {
         let mut set = HashSet::new();
-        let lex_str = include_str!("../morphology/zemberek_lexicon.txt");
+        let lex_str = crate::morphology::ZEMBEREK_LEXICON;
         for line in lex_str.lines() {
             if line.contains("ProperNoun") {
                 if let Some(first_word) = line.split_whitespace().next() {

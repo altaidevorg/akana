@@ -41,6 +41,8 @@ pub const SOFT_CONSONANTS: [char; 13] = [
 /// Mutable consonants subject to softening (p, ç, t, k)
 pub const MUTABLE_CONSONANTS: [char; 4] = ['p', 'ç', 't', 'k'];
 
+/// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
+/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
 #[inline]
 pub fn is_turkish_vowel(c: char) -> bool {
     matches!(
@@ -95,6 +97,8 @@ pub fn is_unrounded_vowel(c: char) -> bool {
     )
 }
 
+/// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
+/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
 #[inline]
 pub fn is_hard_consonant(c: char) -> bool {
     matches!(
@@ -170,6 +174,9 @@ pub fn to_turkish_upper_char(c: char) -> char {
 }
 
 /// Converts a string slice to lowercase according to Turkish locale rules (e.g. 'I' -> 'ı', 'İ' -> 'i').
+///
+/// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
+/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
 pub fn to_turkish_lower(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     for c in s.chars() {

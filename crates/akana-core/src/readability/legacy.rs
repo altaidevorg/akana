@@ -4,6 +4,15 @@ use super::metrics::{FormulaResult, LegacyResults, TextStatistics};
 
 pub struct LegacyReadability;
 
+/// Ateşman (1997) readability score, unrounded:
+/// `198.825 − 40.175 · syllables per word − 2.610 · words per sentence`.
+///
+/// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
+/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+pub(crate) fn atesman_score(syllables_per_word: f64, words_per_sentence: f64) -> f64 {
+    198.825 - (40.175 * syllables_per_word) - (2.610 * words_per_sentence)
+}
+
 impl LegacyReadability {
     /// Evaluates text readability using classical Turkish formulas.
     pub fn evaluate(stats: &TextStatistics) -> LegacyResults {
@@ -12,8 +21,7 @@ impl LegacyReadability {
         let poly_ratio = stats.polysyllabic_word_ratio;
 
         // 1. Ateşman (1997)
-        // Skor = 198.825 - (40.175 * OSU) - (2.610 * OCU)
-        let atesman_score = 198.825 - (40.175 * osu) - (2.610 * ocu);
+        let atesman_score = atesman_score(osu, ocu);
         let atesman_grade = Self::grade_atesman(atesman_score);
 
         // 2. Çetinkaya-Uzun (2010)
