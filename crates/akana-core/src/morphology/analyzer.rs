@@ -3,6 +3,7 @@
 use super::dictionary::{DictionaryItem, RootLexicon};
 use super::graph::{MorphState, SuffixTransition, TurkishMorphotactics};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
+use super::suffixes::SuffixType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,6 +33,20 @@ pub struct MorphParse {
 
 fn unknown_pos() -> PrimaryPos {
     PrimaryPos::Unknown
+}
+
+/// How a candidate stem was recovered from the surface; the root must allow it.
+#[derive(Clone, Copy)]
+enum StemChange {
+    None,
+    /// kitab- from kitap (RootAttr::VOICING)
+    Voiced,
+    /// burn- from burun (RootAttr::VOWEL_DROP)
+    VowelDropped,
+    /// hakk- from hak (RootAttr::CONSONANT_DOUBLING)
+    Doubled,
+    /// bekl-iyor from bekle (any vowel-final verb)
+    ProgressiveVowelDrop,
 }
 
 pub struct TurkishMorphology {
@@ -93,13 +108,60 @@ impl TurkishMorphology {
                 'â' => 'a',
                 'î' => 'i',
                 'û' => 'u',
+                '’' => '\'',
                 _ => c,
             })
             .collect();
+
+        match lower.split_once('\'') {
+            Some((stem, ending)) if !stem.is_empty() && !ending.is_empty() => {
+                self.analyze_with_apostrophe(clean, stem, ending)
+            }
+            _ => self.analyze_normalized(clean, &lower),
+        }
+    }
+
+    /// Zemberek's analyzeWordsWithApostrophe: analyse the word without the quote and keep the
+    /// noun parses whose root is the part before it (İstanbul'un, Antalya'da). A name that is
+    /// not in the lexicon gets a proper-noun root, as Zemberek's unidentified-token analyzer
+    /// does for words with an apostrophe.
+    fn analyze_with_apostrophe(&self, clean: &str, stem: &str, ending: &str) -> Vec<MorphParse> {
+        let joined = format!("{stem}{ending}");
+        let parses: Vec<MorphParse> = self
+            .analyze_normalized(clean, &joined)
+            .into_iter()
+            .filter(|p| p.primary_pos == PrimaryPos::Noun && p.root == stem)
+            .collect();
+        if !parses.is_empty() {
+            return parses;
+        }
+        let guessed = DictionaryItem::new(
+            stem,
+            stem,
+            PrimaryPos::Noun,
+            SecondaryPos::ProperNoun,
+            RootAttr::PROPER_NOUN,
+        );
+        let mut results = Vec::new();
+        let mut tags = vec!["Noun".to_string()];
+        self.search_suffix_chain(
+            MorphState::NounRoot,
+            PrimaryPos::Noun,
+            ending,
+            &guessed,
+            clean,
+            &mut tags,
+            &mut results,
+            0,
+        );
+        results
+    }
+
+    fn analyze_normalized(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
         let mut results = Vec::new();
 
         // 1. Direct match in dictionary (uninflected base form)
-        if let Some(items) = self.lexicon.get_items(&lower) {
+        if let Some(items) = self.lexicon.get_items(lower) {
             for item in items {
                 let tags = match item.primary_pos {
                     PrimaryPos::Noun => {
@@ -129,6 +191,14 @@ impl TurkishMorphology {
                     item.root,
                     tags.join("+")
                 );
+                // As for inflected readings below: a proper noun or abbreviation written
+                // lower-case (the corpus "proper noun" beklerken) is an unlikely reading.
+                let is_upper = clean.chars().next().is_some_and(|c| c.is_uppercase());
+                let lower_case_proper = !is_upper
+                    && matches!(
+                        item.secondary_pos,
+                        SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+                    );
                 results.push(MorphParse {
                     surface: clean.to_string(),
                     lemma: item.lemma.clone(),
@@ -138,7 +208,7 @@ impl TurkishMorphology {
                     secondary_pos: item.secondary_pos,
                     morpheme_tags: tags,
                     formatted,
-                    score: 1.0,
+                    score: if lower_case_proper { 0.65 } else { 1.0 },
                 });
             }
         }
@@ -159,9 +229,7 @@ impl TurkishMorphology {
                 &suffix_part,
                 clean,
                 &mut results,
-                false,
-                false,
-                false,
+                StemChange::None,
             );
 
             // b) Consonant softening / mutation (e.g. "kitab" from "kitap", "ağac" from "ağaç", "kanad" from "kanat", "ayağ" from "ayak")
@@ -172,9 +240,7 @@ impl TurkishMorphology {
                     &suffix_part,
                     clean,
                     &mut results,
-                    true,
-                    false,
-                    false,
+                    StemChange::Voiced,
                 );
             }
 
@@ -186,9 +252,7 @@ impl TurkishMorphology {
                     &suffix_part,
                     clean,
                     &mut results,
-                    false,
-                    true,
-                    false,
+                    StemChange::VowelDropped,
                 );
             }
 
@@ -200,23 +264,31 @@ impl TurkishMorphology {
                     &suffix_part,
                     clean,
                     &mut results,
-                    false,
-                    false,
-                    true,
+                    StemChange::Doubled,
                 );
             }
 
             // e) Diminutive k-drop (e.g. "küçü" from "küçük", "mini" from "minik", "sıca" from "sıcak")
             let with_k = format!("{candidate_stem}k");
-            self.match_and_traverse(
-                &with_k,
-                &suffix_part,
-                clean,
-                &mut results,
-                false,
-                false,
-                false,
-            );
+            self.match_and_traverse(&with_k, &suffix_part, clean, &mut results, StemChange::None);
+
+            // f) Progressive vowel drop: a vowel-final verb stem loses its vowel before -Iyor
+            // (bekle-iyor -> bekliyor, başla-ıyor -> başlıyor, de-iyor -> diyor), Zemberek's
+            // RootAttribute.ProgressiveVowelDrop.
+            if ["iyor", "ıyor", "uyor", "üyor"]
+                .iter()
+                .any(|p| suffix_part.starts_with(p))
+            {
+                for vowel in ['a', 'e'] {
+                    self.match_and_traverse(
+                        &format!("{candidate_stem}{vowel}"),
+                        &suffix_part,
+                        clean,
+                        &mut results,
+                        StemChange::ProgressiveVowelDrop,
+                    );
+                }
+            }
         }
 
         // Deduplicate results and sort by score descending
@@ -283,33 +355,35 @@ impl TurkishMorphology {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn match_and_traverse(
         &self,
         root_cand: &str,
         suffix_str: &str,
         original_surface: &str,
         results: &mut Vec<MorphParse>,
-        was_voiced: bool,
-        was_vowel_dropped: bool,
-        was_doubled: bool,
+        change: StemChange,
     ) {
         if let Some(items) = self.lexicon.get_items(root_cand) {
             for item in items {
                 // Verify attributes
-                if was_voiced && !item.attributes.contains(RootAttr::VOICING) {
-                    continue;
-                }
-                if was_vowel_dropped && !item.attributes.contains(RootAttr::VOWEL_DROP) {
-                    continue;
-                }
-                if was_doubled && !item.attributes.contains(RootAttr::CONSONANT_DOUBLING) {
+                let allowed = match change {
+                    StemChange::None => true,
+                    StemChange::Voiced => item.attributes.contains(RootAttr::VOICING),
+                    StemChange::VowelDropped => item.attributes.contains(RootAttr::VOWEL_DROP),
+                    StemChange::Doubled => item.attributes.contains(RootAttr::CONSONANT_DOUBLING),
+                    StemChange::ProgressiveVowelDrop => item.primary_pos == PrimaryPos::Verb,
+                };
+                if !allowed {
                     continue;
                 }
 
                 let start_state = match item.primary_pos {
+                    // "değil" carries the negation and behaves like a nominal predicate:
+                    // değil-im, değil-di, değil-se (Zemberek's nVerbDegil_S).
+                    PrimaryPos::Verb if item.root == "değil" => MorphState::NounCase,
                     PrimaryPos::Noun => MorphState::NounRoot,
                     PrimaryPos::Verb => MorphState::VerbRoot,
+                    PrimaryPos::Q => MorphState::QuesRoot,
                     _ => MorphState::NounRoot,
                 };
 
@@ -360,17 +434,15 @@ impl TurkishMorphology {
                 item.root,
                 tags.join("+")
             );
-            let is_upper = original_surface
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_uppercase());
-            // Proper nouns and abbreviations are written capitalised; an inflected lower-case
-            // reading of one (k-ı "ki", kork-tu-m "korktum") is unlikely.
+            // Turkish spelling separates the suffixes of a proper noun or abbreviation with an
+            // apostrophe (Ayşe'nin, TBMM'de), so an inflected reading of one written without it
+            // (k-ı "ki", Anne-m "Annem") is unlikely.
+            let has_apostrophe = original_surface.contains(['\'', '’']);
             let score = if matches!(
                 item.secondary_pos,
                 SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
             ) {
-                if is_upper {
+                if has_apostrophe {
                     0.98
                 } else {
                     0.6
@@ -395,6 +467,16 @@ impl TurkishMorphology {
 
         for tr in &self.transitions {
             if tr.from_state == state {
+                // -CA is the adverbial Ly after an adjective (açık-ça) and the equative case
+                // otherwise (aile-ce, sen-ce), as in Zemberek.
+                let skip = match tr.suffix_type {
+                    SuffixType::DerivLy => pos != PrimaryPos::Adj,
+                    SuffixType::CaseEqu => pos == PrimaryPos::Adj,
+                    _ => false,
+                };
+                if skip {
+                    continue;
+                }
                 // A derivation opens a new inflectional group; nominal inflection on an
                 // adjective is Zemberek's zero derivation to a noun.
                 let next_pos = match tr.suffix_type.derived_pos() {

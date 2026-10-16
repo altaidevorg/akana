@@ -64,9 +64,17 @@ impl MorphologicalDisambiguator {
 
             let mut best_idx = 0;
             let mut best_score = f32::MIN;
+            let mut best_not_p2sg = false;
 
             for (p_idx, parse) in parses.iter().enumerate() {
                 let mut score = parse.score;
+                // Overt morphemes. Only bare dictionary matches spell out the default A3sg/Nom,
+                // so those are not counted.
+                let marked = parse
+                    .morpheme_tags
+                    .iter()
+                    .filter(|t| !matches!(t.as_str(), "A3sg" | "Nom"))
+                    .count();
 
                 // The rules below look at the word's POS after derivation (`pos`): a converb
                 // (baş-la-yınca) is not a noun, a derived verb (an-laş-ıyor-um) is a verb, a
@@ -81,9 +89,11 @@ impl MorphologicalDisambiguator {
                     }
                 }
 
-                // 2. Proper Noun Capitalization Constraint
+                // 2. Proper Noun Capitalization Constraint. Only for a bare name or one whose
+                // suffixes follow an apostrophe: "Annem" is anne-m, not the name Anne + P1sg.
                 if is_first_char_upper
                     && parse.secondary_pos == super::pos::SecondaryPos::ProperNoun
+                    && (marked == 1 || tokens[i].contains(['\'', '’']))
                 {
                     score += 5.0;
                 }
@@ -104,35 +114,36 @@ impl MorphologicalDisambiguator {
                     if prev_pos == PrimaryPos::Adj && parse.pos == PrimaryPos::Noun {
                         score += 1.5;
                     }
-                    if prev_pos == PrimaryPos::Pron && parse.pos == PrimaryPos::Verb {
+                    // A pronoun subject before an inflected verb (ben geldim); a bare verb stem
+                    // is an imperative and gets no help ("ben de" is not "I, say!").
+                    if prev_pos == PrimaryPos::Pron && parse.pos == PrimaryPos::Verb && marked > 1 {
                         score += 1.0;
                     }
                 }
 
-                // 5. Simplicity / Occam's razor preference (fewer derivation layers preferred if tied).
-                // Only bare dictionary matches spell out the default A3sg/Nom, so those are not
-                // counted: otherwise "Ali" (Noun+A3sg+Nom) loses to "Al-i" (Noun+Acc).
-                let marked = parse
-                    .morpheme_tags
-                    .iter()
-                    .filter(|t| !matches!(t.as_str(), "A3sg" | "Nom"))
-                    .count();
+                // 5. Simplicity / Occam's razor preference (fewer derivation layers preferred if
+                // tied), counting overt morphemes: otherwise "Ali" (Noun+A3sg+Nom) loses to
+                // "Al-i" (Noun+Acc).
                 score -= marked as f32 * 0.05;
 
                 // 6. Function-word preference: an unsuffixed conjunction, question particle or
                 // pronoun outranks an unsuffixed open-class homograph (de, ki, mi, ben), which
-                // is far rarer in running text.
-                if marked == 1
-                    && matches!(
-                        parse.primary_pos,
-                        PrimaryPos::Conj | PrimaryPos::Q | PrimaryPos::Pron
-                    )
+                // is far rarer in running text. The question particle keeps it with copula and
+                // person (mi-yiz, mi-ydi-m), where its homograph is the note "mi".
+                if parse.primary_pos == PrimaryPos::Q
+                    || (marked == 1
+                        && matches!(parse.primary_pos, PrimaryPos::Conj | PrimaryPos::Pron))
                 {
                     score += 0.1;
                 }
 
-                if score > best_score {
+                // An exact tie goes away from the 2nd-person possessive, much rarer than the
+                // 3rd in running text (durağ-ı-nda over durağ-ın-da, which used to win as the
+                // alphabetically first analysis); other ties keep the analyzer's order.
+                let not_p2sg = !parse.morpheme_tags.iter().any(|t| t == "P2sg");
+                if score > best_score || (score == best_score && not_p2sg && !best_not_p2sg) {
                     best_score = score;
+                    best_not_p2sg = not_p2sg;
                     best_idx = p_idx;
                 }
             }

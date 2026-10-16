@@ -52,10 +52,13 @@ fn verb_stems_have_no_noun_homographs() {
                 && p.morpheme_tags.iter().any(|t| t == "Past")),
             "{word}: no Verb+Past parse"
         );
+        // A copular reading of a common noun, or of a proper noun scored like one, is the
+        // defect. (Abbreviation readings such as sö-yle-di stay, scored as unlikely.)
         assert!(
             !parses
                 .iter()
-                .any(|p| p.morpheme_tags.iter().any(|t| t == "CopPast")),
+                .any(|p| p.morpheme_tags.iter().any(|t| t == "CopPast")
+                    && (p.secondary_pos == SecondaryPos::None || p.score > 0.9)),
             "{word}: spurious Noun+CopPast parse"
         );
     }

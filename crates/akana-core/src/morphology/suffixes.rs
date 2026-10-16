@@ -86,6 +86,14 @@ pub enum SuffixType {
     DerivAdvIp,      // -(y)ıp, -(y)ip, -(y)up, -(y)üp (Verb -> Adv)
     DerivCausative,  // -dır, -dir, -dur, -dür, -t, -tır... (Verb -> Verb)
     DerivPassive,    // -(ı)l, -(i)l, -(u)l, -(ü)l, -(ı)n, -(i)n... (Verb -> Verb)
+
+    // Added after Zemberek's TurkishMorphotactics (morpheme names in parentheses)
+    DerivWhile,               // -(y)ken: gelirken, çocukken (While)
+    DerivSinceDoingSo,        // -(y)AlI: başlayalı (SinceDoingSo)
+    DerivWithoutHavingDoneSo, // -mAdAn: gelmeden (WithoutHavingDoneSo)
+    DerivLy,                  // -CA on adjectives: açıkça, güzelce (Ly)
+    DerivRelated,             // -sAl: duygusal, geleneksel (Related)
+    TenseImp,                 // -sIn: gelsin, olsun (Imp, 3rd person)
 }
 
 impl SuffixType {
@@ -97,8 +105,14 @@ impl SuffixType {
             DerivInfinitive | DerivActNoun | DerivManner | DerivIm | DerivGi | DerivNess
             | DerivAgent | DiminutiveCik => Some(PrimaryPos::Noun),
             DerivWith | DerivWithout | DerivPresPart | DerivPastPart | DerivFutPart | DerivGin
-            | DerivGen | CliticKi => Some(PrimaryPos::Adj),
-            DerivAdvErek | DerivAdvInce | DerivAdvIp => Some(PrimaryPos::Adv),
+            | DerivGen | CliticKi | DerivRelated => Some(PrimaryPos::Adj),
+            DerivAdvErek
+            | DerivAdvInce
+            | DerivAdvIp
+            | DerivWhile
+            | DerivSinceDoingSo
+            | DerivWithoutHavingDoneSo
+            | DerivLy => Some(PrimaryPos::Adv),
             DerivLe | DerivLes | DerivLendir => Some(PrimaryPos::Verb),
             _ => None,
         }
@@ -195,6 +209,12 @@ impl SuffixType {
             SuffixType::DerivAdvIp => "AdvIp",
             SuffixType::DerivCausative => "Caus",
             SuffixType::DerivPassive => "Pass",
+            SuffixType::DerivWhile => "While",
+            SuffixType::DerivSinceDoingSo => "SinceDoingSo",
+            SuffixType::DerivWithoutHavingDoneSo => "WithoutHavingDoneSo",
+            SuffixType::DerivLy => "Ly",
+            SuffixType::DerivRelated => "Related",
+            SuffixType::TenseImp => "Imp",
         }
     }
 }

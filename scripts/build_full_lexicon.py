@@ -143,7 +143,8 @@ def lexicon_item(word, meta):
     # TurkishDictionaryLoader.normalizeForDictionary: lower-case, no circumflex, dash or quote.
     lemma = normalize_circumflex(turkish_lower(word.replace("-", "").replace("'", "")))
     root = lemma
-    if primary == "Verb":
+    if primary == "Verb" and lemma.endswith(("mak", "mek")):
+        # The infinitive ending is not part of the root; `değil [P:Verb]` has none.
         root = lemma[:-3]
     elif primary in ("Noun", "Adj", "Dup"):
         # TurkishDictionaryLoader.inferMorphemicAttributes

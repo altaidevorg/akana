@@ -13650,8 +13650,8 @@ değerli değerli Adj None
 değersiz değersiz Adj None
 değeç değeç Noun None Voicing
 değgin değgin Adj None
-değil de Verb None
 değil değil Conj None
+değil değil Verb None
 değillemek değille Verb None
 değim değim Noun None
 değin değin Postp None
