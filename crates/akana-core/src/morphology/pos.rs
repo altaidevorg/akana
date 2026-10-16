@@ -17,6 +17,7 @@ pub enum PrimaryPos {
     Punc,
     Dup, // Duplication (ikileme)
     Unknown,
+    Det, // Determiner (bir, bu, her, çok); takes no suffixes, as in Zemberek
 }
 
 impl PrimaryPos {
@@ -35,7 +36,28 @@ impl PrimaryPos {
             PrimaryPos::Punc => "Punc",
             PrimaryPos::Dup => "Dup",
             PrimaryPos::Unknown => "Unk",
+            PrimaryPos::Det => "Det",
         }
+    }
+
+    /// Parses a lexicon POS column (case-insensitive). Accepts Zemberek's `Ques` for `Q`.
+    pub fn from_name(name: &str) -> Option<Self> {
+        Some(match name.to_lowercase().as_str() {
+            "noun" => PrimaryPos::Noun,
+            "verb" => PrimaryPos::Verb,
+            "adj" => PrimaryPos::Adj,
+            "adv" => PrimaryPos::Adv,
+            "pron" => PrimaryPos::Pron,
+            "num" => PrimaryPos::Num,
+            "conj" => PrimaryPos::Conj,
+            "postp" => PrimaryPos::Postp,
+            "interj" => PrimaryPos::Interj,
+            "q" | "ques" => PrimaryPos::Q,
+            "punc" => PrimaryPos::Punc,
+            "dup" => PrimaryPos::Dup,
+            "det" => PrimaryPos::Det,
+            _ => return None,
+        })
     }
 }
 
@@ -55,6 +77,7 @@ pub enum SecondaryPos {
     Quantitive,
     Question,
     Relative,
+    Abbreviation,
 }
 
 impl SecondaryPos {
@@ -74,7 +97,30 @@ impl SecondaryPos {
             SecondaryPos::Quantitive => "Quant",
             SecondaryPos::Question => "Ques",
             SecondaryPos::Relative => "Rel",
+            SecondaryPos::Abbreviation => "Abbrv",
         }
+    }
+
+    /// Parses a lexicon secondary-POS token (case-insensitive): the short names of
+    /// [`SecondaryPos::as_str`] plus the long forms the lexicon files use (`ProperNoun`).
+    pub fn from_name(name: &str) -> Option<Self> {
+        Some(match name.to_lowercase().as_str() {
+            "prop" | "proper" | "propernoun" => SecondaryPos::ProperNoun,
+            "time" => SecondaryPos::Time,
+            "ord" | "ordinal" => SecondaryPos::Ordinal,
+            "card" | "cardinal" => SecondaryPos::Cardinal,
+            "dist" | "distributive" => SecondaryPos::Distributive,
+            "percent" => SecondaryPos::Percentage,
+            "demons" | "demonstrative" => SecondaryPos::Demonstrative,
+            "pers" | "personal" => SecondaryPos::Personal,
+            "reflex" | "reflexive" => SecondaryPos::Reflexive,
+            "recip" | "reciprocal" => SecondaryPos::Reciprocal,
+            "quant" | "quantitive" => SecondaryPos::Quantitive,
+            "ques" | "question" => SecondaryPos::Question,
+            "rel" | "relative" => SecondaryPos::Relative,
+            "abbrv" | "abbreviation" => SecondaryPos::Abbreviation,
+            _ => return None,
+        })
     }
 }
 

@@ -1,129 +1,193 @@
-import zeyrek, os, inspect, re
+"""Builds crates/akana-core/src/morphology/zemberek_lexicon.txt from Zemberek's dictionaries.
 
-pkg_dir = os.path.dirname(inspect.getfile(zeyrek))
-res_dir = os.path.join(pkg_dir, 'resources', 'tr')
+Usage:
+    python scripts/build_full_lexicon.py --resources ZEMBEREK/morphology/src/main/resources/tr
 
-dict_files = [
-    'master-dictionary.dict',
-    'non-tdk.dict',
-    'locations-tr.dict',
-    'person-names.dict',
-    'proper-from-corpus.dict',
-    'proper.dict',
-    'abbreviations.dict',
-    'informal.dict',
+The resource directory is the `tr` folder of a zemberek-nlp checkout (or of a Zeyrek install,
+whose resources are copies of it). The lexicon in this repository was built from zemberek-nlp
+commit 037202c7e18b977c95181a76db05cb1e95846554.
+
+Every rule mirrors zemberek.morphology.lexicon.tr.TurkishDictionaryLoader so that the root
+inventory matches Zemberek's own:
+
+- Only Zemberek's default resources are read (`DEFAULT_DICTIONARY_RESOURCES`). The location
+  gazetteer is not one of them: it holds ~28k village names, many of which are also common
+  words (Kork, Bekler, Yağma), and loading it turned ordinary verbs into proper nouns.
+- An explicit `P:` POS always wins. A word is inferred to be a verb only when it has no
+  primary POS, starts lower-case, is longer than 3 letters and ends in -mak/-mek
+  (`inferPrimaryPos`/`isVerb`); `yemek [P:Noun]` stays a noun.
+- A word without a secondary POS is a proper noun when it starts upper-case
+  (`inferSecondaryPos`). `Abbrv` is kept as a secondary POS instead of being dropped.
+- Voicing is inferred as in `inferMorphemicAttributes`: nouns, adjectives and duplicators with
+  more than one vowel ending in ç/k/p/t, or ending in -nk/-og, unless they are proper nouns,
+  abbreviations, `NoVoicing` or `InverseHarmony`. Verbs are only voiced when the entry says so.
+
+Output format (one item per line): `lemma root POS SECONDARY [ATTRIBUTES...]`.
+"""
+
+import argparse
+import os
+
+# zemberek.morphology.lexicon.tr.TurkishDictionaryLoader.DEFAULT_DICTIONARY_RESOURCES
+DEFAULT_RESOURCES = [
+    "master-dictionary.dict",
+    "non-tdk.dict",
+    "proper.dict",
+    "proper-from-corpus.dict",
+    "abbreviations.dict",
+    "person-names.dict",
 ]
 
-entries = {} # key = (lemma, root) -> (lemma, root, pos, sec_pos, attrs)
+# Zemberek primary POS short forms -> Akana loader names.
+PRIMARY = {
+    "Noun": "Noun",
+    "Adj": "Adj",
+    "Adv": "Adv",
+    "Conj": "Conj",
+    "Interj": "Interj",
+    "Verb": "Verb",
+    "Pron": "Pron",
+    "Num": "Num",
+    "Det": "Det",
+    "Postp": "Postp",
+    "Ques": "Q",
+    "Dup": "Dup",
+    "Punc": "Punc",
+}
 
-for fname in dict_files:
-    fpath = os.path.join(res_dir, fname)
-    if not os.path.exists(fpath):
-        continue
-    with open(fpath, encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#') or line.startswith('//'):
-                continue
-            
-            # Format: 'word [P:Pos; A:Attr1, Attr2]'
-            match = re.match(r'^([^\s\[\]]+)(?:\s*\[(.*)\])?', line)
-            if not match:
-                continue
-            raw_word = match.group(1).strip()
-            meta = match.group(2) or ''
-            
-            if not raw_word or len(raw_word) == 0:
-                continue
-            
-            # Ignore pure punctuation or symbols in root lexicon
-            if not any(c.isalpha() for c in raw_word):
-                continue
+# Zemberek secondary POS short forms -> Akana loader names. Postposition case government
+# (PCDat, PCAbl, ...) has no Akana counterpart and is dropped.
+SECONDARY = {
+    "Prop": "ProperNoun",
+    "Abbrv": "Abbrv",
+    "Time": "Time",
+    "Ord": "Ord",
+    "Card": "Card",
+    "Dist": "Dist",
+    "Pers": "Pers",
+    "Demons": "Demons",
+    "Quant": "Quant",
+    "Ques": "Ques",
+    "Reflex": "Reflex",
+    "Recip": "Recip",
+    "Rel": "Rel",
+}
 
-            lower_word = raw_word.replace('I', 'ı').replace('İ', 'i').lower()
-            
-            pos = 'Noun'
-            sec_pos = 'None'
-            attrs = set()
-            
-            # Determine POS from meta
-            if 'P:Verb' in meta or lower_word.endswith('mak') or lower_word.endswith('mek'):
-                pos = 'Verb'
-            elif 'P:Adj' in meta:
-                pos = 'Adj'
-            elif 'P:Adv' in meta:
-                pos = 'Adv'
-            elif 'P:Pron' in meta:
-                pos = 'Pron'
-            elif 'P:Conj' in meta:
-                pos = 'Conj'
-            elif 'P:Postp' in meta:
-                pos = 'Postp'
-            elif 'P:Interj' in meta:
-                pos = 'Interj'
-            elif 'P:Ques' in meta:
-                pos = 'Q'
-            if 'P:ProperNoun' in meta or 'person-names' in fname or 'locations' in fname or 'proper' in fname:
-                pos = 'Noun'
-                sec_pos = 'ProperNoun'
-                attrs.add('ProperNoun')
-            
-            if 'Voicing' in meta and 'NoVoicing' not in meta:
-                attrs.add('Voicing')
-            elif pos != 'Verb' and (lower_word.endswith('k') or lower_word.endswith('p') or lower_word.endswith('ç') or lower_word.endswith('t')):
-                if 'NoVoicing' not in meta:
-                    attrs.add('Voicing')
-                    
-            if 'VoicingNew' in meta or 'VoicingOpt' in meta:
-                attrs.add('Voicing')
-                
-            if 'LastVowelDrop' in meta or 'VowelDrop' in meta:
-                attrs.add('VowelDrop')
-                
-            if 'Doubling' in meta:
-                attrs.add('Doubling')
-                
-            if 'InverseHarmony' in meta:
-                attrs.add('InverseHarmony')
-                
-            root = lower_word
-            if pos == 'Verb' and (lower_word.endswith('mak') or lower_word.endswith('mek')):
-                root = lower_word[:-3]
-                if root.endswith('t') or root.endswith('k') or root.endswith('p') or root.endswith('ç'):
-                    attrs.add('Voicing')
-                
-            if 'proper-from-corpus' in fname:
-                # If unvoiced version exists in master dictionary (e.g. kitab -> kitap, ağac -> ağaç), skip
-                unvoiced = lower_word[:-1] + ({'b': 'p', 'c': 'ç', 'd': 't', 'ğ': 'k', 'g': 'k'}.get(lower_word[-1], lower_word[-1])) if len(lower_word) > 1 else lower_word
-                if unvoiced != lower_word and ((unvoiced, unvoiced, 'Noun') in entries or (unvoiced, unvoiced, 'Adj') in entries):
-                    continue
+# Zemberek attributes kept in the Akana lexicon.
+ATTRIBUTES = {
+    "Voicing": "Voicing",
+    "LastVowelDrop": "VowelDrop",
+    "Doubling": "Doubling",
+    "InverseHarmony": "InverseHarmony",
+    "CompoundP3sg": "CompoundP3sg",
+}
 
-            key = (lower_word, root, pos)
-            attr_str = ' '.join(sorted(list(attrs)))
-            entries[key] = (lower_word, root, pos, sec_pos, attr_str)
+VOWELS = set("aeıioöuüâîû")
+STOP_CONSONANTS = set("çkpt")  # TurkishAlphabet.stopConsonants
 
-# Also load 4600 words
-with open('data/kalyoncu_words_4600.txt', encoding='utf-8') as f:
-    for line in f:
-        w = line.strip()
-        if not w:
+
+def turkish_lower(word):
+    return word.replace("I", "ı").replace("İ", "i").lower()
+
+
+def normalize_circumflex(word):
+    # TurkishAlphabet.normalizeCircumflex: roots are stored without â/î/û (nikâh -> nikah).
+    return word.replace("â", "a").replace("î", "i").replace("û", "u")
+
+
+def parse_line(line):
+    """Returns (word, {key: [values]}) for a dictionary line, or None for comments/blanks."""
+    line = line.strip()
+    if not line or line.startswith("##"):
+        return None
+    if "[" in line:
+        word, _, rest = line.partition("[")
+        meta_str = rest.rsplit("]", 1)[0]
+    else:
+        word, meta_str = line, ""
+    word = word.strip()
+    meta = {}
+    for chunk in meta_str.split(";"):
+        key, sep, value = chunk.partition(":")
+        if not sep:
             continue
-        if w.endswith('mak') or w.endswith('mek'):
-            stem = w[:-3]
-            attr = 'Voicing' if (stem.endswith('t') or stem.endswith('k') or stem.endswith('p') or stem.endswith('ç')) else ''
-            entries[(w, stem, 'Verb')] = (w, stem, 'Verb', 'None', attr)
-            entries[(stem, stem, 'Verb')] = (stem, stem, 'Verb', 'None', attr)
-        else:
-            attr = 'Voicing' if (w.endswith('k') or w.endswith('p') or w.endswith('ç') or w.endswith('t')) else ''
-            entries[(w, w, 'Noun')] = (w, w, 'Noun', 'None', attr)
+        meta[key.strip()] = [v.strip() for v in value.split(",") if v.strip()]
+    return word, meta
 
-out_file = 'crates/akana-core/src/morphology/zemberek_lexicon.txt'
-with open(out_file, 'w', encoding='utf-8') as f:
-    for (lower_word, root, pos, sec_pos, attr_str) in sorted(entries.values()):
-        if attr_str:
-            f.write(f"{lower_word} {root} {pos} {sec_pos} {attr_str}\n")
-        else:
-            f.write(f"{lower_word} {root} {pos} {sec_pos}\n")
 
-print(f"Generated {out_file} with {len(entries)} total entries.")
-print(f"File size: {os.path.getsize(out_file) / 1024 / 1024:.2f} MB")
+def is_verb(word):
+    # TurkishDictionaryLoader.isVerb
+    return word[:1].islower() and len(word) > 3 and (word.endswith("mek") or word.endswith("mak"))
+
+
+def lexicon_item(word, meta):
+    """Converts one Zemberek entry to (lemma, root, pos, secondary, attrs), or None to skip."""
+    if not any(c.isalpha() for c in word):
+        return None
+    primary, secondary = None, None
+    for token in meta.get("P", []):
+        # "Ques" is both a primary and a secondary POS in Zemberek; the first one is primary.
+        if primary is None and token in PRIMARY:
+            primary = PRIMARY[token]
+        elif token in SECONDARY and secondary is None:
+            secondary = SECONDARY[token]
+    if primary is None:
+        primary = "Verb" if is_verb(word) else "Noun"
+    if secondary is None:
+        secondary = "ProperNoun" if word[:1].isupper() else "None"
+    if primary == "Punc":
+        return None
+
+    raw_attrs = set(meta.get("A", []))
+    attrs = {ATTRIBUTES[a] for a in raw_attrs if a in ATTRIBUTES}
+    # TurkishDictionaryLoader.normalizeForDictionary: lower-case, no circumflex, dash or quote.
+    lemma = normalize_circumflex(turkish_lower(word.replace("-", "").replace("'", "")))
+    root = lemma
+    if primary == "Verb":
+        root = lemma[:-3]
+    elif primary in ("Noun", "Adj", "Dup"):
+        # TurkishDictionaryLoader.inferMorphemicAttributes
+        vowels = sum(1 for c in lemma if c in VOWELS)
+        voicing_allowed = (
+            secondary not in ("ProperNoun", "Abbrv")
+            and "NoVoicing" not in raw_attrs
+            and "InverseHarmony" not in raw_attrs
+        )
+        if vowels > 1 and lemma[-1] in STOP_CONSONANTS and voicing_allowed:
+            attrs.add("Voicing")
+        if (lemma.endswith("nk") or lemma.endswith("og")) and (
+            "NoVoicing" not in raw_attrs and secondary != "ProperNoun"
+        ):
+            attrs.add("Voicing")
+    if secondary == "ProperNoun":
+        attrs.add("ProperNoun")
+    return lemma, root, primary, secondary, tuple(sorted(attrs))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--resources", required=True, help="Zemberek resources/tr directory")
+    parser.add_argument(
+        "--output", default="crates/akana-core/src/morphology/zemberek_lexicon.txt"
+    )
+    args = parser.parse_args()
+
+    items = set()
+    for name in DEFAULT_RESOURCES:
+        with open(os.path.join(args.resources, name), encoding="utf-8") as f:
+            for line in f:
+                parsed = parse_line(line)
+                if parsed is None:
+                    continue
+                item = lexicon_item(*parsed)
+                if item is not None:
+                    items.add(item)
+
+    with open(args.output, "w", encoding="utf-8", newline="\r\n") as f:
+        for lemma, root, pos, secondary, attrs in sorted(items):
+            f.write(" ".join([lemma, root, pos, secondary, *attrs]) + "\n")
+    print(f"Wrote {len(items)} items to {args.output}")
+
+
+if __name__ == "__main__":
+    main()

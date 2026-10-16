@@ -71,6 +71,7 @@ impl TurkishDependencyParser {
                 PrimaryPos::Postp => "ADP",
                 PrimaryPos::Interj => "INTJ",
                 PrimaryPos::Punc => "PUNCT",
+                PrimaryPos::Det => "DET",
                 _ => "X",
             }
             .to_string();
@@ -96,6 +97,12 @@ impl TurkishDependencyParser {
                     head = root_idx + 1;
                     deprel = "amod".to_string();
                 }
+            } else if parse.primary_pos == PrimaryPos::Det {
+                // A determiner modifies the following noun (det)
+                if i + 1 < n && disambiguated[i + 1].primary_pos == PrimaryPos::Noun {
+                    head = i + 2;
+                }
+                deprel = "det".to_string();
             } else if parse.primary_pos == PrimaryPos::Adv {
                 head = root_idx + 1;
                 deprel = "advmod".to_string();

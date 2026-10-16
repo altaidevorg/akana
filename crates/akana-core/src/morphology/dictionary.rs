@@ -79,6 +79,10 @@ impl RootLexicon {
     /// Loads custom dictionary lines in format:
     /// `lemma root POS [SecondaryPOS] [Attributes]`
     /// e.g. `bilgisayar bilgisayar Noun` or `kitap kitap Noun Voicing`
+    ///
+    /// The secondary POS uses the names of [`SecondaryPos::from_name`] (`Prop`/`ProperNoun`,
+    /// `Abbrv`, `Time`, `Pers`, ...); `None` means no secondary POS. An unknown primary POS
+    /// is read as `Noun`.
     pub fn load_from_str(&mut self, text: &str) {
         for line in text.lines() {
             let line = line.trim();
@@ -92,33 +96,27 @@ impl RootLexicon {
 
             let lemma = parts[0];
             let root = parts[1];
-            let primary_pos = match parts[2].to_lowercase().as_str() {
-                "noun" => PrimaryPos::Noun,
-                "verb" => PrimaryPos::Verb,
-                "adj" => PrimaryPos::Adj,
-                "adv" => PrimaryPos::Adv,
-                "pron" => PrimaryPos::Pron,
-                "num" => PrimaryPos::Num,
-                "conj" => PrimaryPos::Conj,
-                "postp" => PrimaryPos::Postp,
-                "interj" => PrimaryPos::Interj,
-                "q" => PrimaryPos::Q,
-                _ => PrimaryPos::Noun,
-            };
+            let primary_pos = PrimaryPos::from_name(parts[2]).unwrap_or(PrimaryPos::Noun);
 
             let mut sec_pos = SecondaryPos::None;
             let mut attrs = RootAttr::NONE;
 
             for &p in &parts[3..] {
+                if let Some(sec) = SecondaryPos::from_name(p) {
+                    sec_pos = sec;
+                    if sec == SecondaryPos::ProperNoun {
+                        attrs |= RootAttr::PROPER_NOUN;
+                    }
+                    continue;
+                }
                 match p.to_lowercase().as_str() {
-                    "prop" | "proper" => sec_pos = SecondaryPos::ProperNoun,
-                    "time" => sec_pos = SecondaryPos::Time,
                     "voicing" => attrs |= RootAttr::VOICING,
                     "voweldrop" => attrs |= RootAttr::VOWEL_DROP,
                     "doubling" => attrs |= RootAttr::CONSONANT_DOUBLING,
                     "inverseharmony" => attrs |= RootAttr::INVERSE_HARMONY,
-                    "propernoun" => attrs |= RootAttr::PROPER_NOUN,
                     "vowelmutation" => attrs |= RootAttr::VOWEL_MUTATION,
+                    "compoundp3sg" => attrs |= RootAttr::COMPOUND_P3SG,
+                    "plural" => attrs |= RootAttr::PLURAL,
                     _ => {}
                 }
             }

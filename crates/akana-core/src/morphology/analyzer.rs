@@ -75,7 +75,17 @@ impl TurkishMorphology {
             return Vec::new();
         }
 
-        let lower = super::super::phonology::to_turkish_lower(clean);
+        // Lexicon roots carry no circumflex (nikâh -> nikah), as in Zemberek's
+        // normalizeForAnalysis.
+        let lower: String = super::super::phonology::to_turkish_lower(clean)
+            .chars()
+            .map(|c| match c {
+                'â' => 'a',
+                'î' => 'i',
+                'û' => 'u',
+                _ => c,
+            })
+            .collect();
         let mut results = Vec::new();
 
         // 1. Direct match in dictionary (uninflected base form)
@@ -99,6 +109,7 @@ impl TurkishMorphology {
                     PrimaryPos::Punc => vec!["Punc".to_string()],
                     PrimaryPos::Dup => vec!["Dup".to_string()],
                     PrimaryPos::Unknown => vec!["Unk".to_string()],
+                    PrimaryPos::Det => vec!["Det".to_string()],
                 };
 
                 let formatted = format!(
@@ -340,7 +351,12 @@ impl TurkishMorphology {
                 .chars()
                 .next()
                 .is_some_and(|c| c.is_uppercase());
-            let score = if item.secondary_pos == SecondaryPos::ProperNoun {
+            // Proper nouns and abbreviations are written capitalised; an inflected lower-case
+            // reading of one (k-ı "ki", kork-tu-m "korktum") is unlikely.
+            let score = if matches!(
+                item.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            ) {
                 if is_upper {
                     0.98
                 } else {

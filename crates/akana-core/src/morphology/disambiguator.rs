@@ -83,18 +83,13 @@ impl MorphologicalDisambiguator {
                     score += 5.0;
                 }
 
-                // 3. Pre-nominal modifier constraint (Adj / Demons before Noun)
-                if i + 1 < n {
-                    let next_parses = &analyses_per_token[i + 1];
-                    let next_likely_noun = next_parses.iter().any(|np| {
-                        np.primary_pos == PrimaryPos::Noun
-                            && np.secondary_pos != super::pos::SecondaryPos::ProperNoun
-                    });
-                    if next_likely_noun
-                        && (parse.primary_pos == PrimaryPos::Adj
-                            || parse.secondary_pos == super::pos::SecondaryPos::Demonstrative)
-                    {
-                        score += 2.0;
+                // 3. Pre-nominal modifier constraint (Adj / Det before Noun). Determiners (bu, o,
+                // bir, her) also have Adj and Pron entries; before a noun the Det reading wins.
+                if i + 1 < n && noun_ahead(&analyses_per_token[i + 1..]) {
+                    match parse.primary_pos {
+                        PrimaryPos::Adj => score += 2.0,
+                        PrimaryPos::Det => score += 2.1,
+                        _ => {}
                     }
                 }
 
@@ -109,8 +104,27 @@ impl MorphologicalDisambiguator {
                     }
                 }
 
-                // 5. Simplicity / Occam's razor preference (fewer derivation layers preferred if tied)
-                score -= parse.morpheme_tags.len() as f32 * 0.05;
+                // 5. Simplicity / Occam's razor preference (fewer derivation layers preferred if tied).
+                // Only bare dictionary matches spell out the default A3sg/Nom, so those are not
+                // counted: otherwise "Ali" (Noun+A3sg+Nom) loses to "Al-i" (Noun+Acc).
+                let marked = parse
+                    .morpheme_tags
+                    .iter()
+                    .filter(|t| !matches!(t.as_str(), "A3sg" | "Nom"))
+                    .count();
+                score -= marked as f32 * 0.05;
+
+                // 6. Function-word preference: an unsuffixed conjunction, question particle or
+                // pronoun outranks an unsuffixed open-class homograph (de, ki, mi, ben), which
+                // is far rarer in running text.
+                if marked == 1
+                    && matches!(
+                        parse.primary_pos,
+                        PrimaryPos::Conj | PrimaryPos::Q | PrimaryPos::Pron
+                    )
+                {
+                    score += 0.1;
+                }
 
                 if score > best_score {
                     best_score = score;
@@ -123,4 +137,25 @@ impl MorphologicalDisambiguator {
 
         chosen
     }
+}
+
+/// Whether the following tokens are a noun phrase head, possibly after a run of adjectives
+/// ("bu [güzel] kitap"). A token counts as a noun when it has a common-noun reading and no
+/// adjective reading; one that could be either continues the run. Ending the run without a
+/// noun ("Bu doğru") means the word before is not a pre-nominal modifier.
+fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
+    for parses in following {
+        let noun = parses.iter().any(|p| {
+            p.primary_pos == PrimaryPos::Noun
+                && p.secondary_pos != super::pos::SecondaryPos::ProperNoun
+        });
+        let adj = parses.iter().any(|p| p.primary_pos == PrimaryPos::Adj);
+        if noun && !adj {
+            return true;
+        }
+        if !adj {
+            return false;
+        }
+    }
+    false
 }
