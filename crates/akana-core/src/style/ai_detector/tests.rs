@@ -162,3 +162,64 @@ fn outputs_match_training_fixture() {
             .expect("valid fixture");
     check_references(&rows);
 }
+
+/// Re-baselines `tests/data/ai_detector_reference.json` after a deliberate change to the
+/// model's inputs, when retraining is not done at the same time:
+/// `AKANA_AI_DETECTOR_REBASELINE="<why>" cargo test -p akana-core --lib -- --ignored
+/// rebaseline_training_reference`. Rows whose inputs and probability still match keep the
+/// training code's values byte for byte; the others get this implementation's inputs and
+/// probability and a `rebaselined` note. Retraining the model replaces the whole file.
+#[test]
+#[ignore = "rewrites tests/data/ai_detector_reference.json; set AKANA_AI_DETECTOR_REBASELINE"]
+fn rebaseline_training_reference() {
+    let note = std::env::var("AKANA_AI_DETECTOR_REBASELINE")
+        .expect("set AKANA_AI_DETECTOR_REBASELINE to the reason for the re-baseline");
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/data/ai_detector_reference.json"
+    );
+    let original = std::fs::read_to_string(path).expect("readable reference");
+    let mut changed = 0;
+    let mut lines = Vec::new();
+    // The file holds one row object per line, each but the last followed by a comma.
+    for line in original.lines() {
+        let (body, comma) = match line.strip_suffix(',') {
+            Some(body) => (body, ","),
+            None => (line, ""),
+        };
+        let Ok(row) = serde_json::from_str::<serde_json::Value>(body) else {
+            lines.push(line.to_string());
+            continue;
+        };
+        let text = row["text"].as_str().expect("row text");
+        let stored: Vec<f64> = serde_json::from_value(row["x"].clone()).expect("row x");
+        let x = inputs(text).x;
+        let p = probability(text);
+        let same = x.len() == stored.len()
+            && x.iter()
+                .zip(&stored)
+                .all(|(&got, &want)| (got - want).abs() <= 1e-6 * (1.0 + want.abs()))
+            && (p - row["p"].as_f64().expect("row p")).abs() < 1e-9;
+        if same {
+            lines.push(line.to_string());
+            continue;
+        }
+        changed += 1;
+        let field = |v: &serde_json::Value| serde_json::to_string(v).expect("serialisable");
+        lines.push(format!(
+            "{{\"source\":{},\"id\":{},\"text\":{},\"x\":{},\"p\":{},\"rebaselined\":{}}}{comma}",
+            field(&row["source"]),
+            field(&row["id"]),
+            field(&row["text"]),
+            serde_json::to_string(&x).expect("serialisable"),
+            serde_json::to_string(&p).expect("serialisable"),
+            serde_json::to_string(&note).expect("serialisable"),
+        ));
+    }
+    let mut out = lines.join("\n");
+    if original.ends_with('\n') {
+        out.push('\n');
+    }
+    std::fs::write(path, out).expect("writable reference");
+    println!("re-baselined {changed} rows");
+}
