@@ -85,6 +85,22 @@ fn bare_verb_stems_are_imperatives() {
 }
 
 #[test]
+fn coordinators_stay_coordinators() {
+    // hem ... hem de: the second hem followed an adjective (sessiz) or a participle reading
+    // (kalacak) and turned into he-m (Noun+P1sg).
+    for sentence in [
+        "Kütüphane hem çok sessiz hem de çok ferah",
+        "hem müşterimiz memnun kalacak hem de ekibimiz dinlenebilecek",
+    ] {
+        let tokens: Vec<&str> = sentence.split_whitespace().collect();
+        let chosen = MorphologicalDisambiguator::new().disambiguate(&tokens);
+        for p in chosen.iter().filter(|p| p.surface == "hem") {
+            assert_eq!(p.primary_pos, PrimaryPos::Conj, "{sentence}");
+        }
+    }
+}
+
+#[test]
 fn predicates_are_not_attributive() {
     // "yoğundu" closes a clause, so "ki" is the conjunction, not k-ı after an adjective.
     let sentence = "Bu sabah trafik o kadar yoğundu ki işe bir saat geç kaldım";

@@ -120,6 +120,7 @@ impl MorphologicalDisambiguator {
                         && parse.pos == PrimaryPos::Noun
                         && !is_predicate(&chosen[i - 1])
                         && !is_predicate(parse)
+                        && !is_function_word(parses)
                     {
                         score += 1.5;
                     }
@@ -170,6 +171,9 @@ impl MorphologicalDisambiguator {
 /// noun ("Bu doğru") means the word before is not a pre-nominal modifier.
 fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
     for parses in following {
+        if is_function_word(parses) {
+            return false;
+        }
         let noun = parses.iter().any(|p| {
             p.pos == PrimaryPos::Noun && p.secondary_pos != super::pos::SecondaryPos::ProperNoun
         });
@@ -182,4 +186,18 @@ fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
         }
     }
     false
+}
+
+/// Whether a token is read as a bare conjunction, question particle or postposition (hem, ki,
+/// mi, kadar). Such a word is not a noun phrase head even when a rare suffixed noun reading
+/// exists (he-m "my h"), so it neither attracts a pre-nominal modifier nor gets the
+/// noun-after-adjective bonus; "kalacak hem de" kept turning hem into a noun.
+fn is_function_word(parses: &[MorphParse]) -> bool {
+    parses.iter().any(|p| {
+        p.morpheme_tags.len() == 1
+            && matches!(
+                p.primary_pos,
+                PrimaryPos::Conj | PrimaryPos::Q | PrimaryPos::Postp
+            )
+    })
 }
