@@ -715,8 +715,9 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbTense,
                 to_state: MorphState::NounCopula,
                 suffix_type: SuffixType::CopulaPast,
+                // -ydı was missing (ydu was listed twice), so ol-sa-ydı and yap-malı-ydı failed.
                 surface_templates: &[
-                    "du", "dü", "dı", "di", "tu", "tü", "tı", "ti", "ydu", "ydi", "ydu", "ydü",
+                    "du", "dü", "dı", "di", "tu", "tü", "tı", "ti", "ydu", "ydi", "ydı", "ydü",
                 ],
             },
             SuffixTransition {
@@ -748,7 +749,8 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbRoot,
                 suffix_type: SuffixType::DerivPassive,
-                surface_templates: &["ıl", "il", "ul", "ül", "ın", "in", "un", "ün", "l", "n"],
+                // No bare -l: Turkish (and Zemberek) has none; the analyzer rejected it anyway.
+                surface_templates: &["ıl", "il", "ul", "ül", "ın", "in", "un", "ün", "n"],
             },
             SuffixTransition {
                 from_state: MorphState::VerbRoot,

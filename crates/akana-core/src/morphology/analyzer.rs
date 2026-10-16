@@ -341,14 +341,19 @@ impl TurkishMorphology {
             }
         }
 
-        // Deduplicate results and sort by score descending
+        // Sort by score descending, then drop repeats of the same reading wherever they sit,
+        // keeping the best-scored one. A reading is its analysis string plus its secondary POS:
+        // the string does not show it, so deduplicating on the string alone (adjacent only)
+        // dropped Ekmek's proper-noun reading when it tied with the common noun and kept such
+        // pairs when they did not tie.
         results.sort_by(|a, b| {
             b.score
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
                 .then_with(|| a.formatted.cmp(&b.formatted))
         });
-        results.dedup_by(|a, b| a.formatted == b.formatted);
+        let mut seen = std::collections::HashSet::new();
+        results.retain(|p| seen.insert((p.formatted.clone(), p.secondary_pos)));
 
         results
     }

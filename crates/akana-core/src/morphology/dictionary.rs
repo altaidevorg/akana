@@ -59,9 +59,13 @@ impl RootLexicon {
         }
     }
 
+    /// Adds an item; an item equal to one already stored is ignored (the built-in list and
+    /// the generated lexicon repeat many entries, and an exact copy only duplicates work).
     pub fn add_item(&mut self, item: DictionaryItem) {
-        let key = item.root.clone();
-        self.items_by_root.entry(key).or_default().push(item);
+        let bucket = self.items_by_root.entry(item.root.clone()).or_default();
+        if !bucket.contains(&item) {
+            bucket.push(item);
+        }
     }
 
     pub fn get_items(&self, root: &str) -> Option<&Vec<DictionaryItem>> {
@@ -735,13 +739,6 @@ impl RootLexicon {
                 PrimaryPos::Noun,
                 SecondaryPos::None,
                 RootAttr::CONSONANT_DOUBLING | RootAttr::VOICING,
-            ),
-            (
-                "zam",
-                "zam",
-                PrimaryPos::Noun,
-                SecondaryPos::None,
-                RootAttr::CONSONANT_DOUBLING,
             ),
             (
                 "haz",
