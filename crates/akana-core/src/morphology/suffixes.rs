@@ -1,5 +1,6 @@
 //! Suffix definitions, clitics, and morpheme representations for Turkish.
 
+use super::pos::PrimaryPos;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -85,9 +86,61 @@ pub enum SuffixType {
     DerivAdvIp,      // -(y)ıp, -(y)ip, -(y)up, -(y)üp (Verb -> Adv)
     DerivCausative,  // -dır, -dir, -dur, -dür, -t, -tır... (Verb -> Verb)
     DerivPassive,    // -(ı)l, -(i)l, -(u)l, -(ü)l, -(ı)n, -(i)n... (Verb -> Verb)
+
+    // Added after Zemberek's TurkishMorphotactics (morpheme names in parentheses)
+    DerivWhile,               // -(y)ken: gelirken, çocukken (While)
+    DerivSinceDoingSo,        // -(y)AlI: başlayalı (SinceDoingSo)
+    DerivWithoutHavingDoneSo, // -mAdAn: gelmeden (WithoutHavingDoneSo)
+    DerivLy,                  // -CA on adjectives: açıkça, güzelce (Ly)
+    DerivRelated,             // -sAl: duygusal, geleneksel (Related)
+    TenseImp,                 // -sIn: gelsin, olsun (Imp, 3rd person)
 }
 
 impl SuffixType {
+    /// The POS a derivational suffix produces, i.e. the POS of the inflectional group it
+    /// opens (Zemberek's derivational morphemes). `None` for inflection, voice and copula.
+    pub fn derived_pos(&self) -> Option<PrimaryPos> {
+        use SuffixType::*;
+        match self {
+            DerivInfinitive | DerivActNoun | DerivManner | DerivIm | DerivGi | DerivNess
+            | DerivAgent | DiminutiveCik => Some(PrimaryPos::Noun),
+            DerivWith | DerivWithout | DerivPresPart | DerivPastPart | DerivFutPart | DerivGin
+            | DerivGen | CliticKi | DerivRelated => Some(PrimaryPos::Adj),
+            DerivAdvErek
+            | DerivAdvInce
+            | DerivAdvIp
+            | DerivWhile
+            | DerivSinceDoingSo
+            | DerivWithoutHavingDoneSo
+            | DerivLy => Some(PrimaryPos::Adv),
+            DerivLe | DerivLes | DerivLendir => Some(PrimaryPos::Verb),
+            _ => None,
+        }
+    }
+
+    /// Whether the suffix is nominal number, possession or case. On an adjective it implies
+    /// a zero derivation to a noun (güzel-i, oku-duğ-um), as in Zemberek.
+    pub fn is_nominal_inflection(&self) -> bool {
+        use SuffixType::*;
+        matches!(
+            self,
+            Plural
+                | Possessive1Sg
+                | Possessive2Sg
+                | Possessive3Sg
+                | Possessive1Pl
+                | Possessive2Pl
+                | Possessive3Pl
+                | CaseAcc
+                | CaseDat
+                | CaseLoc
+                | CaseAbl
+                | CaseGen
+                | CaseInst
+                | CaseEqu
+        )
+    }
+
     pub fn tag(&self) -> &'static str {
         match self {
             SuffixType::Plural => "A3pl",
@@ -156,6 +209,12 @@ impl SuffixType {
             SuffixType::DerivAdvIp => "AdvIp",
             SuffixType::DerivCausative => "Caus",
             SuffixType::DerivPassive => "Pass",
+            SuffixType::DerivWhile => "While",
+            SuffixType::DerivSinceDoingSo => "SinceDoingSo",
+            SuffixType::DerivWithoutHavingDoneSo => "WithoutHavingDoneSo",
+            SuffixType::DerivLy => "Ly",
+            SuffixType::DerivRelated => "Related",
+            SuffixType::TenseImp => "Imp",
         }
     }
 }

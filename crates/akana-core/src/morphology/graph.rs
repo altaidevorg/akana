@@ -26,6 +26,13 @@ pub enum MorphState {
     DerivedAdj,
     DerivedAdv,
     DerivedVerb,
+
+    /// Question particle mI (Zemberek's questionRoot_S): takes copula and person.
+    QuesRoot,
+    /// After the evidential copula -(y)mIş, which takes the z-paradigm persons (-Im, -sIn).
+    NounCopulaEvid,
+    /// After the 3rd-person imperative -sIn (gel-sin, gel-sin-ler).
+    VerbImp,
 }
 
 #[derive(Debug, Clone)]
@@ -41,7 +48,7 @@ pub struct TurkishMorphotactics;
 impl TurkishMorphotactics {
     /// Returns the complete set of valid suffix transitions in standard Turkish.
     pub fn transitions() -> Vec<SuffixTransition> {
-        vec![
+        let mut transitions = vec![
             // --- NOMINAL MORPHOTACTICS ---
             // NounRoot -> Diminutive (-cik)
             SuffixTransition {
@@ -282,13 +289,13 @@ impl TurkishMorphotactics {
                 from_state: MorphState::NounRoot,
                 to_state: MorphState::DerivedNoun,
                 suffix_type: SuffixType::DerivNess,
-                surface_templates: &["lık", "lik", "luk", "lük"],
+                surface_templates: &["lık", "lik", "luk", "lük", "lığ", "liğ", "luğ", "lüğ"],
             },
             SuffixTransition {
                 from_state: MorphState::DerivedNoun,
                 to_state: MorphState::NounRoot,
                 suffix_type: SuffixType::DerivNess,
-                surface_templates: &["lık", "lik", "luk", "lük"],
+                surface_templates: &["lık", "lik", "luk", "lük", "lığ", "liğ", "luğ", "lüğ"],
             },
             SuffixTransition {
                 from_state: MorphState::NounRoot,
@@ -642,9 +649,11 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::DerivedAdj,
                 suffix_type: SuffixType::DerivPastPart,
+                // The future participle -(y)AcAk used to be listed here as PastPart; it is
+                // DerivFutPart below.
                 surface_templates: &[
                     "dik", "dık", "duk", "dük", "tik", "tık", "tuk", "tük", "diğ", "dığ", "duğ",
-                    "düğ", "tiğ", "tığ", "tuğ", "tüğ", "ceğ", "cağ", "eceğ", "acağ",
+                    "düğ", "tiğ", "tığ", "tuğ", "tüğ",
                 ],
             },
             SuffixTransition {
@@ -706,13 +715,14 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbTense,
                 to_state: MorphState::NounCopula,
                 suffix_type: SuffixType::CopulaPast,
+                // -ydı was missing (ydu was listed twice), so ol-sa-ydı and yap-malı-ydı failed.
                 surface_templates: &[
-                    "du", "dü", "dı", "di", "tu", "tü", "tı", "ti", "ydu", "ydi", "ydu", "ydü",
+                    "du", "dü", "dı", "di", "tu", "tü", "tı", "ti", "ydu", "ydi", "ydı", "ydü",
                 ],
             },
             SuffixTransition {
                 from_state: MorphState::VerbTense,
-                to_state: MorphState::NounCopula,
+                to_state: MorphState::NounCopulaEvid,
                 suffix_type: SuffixType::CopulaEvid,
                 surface_templates: &["muş", "müş", "mış", "miş"],
             },
@@ -739,7 +749,8 @@ impl TurkishMorphotactics {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbRoot,
                 suffix_type: SuffixType::DerivPassive,
-                surface_templates: &["ıl", "il", "ul", "ül", "ın", "in", "un", "ün", "l", "n"],
+                // No bare -l: Turkish (and Zemberek) has none; the analyzer rejected it anyway.
+                surface_templates: &["ıl", "il", "ul", "ül", "ın", "in", "un", "ün", "n"],
             },
             SuffixTransition {
                 from_state: MorphState::VerbRoot,
@@ -771,6 +782,299 @@ impl TurkishMorphotactics {
                 suffix_type: SuffixType::DerivAdvIp,
                 surface_templates: &["ip", "ıp", "up", "üp", "yip", "yıp", "yup", "yüp"],
             },
-        ]
+        ];
+        transitions.extend(Self::zemberek_transitions());
+        transitions
+    }
+
+    /// Transitions ported from Zemberek's TurkishMorphotactics that the original graph lacked:
+    /// the nominal copula and its persons (nVerb_S), the question particle (questionRoot_S),
+    /// tense + -(y)sA / -(y)ken, verb forms after negation and ability, and the -(y)AlI,
+    /// -mAdAn, -(y)IcI, -sAl, -CA and imperative -sIn suffixes.
+    fn zemberek_transitions() -> Vec<SuffixTransition> {
+        use MorphState::*;
+        use SuffixType::*;
+        let t = |from_state, to_state, suffix_type, surface_templates| SuffixTransition {
+            from_state,
+            to_state,
+            suffix_type,
+            surface_templates,
+        };
+
+        const PAST_COP: &[&str] = &[
+            "dı", "di", "du", "dü", "tı", "ti", "tu", "tü", "ydı", "ydi", "ydu", "ydü",
+        ];
+        const EVID_COP: &[&str] = &["mış", "miş", "muş", "müş", "ymış", "ymiş", "ymuş", "ymüş"];
+        const COND_COP: &[&str] = &["sa", "se", "ysa", "yse"];
+        const WHILE: &[&str] = &["ken", "yken"];
+        const PRES_3SG: &[&str] = &["dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür"];
+        // z-paradigm persons. 1sg/1pl only with the buffer -y- on bare nominals: without it
+        // they coincide with the possessives (kitab-ım "my book").
+        const P1SG_Y: &[&str] = &["yım", "yim", "yum", "yüm"];
+        const P1SG: &[&str] = &["ım", "im", "um", "üm", "yım", "yim", "yum", "yüm"];
+        const P2SG: &[&str] = &["sın", "sin", "sun", "sün"];
+        const P1PL_Y: &[&str] = &["yız", "yiz", "yuz", "yüz"];
+        const P1PL: &[&str] = &["ız", "iz", "uz", "üz", "yız", "yiz", "yuz", "yüz"];
+        const P2PL: &[&str] = &["sınız", "siniz", "sunuz", "sünüz"];
+        const P3PL: &[&str] = &["lar", "ler"];
+
+        let mut v = Vec::new();
+
+        // Nominal copula on every nominal state (nVerb_S: elma-ydı, elma-ymış, elma-ysa,
+        // elma-yken, elma-yım). NounRoot already has -DIr and -DI.
+        for from in [
+            NounPlural,
+            NounPossessive,
+            NounCase,
+            DerivedAdj,
+            DerivedNoun,
+        ] {
+            v.push(t(from, NounCopula, CopulaPast, PAST_COP));
+            v.push(t(from, NounCopula, CopulaPres3Sg, PRES_3SG));
+        }
+        for from in [
+            NounRoot,
+            NounPlural,
+            NounPossessive,
+            NounCase,
+            DerivedAdj,
+            DerivedNoun,
+        ] {
+            v.push(t(from, NounCopulaEvid, CopulaEvid, EVID_COP));
+            v.push(t(from, NounCopula, CopulaCond, COND_COP));
+            v.push(t(from, DerivedAdv, DerivWhile, WHILE));
+            let (p1sg, p1pl) = if from == NounCase {
+                (P1SG, P1PL)
+            } else {
+                (P1SG_Y, P1PL_Y)
+            };
+            v.push(t(from, VerbPerson, CopulaPres1Sg, p1sg));
+            v.push(t(from, VerbPerson, CopulaPres2Sg, P2SG));
+            v.push(t(from, VerbPerson, CopulaPres1Pl, p1pl));
+            v.push(t(from, VerbPerson, CopulaPres2Pl, P2PL));
+        }
+        // Persons after the past and conditional copula (k-paradigm) and after the
+        // evidential copula (z-paradigm). NounCopula already has -m, -k and -lAr.
+        v.push(t(NounCopula, VerbPerson, Verb2Sg, &["n"]));
+        v.push(t(
+            NounCopula,
+            VerbPerson,
+            Verb2Pl,
+            &["nız", "niz", "nuz", "nüz"],
+        ));
+        v.push(t(NounCopulaEvid, VerbPerson, Verb1Sg, P1SG));
+        v.push(t(NounCopulaEvid, VerbPerson, Verb2Sg, P2SG));
+        v.push(t(NounCopulaEvid, VerbPerson, Verb1Pl, P1PL));
+        v.push(t(NounCopulaEvid, VerbPerson, Verb2Pl, P2PL));
+        v.push(t(NounCopulaEvid, VerbPerson, Verb3Pl, P3PL));
+
+        // Question particle mI: mi-yim, mi-sin, mi-yiz, mi-siniz, mi-dir, mi-ydi-m, mi-ymiş.
+        v.push(t(QuesRoot, VerbPerson, CopulaPres1Sg, P1SG_Y));
+        v.push(t(QuesRoot, VerbPerson, CopulaPres2Sg, P2SG));
+        v.push(t(QuesRoot, VerbPerson, CopulaPres1Pl, P1PL_Y));
+        v.push(t(QuesRoot, VerbPerson, CopulaPres2Pl, P2PL));
+        v.push(t(
+            QuesRoot,
+            NounCopula,
+            CopulaPres3Sg,
+            &["dır", "dir", "dur", "dür"],
+        ));
+        v.push(t(
+            QuesRoot,
+            NounCopula,
+            CopulaPast,
+            &["ydı", "ydi", "ydu", "ydü"],
+        ));
+        v.push(t(
+            QuesRoot,
+            NounCopulaEvid,
+            CopulaEvid,
+            &["ymış", "ymiş", "ymuş", "ymüş"],
+        ));
+
+        // Tense + conditional copula and + -ken (gelir-se-n, geliyor-sa, geldi-yse, gelir-ken,
+        // gelmez-ken, gelecek-ken).
+        v.push(t(VerbTense, NounCopula, CopulaCond, COND_COP));
+        v.push(t(VerbTense, DerivedAdv, DerivWhile, &["ken"]));
+
+        // Verb forms after negation -mA (vNeg_S): gel-me-mek, gel-me-me, gel-me-yiş,
+        // gel-me-diğ-i, gel-me-yecek, gel-me-yince, gel-me-yip, gel-me-yerek, gel-me-sin.
+        v.push(t(VerbNegation, NounRoot, DerivInfinitive, &["mek", "mak"]));
+        v.push(t(VerbNegation, NounRoot, DerivActNoun, &["me", "ma"]));
+        v.push(t(VerbNegation, NounRoot, DerivManner, &["yiş", "yış"]));
+        v.push(t(
+            VerbNegation,
+            DerivedAdj,
+            DerivPastPart,
+            &["dik", "dık", "diğ", "dığ"],
+        ));
+        v.push(t(
+            VerbNegation,
+            DerivedAdj,
+            DerivFutPart,
+            &["yecek", "yacak", "yeceğ", "yacağ"],
+        ));
+        v.push(t(
+            VerbNegation,
+            DerivedAdv,
+            DerivAdvInce,
+            &["yince", "yınca"],
+        ));
+        v.push(t(VerbNegation, DerivedAdv, DerivAdvIp, &["yip", "yıp"]));
+        v.push(t(
+            VerbNegation,
+            DerivedAdv,
+            DerivAdvErek,
+            &["yerek", "yarak"],
+        ));
+        v.push(t(VerbNegation, VerbImp, TenseImp, &["sin", "sın"]));
+
+        // Verb forms after ability -(y)AbIl (always -il, so front unrounded harmony):
+        // yap-abil-mek, yap-abil-en, yap-abil-diğ-i, yap-abil-ince, yap-abil-miş.
+        v.push(t(
+            MorphState::VerbAbility,
+            NounRoot,
+            DerivInfinitive,
+            &["mek"],
+        ));
+        v.push(t(MorphState::VerbAbility, NounRoot, DerivActNoun, &["me"]));
+        v.push(t(
+            MorphState::VerbAbility,
+            DerivedAdj,
+            DerivPresPart,
+            &["en"],
+        ));
+        v.push(t(
+            MorphState::VerbAbility,
+            DerivedAdj,
+            DerivPastPart,
+            &["dik", "diğ"],
+        ));
+        v.push(t(
+            MorphState::VerbAbility,
+            DerivedAdj,
+            DerivFutPart,
+            &["ecek", "eceğ"],
+        ));
+        v.push(t(
+            MorphState::VerbAbility,
+            DerivedAdv,
+            DerivAdvInce,
+            &["ince"],
+        ));
+        v.push(t(MorphState::VerbAbility, DerivedAdv, DerivAdvIp, &["ip"]));
+        v.push(t(
+            MorphState::VerbAbility,
+            DerivedAdv,
+            DerivAdvErek,
+            &["erek"],
+        ));
+        v.push(t(MorphState::VerbAbility, VerbTense, TenseEvid, &["miş"]));
+        v.push(t(MorphState::VerbAbility, VerbTense, TenseNec, &["meli"]));
+
+        // Future participle (vFutPart_S): oku-yacağ-ı, gel-ecek.
+        v.push(t(
+            VerbRoot,
+            DerivedAdj,
+            DerivFutPart,
+            &[
+                "ecek", "acak", "yecek", "yacak", "eceğ", "acağ", "yeceğ", "yacağ",
+            ],
+        ));
+
+        // Converbs -(y)AlI (vSinceDoingSo_S) and -mAdAn (vWithoutHavingDoneSo_S).
+        v.push(t(
+            VerbRoot,
+            DerivedAdv,
+            DerivSinceDoingSo,
+            &["alı", "eli", "yalı", "yeli"],
+        ));
+        v.push(t(
+            VerbRoot,
+            DerivedAdv,
+            DerivWithoutHavingDoneSo,
+            &["madan", "meden"],
+        ));
+
+        // Agent noun -(y)IcI from verbs (vAgt_S): izle-yici, koru-yucu, öldür-ücü.
+        v.push(t(
+            VerbRoot,
+            DerivedNoun,
+            DerivAgent,
+            &["ıcı", "ici", "ucu", "ücü", "yıcı", "yici", "yucu", "yücü"],
+        ));
+
+        // 3rd-person imperative (vImp_S + A3sg -sIn, A3pl -sInlAr): gel-sin, ol-sun-lar.
+        v.push(t(
+            VerbRoot,
+            VerbImp,
+            TenseImp,
+            &["sın", "sin", "sun", "sün"],
+        ));
+        v.push(t(VerbImp, VerbPerson, Verb3Pl, P3PL));
+
+        // Adjective derivations: -sIz/-lI + -lIk (haksız-lık), -sAl (duygu-sal), -CA (Ly on
+        // adjectives: açık-ça, güzel-ce; Equ on nouns and pronouns: aile-ce, sen-ce). The
+        // analyzer allows Ly only after an adjective and Equ only after a non-adjective.
+        v.push(t(
+            DerivedAdj,
+            DerivedNoun,
+            DerivNess,
+            &["lık", "lik", "luk", "lük", "lığ", "liğ", "luğ", "lüğ"],
+        ));
+        v.push(t(NounRoot, DerivedAdj, DerivRelated, &["sal", "sel"]));
+        // A derived noun (-lIk, -CI, -(y)IcI) takes the whole nominal paradigm, as Zemberek's
+        // derivations return to noun_S; it lacked the instrumental and the possessives
+        // (sabırsızlık-la, kitaplığ-ı, yolcu-muz).
+        v.push(t(
+            DerivedNoun,
+            NounCase,
+            CaseInst,
+            &["la", "le", "yla", "yle"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive1Sg,
+            &["m", "ım", "im", "um", "üm"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive2Sg,
+            &["n", "ın", "in", "un", "ün"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive3Sg,
+            &["ı", "i", "u", "ü", "sı", "si", "su", "sü"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive1Pl,
+            &["mız", "miz", "muz", "müz", "ımız", "imiz", "umuz", "ümüz"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive2Pl,
+            &["nız", "niz", "nuz", "nüz", "ınız", "iniz", "unuz", "ünüz"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive3Pl,
+            &["ları", "leri"],
+        ));
+        for from in [NounRoot, DerivedAdj] {
+            v.push(t(from, DerivedAdv, DerivLy, &["ca", "ce", "ça", "çe"]));
+        }
+        for from in [NounRoot, NounPossessive] {
+            v.push(t(from, NounCase, CaseEqu, &["ca", "ce", "ça", "çe"]));
+        }
+
+        v
     }
 }

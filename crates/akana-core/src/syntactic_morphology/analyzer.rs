@@ -91,6 +91,7 @@ impl TurkishSyntacticMorphology {
                 PrimaryPos::Conj => "CONJ",
                 PrimaryPos::Postp => "POSTP",
                 PrimaryPos::Interj => "INTERJ",
+                PrimaryPos::Det => "DET",
                 _ => "NN",
             };
 
