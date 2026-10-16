@@ -111,7 +111,16 @@ impl MorphologicalDisambiguator {
                 // 4. Post-nominal agreement constraint
                 if i > 0 && !chosen.is_empty() {
                     let prev_pos = chosen[i - 1].pos;
-                    if prev_pos == PrimaryPos::Adj && parse.pos == PrimaryPos::Noun {
+                    // An attributive adjective before a noun phrase head. Neither may be a
+                    // predicate: after "yoğundu" the next word is a new clause (ki), and
+                    // "geç kal-dı-m" is a verb, not an adjective + copular noun.
+                    let is_predicate =
+                        |p: &MorphParse| p.morpheme_tags.iter().any(|t| t.starts_with("Cop"));
+                    if prev_pos == PrimaryPos::Adj
+                        && parse.pos == PrimaryPos::Noun
+                        && !is_predicate(&chosen[i - 1])
+                        && !is_predicate(parse)
+                    {
                         score += 1.5;
                     }
                     // A pronoun subject before an inflected verb (ben geldim); a bare verb stem

@@ -35,6 +35,19 @@ fn unknown_pos() -> PrimaryPos {
     PrimaryPos::Unknown
 }
 
+/// The passive allomorph after a stem ending in `prev`, as Zemberek's Passive_In / +nIl / Il
+/// conditions: -n after a vowel (oku-n), -In after l (bil-in), -Il after other consonants
+/// (yap-ıl), -nIl after a vowel (de-nil). A bare -l is never a passive.
+fn passive_allomorph_fits(template: &str, prev: char) -> bool {
+    let after_vowel = super::super::phonology::is_turkish_vowel(prev);
+    match template {
+        "n" | "nil" | "nıl" => after_vowel,
+        "in" | "ın" | "un" | "ün" => prev == 'l',
+        "il" | "ıl" | "ul" | "ül" => !after_vowel && prev != 'l',
+        _ => false,
+    }
+}
+
 /// How a candidate stem was recovered from the surface; the root must allow it.
 #[derive(Clone, Copy)]
 enum StemChange {
@@ -47,6 +60,8 @@ enum StemChange {
     Doubled,
     /// bekl-iyor from bekle (any vowel-final verb)
     ProgressiveVowelDrop,
+    /// di-yecek from de, yi-yen from ye
+    DeYeNarrowing,
 }
 
 pub struct TurkishMorphology {
@@ -147,6 +162,7 @@ impl TurkishMorphology {
         self.search_suffix_chain(
             MorphState::NounRoot,
             PrimaryPos::Noun,
+            stem.chars().last().unwrap_or(' '),
             ending,
             &guessed,
             clean,
@@ -167,7 +183,10 @@ impl TurkishMorphology {
                     PrimaryPos::Noun => {
                         vec!["Noun".to_string(), "A3sg".to_string(), "Nom".to_string()]
                     }
-                    PrimaryPos::Verb => vec!["Verb".to_string(), "A3sg".to_string()],
+                    // A bare verb stem is the 2nd-person imperative (gel!), as in Zemberek.
+                    PrimaryPos::Verb => {
+                        vec!["Verb".to_string(), "Imp".to_string(), "A2sg".to_string()]
+                    }
                     PrimaryPos::Adj => vec!["Adj".to_string()],
                     PrimaryPos::Adv => vec!["Adv".to_string()],
                     PrimaryPos::Pron => {
@@ -208,7 +227,15 @@ impl TurkishMorphology {
                     secondary_pos: item.secondary_pos,
                     morpheme_tags: tags,
                     formatted,
-                    score: if lower_case_proper { 0.65 } else { 1.0 },
+                    // The imperative is a (zero) suffix like any other, so it is scored as an
+                    // inflected reading: işe is iş-e before it is the imperative of işemek.
+                    score: if lower_case_proper {
+                        0.65
+                    } else if item.primary_pos == PrimaryPos::Verb {
+                        0.95
+                    } else {
+                        1.0
+                    },
                 });
             }
         }
@@ -268,9 +295,32 @@ impl TurkishMorphology {
                 );
             }
 
-            // e) Diminutive k-drop (e.g. "küçü" from "küçük", "mini" from "minik", "sıca" from "sıcak")
-            let with_k = format!("{candidate_stem}k");
-            self.match_and_traverse(&with_k, &suffix_part, clean, &mut results, StemChange::None);
+            // e) Diminutive k-drop (e.g. "küçü" from "küçük", "sıca" from "sıcak"), only before
+            // the diminutive -cIk itself: anywhere else it invented roots (ben -> bek-n,
+            // diyor -> dik-yor, konuda -> konuk-da). Zemberek has no such rule at all.
+            if suffix_part.starts_with(['c', 'ç']) {
+                let with_k = format!("{candidate_stem}k");
+                self.match_and_traverse(
+                    &with_k,
+                    &suffix_part,
+                    clean,
+                    &mut results,
+                    StemChange::None,
+                );
+            }
+
+            // g) de/ye narrow to di/yi before a y-initial suffix (di-yecek, di-yerek, yi-yen),
+            // Zemberek's deYeCondition.
+            if matches!(candidate_stem.as_str(), "di" | "yi") && suffix_part.starts_with('y') {
+                let root = if candidate_stem == "di" { "de" } else { "ye" };
+                self.match_and_traverse(
+                    root,
+                    &suffix_part,
+                    clean,
+                    &mut results,
+                    StemChange::DeYeNarrowing,
+                );
+            }
 
             // f) Progressive vowel drop: a vowel-final verb stem loses its vowel before -Iyor
             // (bekle-iyor -> bekliyor, başla-ıyor -> başlıyor, de-iyor -> diyor), Zemberek's
@@ -371,9 +421,26 @@ impl TurkishMorphology {
                     StemChange::Voiced => item.attributes.contains(RootAttr::VOICING),
                     StemChange::VowelDropped => item.attributes.contains(RootAttr::VOWEL_DROP),
                     StemChange::Doubled => item.attributes.contains(RootAttr::CONSONANT_DOUBLING),
-                    StemChange::ProgressiveVowelDrop => item.primary_pos == PrimaryPos::Verb,
+                    StemChange::ProgressiveVowelDrop | StemChange::DeYeNarrowing => {
+                        item.primary_pos == PrimaryPos::Verb
+                    }
                 };
                 if !allowed {
+                    continue;
+                }
+                // Closed classes take no suffixes (Zemberek's terminal adverb, conjunction,
+                // interjection, determiner, duplicator and postposition root states); they
+                // used to inflect like nouns (yo-la, he-m, fır-ın-ın).
+                if matches!(
+                    item.primary_pos,
+                    PrimaryPos::Adv
+                        | PrimaryPos::Conj
+                        | PrimaryPos::Interj
+                        | PrimaryPos::Det
+                        | PrimaryPos::Dup
+                        | PrimaryPos::Postp
+                        | PrimaryPos::Punc
+                ) {
                     continue;
                 }
 
@@ -399,6 +466,7 @@ impl TurkishMorphology {
                 self.search_suffix_chain(
                     start_state,
                     item.primary_pos,
+                    root_cand.chars().last().unwrap_or(' '),
                     suffix_str,
                     item,
                     original_surface,
@@ -410,11 +478,14 @@ impl TurkishMorphology {
         }
     }
 
+    /// `prev` is the last letter matched so far (root or previous suffix), which conditions
+    /// allomorphs such as the passive.
     #[allow(clippy::too_many_arguments)]
     fn search_suffix_chain(
         &self,
         state: MorphState,
         pos: PrimaryPos,
+        prev: char,
         remaining_suffix: &str,
         item: &DictionaryItem,
         original_surface: &str,
@@ -472,6 +543,13 @@ impl TurkishMorphology {
                 let skip = match tr.suffix_type {
                     SuffixType::DerivLy => pos != PrimaryPos::Adj,
                     SuffixType::CaseEqu => pos == PrimaryPos::Adj,
+                    // Lexical deverbal nouns and adjectives (seç-im, sev-gi, yor-gun,
+                    // çalış-kan) attach to the bare root, not after voice or other suffixes
+                    // (kork-t-um, değ-il-im).
+                    SuffixType::DerivIm
+                    | SuffixType::DerivGi
+                    | SuffixType::DerivGin
+                    | SuffixType::DerivGen => tags.len() > 1,
                     _ => false,
                 };
                 if skip {
@@ -487,6 +565,11 @@ impl TurkishMorphology {
                     None => pos,
                 };
                 for &template in tr.surface_templates {
+                    if tr.suffix_type == SuffixType::DerivPassive
+                        && !passive_allomorph_fits(template, prev)
+                    {
+                        continue;
+                    }
                     if let Some(next_remaining) = remaining_suffix.strip_prefix(template) {
                         let tag_str = tr.suffix_type.tag().to_string();
                         tags.push(tag_str);
@@ -494,6 +577,7 @@ impl TurkishMorphology {
                         self.search_suffix_chain(
                             tr.to_state,
                             next_pos,
+                            template.chars().last().unwrap_or(prev),
                             next_remaining,
                             item,
                             original_surface,
