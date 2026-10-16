@@ -101,6 +101,17 @@ fn derivations_from_zemberek() {
 }
 
 #[test]
+fn derived_nouns_take_the_full_paradigm() {
+    assert!(parses_as(
+        "sabırsızlıkla",
+        "sabır",
+        &["Without", "Ness", "Ins"]
+    ));
+    assert!(parses_as("kitaplığı", "kitap", &["Ness", "P3sg"]));
+    assert!(parses_as("yolcumuz", "yol", &["Agt", "P1pl"]));
+}
+
+#[test]
 fn question_particle_attaches_to_its_host() {
     let parser = TurkishDependencyParser::new();
     for (sentence, host) in [

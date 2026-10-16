@@ -289,13 +289,13 @@ impl TurkishMorphotactics {
                 from_state: MorphState::NounRoot,
                 to_state: MorphState::DerivedNoun,
                 suffix_type: SuffixType::DerivNess,
-                surface_templates: &["lık", "lik", "luk", "lük"],
+                surface_templates: &["lık", "lik", "luk", "lük", "lığ", "liğ", "luğ", "lüğ"],
             },
             SuffixTransition {
                 from_state: MorphState::DerivedNoun,
                 to_state: MorphState::NounRoot,
                 suffix_type: SuffixType::DerivNess,
-                surface_templates: &["lık", "lik", "luk", "lük"],
+                surface_templates: &["lık", "lik", "luk", "lük", "lığ", "liğ", "luğ", "lüğ"],
             },
             SuffixTransition {
                 from_state: MorphState::NounRoot,
@@ -1018,9 +1018,54 @@ impl TurkishMorphotactics {
             DerivedAdj,
             DerivedNoun,
             DerivNess,
-            &["lık", "lik", "luk", "lük"],
+            &["lık", "lik", "luk", "lük", "lığ", "liğ", "luğ", "lüğ"],
         ));
         v.push(t(NounRoot, DerivedAdj, DerivRelated, &["sal", "sel"]));
+        // A derived noun (-lIk, -CI, -(y)IcI) takes the whole nominal paradigm, as Zemberek's
+        // derivations return to noun_S; it lacked the instrumental and the possessives
+        // (sabırsızlık-la, kitaplığ-ı, yolcu-muz).
+        v.push(t(
+            DerivedNoun,
+            NounCase,
+            CaseInst,
+            &["la", "le", "yla", "yle"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive1Sg,
+            &["m", "ım", "im", "um", "üm"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive2Sg,
+            &["n", "ın", "in", "un", "ün"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive3Sg,
+            &["ı", "i", "u", "ü", "sı", "si", "su", "sü"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive1Pl,
+            &["mız", "miz", "muz", "müz", "ımız", "imiz", "umuz", "ümüz"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive2Pl,
+            &["nız", "niz", "nuz", "nüz", "ınız", "iniz", "unuz", "ünüz"],
+        ));
+        v.push(t(
+            DerivedNoun,
+            NounPossessive,
+            Possessive3Pl,
+            &["ları", "leri"],
+        ));
         for from in [NounRoot, DerivedAdj] {
             v.push(t(from, DerivedAdv, DerivLy, &["ca", "ce", "ça", "çe"]));
         }
