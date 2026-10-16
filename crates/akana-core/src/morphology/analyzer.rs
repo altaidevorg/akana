@@ -17,11 +17,21 @@ pub struct MorphParse {
     pub surface: String,
     pub lemma: String,
     pub root: String,
+    /// POS of the dictionary root (Zemberek's `DictionaryItem.primaryPos`).
     pub primary_pos: PrimaryPos,
+    /// POS of the word after its last derivation (Zemberek's `SingleAnalysis.getPos`):
+    /// baş-la-yınca is `Adv`, oku-duğ-u is `Noun`, an-laş-ıyor-um is `Verb`. Unlike
+    /// Zemberek, the copula does not change it: mutlu-y-duk stays `Adj`.
+    #[serde(default = "unknown_pos")]
+    pub pos: PrimaryPos,
     pub secondary_pos: SecondaryPos,
     pub morpheme_tags: Vec<String>,
     pub formatted: String,
     pub score: f32,
+}
+
+fn unknown_pos() -> PrimaryPos {
+    PrimaryPos::Unknown
 }
 
 pub struct TurkishMorphology {
@@ -124,6 +134,7 @@ impl TurkishMorphology {
                     lemma: item.lemma.clone(),
                     root: item.root.clone(),
                     primary_pos: item.primary_pos,
+                    pos: item.primary_pos,
                     secondary_pos: item.secondary_pos,
                     morpheme_tags: tags,
                     formatted,
@@ -313,6 +324,7 @@ impl TurkishMorphology {
 
                 self.search_suffix_chain(
                     start_state,
+                    item.primary_pos,
                     suffix_str,
                     item,
                     original_surface,
@@ -328,6 +340,7 @@ impl TurkishMorphology {
     fn search_suffix_chain(
         &self,
         state: MorphState,
+        pos: PrimaryPos,
         remaining_suffix: &str,
         item: &DictionaryItem,
         original_surface: &str,
@@ -371,6 +384,7 @@ impl TurkishMorphology {
                 lemma: item.lemma.clone(),
                 root: item.root.clone(),
                 primary_pos: item.primary_pos,
+                pos,
                 secondary_pos: item.secondary_pos,
                 morpheme_tags: tags.clone(),
                 formatted,
@@ -381,6 +395,15 @@ impl TurkishMorphology {
 
         for tr in &self.transitions {
             if tr.from_state == state {
+                // A derivation opens a new inflectional group; nominal inflection on an
+                // adjective is Zemberek's zero derivation to a noun.
+                let next_pos = match tr.suffix_type.derived_pos() {
+                    Some(derived) => derived,
+                    None if pos == PrimaryPos::Adj && tr.suffix_type.is_nominal_inflection() => {
+                        PrimaryPos::Noun
+                    }
+                    None => pos,
+                };
                 for &template in tr.surface_templates {
                     if let Some(next_remaining) = remaining_suffix.strip_prefix(template) {
                         let tag_str = tr.suffix_type.tag().to_string();
@@ -388,6 +411,7 @@ impl TurkishMorphology {
 
                         self.search_suffix_chain(
                             tr.to_state,
+                            next_pos,
                             next_remaining,
                             item,
                             original_surface,

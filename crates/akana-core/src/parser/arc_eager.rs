@@ -2,7 +2,33 @@
 
 use super::tree::{DependencyNode, DependencyTree};
 use crate::morphology::pos::PrimaryPos;
-use crate::morphology::{MorphologicalDisambiguator, TurkishMorphology};
+use crate::morphology::{MorphParse, MorphologicalDisambiguator, TurkishMorphology};
+
+/// Suffixes that turn a verb into a non-finite verb form heading a subordinate clause:
+/// infinitives / verbal nouns, participles and converbs.
+const VERB_FORM_TAGS: &[&str] = &[
+    "Inf", "ActN", "Manner", "PresPart", "PastPart", "FutPart", "AdvErek", "AdvInce", "AdvIp",
+];
+
+/// Lexical derivations: a verb form followed by one of these is an ordinary word again.
+const LEXICAL_TAGS: &[&str] = &[
+    "Ness", "Agt", "With", "Without", "Dim", "DevN", "DevGi", "DevGin", "DevGen",
+];
+
+/// The non-finite verb-form suffix of a parse, if it is a verb form (UD `VerbForm`).
+fn verb_form(parse: &MorphParse) -> Option<&str> {
+    let tags = &parse.morpheme_tags;
+    let k = tags
+        .iter()
+        .rposition(|t| VERB_FORM_TAGS.contains(&t.as_str()))?;
+    if tags[k + 1..]
+        .iter()
+        .any(|t| LEXICAL_TAGS.contains(&t.as_str()))
+    {
+        return None;
+    }
+    Some(tags[k].as_str())
+}
 
 pub struct TurkishDependencyParser {
     disambiguator: MorphologicalDisambiguator,
@@ -28,6 +54,9 @@ impl TurkishDependencyParser {
     }
 
     /// Parses a sequence of tokens in a Turkish sentence into a full `DependencyTree`.
+    ///
+    /// Categories come from each word's POS after derivation (`MorphParse::pos`), so a
+    /// converb or participle is not a noun and a noun-derived verb (baş-la-dı) is a verb.
     pub fn parse(&self, tokens: &[&str]) -> DependencyTree {
         if tokens.is_empty() {
             return DependencyTree::new(Vec::new());
@@ -39,9 +68,7 @@ impl TurkishDependencyParser {
         // 1. Locate the primary root of the sentence (typically the sentence-final verb or copular predicate)
         let mut root_idx = n - 1;
         for (i, p) in disambiguated.iter().enumerate().rev() {
-            if p.primary_pos == PrimaryPos::Verb
-                || p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
-            {
+            if p.pos == PrimaryPos::Verb || p.morpheme_tags.iter().any(|t| t.starts_with("Cop")) {
                 root_idx = i;
                 break;
             }
@@ -53,8 +80,12 @@ impl TurkishDependencyParser {
             let id = i + 1;
             let form = parse.surface.clone();
             let lemma = parse.lemma.clone();
+            let form_of_verb = verb_form(parse);
+            let next_is_noun = i + 1 < n && disambiguated[i + 1].pos == PrimaryPos::Noun;
 
-            let upos = match parse.primary_pos {
+            // UD: infinitives, participles and converbs are VERB (with a VerbForm).
+            let upos = match parse.pos {
+                _ if form_of_verb.is_some() => "VERB",
                 PrimaryPos::Noun => {
                     if parse.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun {
                         "PROPN"
@@ -85,28 +116,35 @@ impl TurkishDependencyParser {
             if i == root_idx {
                 head = 0;
                 deprel = "root".to_string();
-            } else if parse.primary_pos == PrimaryPos::Punc {
+            } else if parse.pos == PrimaryPos::Punc {
                 head = root_idx + 1;
                 deprel = "punct".to_string();
-            } else if parse.primary_pos == PrimaryPos::Adj {
+            } else if matches!(form_of_verb, Some("AdvErek" | "AdvInce" | "AdvIp")) {
+                // A converb heads an adverbial clause of the predicate (advcl)
+                deprel = "advcl".to_string();
+            } else if matches!(form_of_verb, Some("PresPart" | "PastPart" | "FutPart"))
+                && parse.pos == PrimaryPos::Adj
+                && next_is_noun
+            {
+                // A participle before a noun heads a relative clause on it (acl)
+                head = i + 2;
+                deprel = "acl".to_string();
+            } else if parse.pos == PrimaryPos::Adj {
                 // If followed by a Noun, it modifies that noun (amod)
-                if i + 1 < n && disambiguated[i + 1].primary_pos == PrimaryPos::Noun {
+                if next_is_noun {
                     head = i + 2;
-                    deprel = "amod".to_string();
-                } else {
-                    head = root_idx + 1;
-                    deprel = "amod".to_string();
                 }
-            } else if parse.primary_pos == PrimaryPos::Det {
+                deprel = "amod".to_string();
+            } else if parse.pos == PrimaryPos::Det {
                 // A determiner modifies the following noun (det)
-                if i + 1 < n && disambiguated[i + 1].primary_pos == PrimaryPos::Noun {
+                if next_is_noun {
                     head = i + 2;
                 }
                 deprel = "det".to_string();
-            } else if parse.primary_pos == PrimaryPos::Adv {
+            } else if parse.pos == PrimaryPos::Adv {
                 head = root_idx + 1;
                 deprel = "advmod".to_string();
-            } else if parse.primary_pos == PrimaryPos::Conj {
+            } else if parse.pos == PrimaryPos::Conj {
                 if i + 1 < n {
                     head = i + 2;
                     deprel = "cc".to_string();
@@ -114,8 +152,7 @@ impl TurkishDependencyParser {
                     head = root_idx + 1;
                     deprel = "cc".to_string();
                 }
-            } else if parse.primary_pos == PrimaryPos::Noun || parse.primary_pos == PrimaryPos::Pron
-            {
+            } else if parse.pos == PrimaryPos::Noun || parse.pos == PrimaryPos::Pron {
                 // Check case features
                 if parse.morpheme_tags.contains(&"Acc".to_string()) {
                     head = root_idx + 1;
@@ -129,7 +166,7 @@ impl TurkishDependencyParser {
                     deprel = "obl".to_string();
                 } else if parse.morpheme_tags.contains(&"Gen".to_string()) {
                     // Genitive modifier connects to following noun (nmod:poss)
-                    if i + 1 < n && disambiguated[i + 1].primary_pos == PrimaryPos::Noun {
+                    if next_is_noun {
                         head = i + 2;
                         deprel = "nmod:poss".to_string();
                     } else {

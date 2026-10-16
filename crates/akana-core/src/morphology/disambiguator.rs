@@ -44,6 +44,7 @@ impl MorphologicalDisambiguator {
                     lemma: tokens[i].to_string(),
                     root: tokens[i].to_string(),
                     primary_pos: PrimaryPos::Unknown,
+                    pos: PrimaryPos::Unknown,
                     secondary_pos: super::pos::SecondaryPos::None,
                     morpheme_tags: vec!["Unk".to_string()],
                     formatted: format!("[{}:Unk]", tokens[i]),
@@ -67,9 +68,13 @@ impl MorphologicalDisambiguator {
             for (p_idx, parse) in parses.iter().enumerate() {
                 let mut score = parse.score;
 
+                // The rules below look at the word's POS after derivation (`pos`): a converb
+                // (baş-la-yınca) is not a noun, a derived verb (an-laş-ıyor-um) is a verb, a
+                // nominalised verb (gel-diğ-i) is not a finite predicate.
+
                 // 1. SOV Final Predicate Constraint
                 if is_sentence_final {
-                    if parse.primary_pos == PrimaryPos::Verb {
+                    if parse.pos == PrimaryPos::Verb {
                         score += 3.5;
                     } else if parse.morpheme_tags.iter().any(|t| t.starts_with("Cop")) {
                         score += 2.5;
@@ -86,7 +91,7 @@ impl MorphologicalDisambiguator {
                 // 3. Pre-nominal modifier constraint (Adj / Det before Noun). Determiners (bu, o,
                 // bir, her) also have Adj and Pron entries; before a noun the Det reading wins.
                 if i + 1 < n && noun_ahead(&analyses_per_token[i + 1..]) {
-                    match parse.primary_pos {
+                    match parse.pos {
                         PrimaryPos::Adj => score += 2.0,
                         PrimaryPos::Det => score += 2.1,
                         _ => {}
@@ -95,11 +100,11 @@ impl MorphologicalDisambiguator {
 
                 // 4. Post-nominal agreement constraint
                 if i > 0 && !chosen.is_empty() {
-                    let prev_pos = chosen[i - 1].primary_pos;
-                    if prev_pos == PrimaryPos::Adj && parse.primary_pos == PrimaryPos::Noun {
+                    let prev_pos = chosen[i - 1].pos;
+                    if prev_pos == PrimaryPos::Adj && parse.pos == PrimaryPos::Noun {
                         score += 1.5;
                     }
-                    if prev_pos == PrimaryPos::Pron && parse.primary_pos == PrimaryPos::Verb {
+                    if prev_pos == PrimaryPos::Pron && parse.pos == PrimaryPos::Verb {
                         score += 1.0;
                     }
                 }
@@ -146,10 +151,9 @@ impl MorphologicalDisambiguator {
 fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
     for parses in following {
         let noun = parses.iter().any(|p| {
-            p.primary_pos == PrimaryPos::Noun
-                && p.secondary_pos != super::pos::SecondaryPos::ProperNoun
+            p.pos == PrimaryPos::Noun && p.secondary_pos != super::pos::SecondaryPos::ProperNoun
         });
-        let adj = parses.iter().any(|p| p.primary_pos == PrimaryPos::Adj);
+        let adj = parses.iter().any(|p| p.pos == PrimaryPos::Adj);
         if noun && !adj {
             return true;
         }

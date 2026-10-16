@@ -1,5 +1,6 @@
 //! Suffix definitions, clitics, and morpheme representations for Turkish.
 
+use super::pos::PrimaryPos;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -88,6 +89,44 @@ pub enum SuffixType {
 }
 
 impl SuffixType {
+    /// The POS a derivational suffix produces, i.e. the POS of the inflectional group it
+    /// opens (Zemberek's derivational morphemes). `None` for inflection, voice and copula.
+    pub fn derived_pos(&self) -> Option<PrimaryPos> {
+        use SuffixType::*;
+        match self {
+            DerivInfinitive | DerivActNoun | DerivManner | DerivIm | DerivGi | DerivNess
+            | DerivAgent | DiminutiveCik => Some(PrimaryPos::Noun),
+            DerivWith | DerivWithout | DerivPresPart | DerivPastPart | DerivFutPart | DerivGin
+            | DerivGen | CliticKi => Some(PrimaryPos::Adj),
+            DerivAdvErek | DerivAdvInce | DerivAdvIp => Some(PrimaryPos::Adv),
+            DerivLe | DerivLes | DerivLendir => Some(PrimaryPos::Verb),
+            _ => None,
+        }
+    }
+
+    /// Whether the suffix is nominal number, possession or case. On an adjective it implies
+    /// a zero derivation to a noun (güzel-i, oku-duğ-um), as in Zemberek.
+    pub fn is_nominal_inflection(&self) -> bool {
+        use SuffixType::*;
+        matches!(
+            self,
+            Plural
+                | Possessive1Sg
+                | Possessive2Sg
+                | Possessive3Sg
+                | Possessive1Pl
+                | Possessive2Pl
+                | Possessive3Pl
+                | CaseAcc
+                | CaseDat
+                | CaseLoc
+                | CaseAbl
+                | CaseGen
+                | CaseInst
+                | CaseEqu
+        )
+    }
+
     pub fn tag(&self) -> &'static str {
         match self {
             SuffixType::Plural => "A3pl",
