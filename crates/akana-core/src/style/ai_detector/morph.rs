@@ -200,25 +200,10 @@ pub(super) fn is_passive(chars: &[char]) -> bool {
 
 // ------------------------------------------------------------------- OOV proxy
 
-/// zlib-compressed copy of the root lexicon the detector was trained with (Akana 0.6.0's
-/// `morphology/zemberek_lexicon.txt`, byte for byte). The detector keeps its own copy so that
-/// the morphology lexicon can be corrected without shifting the model's inputs; drop it when
-/// the model is retrained on the current lexicon.
-static TRAINING_LEXICON_ZZ: &[u8] = include_bytes!("../../../data/ai_detector/lexicon.txt.zz");
-
-static TRAINING_LEXICON: LazyLock<String> = LazyLock::new(|| {
-    use std::io::Read;
-    let mut text = String::new();
-    flate2::read::ZlibDecoder::new(TRAINING_LEXICON_ZZ)
-        .read_to_string(&mut text)
-        .expect("lexicon.txt.zz is valid zlib-compressed UTF-8");
-    text
-});
-
-/// Root lexicon: column 1 (surface lemma) and column 2 (stem) of the training lexicon,
+/// Root lexicon: column 1 (surface lemma) and column 2 (stem) of the Zemberek lexicon,
 /// lower-cased with Turkish rules. Loaded once.
 pub(super) static ROOTS: LazyLock<AHashSet<String>> = LazyLock::new(|| {
-    let lex = TRAINING_LEXICON.as_str();
+    let lex = crate::morphology::ZEMBEREK_LEXICON;
     let mut set = AHashSet::with_capacity(120_000);
     for line in lex.lines() {
         let mut cols = line.split_whitespace();
@@ -229,10 +214,10 @@ pub(super) static ROOTS: LazyLock<AHashSet<String>> = LazyLock::new(|| {
     set
 });
 
-/// Verb stems of the training lexicon (column 2 of the `Verb` rows), lower-cased with
+/// Verb stems of the Zemberek lexicon (column 2 of the `Verb` rows), lower-cased with
 /// Turkish rules. Only used to tell `-lAr` plurals from aorists (see [`is_aorist`]).
 pub(super) static VERBS: LazyLock<AHashSet<String>> = LazyLock::new(|| {
-    let lex = TRAINING_LEXICON.as_str();
+    let lex = crate::morphology::ZEMBEREK_LEXICON;
     let mut set = AHashSet::with_capacity(8_000);
     for line in lex.lines() {
         let mut cols = line.split_whitespace();
