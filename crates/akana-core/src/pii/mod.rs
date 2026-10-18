@@ -394,6 +394,8 @@ impl TurkishPiiEngine {
             .chain(literals.map(|(s, e)| (s, e, None)))
             .collect();
         spans.sort_by_key(|&(start, _, _)| start);
+        // the placeholder- and surrogate-shaped strings of the text, collected once
+        let taken = vault::issued_shapes_in(text);
 
         for (start, end, entity) in spans {
             if start < last_end {
@@ -402,8 +404,8 @@ impl TurkishPiiEngine {
             masked.push_str(&text[last_end..start]);
 
             let placeholder = match entity {
-                Some(entity) => vault.register_in(
-                    text,
+                Some(entity) => vault.register_avoiding(
+                    &taken,
                     &entity.text,
                     entity.pii_type.as_str(),
                     &entity.stem,
@@ -412,8 +414,8 @@ impl TurkishPiiEngine {
                 ),
                 None => {
                     let literal = &text[start..end];
-                    vault.register_in(
-                        text,
+                    vault.register_avoiding(
+                        &taken,
                         literal,
                         "YER_TUTUCU",
                         literal,

@@ -208,24 +208,26 @@ pub fn has_mixed_character_classes(s: &str) -> bool {
 
 /// Detects all secrets, passwords, OTPs, API keys, and high-entropy credentials.
 pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
-    let lower = text.to_lowercase();
+    // Both lower-cased forms for every trigger gate below (see `Lowered`): with Rust's alone
+    // "GİZLİ KELİMELER" never contained "kelime", with the Turkish alone "MNEMONIC" never
+    // contained "mnemonic".
+    let lowered = super::normalize::Lowered::of(text);
 
     // 0. Passwords, PINs and one-time codes (sentences, commands, configs, URLs, headers)
-    super::passwords::detect_passwords(text, &lower, out);
+    super::passwords::detect_passwords_in(text, &lowered, out);
 
     // 1. Contextual key material: gizli/özel anahtar, API key, secret/private key, tokens
     const CONTEXTUAL_TRIGGERS: &[&str] = &["anahtar", "token", "key"];
-    let has_context_trigger = CONTEXTUAL_TRIGGERS
-        .iter()
-        .any(|&trig| lower.sz_find(trig).is_some());
+    let has_context_trigger = CONTEXTUAL_TRIGGERS.iter().any(|&trig| lowered.has(trig));
     if has_context_trigger {
         for cap in CONTEXTUAL_SECRET_REGEX.captures_iter(text) {
             if let Some(val) = cap.get(1) {
                 // Sentence punctuation and quotes around the value are not part of it; inside
                 // it they are (Kedi.Mavi.99).
                 let (lead, val_str) = trim_value(val.as_str());
-                // After ':' or '=' the value is explicit; after a space it must look like key
-                // material ("API key management" is prose).
+                // The value ends where the next field begins (api key: X,user=ali; X&lang=tr):
+                // the capture takes any non-space run so that dots inside it stay (Kedi.Mavi.99).
+                let val_str = trim_value(cut_at_next_field(val_str)).1;
                 let separator = &text[cap.get(0).unwrap().start()..val.start()];
                 let strong = separator.contains([':', '=']);
                 if val_str.len() >= 4
@@ -283,8 +285,11 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 3. GitHub Tokens (SIMD anchor: gh)
-    if text.sz_find("gh").is_some() {
+    // 3. GitHub Tokens (SIMD anchors: the token prefixes; "gh" alone is in high, eight, ...)
+    if ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"]
+        .iter()
+        .any(|p| text.sz_find(p).is_some())
+    {
         for cap in GITHUB_TOKEN_REGEX.captures_iter(text) {
             let val = cap.get(1).unwrap();
             out.push(PiiEntity {
@@ -667,7 +672,7 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     }
 
     // 23. Azure Storage Connection String AccountKey value (AccountName is not a secret)
-    if text.sz_find("AccountKey").is_some() || lower.sz_find("accountkey").is_some() {
+    if text.sz_find("AccountKey").is_some() || lowered.has("accountkey") {
         for cap in AZURE_STORAGE_KEY_REGEX.captures_iter(text) {
             if let Some(val) = cap.get(1) {
                 out.push(PiiEntity {
@@ -687,7 +692,7 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     // 24. Assignment values whose key ends in a secret keyword
     if ["pass", "pwd", "secret", "token", "credential", "key"]
         .iter()
-        .any(|k| lower.sz_find(k).is_some())
+        .any(|k| lowered.has(k))
     {
         for cap in ASSIGNMENT_SECRET_REGEX.captures_iter(text) {
             let matched = cap.get(1).or_else(|| cap.get(2)).or_else(|| cap.get(3));
@@ -736,7 +741,7 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     if has_context_trigger
         || ["seed", "mnemonic", "recovery", "kurtarma", "kelime"]
             .iter()
-            .any(|k| lower.sz_find(k).is_some())
+            .any(|k| lowered.has(k))
     {
         for cap in SEED_PHRASE_REGEX.captures_iter(text) {
             let val = cap.get(1).unwrap();
@@ -757,7 +762,14 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     detect_bare_seed_phrases(text, out);
 
     // 10. Free-Floating High-Entropy Secret Scanner
-    for (token_start, token) in tokenize_words_with_offsets(text) {
+    let fields = tokenize_words_with_offsets(text)
+        .into_iter()
+        .flat_map(|(start, token)| {
+            value_fields(token)
+                .into_iter()
+                .map(move |(offset, field)| (start + offset, field))
+        });
+    for (token_start, token) in fields {
         // Quotes, brackets and sentence punctuation around a token are not part of it (JSON
         // "key": "value", markdown `value`); the span starts after what was trimmed.
         let (lead, clean_token) = trim_value(token);
@@ -787,6 +799,74 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
                 suffix: None,
             });
         }
+    }
+}
+
+/// Whether `key` reads as the name of a setting or a field (api_key, DB_PASS, user, x-token).
+fn is_field_key(key: &str) -> bool {
+    !key.is_empty()
+        && key.len() <= 32
+        && key.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+        && key
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+}
+
+/// The byte offsets of the separators (`,` `;` `&` `|`) in `value` that start another field:
+/// followed by a field name and `=` or `:` (X,user=ali; X;lang:tr). Separators inside a value
+/// (Ab;cd!) are not among them.
+fn field_starts(value: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    for (i, c) in value.char_indices() {
+        if !matches!(c, ',' | ';' | '&' | '|') {
+            continue;
+        }
+        let rest = value[i + 1..].trim_start();
+        let key_len = rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.')))
+            .unwrap_or(rest.len());
+        let after = rest[key_len..].trim_start();
+        if key_len > 0 && is_field_key(&rest[..key_len]) && after.starts_with(['=', ':']) {
+            out.push(i);
+        }
+    }
+    out
+}
+
+/// A field's value without its `key=` or `key:` (api_key=X is X), with its offset; a base64
+/// value with its padding (c2VjcmV0==) or a field without a key is itself.
+fn field_value(field: &str) -> (usize, &str) {
+    let split = field.find(['=', ':']).and_then(|i| {
+        let (key, value) = (&field[..i], &field[i + 1..]);
+        (is_field_key(key) && !value.trim_start_matches('=').is_empty()).then_some((i + 1, value))
+    });
+    split.unwrap_or((0, field))
+}
+
+/// The values of a token made of fields (api_key=X;user=ali, DB_PASS=X;HOST=db,
+/// sk9Xq2Lm7Pz,user=ali), each with its offset and without its key; any other token whole.
+/// Scored whole, such a token was masked with its keys and the fields after the secret.
+fn value_fields(token: &str) -> Vec<(usize, &str)> {
+    let starts = field_starts(token);
+    if starts.is_empty() {
+        let (offset, value) = field_value(token);
+        return vec![(offset, value)];
+    }
+    let mut out = Vec::new();
+    let mut begin = 0;
+    for end in starts.into_iter().chain(std::iter::once(token.len())) {
+        let (offset, value) = field_value(&token[begin..end]);
+        out.push((begin + offset, value));
+        begin = (end + 1).min(token.len());
+    }
+    out
+}
+
+/// `value` up to where another field starts (see `field_starts`).
+pub(crate) fn cut_at_next_field(value: &str) -> &str {
+    match field_starts(value).first() {
+        Some(&i) => &value[..i],
+        None => value,
     }
 }
 

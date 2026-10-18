@@ -87,6 +87,28 @@ pub(crate) fn fold_for_detection(text: &str) -> Option<Folded> {
     })
 }
 
+/// A text lower-cased both ways, for trigger gates: Turkish rules turn PIN into "pın" (missing
+/// the English "pin"), Rust's `to_lowercase` turns ŞİFRE into "şi\u{307}fre" (missing the
+/// Turkish "şifre"). A trigger counts when either form has it.
+pub struct Lowered {
+    pub turkish: String,
+    pub unicode: String,
+}
+
+impl Lowered {
+    pub fn of(text: &str) -> Self {
+        Self {
+            turkish: crate::phonology::to_turkish_lower(text),
+            unicode: text.to_lowercase(),
+        }
+    }
+
+    /// Whether either lower-cased form contains `needle` (itself lower case).
+    pub fn has(&self, needle: &str) -> bool {
+        self.turkish.contains(needle) || self.unicode.contains(needle)
+    }
+}
+
 /// See `phonology::to_turkish_lower_with_origin`.
 pub(crate) fn turkish_lower_with_origin(text: &str) -> (String, Vec<usize>) {
     crate::phonology::to_turkish_lower_with_origin(text)

@@ -9,6 +9,7 @@
 //! (`looks_like_password`), so sentences about passwords ("şifre politikası güncellendi",
 //! "şifremi unuttum", "password policies") are left alone.
 
+use super::normalize::Lowered;
 use super::secrets::{is_word_shaped, trim_value};
 use super::{PiiEntity, PiiType};
 use crate::morphology::TurkishMorphology;
@@ -251,7 +252,9 @@ fn first_value(text: &str, from: usize) -> Option<(usize, usize, bool)> {
 }
 
 fn push(out: &mut Vec<PiiEntity>, text: &str, start: usize, end: usize, confidence: f32) {
-    let value = &text[start..end];
+    // the value ends where the next field begins (DB_PASS=X;HOST=db, password=X,user=ali)
+    let value = super::secrets::cut_at_next_field(&text[start..end]);
+    let end = start + value.len();
     out.push(PiiEntity {
         text: value.to_string(),
         label: "SIFRE".to_string(),
@@ -265,10 +268,14 @@ fn push(out: &mut Vec<PiiEntity>, text: &str, start: usize, end: usize, confiden
 }
 
 /// Detects passwords, PINs and one-time codes; see the module documentation.
-pub fn detect_passwords(text: &str, lower: &str, out: &mut Vec<PiiEntity>) {
-    // Turkish lower-casing for the trigger gate: Rust's turns ŞİFRE into "şi\u{307}fre".
-    let turkish_lower = to_turkish_lower(text);
-    let has = |k: &str| lower.contains(k) || turkish_lower.contains(k);
+pub fn detect_passwords(text: &str, out: &mut Vec<PiiEntity>) {
+    detect_passwords_in(text, &Lowered::of(text), out);
+}
+
+/// `detect_passwords` with the text's lower-cased forms already made (`detect_secrets` makes
+/// them once for all its gates).
+pub(crate) fn detect_passwords_in(text: &str, lowered: &Lowered, out: &mut Vec<PiiEntity>) {
+    let has = |k: &str| lowered.has(k);
     if has("şifre") || has("sifre") || has("parola") || has("pin") || has("pass") || has("pwd") {
         for cap in TRIGGER_AFTER.captures_iter(text) {
             let whole = cap.get(0).unwrap();
@@ -338,7 +345,7 @@ mod tests {
 
     fn found(text: &str) -> Vec<String> {
         let mut out = Vec::new();
-        detect_passwords(text, &text.to_lowercase(), &mut out);
+        detect_passwords(text, &mut out);
         out.into_iter().map(|e| e.text).collect()
     }
 

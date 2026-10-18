@@ -681,3 +681,30 @@ fn identifiers_by_shape_and_spelled_tax_numbers() {
     let out = masked("vergi no dokuz dokuz sekiz dört sıfır altı yedi üç yedi dokuz kayıtlı mı");
     assert!(!out.contains("sekiz dört sıfır"), "{out}");
 }
+
+#[test]
+fn a_secret_ends_where_the_next_field_begins() {
+    let secrets = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Credentials)
+            .map(|e| e.text)
+            .collect()
+    };
+    for (text, value) in [
+        ("api key: sk9Xq2Lm7Pz,user=ali", "sk9Xq2Lm7Pz"),
+        ("API key=Ab12Cd34Ef;user=ali", "Ab12Cd34Ef"),
+        ("secret key: Ab12Cd34Ef&lang=tr", "Ab12Cd34Ef"),
+        ("api_key=Ab12Cd34Ef;user=ali", "Ab12Cd34Ef"),
+        ("DB_PASS=Ab12Cd34Ef;HOST=db", "Ab12Cd34Ef"),
+        ("private key: Kedi.Mavi.99, kullanici: ali", "Kedi.Mavi.99"),
+    ] {
+        assert_eq!(secrets(text), [value], "{text}");
+    }
+    // padding is not a field separator
+    assert_masked(
+        "token QWxhZGRpbjpvcGVuIHNlc2FtZQ== ekte",
+        "QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+    );
+}

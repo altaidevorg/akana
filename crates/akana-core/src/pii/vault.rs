@@ -77,6 +77,22 @@ impl PiiVault {
         suffix: Option<&str>,
         mode: PiiMode,
     ) -> String {
+        let taken = issued_shapes_in(text);
+        self.register_avoiding(&taken, original_text, label, stem, suffix, mode)
+    }
+
+    /// `register_in` with the placeholder- and surrogate-shaped strings of the text already
+    /// collected by `issued_shapes_in`, so that masking a text scans it once rather than once
+    /// per candidate.
+    pub(crate) fn register_avoiding(
+        &mut self,
+        taken: &HashSet<String>,
+        original_text: &str,
+        label: &str,
+        stem: &str,
+        suffix: Option<&str>,
+        mode: PiiMode,
+    ) -> String {
         // If this exact original text was already pseudonymized in this session, reuse its token
         if let Some(existing) = self.original_to_placeholder.get(original_text) {
             return existing.clone();
@@ -106,17 +122,27 @@ impl PiiVault {
             }
             tag
         } else {
+            // Every rejected candidate is in `taken` or in the vault, so within `limit` tries a
+            // family either gives a free one or has repeated itself: the surrogate families
+            // are cyclic (dates repeat after 13,440, phones after 9 million), and a text that
+            // holds a whole cycle kept this loop running forever. Placeholders do not repeat,
+            // so after `limit` tries they always end it.
+            let limit = taken.len() + self.placeholder_to_entry.len() + 1;
+            let mut tries = 0usize;
             loop {
                 let count = self.label_counters.entry(label.to_string()).or_insert(0);
                 *count += 1;
                 let index = *count;
+                tries += 1;
                 let candidate = match mode {
-                    PiiMode::SyntheticSurrogate => get_synthetic_surrogate(label, index),
+                    PiiMode::SyntheticSurrogate if tries <= limit => {
+                        get_synthetic_surrogate(label, index)
+                    }
                     _ => format!("{{{{{}_{}}}}}", label.to_uppercase(), index),
                 };
-                let taken = self.placeholder_to_entry.contains_key(&candidate)
-                    || (!text.is_empty() && text.contains(candidate.as_str()));
-                if !taken {
+                if !self.placeholder_to_entry.contains_key(&candidate)
+                    && !taken.contains(&candidate)
+                {
                     break candidate;
                 }
             }
@@ -253,15 +279,58 @@ impl PiiVault {
 /// Generates valid-looking, realistic Turkish synthetic surrogates for LLM fluency, a different
 /// one for every index: they used to repeat after 3-5 values (index modulo a short list), so
 /// the 6th person got the 1st person's surrogate and restore turned both into the 6th.
+const FIRST_NAMES: &[&str] = &[
+    "Can", "Burak", "Merve", "Zeynep", "Emre", "Elif", "Kerem", "Selin", "Onur", "Derya", "Arda",
+    "Esra",
+];
+const SURNAMES: &[&str] = &[
+    "Demir", "Şahin", "Kaya", "Çelik", "Yılmaz", "Aydın", "Arslan", "Doğan", "Kılıç", "Koç",
+    "Kurt", "Özdemir",
+];
+
+lazy_static::lazy_static! {
+    /// The shapes `get_synthetic_surrogate` and placeholders take, but for the digit runs of
+    /// TCKNs and IBANs, which `issued_shapes_in` windows itself. Surrogates are ASCII, so the
+    /// digits are [0-9], not the Unicode \d.
+    static ref ISSUED_SHAPE: regex::Regex = regex::Regex::new(&format!(
+        r"\{{\{{[^{{}}\s]{{1,64}}\}}\}}|\[[^\[\]\s]{{1,40}}_[0-9]+\]|(?:{})\x20(?:{})|0555\x20[0-9]{{3}}\x20[0-9]{{2}}\x20[0-9]{{2}}|[0-9]{{2}}\.[0-9]{{2}}\.[0-9]{{4}}|https://portal\.example\.com/dosya/[0-9]{{6}}",
+        FIRST_NAMES.join("|"),
+        SURNAMES.join("|"),
+    ))
+    .unwrap();
+    // ASCII digits only: the windows are cut by bytes, and the original text (not the folded
+    // one) can hold full-width digits.
+    static ref DIGIT_RUN: regex::Regex = regex::Regex::new(r"(?:TR)?[0-9]{11,64}").unwrap();
+}
+
+/// Every string in `text` that a placeholder or a surrogate could be: placeholders ({{AD_1}}),
+/// bracket forms ([AD_145]), surrogate names, phones, dates and URLs, and each 11-digit window
+/// of a digit run (TCKNs) and the 24 digits after a "TR" (IBANs). A new placeholder or
+/// surrogate must not be one of them, or restore would also turn that text into the original.
+/// Digit runs longer than 64 digits are not windowed.
+pub(crate) fn issued_shapes_in(text: &str) -> HashSet<String> {
+    let mut out: HashSet<String> = ISSUED_SHAPE
+        .find_iter(text)
+        .map(|m| m.as_str().to_string())
+        .collect();
+    for m in DIGIT_RUN.find_iter(text) {
+        let run = m.as_str();
+        if let Some(digits) = run.strip_prefix("TR") {
+            if digits.len() >= 24 {
+                out.insert(format!("TR{}", &digits[..24]));
+            }
+        }
+        let digits = run.trim_start_matches("TR");
+        for i in 0..=digits.len().saturating_sub(11) {
+            if digits.len() >= i + 11 {
+                out.insert(digits[i..i + 11].to_string());
+            }
+        }
+    }
+    out
+}
+
 fn get_synthetic_surrogate(label: &str, index: usize) -> String {
-    static FIRST_NAMES: &[&str] = &[
-        "Can", "Burak", "Merve", "Zeynep", "Emre", "Elif", "Kerem", "Selin", "Onur", "Derya",
-        "Arda", "Esra",
-    ];
-    static SURNAMES: &[&str] = &[
-        "Demir", "Şahin", "Kaya", "Çelik", "Yılmaz", "Aydın", "Arslan", "Doğan", "Kılıç", "Koç",
-        "Kurt", "Özdemir",
-    ];
     let i = index.saturating_sub(1);
 
     match label {
@@ -326,6 +395,58 @@ fn surrogate_iban(i: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_surrogate_shape_is_recognised_in_text() {
+        // a surrogate is avoided only when issued_shapes_in finds it in the prompt
+        for label in [
+            "AD",
+            "TCKN",
+            "IBAN",
+            "TEL",
+            "OZEL_URL",
+            "DOGUM_TARIHI",
+            "SIFRE",
+        ] {
+            for index in [1, 2, 77, 144, 145, 5_000, 13_441, 123_456] {
+                let s = get_synthetic_surrogate(label, index);
+                let text = format!("önce {s} sonra");
+                assert!(issued_shapes_in(&text).contains(&s), "{label} {index}: {s}");
+            }
+        }
+        let p = "{{AD_7}}";
+        assert!(issued_shapes_in(&format!("x {p} y")).contains(p));
+    }
+
+    #[test]
+    fn a_text_holding_a_whole_surrogate_cycle_does_not_hang() {
+        // all 13,440 date surrogates in the prompt: the date family has nothing left
+        let dates: Vec<String> = (1..=13_440)
+            .map(|i| get_synthetic_surrogate("DOGUM_TARIHI", i))
+            .collect();
+        let text = dates.join(" ");
+        let mut vault = PiiVault::new();
+        let s = vault.register_in(
+            &text,
+            "12.03.1985",
+            "DOGUM_TARIHI",
+            "12.03.1985",
+            None,
+            PiiMode::SyntheticSurrogate,
+        );
+        assert!(!text.contains(&s), "{s}");
+        assert_eq!(vault.restore(&s), "12.03.1985");
+    }
+
+    #[test]
+    fn many_placeholders_in_the_text_are_skipped_quickly() {
+        let text: String = (1..=20_000).map(|i| format!("{{{{AD_{i}}}}} ")).collect();
+        let started = std::time::Instant::now();
+        let mut vault = PiiVault::new();
+        let p = vault.register_in(&text, "Ahmet", "AD", "Ahmet", None, PiiMode::Placeholder);
+        assert_eq!(p, "{{AD_20001}}");
+        assert!(started.elapsed().as_secs() < 5, "{:?}", started.elapsed());
+    }
 
     #[test]
     fn test_vault_placeholder_and_restore() {
