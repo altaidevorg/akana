@@ -412,3 +412,24 @@ def test_file_mentions_not_masked_as_email():
     assert "{{EMAIL_2}}" in res_valid["masked_text"]
     assert len(res_valid["entities"]) == 2
 
+
+
+def test_entity_offsets_are_python_indices_and_linear():
+    # Offsets are counted in characters (Python indices) after multi-byte letters, and the
+    # conversion is one pass: counting from the start per entity was quadratic on dense input.
+    import time
+
+    text = "İstanbul'da Şükrü'nün numarası 0532 123 45 67, e-posta ahmet.yilmaz@example.com."
+    for e in akana.TurkishPiiEngine().detect(text):
+        assert text[e["start"]:e["end"]] == e["text"]
+    res = akana.pii_mask(text)
+    for e in res["entities"]:
+        assert text[e["start"]:e["end"]] == e["text"]
+
+    log = "".join(f"ğ {i % 250}.{i % 7}.{i % 3}.{i % 200} bağlandı\n" for i in range(40000))
+    t0 = time.perf_counter()
+    entities = akana.TurkishPiiEngine().detect(log)
+    assert len(entities) > 30000
+    assert time.perf_counter() - t0 < 5.0
+    last = entities[-1]
+    assert log[last["start"]:last["end"]] == last["text"]

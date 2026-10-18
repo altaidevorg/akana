@@ -1196,6 +1196,31 @@ impl PyPiiVault {
     }
 }
 
+/// Character offsets (Python string indices) of the entities' byte spans, in one pass over the
+/// text: counting from the start of the text for every entity was quadratic on entity-dense
+/// input (a log with an IP address on every line).
+fn entity_char_offsets(text: &str, entities: &[akana_core::pii::PiiEntity]) -> Vec<(usize, usize)> {
+    let bytes: Vec<usize> = entities.iter().flat_map(|e| [e.start, e.end]).collect();
+    let mut order: Vec<usize> = (0..bytes.len()).collect();
+    order.sort_by_key(|&i| bytes[i]);
+    let mut chars_at = vec![0usize; bytes.len()];
+    let (mut pos, mut chars) = (0usize, 0usize);
+    let mut it = text.char_indices();
+    for i in order {
+        while pos < bytes[i] {
+            match it.next() {
+                Some((b, c)) => {
+                    pos = b + c.len_utf8();
+                    chars += 1;
+                }
+                None => break,
+            }
+        }
+        chars_at[i] = chars;
+    }
+    chars_at.chunks(2).map(|p| (p[0], p[1])).collect()
+}
+
 #[pyclass(name = "TurkishPiiEngine")]
 pub struct PyTurkishPiiEngine {
     inner: akana_core::pii::TurkishPiiEngine,
@@ -1273,20 +1298,13 @@ impl PyTurkishPiiEngine {
 
     fn detect<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyList>> {
         let entities = self.inner.detect(text);
+        let offsets = entity_char_offsets(text, &entities);
         let list = PyList::empty_bound(py);
-        for e in entities {
+        for (e, (char_start, char_end)) in entities.into_iter().zip(offsets) {
             let dict = PyDict::new_bound(py);
             dict.set_item("text", e.text)?;
             dict.set_item("label", e.label)?;
             dict.set_item("pii_type", e.pii_type.as_str())?;
-            let char_start = text
-                .get(..e.start)
-                .map(|s| s.chars().count())
-                .unwrap_or(e.start);
-            let char_end = text
-                .get(..e.end)
-                .map(|s| s.chars().count())
-                .unwrap_or(e.end);
             dict.set_item("start", char_start)?;
             dict.set_item("end", char_end)?;
             dict.set_item("confidence", e.confidence)?;
@@ -1347,21 +1365,13 @@ impl PyTurkishPiiEngine {
         }
         dict.set_item("detailed_mapping", detailed_dict)?;
 
-        let orig_text = &result.original_text;
+        let offsets = entity_char_offsets(&result.original_text, &result.entities);
         let ent_list = PyList::empty_bound(py);
-        for e in result.entities {
+        for (e, (char_start, char_end)) in result.entities.into_iter().zip(offsets) {
             let ent_dict = PyDict::new_bound(py);
             ent_dict.set_item("text", e.text)?;
             ent_dict.set_item("label", e.label)?;
             ent_dict.set_item("pii_type", e.pii_type.as_str())?;
-            let char_start = orig_text
-                .get(..e.start)
-                .map(|s| s.chars().count())
-                .unwrap_or(e.start);
-            let char_end = orig_text
-                .get(..e.end)
-                .map(|s| s.chars().count())
-                .unwrap_or(e.end);
             ent_dict.set_item("start", char_start)?;
             ent_dict.set_item("end", char_end)?;
             ent_dict.set_item("confidence", e.confidence)?;
