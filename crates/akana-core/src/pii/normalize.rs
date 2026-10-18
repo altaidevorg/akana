@@ -29,12 +29,20 @@ fn is_invisible(c: char) -> bool {
     matches!(
         c,
         '\u{00AD}'               // soft hyphen
-            | '\u{180E}'         // Mongolian vowel separator
+            | '\u{034F}'         // combining grapheme joiner
+            | '\u{061C}'         // Arabic letter mark
+            | '\u{115F}' | '\u{1160}' | '\u{3164}' | '\u{FFA0}' // Hangul fillers
+            | '\u{17B4}' | '\u{17B5}' // Khmer inherent vowels
+            | '\u{180B}'..='\u{180F}' // Mongolian variation selectors, vowel separator
             | '\u{200B}'..='\u{200F}' // zero-width space/joiners, LRM, RLM
             | '\u{202A}'..='\u{202E}' // bidi embeddings and overrides
             | '\u{2060}'..='\u{2064}' // word joiner, invisible operators
             | '\u{2066}'..='\u{2069}' // bidi isolates
+            | '\u{FE00}'..='\u{FE0F}' // variation selectors
             | '\u{FEFF}' // zero-width no-break space
+            | '\u{1D173}'..='\u{1D17A}' // musical format controls
+            | '\u{E0000}'..='\u{E007F}' // tag characters
+            | '\u{E0100}'..='\u{E01EF}' // variation selectors supplement
     )
 }
 
@@ -43,7 +51,10 @@ const DIGIT_ZEROS: &[u32] = &[
     0x0660, 0x06F0, 0x07C0, 0x0966, 0x09E6, 0x0A66, 0x0AE6, 0x0B66, 0x0BE6, 0x0C66, 0x0CE6, 0x0D66,
     0x0DE6, 0x0E50, 0x0ED0, 0x0F20, 0x1040, 0x1090, 0x17E0, 0x1810, 0x1946, 0x19D0, 0x1A80, 0x1A90,
     0x1B50, 0x1BB0, 0x1C40, 0x1C50, 0xA620, 0xA8D0, 0xA900, 0xA9D0, 0xA9F0, 0xAA50, 0xABF0, 0xFF10,
-    0x1D7CE, 0x1D7D8, 0x1D7E2, 0x1D7EC, 0x1D7F6,
+    0x104A0, 0x10D30, 0x11066, 0x110F0, 0x11136, 0x111D0, 0x112F0, 0x11450, 0x114D0, 0x11650,
+    0x116C0, 0x11730, 0x118E0, 0x11950, 0x11C50, 0x11D50, 0x11DA0, 0x11F50, 0x16A60, 0x16AC0,
+    0x16B50, 0x1D7CE, 0x1D7D8, 0x1D7E2, 0x1D7EC, 0x1D7F6, 0x1E140, 0x1E2F0, 0x1E4F0, 0x1E950,
+    0x1FBF0,
 ];
 
 fn fold_char(c: char) -> Option<char> {

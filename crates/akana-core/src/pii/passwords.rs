@@ -62,9 +62,10 @@ lazy_static! {
         // session cookies
         r"(?i)\b(?:session[_-]?id|sessionid|sess|sid|auth[_-]?token|jwt|csrf[_-]?token|csrftoken|connect\.sid|phpsessid|jsessionid|_session|remember[_-]?token)=([^;\s]+)",
         // root:toor, admin/admin123: a default account name glued to its password
-        r"(?i)\b(?:root|admin|administrator|sa|postgres|ubuntu|pi|guest|oracle|ftp|sysadmin)[:/]([^\s,;:/]{3,64})",
+        // (not inside a path: /home/ubuntu/project, /root/.ssh/config)
+        r"(?i)(?:^|[\s\x22'(=,;])(?:root|admin|administrator|sa|postgres|ubuntu|pi|guest|oracle|ftp|sysadmin)[:/]([^\s,;:/.][^\s,;:/]{2,63})(?:$|[\s\x22'),;])",
         // Login with admin / password, giriş: ali / şifre
-        r"(?i)\b(?:log\s?in|sign\s?in|giri[şs](?:\s+yap\w*)?)\b\s*(?:with|as|ile|:)?\s*[^\s/:]+\s*/\s*(\S+)",
+        r"(?i)\b(?:log\s?in|sign\s?in|giri[şs](?:\s+yap\w*)?)\b\s*(?:with|as|ile|:)\s*[^\s/:]+\s*/\s*(\S+)",
     ]
     .iter()
     .map(|p| Regex::new(p).unwrap())
@@ -166,11 +167,17 @@ fn value_after(text: &str, from: usize) -> Option<(usize, usize, bool)> {
         let rest = &text[pos..];
         let trimmed = rest.trim_start();
         let token_len = trimmed.find(char::is_whitespace).unwrap_or(trimmed.len());
-        if token_len == 0 || trimmed.starts_with(['\n', '\r']) {
+        // past the first word the lookahead stays on the line (Şifre politikası
+        // güncellendi\nToplantı: Pazartesi is not a password)
+        let skipped = &rest[..rest.len() - trimmed.len()];
+        if token_len == 0 || (i > 0 && skipped.contains(['\n', '\r'])) {
             break;
         }
-        let token = &trimmed[..token_len];
         let token_start = pos + (rest.len() - trimmed.len());
+        if let Some(span) = quoted_span(text, token_start) {
+            return Some((span.0, span.1, true)); // a quoted value is explicit
+        }
+        let token = &trimmed[..token_len];
         let word = to_turkish_lower(token);
         // "word:" or "word=" with the value after it, or a separator token of its own
         if let Some(sep) = token.find([':', '=']) {
@@ -203,9 +210,31 @@ fn explicit_value(text: &str, from: usize) -> Option<(usize, usize, bool)> {
     let rest = &text[from..];
     let trimmed = rest.trim_start();
     let start = from + (rest.len() - trimmed.len());
+    if let Some((s, e)) = quoted_span(text, start) {
+        return Some((s, e, true));
+    }
     let token_len = trimmed.find(char::is_whitespace).unwrap_or(trimmed.len());
     let (lead, value) = trim_value(&trimmed[..token_len]);
     (!value.is_empty()).then_some((start + lead, start + lead + value.len(), true))
+}
+
+/// The inside of a quoted value starting at `at`: up to the matching closing quote on the same
+/// line, at most 128 bytes ("mavi kedi 42", “correct horse battery staple”). A value of
+/// several words was cut at its first space.
+fn quoted_span(text: &str, at: usize) -> Option<(usize, usize)> {
+    let open = text[at..].chars().next()?;
+    let close = match open {
+        '"' | '\'' | '`' => open,
+        '“' => '”',
+        '‘' => '’',
+        '«' => '»',
+        _ => return None,
+    };
+    let inner = at + open.len_utf8();
+    let rest = &text[inner..];
+    let end = rest.find([close, '\n', '\r'])?;
+    let ok = rest[end..].starts_with(close) && (1..=128).contains(&end);
+    ok.then_some((inner, inner + end))
 }
 
 /// The first word after the password word, skipping separators and connectors.
@@ -233,6 +262,9 @@ fn first_value(text: &str, from: usize) -> Option<(usize, usize, bool)> {
         if WEAK_CONNECTORS.contains(&word.as_str()) {
             pos += token_len;
             continue;
+        }
+        if let Some((s, e)) = quoted_span(text, pos) {
+            return Some((s, e, true));
         }
         let quoted = token.starts_with(['"', '\'', '“', '‘', '`']);
         let (lead, value) = trim_value(token);

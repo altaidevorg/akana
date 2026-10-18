@@ -27,17 +27,17 @@ lazy_static! {
         )
         \b
         [:\s=]+
-        (\S{4,128})"
+        (\S{4,4096})"
     ).unwrap();
 
     /// OpenAI API Keys: sk-..., sk-proj-..., sk-svcacct-...
     pub static ref OPENAI_KEY_REGEX: Regex = Regex::new(
-        r"\b(sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,128})\b"
+        r"\b(sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,512})\b"
     ).unwrap();
 
     /// Anthropic API Keys: sk-ant-api03-..., sk-ant-admin01-...
     pub static ref ANTHROPIC_KEY_REGEX: Regex = Regex::new(
-        r"\b(sk-ant-[A-Za-z0-9_-]{20,128})\b"
+        r"\b(sk-ant-[A-Za-z0-9_-]{20,512})\b"
     ).unwrap();
 
     /// GitLab Personal Access Tokens (glpat-...)
@@ -104,7 +104,7 @@ lazy_static! {
     /// SECRET_KEY=, aws_secret_access_key =, "password": "...", x-api-key:. The keyword has to
     /// end the key, so max_tokens: 1000 and tokenizer: bert are not secrets.
     pub static ref ASSIGNMENT_SECRET_REGEX: Regex = Regex::new(
-        r#"(?i)\b[A-Za-z0-9_.-]*?(?:password|passwd|pwd|passphrase|secret|token|credentials?|api[_-]?key|(?:access|secret|private|signing|encryption|client|master)[_-]?key|client[_-]?secret)["']?\s*[:=]\s*(?:"([^"\r\n]{2,256})"|'([^'\r\n]{2,256})'|([^\s,;\r\n"'>}]+))"#
+        r#"(?i)\b[A-Za-z0-9_.-]*?(?:password|passwd|pwd|passphrase|secret|token|credentials?|api[_-]?key|(?:access|secret|private|signing|encryption|client|master)[_-]?key|client[_-]?secret)["']?\s*[:=]\s*(?:"([^"\r\n]{2,4096})"|'([^'\r\n]{2,4096})'|([^\s,;\r\n"'>}]+))"#
     ).unwrap();
 
     /// Long structured tokens the entropy scanner (64 characters at most) cannot see, and a few
@@ -141,7 +141,7 @@ lazy_static! {
 
     /// Slack Bot & User Tokens (xoxb-, xoxp-, xoxa-, xoxr-, xoxs-)
     pub static ref SLACK_TOKEN_REGEX: Regex = Regex::new(
-        r"\b(xox[baprs]-[0-9A-Za-z-]{10,72})\b"
+        r"\b(xox[baprse]-[0-9A-Za-z-]{10,512})\b"
     ).unwrap();
 
     /// Google Cloud API Keys (AIza...)
@@ -162,7 +162,7 @@ lazy_static! {
     /// PEM private key blocks of any kind (RSA, EC, OPENSSH, ENCRYPTED, PGP ... BLOCK), also with
     /// JSON-escaped newlines, and up to the end of the key material when the END line is missing.
     pub static ref PRIVATE_KEY_BLOCK_REGEX: Regex = Regex::new(
-        r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----(?:[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----|(?:[A-Za-z0-9+/=:,\-\s]|\\[nr])+)"
+        r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----(?:[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----|(?:(?:\r?\n|\\[rn])+(?:(?:Proc-Type|DEK-Info|Comment):[^\r\n\\]*|[A-Za-z0-9+/=]+))+)"
     ).unwrap();
 }
 
@@ -390,16 +390,31 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 9. PEM Private Key Blocks (SIMD anchor: -----BEGIN)
+    // 9. PEM Private Key Blocks (SIMD anchor: -----BEGIN). Without an END line the block is
+    // the base64 lines after BEGIN; a line it stopped inside (prose after a blank line) is not
+    // part of it.
     if text.sz_find("-----BEGIN").is_some() {
         for mat in PRIVATE_KEY_BLOCK_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
+            let mut span_str = mat.as_str();
+            let at_line_end = text[mat.end()..].is_empty()
+                || text[mat.end()..].starts_with(['\n', '\r'])
+                || text[mat.end()..].starts_with("\\n")
+                || text[mat.end()..].starts_with("\\r");
+            if !span_str.contains("-----END") && !at_line_end {
+                // stopped inside a line of prose ("Thanks for ..."): end at the line before it
+                if let Some(cut) = span_str
+                    .rfind(['\n', '\r'])
+                    .or_else(|| span_str.rfind("\\n"))
+                {
+                    span_str = span_str[..cut].trim_end_matches(['\n', '\r', '\\']);
+                }
+            }
             out.push(PiiEntity {
                 text: span_str.to_string(),
                 label: "SIFRE".to_string(),
                 pii_type: PiiType::Credentials,
                 start: mat.start(),
-                end: mat.end(),
+                end: mat.start() + span_str.len(),
                 confidence: 1.0,
                 stem: span_str.to_string(),
                 suffix: None,
@@ -564,13 +579,10 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
 
     // 18. Database Connection URLs (SIMD anchor: :// and protocol keywords)
     if text.sz_find("://").is_some()
-        && (text.sz_find("postgres").is_some()
-            || text.sz_find("mysql").is_some()
-            || text.sz_find("mongodb").is_some()
-            || text.sz_find("redis").is_some()
-            || text.sz_find("amqp").is_some()
-            || text.sz_find("mssql").is_some()
-            || text.sz_find("sqlserver").is_some())
+        // in any case, as the regex is (REDIS://...)
+        && ["postgres", "mysql", "mongodb", "redis", "amqp", "mssql", "sqlserver"]
+            .iter()
+            .any(|k| lowered.has(k))
     {
         for mat in DATABASE_URL_REGEX.find_iter(text) {
             let val_str = mat.as_str().trim_end_matches(|c: char| {
@@ -697,7 +709,15 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         for cap in ASSIGNMENT_SECRET_REGEX.captures_iter(text) {
             let matched = cap.get(1).or_else(|| cap.get(2)).or_else(|| cap.get(3));
             if let Some(val) = matched {
-                let val_str = val.as_str().trim();
+                // the span is the trimmed value; a bare one ends where the next field begins
+                // (token=X&user=bob)
+                let raw = val.as_str();
+                let lead = raw.len() - raw.trim_start().len();
+                let mut val_str = raw.trim();
+                if cap.get(3).is_some() {
+                    val_str = cut_at_next_field(val_str).trim_end();
+                }
+                let val_start = val.start() + lead;
                 // Short numbers are settings (timeout = 30, max_token = 512), not secrets.
                 let short_number = val_str.len() < 6 && val_str.chars().all(|c| c.is_ascii_digit());
                 if val_str.len() >= 2
@@ -711,8 +731,8 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
                         text: val_str.to_string(),
                         label: "SIFRE".to_string(),
                         pii_type: PiiType::Credentials,
-                        start: val.start(),
-                        end: val.end(),
+                        start: val_start,
+                        end: val_start + val_str.len(),
                         confidence: 1.0,
                         stem: val_str.to_string(),
                         suffix: None,
@@ -762,6 +782,20 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     detect_bare_seed_phrases(text, out);
 
     // 10. Free-Floating High-Entropy Secret Scanner
+    // Spans the rules above already took (sorted, with the furthest end so far), so that a
+    // token they matched is not reported twice.
+    let mut taken: Vec<(usize, usize)> = out.iter().map(|e| (e.start, e.end)).collect();
+    taken.sort_unstable();
+    let mut furthest = Vec::with_capacity(taken.len());
+    let mut reach = 0;
+    for &(_, end) in &taken {
+        reach = reach.max(end);
+        furthest.push(reach);
+    }
+    let inside_taken = |start: usize, end: usize| {
+        let i = taken.partition_point(|&(s, _)| s <= start);
+        i > 0 && furthest[i - 1] >= end
+    };
     let fields = tokenize_words_with_offsets(text)
         .into_iter()
         .flat_map(|(start, token)| {
@@ -777,7 +811,9 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         if clean_token.len() < 8 || clean_token.len() > 64 {
             continue;
         }
-        if is_suppressed_entropy_token(clean_token) {
+        if is_suppressed_entropy_token(clean_token)
+            || inside_taken(start_idx, start_idx + clean_token.len())
+        {
             continue;
         }
 
@@ -907,7 +943,7 @@ fn detect_bare_seed_phrases(text: &str, out: &mut Vec<PiiEntity>) {
             .map(|(_, w)| *w)
             .collect::<std::collections::HashSet<_>>()
             .len();
-        if matches!(run.len(), 12 | 15 | 18 | 21 | 24) && distinct * 2 >= run.len() {
+        if (12..=25).contains(&run.len()) && distinct * 2 >= run.len() {
             let (start, _) = run[0];
             let (last_start, last) = run[run.len() - 1];
             let end = last_start + last.len();
@@ -983,37 +1019,18 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     if token.starts_with("bc1") {
         return true; // Bitcoin address
     }
-    // Suppress IBAN candidates (alphanumeric 15..34 starting with 2 letters and 2 digits)
+    // An IBAN shape (two capitals, two check digits, capitals and digits: GB82WEST1234...) is
+    // an IBAN, valid or not, not a password; a token with lower-case letters is not one
+    // (Ab12xK9mQ2pL7vR4tZ). The prefixes of the dedicated token rules (sk-, gh, xox, AIza,
+    // ...) are no longer let off: a value the rule rejected (a malformed or cut token,
+    // ghX9kLq2mP7vR4tZ) was then taken by nothing.
     let b = token.as_bytes();
-    if b.len() >= 15
-        && b.len() <= 34
-        && b[0].is_ascii_alphabetic()
-        && b[1].is_ascii_alphabetic()
-        && b[2].is_ascii_digit()
-        && b[3].is_ascii_digit()
-    {
-        return true;
-    }
-    // Suppress structured secrets handled by dedicated extractors
-    if token.starts_with("sk-")
-        || token.starts_with("gh")
-        || token.starts_with("glpat-")
-        || token.starts_with("dop_v1_")
-        || token.starts_with("shpat_")
-        || token.starts_with("shpca_")
-        || token.starts_with("shppa_")
-        || token.starts_with("shpss_")
-        || token.starts_with("shcap_")
-        || token.starts_with("sq0atp-")
-        || token.starts_with("sq0csp-")
-        || token.starts_with("hf_")
-        || token.starts_with("npm_")
-        || token.starts_with("AIza")
-        || token.starts_with("eyJ")
-        || token.starts_with("SG.")
-        || token.starts_with("AKIA")
-        || token.starts_with("ASIA")
-        || token.starts_with("xox")
+    if (15..=34).contains(&b.len())
+        && b[..2].iter().all(u8::is_ascii_uppercase)
+        && b[2..4].iter().all(u8::is_ascii_digit)
+        && b[4..]
+            .iter()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
     {
         return true;
     }

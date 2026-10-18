@@ -18,26 +18,26 @@ use regex::Regex;
 
 lazy_static! {
     /// "<name> mahallesi" and what follows it.
-    static ref MAHALLE: Regex = Regex::new(
+    static ref MAHALLE: Regex = Regex::new(&super::patterns::loose_turkish(
         r"(?x)
         \b\p{L}[\p{L}\d-]*\.?\s+(?:mahallesi|mahalle|mah\.|mah\b|mh\.|mh\b)
         (?P<rest>
           (?:[\s,]+(?:\p{L}+\s+){1,3}(?:apt\.|apt\b|apartmanı|sitesi|blok)\b)?
-          (?P<street>[\s,]+(?:[\p{L}\d.]+\s+){1,3}?(?:sokağı|sokak|sok\.|sok\b|sk\.|sk\b|caddesi|cadde|cad\.|cad\b|cd\.|cd\b|bulvarı|bulvar|blv\.|blv\b|bulv\.|yolu|meydanı)\b\.?)?
+          (?P<street>[\s,]+(?:[\p{L}\d.]+\s+){1,3}?(?:sokağı|sokak|sok\.|sok\b|sk\.|sk\b|caddesi|cadde|cad\.|cad\b|cd\.|cd\b|bulvarı|bulvar|blv\.|blv\b|bulv\.|bulv\b|yolu|meydanı)\b\.?)?
           (?P<number>[\s,]+(?:(?:no|numara|nr|bina|kapı\s+no)\b\.?\s*:?\s*)?\d+[a-z]?(?:\s*/\s*\d+)?\b)?
-          (?:[\s,]+(?:daire|d|kat|kapı|blok)\b\.?\s*:?\s*\d+)*
-        )"
+          (?:[\s,]+(?:(?:daire|d|kat|kapı)\b\.?\s*:?\s*\d+|blok\b\.?\s*:?\s*(?:\d+|\p{L}\b)))*
+        )")
     ).unwrap();
 
     /// "<name> sokak no 12" and what follows it, for addresses without a mahalle. One name word:
     /// a longer name is taken by its capitals (`extend_name_left`), since the leftmost match of
     /// several words began in the prose before it (yeni yer Atatürk Sokak).
-    static ref STREET: Regex = Regex::new(
+    static ref STREET: Regex = Regex::new(&super::patterns::loose_turkish(
         r"(?x)
-        \b\p{L}[\p{L}\d.]*\s+(?:sokağı|sokak|sok\.|sk\.|caddesi|cadde|cad\.|cd\.|bulvarı|bulvar|blv\.)
+        \b\p{L}[\p{L}\d.]*\s+(?:sokağı|sokak|sok\.|sk\.|caddesi|cadde|cad\.|cd\.|bulvarı|bulvar|blv\.|bulv\.)
         \s+(?:no|numara|nr|bina)\b\.?\s*:?\s*\d+[a-z]?(?:\s*/\s*\d+)?\b
-        (?:[\s,]+(?:daire|d|kat|kapı|blok)\b\.?\s*:?\s*\d+)*
-        (?:[\s,]+\p{L}+\s+(?:mahallesi|mahalle|mah\.|mah\b|mh\.|mh\b))?"
+        (?:[\s,]+(?:(?:daire|d|kat|kapı)\b\.?\s*:?\s*\d+|blok\b\.?\s*:?\s*(?:\d+|\p{L}\b)))*
+        (?:[\s,]+(?:\p{L}+\s+){1,2}(?:mahallesi|mahalle|mah\.|mah\b|mh\.|mh\b))?")
     ).unwrap();
 
     /// A district and province after the rest (akpınar/kırşehir, kadıköy / istanbul).

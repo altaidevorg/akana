@@ -13,7 +13,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 lazy_static! {
-    static ref DIGIT_RUN: Regex = Regex::new(r"[+(]*\d[\d \t.\-/()]*\d\)?").unwrap();
+    // ASCII digits: the pieces are cut by bytes, and a digit the folding does not know (any
+    // Unicode \d) made that cut panic.
+    static ref DIGIT_RUN: Regex = Regex::new(r"[+(]*[0-9][0-9 \t.\-/()]*[0-9]\)?").unwrap();
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -33,8 +35,10 @@ fn plan(piece: &str) -> Option<Plan> {
         let head = piece.trim_start_matches('(');
         let area_slash = head.len() > 5
             && head.as_bytes()[0] == b'0'
-            && head[..4].bytes().all(|b| b.is_ascii_digit())
-            && head[4..].trim_start_matches(')').starts_with('/');
+            && head.as_bytes()[..4].iter().all(u8::is_ascii_digit)
+            && head
+                .get(4..)
+                .is_some_and(|r| r.trim_start_matches(')').starts_with('/'));
         if !area_slash || piece.matches('/').count() > 1 {
             return None;
         }

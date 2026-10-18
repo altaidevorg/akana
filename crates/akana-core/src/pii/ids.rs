@@ -16,7 +16,7 @@ lazy_static! {
     static ref TR_IBAN: Regex = Regex::new(r"\btr\s?\d{2}(?:[\s-]?[\d*]){14,24}").unwrap();
 
     /// A TCKN or VKN trigger, up to three words, and a value of digits and stars.
-    static ref ID_AFTER_TRIGGER: Regex = Regex::new(
+    static ref ID_AFTER_TRIGGER: Regex = Regex::new(&super::patterns::loose_turkish(
         r"(?x)
         \b(?:
             (?P<tckn>
@@ -33,7 +33,7 @@ lazy_static! {
             )
         )\b
         (?:[\s:=-]+(?:\p{L}+[\s:=-]+){0,3}?|[\s:=-]*)
-        (?P<val>[\d*](?:[\x20.\-]?[\d*]){8,13})"
+        (?P<val>[\d*](?:[\x20.\-]?[\d*]){8,13})")
     ).unwrap();
 }
 

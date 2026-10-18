@@ -175,11 +175,19 @@ impl PiiVault {
     /// placeholder's text (or a surrogate's) cannot pull a second value in. Placeholders with an
     /// empty key are ignored.
     pub fn restore(&self, llm_response: &str) -> String {
+        // Which keys occur in the response: a key of a placeholder or surrogate shape by one
+        // scan of the response (searching it once per key was quadratic in long sessions),
+        // any other key (tags, keys from `from_mapping`) by searching for it.
+        let shapes = issued_shapes_in(llm_response);
         let mut keys: Vec<&str> = self
             .placeholder_to_entry
             .keys()
             .map(String::as_str)
-            .filter(|k| !k.is_empty() && llm_response.contains(*k))
+            .filter(|k| {
+                !k.is_empty()
+                    && (shapes.contains(*k)
+                        || (!issued_shapes_in(k).contains(*k) && llm_response.contains(*k)))
+            })
             .collect();
         if keys.is_empty() {
             return llm_response.to_string();
@@ -205,8 +213,27 @@ impl PiiVault {
             Ok(re) => re,
             Err(_) => return llm_response.to_string(),
         };
+        let bytes_before = |i: usize| llm_response[..i].chars().next_back();
         pattern
             .replace_all(llm_response, |caps: &regex::Captures| {
+                // A key that begins or ends with a letter or digit (a surrogate) must stand as
+                // a word: Can Demir is not restored inside Can Demirtaş, nor a surrogate TCKN
+                // inside a longer number.
+                let key = caps.get(1).unwrap();
+                let (first, last) = (
+                    key.as_str().chars().next(),
+                    key.as_str().chars().next_back(),
+                );
+                let glued_before = first.is_some_and(char::is_alphanumeric)
+                    && bytes_before(key.start()).is_some_and(char::is_alphanumeric);
+                let glued_after = last.is_some_and(char::is_alphanumeric)
+                    && llm_response[key.end()..]
+                        .chars()
+                        .next()
+                        .is_some_and(char::is_alphanumeric);
+                if glued_before || glued_after {
+                    return caps[0].to_string();
+                }
                 let entry = &self.placeholder_to_entry[&caps[1]];
                 match caps.get(3) {
                     Some(found_suffix) => {

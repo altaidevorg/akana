@@ -182,14 +182,8 @@ lazy_static::lazy_static! {
     static ref VIN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b[A-HJ-NPR-Z0-9]{17}\b").unwrap();
     /// Text in the input that has the shape of a vault placeholder ({{AD_1}}, {{IBAN_1}}).
     static ref PLACEHOLDER_LITERAL_REGEX: regex::Regex = regex::Regex::new(r"\{\{[^{}\s]{1,64}\}\}").unwrap();
-    static ref ADDRESS_REGEX: regex::Regex = regex::Regex::new(
-        r"(?ix)
-        \b[A-ZÇĞİÖŞÜ][a-zçğıöşü]+\s+(?:Mahallesi|Mah\.|Mah)\b
-        (?:[,\s]+[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+(?:Caddesi|Cad\.|Cad|Sokağı|Sok\.|Sok|Bulvarı|Bulv\.|Bulv))?
-        (?:[,\s]+(?:No|Kapı\s*No|Daire|Kat)[:\s]*[0-9/A-Za-z]+)?
-        (?:[,\s]+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s*/\s*[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)?)?
-        "
-    ).unwrap();
+    /// A tag of the tag and anonymize modes ([AD], [TCKN], [OZEL_TARIH]).
+    static ref TAG_LITERAL_REGEX: regex::Regex = regex::Regex::new(r"\[[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ_0-9]{0,39}\]").unwrap();
 }
 
 /// High-performance Turkish PII Detection and Pseudonymization Engine.
@@ -380,13 +374,22 @@ impl TurkishPiiEngine {
         // Placeholder-shaped text already in the input ({{IBAN_1}} in a web page an agent
         // read) is masked too, as a placeholder of its own that restores to that literal text.
         // Left as it was, restore would replace it with the real value it names.
+        // In tag and anonymize modes a tag in the input ([AD] in a template) is masked the same
+        // way: every [AD] restores to the one original, so it would have become the person.
+        let tag_literals = matches!(mode, PiiMode::Tag | PiiMode::Anonymize)
+            .then(|| TAG_LITERAL_REGEX.find_iter(text))
+            .into_iter()
+            .flatten();
+        // the entities are sorted and do not overlap: a literal overlaps one if the last entity
+        // starting before its end reaches past its start (one search, not a scan per literal)
+        let overlaps_entity = |s: usize, e: usize| {
+            let i = entities.partition_point(|x| x.start < e);
+            i > 0 && entities[i - 1].end > s
+        };
         let literals = PLACEHOLDER_LITERAL_REGEX
             .find_iter(text)
-            .filter(|m| {
-                !entities
-                    .iter()
-                    .any(|e| e.start < m.end() && m.start() < e.end)
-            })
+            .chain(tag_literals)
+            .filter(|m| !overlaps_entity(m.start(), m.end()))
             .map(|m| (m.start(), m.end()));
         let mut spans: Vec<(usize, usize, Option<&PiiEntity>)> = entities
             .iter()
@@ -508,7 +511,7 @@ impl TurkishPiiEngine {
         if lower.sz_find("tc").is_some() || lower.sz_find("kimlik").is_some() {
             for cap in TCKN_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
+                    let (val_start, val_end, span_str) = trimmed_match(val);
                     let clean_digits: String =
                         span_str.chars().filter(|c| c.is_ascii_digit()).collect();
                     if clean_digits.len() == 11 {
@@ -521,8 +524,8 @@ impl TurkishPiiEngine {
                             text: span_str.to_string(),
                             label: PiiType::Tckn.as_str().to_string(),
                             pii_type: PiiType::Tckn,
-                            start: val.start(),
-                            end: val.end(),
+                            start: val_start,
+                            end: val_end,
                             confidence: conf,
                             stem: span_str.to_string(),
                             suffix: None,
@@ -618,13 +621,13 @@ impl TurkishPiiEngine {
         if lower.sz_find("plaka").is_some() {
             for cap in PLATE_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
+                    let (val_start, val_end, span_str) = trimmed_match(val);
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: PiiType::Plate.as_str().to_string(),
                         pii_type: PiiType::Plate,
-                        start: val.start(),
-                        end: val.end(),
+                        start: val_start,
+                        end: val_end,
                         confidence: 0.98,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -635,14 +638,26 @@ impl TurkishPiiEngine {
 
         // Credit/Debit Card candidates (13-19 digits, possibly space/dash grouped)
         for mat in CARD_CANDIDATE_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            if let Some(_brand) = validate_credit_card(span_str) {
+            // The match is greedy and may end in a separator: "4111 1111 1111 1111 123" failed
+            // Luhn as a whole. The longest prefix that ends at a group and passes is the card.
+            let whole = mat.as_str().trim_end_matches([' ', '-']);
+            let mut cuts: Vec<usize> = whole
+                .char_indices()
+                .filter(|&(_, c)| c == ' ' || c == '-')
+                .map(|(i, _)| i)
+                .collect();
+            cuts.push(whole.len());
+            let card = cuts.iter().rev().map(|&i| &whole[..i]).find(|prefix| {
+                let digits = prefix.bytes().filter(u8::is_ascii_digit).count();
+                (13..=19).contains(&digits) && validate_credit_card(prefix).is_some()
+            });
+            if let Some(span_str) = card {
                 out.push(PiiEntity {
                     text: span_str.to_string(),
                     label: PiiType::CreditCard.as_str().to_string(),
                     pii_type: PiiType::CreditCard,
                     start: mat.start(),
-                    end: mat.end(),
+                    end: mat.start() + span_str.len(),
                     confidence: 1.0,
                     stem: span_str.to_string(),
                     suffix: None,
@@ -654,7 +669,9 @@ impl TurkishPiiEngine {
         if lower.sz_find("kart").is_some() {
             for cap in CARD_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
+                    let (val_start, val_end, span_str) = trimmed_match(val);
+                    let span_str = span_str.trim_end_matches('-');
+                    let val_end = val_end.min(val_start + span_str.len());
                     let clean_digits: String =
                         span_str.chars().filter(|c| c.is_ascii_digit()).collect();
                     if (13..=19).contains(&clean_digits.len()) {
@@ -667,8 +684,8 @@ impl TurkishPiiEngine {
                             text: span_str.to_string(),
                             label: PiiType::CreditCard.as_str().to_string(),
                             pii_type: PiiType::CreditCard,
-                            start: val.start(),
-                            end: val.end(),
+                            start: val_start,
+                            end: val_end,
                             confidence: conf,
                             stem: span_str.to_string(),
                             suffix: None,
@@ -874,14 +891,15 @@ impl TurkishPiiEngine {
                 || text.sz_find("ep").is_some())
         {
             for cap in PASSPORT_REGEX.captures_iter(text) {
-                let full = cap.get(0).unwrap();
-                let val = cap.get(1).unwrap().as_str();
+                // the number, not "pasaport no: " before it (restore put back only the number)
+                let number = cap.get(1).unwrap();
+                let val = number.as_str();
                 out.push(PiiEntity {
                     text: val.to_string(),
                     label: PiiType::Passport.as_str().to_string(),
                     pii_type: PiiType::Passport,
-                    start: full.start(),
-                    end: full.end(),
+                    start: number.start(),
+                    end: number.end(),
                     confidence: 0.95,
                     stem: val.to_string(),
                     suffix: None,
@@ -1634,15 +1652,29 @@ impl TurkishPiiEngine {
         }
 
         // Health record
-        if lower.sz_find("sağlık").is_some()
-            || lower.sz_find("saglik").is_some()
-            || lower.sz_find("rahatsızlık").is_some()
-            || lower.sz_find("rahatsizlik").is_some()
-            || lower.sz_find("kronik").is_some()
-            || lower.sz_find("engel").is_some()
+        // every trigger of the regex: "rahatsızlığı" does not contain "rahatsızlık", and
+        // tanı / teşhis / hastalığı had no gate word at all
+        if [
+            "sağlık",
+            "saglik",
+            "rahatsızl",
+            "rahatsizl",
+            "hastalığ",
+            "hastalig",
+            "tanı",
+            "tani",
+            "teşhis",
+            "teshis",
+            "kronik",
+            "engel",
+        ]
+        .iter()
+        .any(|k| lower.sz_find(k).is_some())
         {
             for cap in HEALTH_RECORD_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
+                let Some(val) = cap.get(1).or_else(|| cap.get(2)) else {
+                    continue;
+                };
                 let span_str = val.as_str().trim_end();
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
@@ -1668,7 +1700,11 @@ impl TurkishPiiEngine {
             || lower.sz_find("sen ").is_some()
             || lower.sz_find("sen\n").is_some()
         {
-            for mat in TRADE_UNION_REGEX.find_iter(text) {
+            for cap in TRADE_UNION_REGEX.captures_iter(text) {
+                // the union, not "sendika bilgisi" before it
+                let Some(mat) = cap.get(1).or_else(|| cap.get(2)).or_else(|| cap.get(3)) else {
+                    continue;
+                };
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
                     text: span_str.to_string(),
@@ -1749,15 +1785,14 @@ impl TurkishPiiEngine {
         // Family status
         if lower.sz_find("aile").is_some() || lower.sz_find("medeni").is_some() {
             for cap in FAMILY_STATUS_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let span_str = val.as_str().trim();
+                let (val_start, val_end, span_str) = trimmed_match(cap.get(1).unwrap());
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: "AILE".to_string(),
                         pii_type: PiiType::Person,
-                        start: val.start(),
-                        end: val.end(),
+                        start: val_start,
+                        end: val_end,
                         confidence: 0.95,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -1861,20 +1896,9 @@ impl TurkishPiiEngine {
     }
 
     fn detect_addresses(&self, text: &str, out: &mut Vec<PiiEntity>) {
+        // addresses.rs; the regex that was here (Mahallesi + one street word, case-insensitive)
+        // ran across lines and cut inside words (Sok in "sokakta", Cad in "caddede")
         addresses::detect_addresses(text, out);
-        for mat in ADDRESS_REGEX.find_iter(text) {
-            let span_str = mat.as_str().trim();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::Address.as_str().to_string(),
-                pii_type: PiiType::Address,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.90,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
     }
 
     fn detect_sensitive_categories(&self, text: &str, out: &mut Vec<PiiEntity>) {
@@ -2029,6 +2053,16 @@ fn term_spans(lower: &str, term: &str) -> Vec<(usize, usize)> {
         out.push((start, end));
     }
     out
+}
+
+/// The span of `m` without the whitespace around it, and its text: the entity text was trimmed
+/// but the span was not, so masking took the space after the value and restore lost it
+/// ("TC 12345678901 ve" became "TC {{TCKN_1}}ve").
+fn trimmed_match<'t>(m: regex::Match<'t>) -> (usize, usize, &'t str) {
+    let raw = m.as_str();
+    let lead = raw.len() - raw.trim_start().len();
+    let t = raw.trim();
+    (m.start() + lead, m.start() + lead + t.len(), t)
 }
 
 /// `'in`, `’e`: an apostrophe and the letters of a suffix.

@@ -708,3 +708,205 @@ fn a_secret_ends_where_the_next_field_begins() {
         "QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
     );
 }
+
+#[test]
+fn more_invisible_characters_and_digit_scripts() {
+    // variation selector, Arabic letter mark, tag space, combining grapheme joiner
+    for hide in ['\u{FE0F}', '\u{061C}', '\u{E0020}', '\u{034F}', '\u{3164}'] {
+        let text = format!("Kimlik: 1000000014{hide}6 kayıtlı");
+        let out = masked(&text);
+        assert!(!out.contains("1000000014"), "{hide:?}: {out}");
+    }
+    // a digit from a supplementary-plane script must not panic, and is folded (Adlam 0532 ...)
+    masked("Tel 0\u{1E951}/123 ara");
+    let adlam: String = "05321234567"
+        .chars()
+        .map(|c| char::from_u32(0x1E950 + c.to_digit(10).unwrap()).unwrap())
+        .collect();
+    let out = masked(&format!("Telefonum {adlam} arayın"));
+    assert!(!out.contains(&adlam), "{out}");
+}
+
+#[test]
+fn review_findings_values_are_masked_whole() {
+    // long keys and values: masked to the end, not cut at 128 or 256 characters
+    let long: String = (0..156)
+        .map(|i| {
+            if i == 70 {
+                '-'
+            } else {
+                "abcXYZ019"[i % 9..i % 9 + 1].chars().next().unwrap()
+            }
+        })
+        .collect();
+    assert_masked(&format!("my key sk-proj-{long} ok"), &long);
+    let v: String = (0..200)
+        .map(|i| "Qw3rTy9Zx7"[i % 10..i % 10 + 1].chars().next().unwrap())
+        .collect();
+    assert_masked(&format!("private key {v} end"), &v);
+    let v300: String = (0..300)
+        .map(|i| "Mn4bVc8Xz2"[i % 10..i % 10 + 1].chars().next().unwrap())
+        .collect();
+    assert_masked(&format!("{{\"refresh_token\": \"{v300}\"}}"), &v300);
+    // quoted passwords of several words
+    let out = masked("Şifrem \"mavi kedi 42\" olarak ayarlandı");
+    assert!(!out.contains("kedi 42"), "{out}");
+    let out = masked("my password is \"correct horse battery staple\"");
+    assert!(!out.contains("horse battery"), "{out}");
+    // a card followed by a short group, a database URL in capitals
+    assert_masked(
+        "Visa 4111 1111 1111 1111 123 ile ödedim",
+        "4111 1111 1111 1111",
+    );
+    let out = masked("REDIS://:s3cretPW99@cache:6379/0");
+    assert!(!out.contains("s3cretPW99"), "{out}");
+    // health records whose trigger word had no gate, birth dates typed without ğ
+    for (text, value) in [
+        ("Hastanın tanısı: Hashimoto tiroiditi.", "Hashimoto"),
+        ("Rahatsızlığım: Behçet sendromu var", "Behçet"),
+        ("dogum tarihi: 12.04.1985", "12.04.1985"),
+        ("DOGUM TARIHI: 12.04.1985", "12.04.1985"),
+    ] {
+        let out = masked(text);
+        assert!(!out.contains(value), "{text}: {out}");
+    }
+    // a rejected token prefix is no longer let off by the entropy scanner
+    let out = masked("token değeri ghX9kLq2mP7vR4tZ ve Ab12xK9mQ2pL7vR4tZ");
+    assert!(
+        !out.contains("ghX9kLq2mP7vR4tZ") && !out.contains("Ab12xK9mQ2pL7vR4tZ"),
+        "{out}"
+    );
+    // a seed phrase with a word of prose next to it
+    let out = masked(
+        "here abandon ability able about above absent absorb abstract absurd abuse access accident",
+    );
+    assert!(!out.contains("abstract"), "{out}");
+}
+
+#[test]
+fn review_findings_restore_puts_back_what_was_there() {
+    let e = engine();
+    for text in [
+        "TC 12345678901 ve adı",
+        "kart 4147 4626 8659 0570 ile",
+        "pasaport no: U12345678 geçerli",
+    ] {
+        let res = e.mask(text, PiiMode::Placeholder);
+        assert_eq!(
+            e.restore_response(&res.masked_text, &res.vault),
+            text,
+            "{}",
+            res.masked_text
+        );
+    }
+    // a tag already in the input stays a tag
+    let text = "Şablon: [AD] alanını doldurun. Başvuran Ahmet Yılmaz.";
+    let res = e.mask(text, PiiMode::Tag);
+    assert_eq!(
+        e.restore_response(&res.masked_text, &res.vault),
+        text,
+        "{}",
+        res.masked_text
+    );
+    // a surrogate is restored only as a word
+    let res = e.mask("Ahmet Yılmaz geldi", PiiMode::SyntheticSurrogate);
+    let surrogate = res.masked_text.trim_end_matches(" geldi").to_string();
+    let reply = format!("{surrogate}taş ile {surrogate}");
+    assert_eq!(
+        e.restore_response(&reply, &res.vault),
+        format!("{surrogate}taş ile Ahmet Yılmaz")
+    );
+}
+
+#[test]
+fn review_findings_prose_is_not_masked() {
+    for (text, kept) in [
+        (
+            "Şifre politikası güncellendi\nToplantı: Pazartesi",
+            "Pazartesi",
+        ),
+        (
+            "cd /home/ubuntu/project && cat /root/.ssh/config",
+            "project",
+        ),
+        ("cd /home/ubuntu/project && cat /root/.ssh/config", "ssh"),
+        ("login and/or signup", "or signup"),
+        (
+            "Moda Mahallesi ve çevresinde yaşayan çocuklar sokakta oynuyor",
+            "sokakta oynuyor",
+        ),
+        ("token=abc123XYZ&user=bob&page=2", "user=bob&page=2"),
+        (
+            "Bu sendika hakkında konuştuk ve sonra Ahmet ile Eğitim-Sen üyesi olarak",
+            "Bu sendika hakkında",
+        ),
+    ] {
+        let out = masked(text);
+        assert!(out.contains(kept), "{text}: {out}");
+    }
+    // a PEM block without an END line stops at its base64
+    let text = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n\nThanks for checking this key\nNext line";
+    let out = masked(text);
+    assert!(
+        out.contains("Thanks for checking") && !out.contains("MIIEvQ"),
+        "{out}"
+    );
+}
+
+#[test]
+fn many_placeholder_literals_and_vault_keys_stay_fast() {
+    let text: String = (1..=30_000)
+        .map(|i| format!("{{{{YER_TUTUCU_{i}}}}} 10.0.{}.{} ", i % 250, i % 200))
+        .collect();
+    let started = std::time::Instant::now();
+    let res = engine().mask(&text, PiiMode::Placeholder);
+    let restored = engine().restore_response(&res.masked_text, &res.vault);
+    assert_eq!(restored, text);
+    assert!(started.elapsed().as_secs() < 20, "{:?}", started.elapsed());
+}
+
+#[test]
+fn health_union_and_address_values_after_their_keys() {
+    // a bare diagnosis word is a key only with a separator after it
+    for text in [
+        "doktor teşhis etmiştir ve rapor verdi",
+        "hastalığı nedeniyle alamadığı parasını talep etmiştir",
+        "teşhis tutanağında imzası bulunmaktadır",
+    ] {
+        assert_eq!(masked(text), text);
+    }
+    let out = masked("teşhis: migren atakları, ilaç kullanıyor");
+    assert!(!out.contains("migren") && out.contains("teşhis:"), "{out}");
+    // the union, not the key; a name with "sen" glued on; the membership itself
+    for (text, value) in [
+        ("sendika bilgisi Basisen üyesi, baba adı Oğuz", "Basisen"),
+        ("sendika bilgisi Bass-Sen üyesi, poliçe no 5", "Bass-Sen"),
+        (
+            "sendika bilgisi sendika üyeliği yok, kan grubu",
+            "üyeliği yok",
+        ),
+    ] {
+        let out = masked(text);
+        assert!(
+            out.contains("sendika bilgisi") && !out.contains(value),
+            "{out}"
+        );
+    }
+    // "Bulv." is a street, a block may be a letter, a mahalle after a street may be two words
+    for (text, value) in [
+        (
+            "adres Sahte Mahallesi Deneme Bulv. No: 19 Daire: 6 Nilüfer Bursa",
+            "Deneme Bulv. No: 19 Daire: 6 Nilüfer Bursa",
+        ),
+        (
+            "adres Numune Mahallesi Simge Bulv. No: 29 Blok: A Çankaya Ankara",
+            "Simge Bulv. No: 29 Blok: A Çankaya Ankara",
+        ),
+        (
+            "adres Mevlana Bulvarı No: 100 Piri Reis Mah. Canik Samsun",
+            "No: 100 Piri Reis Mah. Canik Samsun",
+        ),
+    ] {
+        assert_masked(text, value);
+    }
+}
