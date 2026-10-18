@@ -10,6 +10,7 @@
 //! - Comprehensive pattern recognizers (Phone, Email, IP, Port, Age, Addresses, Credentials)
 //! - Reversible Session Vault with vowel-harmony aware restoration for LLM gateways
 
+mod addresses;
 pub mod embedding_scorer;
 pub mod gazetteer;
 pub mod morphology;
@@ -1807,7 +1808,11 @@ impl TurkishPiiEngine {
             .iter()
             .any(|&trig| lower.sz_find(trig).is_some())
         {
-            for mat in WORKPLACE_REGEX.find_iter(text) {
+            for cap in WORKPLACE_REGEX.captures_iter(text) {
+                // the name, not the "İşyeri:" before it or "bünyesinde" after it
+                let Some(mat) = cap.get(1).or_else(|| cap.get(2)) else {
+                    continue;
+                };
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
                     text: span_str.to_string(),
@@ -1851,6 +1856,7 @@ impl TurkishPiiEngine {
     }
 
     fn detect_addresses(&self, text: &str, out: &mut Vec<PiiEntity>) {
+        addresses::detect_addresses(text, out);
         for mat in ADDRESS_REGEX.find_iter(text) {
             let span_str = mat.as_str().trim();
             out.push(PiiEntity {

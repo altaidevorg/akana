@@ -586,3 +586,78 @@ fn private_event_dates_in_more_phrasings() {
         assert!(dates(text).is_empty(), "{text}: {:?}", dates(text));
     }
 }
+
+#[test]
+fn codes_health_notes_and_campaign_dates() {
+    // reference, account and access codes are masked (the word-shape rule had let them through)
+    for code in [
+        "FAT-2025-26486",
+        "REF-9962-QK",
+        "ACCESS-DEMO-807026",
+        "ACC-TR-98026-181",
+    ] {
+        assert_masked(&format!("Kayıtta {code} görünüyor."), code);
+    }
+    // health notes without a colon
+    let health = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Health)
+            .map(|e| e.text)
+            .collect()
+    };
+    for (text, value) in [
+        (
+            "sağlık raporumda böbrek nakli geçmişi yazıyor",
+            "böbrek nakli geçmişi",
+        ),
+        (
+            "sağlık notu insülin bağımlı diyabet, IBAN",
+            "insülin bağımlı diyabet",
+        ),
+        (
+            "engel durumu %50 engelli raporu mevcut olarak",
+            "%50 engelli raporu mevcut",
+        ),
+    ] {
+        assert!(
+            health(text).iter().any(|h| h.contains(value)),
+            "{text}: {:?}",
+            health(text)
+        );
+    }
+    // a campaign date after a bare event word is public
+    let dates: Vec<_> = engine()
+        .detect("kampanya kapsamında kargo 29.10.2026 sonrası ücretsiz denmiş")
+        .into_iter()
+        .filter(|e| matches!(e.pii_type, PiiType::BirthDate | PiiType::PrivateDate))
+        .collect();
+    assert!(dates.is_empty(), "{dates:?}");
+}
+
+#[test]
+fn workplaces_are_short_names_not_paragraphs() {
+    let text = "Ari Yapım isimli şirkette çekilen programlarda sunuculuk yaptıklarını görüyordum ve \
+                genelde ben temizlik yaptığım sıralarda kapıyı kilitliyordum, benim maaş işlemlerim";
+    let long: Vec<_> = engine()
+        .detect(text)
+        .into_iter()
+        .filter(|e| e.text.len() > 80)
+        .collect();
+    assert!(long.is_empty(), "{long:?}");
+    let found: Vec<String> = engine()
+        .detect("İşyeri: Acıbadem Hastanesi, adres yok")
+        .into_iter()
+        .map(|e| e.text)
+        .collect();
+    assert!(found.iter().any(|t| t == "Acıbadem Hastanesi"), "{found:?}");
+}
+
+#[test]
+fn long_numbers_with_a_suffix_are_masked() {
+    assert_masked(
+        "4799585158750652'nin son dört hanesini teyit edin",
+        "4799585158750652",
+    );
+}

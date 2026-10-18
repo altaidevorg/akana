@@ -1026,10 +1026,21 @@ fn is_glued_reference(token: &str) -> bool {
 /// word (all lower case, capitalised, or all upper case letters) or a number (1980'lerde,
 /// %50'sinden, 20.000). Random mixed-case or letter-digit strings are not.
 pub(crate) fn is_word_shaped(token: &str) -> bool {
+    if is_code_shaped(token) {
+        return false;
+    }
     const SEPARATORS: &[char] = &[
         '-', '–', '—', '\'', '’', '‘', '.', ',', '"', '“', '”', '«', '»', '(', ')', '[', ']', '…',
         '!', '?', ':', ';',
     ];
+    // a number of eight digits or more is an identifier with a suffix (4799585158750652'nin),
+    // not prose like 1980'lerde
+    if token
+        .split(SEPARATORS)
+        .any(|p| p.len() >= 8 && p.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return false;
+    }
     token.split(SEPARATORS).all(|part| {
         let mut chars = part.chars();
         let Some(first) = chars.next() else {
@@ -1043,6 +1054,26 @@ pub(crate) fn is_word_shaped(token: &str) -> bool {
         let number = part.chars().all(|c| c.is_ascii_digit() || c == '%');
         word || number
     })
+}
+
+/// A reference, account or access code, or a password of that shape: letter parts and number
+/// parts joined by hyphens or underscores, with three digits or more in a number part or two
+/// number parts (FAT-2025-26486, REF-9962-QK, DEMO-TOKEN-153, Temp-4577!, ACC-TR-98026-181).
+/// Words with a short number stay words (COVID-19, 1980'lerde).
+fn is_code_shaped(token: &str) -> bool {
+    let token = token.trim_end_matches(['!', '?', '.', ',', '*', '#']);
+    if !token.contains(['-', '_']) || token.contains(['\'', '’']) {
+        return false;
+    }
+    let parts: Vec<&str> = token.split(['-', '_']).filter(|p| !p.is_empty()).collect();
+    let letters = parts
+        .iter()
+        .any(|p| p.len() >= 2 && p.chars().all(|c| c.is_ascii_alphabetic()));
+    let numbers: Vec<&&str> = parts
+        .iter()
+        .filter(|p| p.chars().all(|c| c.is_ascii_digit()))
+        .collect();
+    letters && (numbers.len() >= 2 || numbers.iter().any(|p| p.len() >= 3))
 }
 
 /// Strips surrounding sentence punctuation, quotes and brackets from a candidate value;

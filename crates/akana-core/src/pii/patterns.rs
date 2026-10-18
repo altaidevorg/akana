@@ -192,19 +192,22 @@ lazy_static! {
         )\b"
     ).unwrap();
 
-    /// The date of a personal event, over Turkish lower-cased text: after the event word in any
-    /// possessive or case form, with or without tarihi / günü (randevum 5 Mayıs, ameliyat
+    /// The date of a personal event, over Turkish lower-cased text: after the event word in a
+    /// possessive form or before tarihi / günü (randevum 5 Mayıs, ameliyat
     /// tarihim 12.03.2024, kargom 21/06/2023, mezuniyet törenim 3 Ocak, faturamın son ödeme
     /// günü ...), or before "tarihinde" and a verb in the first person (eşimle 5 Mayıs 2024
-    /// tarihinde evlendik). PRIVATE_DATE_TRIGGER_REGEX needs the exact phrase (randevu
-    /// tarihim) and, being case-insensitive only in ASCII, missed every İ (İşe giriş tarihim).
+    /// tarihinde evlendik); not the bare word (kargo 29.10.2026 sonrası ücretsiz, a campaign).
+    /// PRIVATE_DATE_TRIGGER_REGEX needs the exact phrase (randevu tarihim) and, being
+    /// case-insensitive only in ASCII, missed every İ (İşe giriş tarihim).
     pub static ref PRIVATE_EVENT_DATE_REGEX: Regex = Regex::new(
         r"(?x)
         \b(?:randevu|ameliyat|muayene|kontrol|tahlil|teslimat|teslim|kargo|sipariş|fatura
            |son\s+ödeme|abonelik|üyelik|sözleşme|rezervasyon|mezuniyet|tören|düğün|nikah|nikâh
            |nişan|uçuş|sınav|işe\s+giriş|işten\s+ayrılış|doğum|vefat|ölüm|taburcu|yatış)
-        [a-zçğıöşü]{0,6}
-        (?:\s+(?:tarihi|günü|saati|tarih|gün)[a-zçğıöşü]{0,3})?
+        (?:
+          (?:y?[ıiuü]?[mn](?:[ıiuü]z)?(?:[ıiuü]n)?)(?:\s+(?:tarihi|günü|saati)[a-zçğıöşü]{0,3})?
+          | [a-zçğıöşü]{0,4}\s+(?:tarihi|günü|saati)[a-zçğıöşü]{0,3}
+        )
         \s*(?:için)?[:\s]+
         (?P<date>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)(?:\s+(?:19[0-9][0-9]|20[0-3][0-9]))?|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))
         |
@@ -340,15 +343,23 @@ lazy_static! {
         r"(?i)\b(?:adli\s+para\s+cezası\s+kaydı|kabahat\s+kaydı(?:\s*mevcut)?|denetimli\s+serbestlik\s+kaydı|icra\s+takibi\s+kaydı|adli\s+sicil\s+kaydı|sabıka\s+kaydı)\b"
     ).unwrap();
 
-    /// Health Data under KVKK Article 6: the condition after a key and a colon (Sağlık
-    /// raporu: Tip 2 diyabet, Kronik rahatsızlığım: astım, Tanı: migren), up to five words.
-    /// Without the colon the words after "rahatsızlığı" or "sağlık raporu" are prose
-    /// (rahatsızlığın tespitine ilişkin bir rapor), and were masked as health data.
+    /// Health Data under KVKK Article 6: the condition after a health key (sağlık raporumda
+    /// böbrek nakli geçmişi yazıyor, sağlık notu: insülin bağımlı diyabet, kronik rahatsızlığım
+    /// astım var), up to five words and up to a word that closes it (yazıyor, var, mevcut,
+    /// olarak) or punctuation. A key must stand as a word, so the prose after "rahatsızlığın"
+    /// or "sağlık raporunun" (rahatsızlığın tespitine ilişkin bir rapor) is not taken. (In
+    /// verbose mode a space inside a class is ignored too, hence \x20.)
     pub static ref HEALTH_RECORD_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:sağlık\s+raporu(?:m|nda|mda)?|rahatsızlığı(?:m)?|kronik\s+rahatsızlı(?:k|ğı|ğım)|hastalığı(?:m)?|tanı(?:sı)?|teşhis(?:i)?|engel\s+durumu)\s*:\s*((?:[\p{L}\d%'’-]+[ \t]*){1,5})"
+        r"(?ix)
+        \b(?:sağlık\s+(?:raporu(?:m|muz)?(?:n?da)?|notu|durumu(?:m)?|bilgisi|kaydı(?:nda)?)
+           |kronik\s+(?:rahatsızlı(?:k|ğı|ğım)|hastalı(?:k|ğı|ğım))
+           |rahatsızlığı(?:m)?|hastalığı(?:m)?|tanı(?:sı)?|teşhis(?:i)?|engel\s+durumu)\b
+        \s*[:=-]?\s*
+        ((?:[\p{L}\d%'’-]+[\x20\t]+){0,4}?[\p{L}\d%'’-]+?)
+        (?:[\x20\t]+(?:yazıyor|yazılı|yazmakta|yazılmış|var|mevcut|görünüyor|bulunuyor|bulunmaktadır|olarak|geçiyor|tespit\s+edildi)\b|[\x20\t]*(?:[,;.\n]|$))
+        "
     ).unwrap();
 
-    /// Disability status under KVKK Article 6.
     /// The value of a disability key (Engel durumu: %40 ortopedik, Engellilik oranı %60,
     /// engelli raporu: görme), or a degree before "engelli" (%90 oranında engelli). The words
     /// after a bare "engelli" are prose (engelli kişiler, engelli olan başvurucunun), and were
@@ -358,10 +369,13 @@ lazy_static! {
         \b(?:engel\s*durumu|engel\s*oran[ıiIİ]|engell[iİıI]l[iİıI]k(?:\s*oran[ıiIİ])?|engell[iİıI]\s*raporu|[öoÖO]z[üuÜU]r\s*(?:durumu|oran[ıiIİ]))
         \s*[:=]?\s*
         (
-          (?:%\s*\d{1,3}|\d{1,3}\s*%|yüzde\s*\d{1,3})
-          (?:\s*(?:oranında\s+)?(?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma)(?:\s+engel(?:li)?)?)?
-          | (?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma)(?:\s+engel(?:li)?)?
-          | (?:var|yok|mevcut|bulunmaktadır|bulunmamaktadır)
+          (?:
+            (?:%\s*\d{1,3}|\d{1,3}\s*%|yüzde\s*\d{1,3})
+            (?:\s*(?:oranında\s+)?(?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma))?
+            | (?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma)
+          )
+          (?:\s+engell[iİıI](?:\s+raporu)?|\s+engel)?(?:\s+(?:mevcut|var|bulunmaktadır))?
+          | (?:engel\s+durumu\s+)?(?:var|yok|mevcut|bulunmaktadır|bulunmamaktadır)
         )
         | ((?:%\s*\d{1,3}|\b\d{1,3}\s*%|\byüzde\s*\d{1,3})\s*(?:oranında\s+)?(?:(?:ortopedik|görme|işitme|zihinsel|ruhsal)\s+)?engell[iİıI])
         "
@@ -393,8 +407,12 @@ lazy_static! {
     ).unwrap();
 
     /// Workplace / Institution.
+    /// An employer named after a workplace word (işyeri: Acıbadem Hastanesi, şirketim Akana
+    /// Ltd. Şti.) or before "bünyesinde". The name is at most 60 characters on one line, and
+    /// both the trigger and the AŞ suffix are words: "şirket" inside "şirkette" and "aş" at
+    /// the end of "maaş" made one match of 600 characters of a court decision.
     pub static ref WORKPLACE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:[iİıI][şsŞS]yer[iİıI]|[iİıI]syer[iİıI]|kurum|[şsŞS][iİıI]rket)[:\s]*([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9\s.&-]+?(?:Hastan[iİıI]s[iİıI]|Beled[iİıI]yes[iİıI]|M[üuÜU]d[üuÜU]rl[üuÜU][ğgĞG][üuÜU]|Bakanl[ıiIİ][ğgĞG][ıiIİ]|A\.Ş\.|AŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Hold[iİıI]ng|Anon[iİıI]m\s*[ŞS][iİıI]rket[iİıI]))\b|\b([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9\s&-]{2,50}?(?:A\.Ş\.|AŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ŞS][iİıI]rket[iİıI]|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Beled[iİıI]yes[iİıI]))\s+b[üuÜU]nyes[iİıI]nde\b"
+        r"(?i)\b(?:[iİıI][şsŞS]yer[iİıI]|[iİıI]syer[iİıI]|kurum|[şsŞS][iİıI]rket)(?:[iİıI]m|[iİıI]m[iİıI]z|[iİıI])?\b[:\s]*([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 .&-]{1,60}?(?:Hastanes[iİıI]|Beled[iİıI]yes[iİıI]|M[üuÜU]d[üuÜU]rl[üuÜU][ğgĞG][üuÜU]|Bakanl[ıiIİ][ğgĞG][ıiIİ]|\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Hold[iİıI]ng|Anon[iİıI]m\s*[ŞS][iİıI]rket[iİıI]))\b|\b([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 &-]{2,50}?(?:\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ŞS][iİıI]rket[iİıI]|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Beled[iİıI]yes[iİıI]))\s+b[üuÜU]nyes[iİıI]nde\b"
     ).unwrap();
 
     /// Hardware / Device ID in context (e.g. `cihaz id DEV-99381290`).
