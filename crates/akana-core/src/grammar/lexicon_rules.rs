@@ -147,11 +147,16 @@ impl LexiconRuleEngine {
 
     /// 2. Tautologies & Pleonasms (Accelerated with StringZilla SIMD find):
     fn check_tautologies(text: &str, findings: &mut Vec<GrammarFinding>) {
-        let text_lower = to_turkish_lower(text);
+        // Offsets in the lower-cased copy differ from `text`'s after every İ/I: map them back,
+        // or the finding (and the correction applied from it) lands on the wrong bytes, and
+        // slicing `text` panics inside a character.
+        let (text_lower, origin) = crate::phonology::to_turkish_lower_with_origin(text);
+        let orig = |i| crate::phonology::origin_offset(&origin, text.len(), i);
 
         for (&bad_phrase, &(replacement, explanation)) in TAUTOLOGY_PAIRS.iter() {
-            if let Some(offset) = text_lower.as_str().sz_find(bad_phrase) {
-                let end = offset + bad_phrase.len();
+            if let Some(lower_offset) = text_lower.as_str().sz_find(bad_phrase) {
+                let offset = orig(lower_offset);
+                let end = orig(lower_offset + bad_phrase.len());
                 let original_snippet = &text[offset..end];
 
                 findings.push(GrammarFinding {

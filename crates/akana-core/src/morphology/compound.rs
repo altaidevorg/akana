@@ -45,7 +45,9 @@ impl CompoundDecomposer {
         let chars: Vec<char> = lower.chars().collect();
         let n = chars.len();
 
-        if n < 4 {
+        // No real word is this long, even with a long suffix chain; each split analyses both
+        // halves, so a long token (a base64 blob) was quadratic or worse.
+        if !(4..=128).contains(&n) {
             return Vec::new();
         }
 
@@ -97,7 +99,9 @@ impl CompoundDecomposer {
         let lower = crate::phonology::to_turkish_lower(word.trim());
         let chars: Vec<char> = lower.chars().collect();
         let n = chars.len();
-        if n < 6 {
+        // Two roots are at most twice the longest root; longer tokens (a base64 blob) would
+        // only cost a quadratic scan.
+        if n < 6 || n > 2 * morphology.max_root_chars() {
             return None;
         }
         let marked = morphology

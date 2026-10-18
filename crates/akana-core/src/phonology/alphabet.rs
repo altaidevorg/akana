@@ -193,6 +193,34 @@ pub fn to_turkish_lower(s: &str) -> String {
     result
 }
 
+/// `to_turkish_lower(s)` together with, for every byte of it, the byte offset in `s` of the
+/// character it came from.
+///
+/// Turkish lower-casing changes byte lengths (İ -> i is 2 -> 1 bytes, I -> ı is 1 -> 2), so a
+/// position found in the lower-cased copy is not a position in `s`: map it through `origin`
+/// (`s.len()` past the end), or the span lands on the wrong bytes after every İ/I and slicing
+/// `s` with it can panic inside a character.
+pub fn to_turkish_lower_with_origin(s: &str) -> (String, Vec<usize>) {
+    let mut lower = String::with_capacity(s.len());
+    let mut origin = Vec::with_capacity(s.len());
+    for (i, c) in s.char_indices() {
+        let before = lower.len();
+        match c {
+            'I' => lower.push('ı'),
+            'İ' => lower.push('i'),
+            _ => lower.extend(c.to_lowercase()),
+        }
+        origin.resize(origin.len() + lower.len() - before, i);
+    }
+    (lower, origin)
+}
+
+/// Byte offset in the original text of byte `i` of a `to_turkish_lower_with_origin` copy.
+#[inline]
+pub fn origin_offset(origin: &[usize], original_len: usize, i: usize) -> usize {
+    origin.get(i).copied().unwrap_or(original_len)
+}
+
 /// Converts a string slice to uppercase according to Turkish locale rules (e.g. 'ı' -> 'I', 'i' -> 'İ').
 pub fn to_turkish_upper(s: &str) -> String {
     let mut result = String::with_capacity(s.len());

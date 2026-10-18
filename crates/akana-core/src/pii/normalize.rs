@@ -87,23 +87,9 @@ pub(crate) fn fold_for_detection(text: &str) -> Option<Folded> {
     })
 }
 
-/// `phonology::to_turkish_lower(text)` together with, for every byte of it, the byte offset in
-/// `text` of the character it came from. Turkish lower-casing changes byte lengths (İ -> i is
-/// 2 -> 1 bytes, I -> ı is 1 -> 2), so a position found in the lower-cased copy is not a
-/// position in `text`: map it with `origin` (and `text.len()` past the end).
+/// See `phonology::to_turkish_lower_with_origin`.
 pub(crate) fn turkish_lower_with_origin(text: &str) -> (String, Vec<usize>) {
-    let mut lower = String::with_capacity(text.len());
-    let mut origin = Vec::with_capacity(text.len());
-    for (i, c) in text.char_indices() {
-        let before = lower.len();
-        match c {
-            'I' => lower.push('ı'),
-            'İ' => lower.push('i'),
-            _ => lower.extend(c.to_lowercase()),
-        }
-        origin.resize(origin.len() + lower.len() - before, i);
-    }
-    (lower, origin)
+    crate::phonology::to_turkish_lower_with_origin(text)
 }
 
 #[cfg(test)]

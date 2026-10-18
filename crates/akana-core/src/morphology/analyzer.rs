@@ -108,6 +108,11 @@ impl TurkishMorphology {
         }
     }
 
+    /// Length in characters of the longest root in the lexicon.
+    pub fn max_root_chars(&self) -> usize {
+        self.lexicon.max_root_chars()
+    }
+
     /// The lexicon items whose root is exactly `root` (lower-case), without analysing it.
     pub fn root_items(&self, root: &str) -> &[DictionaryItem] {
         self.lexicon.get_items(root).map_or(&[], Vec::as_slice)
@@ -263,11 +268,19 @@ impl TurkishMorphology {
             }
         }
 
-        // 2. Multi-affix morphological traversal
+        // 2. Multi-affix morphological traversal. No root is longer than the lexicon's longest
+        // (+1 for a vowel or k a stem change restores): trying every prefix of the word, each
+        // one copied, was quadratic in its length, and a 1 MB token (a base64 blob) took hours.
         let char_count = lower.chars().count();
-        for stem_len in 1..=char_count {
-            let candidate_stem: String = lower.chars().take(stem_len).collect();
-            let suffix_part: String = lower.chars().skip(stem_len).collect();
+        let max_stem = char_count.min(self.lexicon.max_root_chars() + 1);
+        let boundaries: Vec<usize> = lower
+            .char_indices()
+            .map(|(i, _)| i)
+            .chain(std::iter::once(lower.len()))
+            .collect();
+        for stem_len in 1..=max_stem {
+            let candidate_stem = lower[..boundaries[stem_len]].to_string();
+            let suffix_part = lower[boundaries[stem_len]..].to_string();
 
             if suffix_part.is_empty() {
                 continue;
