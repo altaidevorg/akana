@@ -103,10 +103,6 @@ lazy_static! {
         r"(?i)\b(?:verg[iİıI]\s*(?:k[iİıI]ml[iİıI]k)?\s*no(?:su)?|vkn)[\s:]*([0-9]{10})\b"
     ).unwrap();
 
-    /// Password / Secret credentials in context.
-    pub static ref CREDENTIALS_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:şifre(?:m|si)?|parola(?:m|sı)?|pin(?:\s*kodu)?|kullanıcı\s+şifresi)[:\s]*([A-Za-z0-9!@#$%^&*()_+=\-]{4,32})\b"
-    ).unwrap();
 
     /// Salary / Income amounts in context: `maaşım 45.000 TL`, `aylık gelir: 60000 TRY`.
     pub static ref SALARY_REGEX: Regex = Regex::new(

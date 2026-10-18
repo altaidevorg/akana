@@ -14,6 +14,7 @@ pub mod embedding_scorer;
 pub mod gazetteer;
 pub mod morphology;
 mod normalize;
+pub mod passwords;
 pub mod patterns;
 pub mod secrets;
 pub mod spelled_numbers;
@@ -1021,44 +1022,7 @@ impl TurkishPiiEngine {
             }
         }
 
-        // Credentials / Passwords
-        if lower.sz_find("şifre").is_some()
-            || lower.sz_find("sifre").is_some()
-            || lower.sz_find("parola").is_some()
-            || lower.sz_find("pin").is_some()
-        {
-            for cap in CREDENTIALS_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let val_lower = val.as_str().to_lowercase();
-                if matches!(
-                    val_lower.as_str(),
-                    "sıfırlama"
-                        | "sifirlama"
-                        | "değiştirme"
-                        | "degistirme"
-                        | "güncelleme"
-                        | "guncelleme"
-                        | "işlemi"
-                        | "islemi"
-                        | "talebi"
-                        | "isteği"
-                        | "hatası"
-                        | "ekranı"
-                ) {
-                    continue;
-                }
-                out.push(PiiEntity {
-                    text: val.as_str().to_string(),
-                    label: PiiType::Credentials.as_str().to_string(),
-                    pii_type: PiiType::Credentials,
-                    start: val.start(),
-                    end: val.end(),
-                    confidence: 0.95,
-                    stem: val.as_str().to_string(),
-                    suffix: None,
-                });
-            }
-        }
+        // Passwords, PINs and one-time codes: passwords::detect_passwords (via detect_secrets).
 
         // Salary / Income
         if has_digits

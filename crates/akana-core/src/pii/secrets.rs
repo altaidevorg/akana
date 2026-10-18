@@ -17,18 +17,7 @@ lazy_static! {
     pub static ref CONTEXTUAL_SECRET_REGEX: Regex = Regex::new(
         r"(?ix)
         \b(?:
-            ş[iİıI]fre(?:m|s[iİıI]|n[iİıI]z)?
-            | parola(?:m|s[ıiIİ])?
-            | p[iİıI]n(?:[iİıI]m|s[iİıI]|_kodu|\s+kodu)?
-            | kullan[ıiIİ]c[ıiIİ]\s*ş[iİıI]fres[iİıI]
-            | (?:sms\s+)?do[ğgĞG]rulama\s+kodu(?:m|nu)?
-            | onay\s+kodu(?:m|nu)?
-            | tek\s+kullan[ıiIİ]ml[ıiIİ]k\s+ş[iİıI]fre(?:m)?
-            | ge[çcÇC][iİıI]c[iİıI]\s+ş[iİıI]fre(?:m)?
-            | mob[iİıI]l\s+onay\s+p[iİıI]n(?:[iİıI]m)?
-            | otp(?:\s*kodu(?:m)?)?
-            | 2fa(?:\s*kodu(?:m)?)?
-            | g[iİıI]zl[iİıI]\s*anahtar(?:[ıiIİ]m)?
+            g[iİıI]zl[iİıI]\s*anahtar(?:[ıiIİ]m)?
             | ap[iİıI]\s*(?:anahtar[ıiIİ]|key)
             | secret\s*key
             | private\s*key
@@ -219,11 +208,13 @@ pub fn has_mixed_character_classes(s: &str) -> bool {
 
 /// Detects all secrets, passwords, OTPs, API keys, and high-entropy credentials.
 pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
-    // 1. Contextual Secrets & OTPs (Fast SIMD pre-check for triggers before running unicode regex)
     let lower = text.to_lowercase();
-    const CONTEXTUAL_TRIGGERS: &[&str] = &[
-        "şifre", "sifre", "parola", "pin", "kodu", "anahtar", "token", "key", "otp", "2fa",
-    ];
+
+    // 0. Passwords, PINs and one-time codes (sentences, commands, configs, URLs, headers)
+    super::passwords::detect_passwords(text, &lower, out);
+
+    // 1. Contextual key material: gizli/özel anahtar, API key, secret/private key, tokens
+    const CONTEXTUAL_TRIGGERS: &[&str] = &["anahtar", "token", "key"];
     let has_context_trigger = CONTEXTUAL_TRIGGERS
         .iter()
         .any(|&trig| lower.sz_find(trig).is_some());
@@ -233,7 +224,13 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
                 // Sentence punctuation and quotes around the value are not part of it; inside
                 // it they are (Kedi.Mavi.99).
                 let (lead, val_str) = trim_value(val.as_str());
-                if val_str.len() >= 4 {
+                // After ':' or '=' the value is explicit; after a space it must look like key
+                // material ("API key management" is prose).
+                let separator = &text[cap.get(0).unwrap().start()..val.start()];
+                let strong = separator.contains([':', '=']);
+                if val_str.len() >= 4
+                    && (strong || super::passwords::looks_like_password(val_str, false))
+                {
                     out.push(PiiEntity {
                         text: val_str.to_string(),
                         label: "SIFRE".to_string(),
@@ -878,7 +875,7 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
 /// Every part between hyphens, dashes, apostrophes, dots, commas, quotes and brackets is a
 /// word (all lower case, capitalised, or all upper case letters) or a number (1980'lerde,
 /// %50'sinden, 20.000). Random mixed-case or letter-digit strings are not.
-fn is_word_shaped(token: &str) -> bool {
+pub(crate) fn is_word_shaped(token: &str) -> bool {
     const SEPARATORS: &[char] = &[
         '-', '–', '—', '\'', '’', '‘', '.', ',', '"', '“', '”', '«', '»', '(', ')', '[', ']',
     ];
@@ -899,7 +896,7 @@ fn is_word_shaped(token: &str) -> bool {
 
 /// Strips surrounding sentence punctuation, quotes and brackets from a candidate value;
 /// returns the number of leading bytes removed and the value.
-fn trim_value(raw: &str) -> (usize, &str) {
+pub(crate) fn trim_value(raw: &str) -> (usize, &str) {
     const EDGE: &[char] = &[
         '.', ',', ';', ':', '?', '"', '\'', '`', '(', ')', '[', ']', '{', '}', '<', '>', '“', '”',
         '‘', '’', '«', '»',
