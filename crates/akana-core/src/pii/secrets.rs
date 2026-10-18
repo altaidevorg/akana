@@ -869,7 +869,61 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     if is_word_shaped(token) {
         return true;
     }
+    if is_glued_reference(token) {
+        return true;
+    }
     false
+}
+
+/// Prose with a number glued to it, as text copied from web pages and PDFs has: footnote and
+/// list numbers (Kupası16, Anayasa'nın46, Basketball-Reference.com21, 1Hillsborough), and a
+/// word before an amount or a time (gerekçesiyle20.000, göre16.40, 5.000,00TL'dir). A word
+/// with a plain number after it (kedi2020, Galatasaray1905) is a common password and stays a
+/// candidate unless the word is an inflected form (kupası, gerekçesiyle), carries an apostrophe
+/// suffix or is a domain.
+fn is_glued_reference(token: &str) -> bool {
+    let token = token.trim_end_matches(['.', ',', ';', ':', '…']);
+    let split = |s: &str| -> Option<(usize, usize)> {
+        // (end of the leading letters, start of the trailing number)
+        let letters_end = s.find(|c: char| c.is_ascii_digit())?;
+        Some((letters_end, letters_end))
+    };
+    // a number then a word: 1Hillsborough, 5.000,00TL'dir, 20.000TL
+    if token.starts_with(|c: char| c.is_ascii_digit()) {
+        let num_end = token
+            .find(|c: char| !(c.is_ascii_digit() || c == '.' || c == ','))
+            .unwrap_or(token.len());
+        let (num, word) = token.split_at(num_end);
+        let separated = num.contains(['.', ',']);
+        let word_ok = !word.is_empty() && is_word_shaped(word);
+        let list_number = num.len() <= 2 && word.chars().count() >= 5;
+        return word_ok && (separated || list_number);
+    }
+    let Some((letters_end, _)) = split(token) else {
+        return false;
+    };
+    let (word, num) = token.split_at(letters_end);
+    if word.is_empty()
+        || !is_word_shaped(word)
+        || !num
+            .chars()
+            .all(|c| c.is_ascii_digit() || c == '.' || c == ',')
+        || !num.starts_with(|c: char| c.is_ascii_digit())
+    {
+        return false;
+    }
+    if num.contains(['.', ',']) {
+        return true; // an amount or a time after a word: gerekçesiyle20.000, göre16.40
+    }
+    if num.len() > 3 {
+        return false;
+    }
+    let lower = crate::phonology::to_turkish_lower(word);
+    lower.contains(['\'', '’'])
+        || [".com", ".org", ".net", ".tr", ".edu", ".gov"]
+            .iter()
+            .any(|tld| lower.ends_with(tld))
+        || super::names::is_inflected_word(&lower)
 }
 
 /// Every part between hyphens, dashes, apostrophes, dots, commas, quotes and brackets is a
@@ -877,7 +931,8 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
 /// %50'sinden, 20.000). Random mixed-case or letter-digit strings are not.
 pub(crate) fn is_word_shaped(token: &str) -> bool {
     const SEPARATORS: &[char] = &[
-        '-', '–', '—', '\'', '’', '‘', '.', ',', '"', '“', '”', '«', '»', '(', ')', '[', ']',
+        '-', '–', '—', '\'', '’', '‘', '.', ',', '"', '“', '”', '«', '»', '(', ')', '[', ']', '…',
+        '!', '?', ':', ';',
     ];
     token.split(SEPARATORS).all(|part| {
         let mut chars = part.chars();

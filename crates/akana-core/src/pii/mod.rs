@@ -822,7 +822,15 @@ impl TurkishPiiEngine {
         if has_digits && (lower.sz_find("port").is_some() || text.sz_find(":").is_some()) {
             for cap in PORT_REGEX.captures_iter(text) {
                 let full = cap.get(0).unwrap();
-                let port_str = cap.get(1).or_else(|| cap.get(2)).unwrap().as_str();
+                let port_str = (1..=3).find_map(|g| cap.get(g)).map_or("", |m| m.as_str());
+                // host:2013/772 or host:10.1017 is a reference, not a port
+                let after = text[full.end()..].as_bytes();
+                if after.len() > 1
+                    && matches!(after[0], b'/' | b'.' | b',')
+                    && after[1].is_ascii_digit()
+                {
+                    continue;
+                }
                 if let Ok(p) = port_str.parse::<u32>() {
                     if (1..=65535).contains(&p) {
                         out.push(PiiEntity {
@@ -1031,15 +1039,17 @@ impl TurkishPiiEngine {
             || lower.sz_find("ozur").is_some()
         {
             for cap in DISABILITY_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let span_str = val.as_str().trim();
+                let Some(val) = cap.get(1).or_else(|| cap.get(2)) else {
+                    continue;
+                };
+                let span_str = val.as_str().trim_end();
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: "ENGEL_DURUMU".to_string(),
                         pii_type: PiiType::Health,
                         start: val.start(),
-                        end: val.end(),
+                        end: val.start() + span_str.len(),
                         confidence: 0.98,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -1630,14 +1640,14 @@ impl TurkishPiiEngine {
         {
             for cap in HEALTH_RECORD_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
-                let span_str = val.as_str().trim();
+                let span_str = val.as_str().trim_end();
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: "SAGLIK".to_string(),
                         pii_type: PiiType::Health,
                         start: val.start(),
-                        end: val.end(),
+                        end: val.start() + span_str.len(),
                         confidence: 0.95,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -1867,8 +1877,8 @@ impl TurkishPiiEngine {
 
         // Blood types
         for bt in BLOOD_TYPES.iter() {
-            if let Some(pos) = lower.sz_find(bt.as_str()) {
-                let (start, end) = (orig(pos), orig(pos + bt.len()));
+            for (pos, pos_end) in term_spans(&lower, bt) {
+                let (start, end) = (orig(pos), orig(pos_end));
                 out.push(PiiEntity {
                     text: text[start..end].to_string(),
                     label: PiiType::BloodType.as_str().to_string(),
@@ -1884,11 +1894,8 @@ impl TurkishPiiEngine {
 
         // Health terms
         for ht in HEALTH_TERMS.iter() {
-            let mut start_idx = 0;
-            while let Some(pos) = lower[start_idx..].sz_find(ht.as_str()) {
-                let actual_pos = start_idx + pos;
-                let end_pos = actual_pos + ht.len();
-                let (start, end) = (orig(actual_pos), orig(end_pos));
+            for (pos, pos_end) in term_spans(&lower, ht) {
+                let (start, end) = (orig(pos), orig(pos_end));
                 out.push(PiiEntity {
                     text: text[start..end].to_string(),
                     label: PiiType::Health.as_str().to_string(),
@@ -1899,14 +1906,13 @@ impl TurkishPiiEngine {
                     stem: text[start..end].to_string(),
                     suffix: None,
                 });
-                start_idx = end_pos;
             }
         }
 
         // Religion terms
         for rt in RELIGION_TERMS.iter() {
-            if let Some(pos) = lower.sz_find(rt.as_str()) {
-                let (start, end) = (orig(pos), orig(pos + rt.len()));
+            for (pos, pos_end) in term_spans(&lower, rt) {
+                let (start, end) = (orig(pos), orig(pos_end));
                 out.push(PiiEntity {
                     text: text[start..end].to_string(),
                     label: "DIN".to_string(),
@@ -1970,6 +1976,38 @@ impl TurkishPiiEngine {
             }
         }
     }
+}
+
+/// Every occurrence of `term` in `lower` as a word: starting at a word boundary, and for a
+/// term of four letters or fewer also ending at one (or at an apostrophe), so that a term is
+/// not found inside another word (sara in hasara or Saraçhane, hiv in archived) while longer
+/// terms keep their suffixes (kanserli, diyabetim, nörolojik). The previous version searched
+/// for substrings, and religion and blood-type terms only for their first occurrence.
+fn term_spans(lower: &str, term: &str) -> Vec<(usize, usize)> {
+    let short = term.chars().filter(|c| c.is_alphanumeric()).count() <= 4;
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(pos) = lower[from..].sz_find(term) {
+        let start = from + pos;
+        let end = start + term.len();
+        from = end;
+        let before = lower[..start].chars().next_back();
+        if before.is_some_and(char::is_alphanumeric) {
+            continue;
+        }
+        let ends_in_word = term.chars().next_back().is_some_and(char::is_alphanumeric);
+        if short
+            && ends_in_word
+            && lower[end..]
+                .chars()
+                .next()
+                .is_some_and(char::is_alphanumeric)
+        {
+            continue;
+        }
+        out.push((start, end));
+    }
+    out
 }
 
 /// `'in`, `’e`: an apostrophe and the letters of a suffix.

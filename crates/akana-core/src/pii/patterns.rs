@@ -59,8 +59,17 @@ lazy_static! {
     ).unwrap();
 
     /// Port number following 'portu', 'portunda', etc., or ':PORT'
+    /// A port: before or after the word port (8080 portu, port 8080, --port=8080, PORT: 5432),
+    /// or after a host and a colon (localhost:3000, 10.0.0.5:5432, db.internal:6379, [::1]:80).
+    /// A colon and a number alone are file numbers, times and references (B. No:2013/772,
+    /// E:2014/26, saat 12:22, doi:10.1017, 74:30), not ports.
     pub static ref PORT_REGEX: Regex = Regex::new(
-        r"(?i)\b(\d{1,5})\s*(?:nolu\s+|numaralı\s+)?port(?:u|unda|undan|una)?\b|:([0-9]{2,5})\b"
+        r"(?ix)
+        \b(\d{1,5})\s*(?:nolu\s+|numaralı\s+)?port(?:u|unda|undan|una|unu)?\b
+        | \bport(?:u|unu)?(?:\s*[:=]\s*|\s+)(\d{2,5})\b
+        | (?:\blocalhost|\b(?:\d{1,3}\.){3}\d{1,3}|\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+|\])
+          :(\d{2,5})\b
+        "
     ).unwrap();
 
     /// Turkish Passport number pattern (e.g. `U12345678`, `A12345678`, `EP1234567`).
@@ -317,14 +326,31 @@ lazy_static! {
         r"(?i)\b(?:adli\s+para\s+cezası\s+kaydı|kabahat\s+kaydı(?:\s*mevcut)?|denetimli\s+serbestlik\s+kaydı|icra\s+takibi\s+kaydı|adli\s+sicil\s+kaydı|sabıka\s+kaydı)\b"
     ).unwrap();
 
-    /// Health Data under KVKK Article 6.
+    /// Health Data under KVKK Article 6: the condition after a key and a colon (Sağlık
+    /// raporu: Tip 2 diyabet, Kronik rahatsızlığım: astım, Tanı: migren), up to five words.
+    /// Without the colon the words after "rahatsızlığı" or "sağlık raporu" are prose
+    /// (rahatsızlığın tespitine ilişkin bir rapor), and were masked as health data.
     pub static ref HEALTH_RECORD_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:sağlık\s+raporu(?:m)?(?:nda)?|rahatsızlığı|kronik\s+rahatsızlık|engel\s+durumu)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü\s]{4,35})\b"
+        r"(?i)\b(?:sağlık\s+raporu(?:m|nda|mda)?|rahatsızlığı(?:m)?|kronik\s+rahatsızlı(?:k|ğı|ğım)|hastalığı(?:m)?|tanı(?:sı)?|teşhis(?:i)?|engel\s+durumu)\s*:\s*((?:[\p{L}\d%'’-]+[ \t]*){1,5})"
     ).unwrap();
 
     /// Disability status under KVKK Article 6.
+    /// The value of a disability key (Engel durumu: %40 ortopedik, Engellilik oranı %60,
+    /// engelli raporu: görme), or a degree before "engelli" (%90 oranında engelli). The words
+    /// after a bare "engelli" are prose (engelli kişiler, engelli olan başvurucunun), and were
+    /// masked as disability data.
     pub static ref DISABILITY_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:engel\s*durumu|engell[iİıI]l[iİıI]k(?:\s*oran[ıiIİ])?|engell[iİıI](?:\s*raporu)?|[öoÖO]z[üuÜU]r\s*durumu)[\s:]*([a-zA-ZçğıöşüÇĞİÖŞÜ0-9%\s]+?)(?:\s+(?:olarak|sebeb[iİıI]yle|neden[iİıI]yle|var)|[,;.\n]|$)"
+        r"(?ix)
+        \b(?:engel\s*durumu|engel\s*oran[ıiIİ]|engell[iİıI]l[iİıI]k(?:\s*oran[ıiIİ])?|engell[iİıI]\s*raporu|[öoÖO]z[üuÜU]r\s*(?:durumu|oran[ıiIİ]))
+        \s*[:=]?\s*
+        (
+          (?:%\s*\d{1,3}|\d{1,3}\s*%|yüzde\s*\d{1,3})
+          (?:\s*(?:oranında\s+)?(?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma)(?:\s+engel(?:li)?)?)?
+          | (?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma)(?:\s+engel(?:li)?)?
+          | (?:var|yok|mevcut|bulunmaktadır|bulunmamaktadır)
+        )
+        | ((?:%\s*\d{1,3}|\b\d{1,3}\s*%|\byüzde\s*\d{1,3})\s*(?:oranında\s+)?(?:(?:ortopedik|görme|işitme|zihinsel|ruhsal)\s+)?engell[iİıI])
+        "
     ).unwrap();
 
     /// Trade Union Membership under KVKK Article 6.

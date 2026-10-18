@@ -99,6 +99,12 @@ struct Readings {
     only_inflected: bool,
 }
 
+/// Whether every reading of `lower` as a common word is an inflected form (kupası,
+/// gerekçesiyle): see `Readings::only_inflected`.
+pub(super) fn is_inflected_word(lower: &str) -> bool {
+    readings(lower).only_inflected
+}
+
 fn readings(lower: &str) -> Readings {
     const INFLECTIONS: &[&str] = &[
         "A3pl", "P1sg", "P2sg", "P3sg", "P1pl", "P2pl", "P3pl", "Acc", "Dat", "Loc", "Abl", "Gen",

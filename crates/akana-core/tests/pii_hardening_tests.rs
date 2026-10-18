@@ -317,3 +317,110 @@ fn long_turkish_words_are_not_passwords() {
     assert_masked("token kTq9xZ2mPv8LwR4n burada", "kTq9xZ2mPv8LwR4n");
     assert_masked("değer aBcDeFgHiJkLmNoPq burada", "aBcDeFgHiJkLmNoPq");
 }
+
+#[test]
+fn ports_need_a_host_or_the_word_port() {
+    let ports = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Port)
+            .map(|e| e.text)
+            .collect()
+    };
+    for (text, port) in [
+        ("Sunucu 8080 portu ile çalışıyor.", "8080"),
+        ("Servis port 5432 üzerinde.", "5432"),
+        ("PORT=6379 ile başlat", "6379"),
+        ("curl http://localhost:3000/api", "3000"),
+        ("Bağlan: 10.0.0.5:5432", "5432"),
+        ("redis db.internal:6379 adresinde", "6379"),
+    ] {
+        assert!(
+            ports(text).iter().any(|p| p == port),
+            "{text}: {:?}",
+            ports(text)
+        );
+    }
+    for text in [
+        "(B. No:2013/772, 7/11/2013, § 6)",
+        "Gebze 2. Ağır Ceza Mahkemesinin E:2014/26, K:2015/176 sayılı kararı",
+        "saat 12:22 sularında",
+        "German Studies Review. 20 (2): 235-259. doi:10.2307/1431947",
+        "(74:30) ayeti",
+        "Not:2019-20 sezonu",
+    ] {
+        assert!(ports(text).is_empty(), "{text}: {:?}", ports(text));
+    }
+}
+
+#[test]
+fn numbers_glued_to_prose_are_not_passwords() {
+    let secrets = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Credentials)
+            .map(|e| e.text)
+            .collect()
+    };
+    for text in [
+        "UEFA Kupa Galipleri Kupası16 Mart 2016 tarihinde arşivlendi.",
+        "Bununla birlikte Anayasa'nın46. maddesine göre",
+        "yüksek olduğu gerekçesiyle20.000 TL olarak belirlendi",
+        "olay yeri inceleme raporuna göre16.40 sırasında",
+        "resmi senette belirtilen 5.000,00TL’dir.",
+        "istatistikler Basketball-Reference.com21 Eylül 2012",
+        "=== Grup 1 === 1Hillsborough uygun olmadığı için",
+        "ABBAS KOD DURAN KALKAN’dır…\" dedi",
+        "Şablon:Heineken ve Not:Final",
+    ] {
+        assert!(secrets(text).is_empty(), "{text}: {:?}", secrets(text));
+    }
+    // a word with a plain number is still a password candidate
+    assert!(!secrets("giriş için Galatasaray1905 yazdım").is_empty());
+}
+
+#[test]
+fn special_category_terms_are_words_and_every_occurrence() {
+    let health = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Health)
+            .map(|e| e.text)
+            .collect()
+    };
+    // terms inside other words, and prose after a disability or health word
+    for text in [
+        "deprem büyük hasara yol açtı",
+        "Saraçhane Parkı'na geldiler",
+        "Dolmabahçe Sarayı'nda",
+        "Galatasaray1905",
+        "Occultation event (archived)",
+        "rahatsızlığın tespitine ilişkin bir rapor bulunmamaktadır",
+        "sağlık raporunun gerçeğe aykırı olup olmadığı",
+    ] {
+        assert!(health(text).is_empty(), "{text}: {:?}", health(text));
+    }
+    for (text, value) in [
+        ("Hastanın kanserli dokusu alındı.", "kanser"),
+        ("Diyabetim var.", "Diyabet"),
+        ("Engel durumu: %40 ortopedik", "%40 ortopedik"),
+        ("çocuğunun %90 oranında engelli olduğu", "%90 oranında engelli"),
+        ("Sağlık raporu: Tip 2 diyabet", "Tip 2 diyabet"),
+    ] {
+        assert!(health(text).iter().any(|h| h == value), "{text}: {:?}", health(text));
+    }
+    // "engelli" is health data, the words after it are not
+    for text in ["Kararda, engelli olan başvurucunun talebi", "engelli kişiler ve aileleri"] {
+        assert_eq!(health(text), ["engelli"], "{text}");
+    }
+    // every occurrence, not only the first
+    let text = "Ahmet Müslüman, eşi de Müslüman.";
+    let out = masked(text);
+    assert!(!out.contains("Müslüman"), "{out}");
+    let text = "Kan grubu A Rh+ olan hasta ve yine A Rh+ olan kardeşi";
+    let out = masked(text);
+    assert!(!out.contains("Rh+"), "{out}");
+}
