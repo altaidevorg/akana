@@ -4,9 +4,9 @@
 //! preserving grammatical case and adjusting vowel harmony upon restoration.
 
 use super::morphology::{detect_suffix_case, harmonize_suffix};
+use super::validators::{validate_iban, validate_tckn};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use stringzilla::StringZilla;
+use std::collections::{HashMap, HashSet};
 
 /// Masking / Pseudonymization mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,6 +40,10 @@ pub struct PiiVault {
     pub original_to_placeholder: HashMap<String, String>,
     /// Counts per entity label to produce sequential IDs (`NAME_1`, `NAME_2`, etc.)
     label_counters: HashMap<String, usize>,
+    /// Tags (`[AD]`) issued for more than one original: restoring them would pick one of the
+    /// originals for every occurrence, so `restore` leaves them as they are.
+    #[serde(default)]
+    ambiguous: HashSet<String>,
 }
 
 impl PiiVault {
@@ -57,6 +61,22 @@ impl PiiVault {
         suffix: Option<&str>,
         mode: PiiMode,
     ) -> String {
+        self.register_in("", original_text, label, stem, suffix, mode)
+    }
+
+    /// `register` for an entity of `text`: a new placeholder or surrogate is never one already
+    /// issued in this vault for another value, nor a string that occurs in `text` (a surrogate
+    /// "Can Demir" for a prompt that also names the real Can Demir would restore him as the
+    /// masked person).
+    pub fn register_in(
+        &mut self,
+        text: &str,
+        original_text: &str,
+        label: &str,
+        stem: &str,
+        suffix: Option<&str>,
+        mode: PiiMode,
+    ) -> String {
         // If this exact original text was already pseudonymized in this session, reuse its token
         if let Some(existing) = self.original_to_placeholder.get(original_text) {
             return existing.clone();
@@ -67,15 +87,39 @@ impl PiiVault {
             }
         }
 
-        let count = self.label_counters.entry(label.to_string()).or_insert(0);
-        *count += 1;
-        let index = *count;
-
-        let placeholder = match mode {
-            PiiMode::Placeholder => format!("{{{{{}_{}}}}}", label.to_uppercase(), index),
-            PiiMode::Tag => format!("[{}]", label.to_uppercase()),
-            PiiMode::Anonymize => format!("[{}]", label.to_uppercase()),
-            PiiMode::SyntheticSurrogate => get_synthetic_surrogate(label, index),
+        let placeholder = if matches!(mode, PiiMode::Tag | PiiMode::Anonymize) {
+            // One tag for every value of a label: it is restorable only while it stands for a
+            // single original.
+            let tag = format!("[{}]", label.to_uppercase());
+            if self
+                .placeholder_to_entry
+                .get(&tag)
+                .is_some_and(|e| e.original_text != original_text)
+            {
+                self.placeholder_to_entry.remove(&tag);
+                self.ambiguous.insert(tag.clone());
+            }
+            if self.ambiguous.contains(&tag) {
+                self.original_to_placeholder
+                    .insert(original_text.to_string(), tag.clone());
+                return tag;
+            }
+            tag
+        } else {
+            loop {
+                let count = self.label_counters.entry(label.to_string()).or_insert(0);
+                *count += 1;
+                let index = *count;
+                let candidate = match mode {
+                    PiiMode::SyntheticSurrogate => get_synthetic_surrogate(label, index),
+                    _ => format!("{{{{{}_{}}}}}", label.to_uppercase(), index),
+                };
+                let taken = self.placeholder_to_entry.contains_key(&candidate)
+                    || (!text.is_empty() && text.contains(candidate.as_str()));
+                if !taken {
+                    break candidate;
+                }
+            }
         };
 
         let entry = VaultEntry {
@@ -99,72 +143,59 @@ impl PiiVault {
 
     /// Restores placeholders in an inbound LLM response back to the original sensitive data,
     /// performing vowel harmony adjustment if the LLM appended suffixes to the placeholder.
+    ///
+    /// One left-to-right pass over the response, longest placeholder first at each position:
+    /// a restored value is never searched again, so an original that contains another
+    /// placeholder's text (or a surrogate's) cannot pull a second value in. Placeholders with an
+    /// empty key are ignored.
     pub fn restore(&self, llm_response: &str) -> String {
-        let mut result = llm_response.to_string();
-
-        // Sort entries by placeholder length descending to avoid substring collision
-        let mut entries: Vec<(&String, &VaultEntry)> = self.placeholder_to_entry.iter().collect();
-        entries.sort_by_key(|a| std::cmp::Reverse(a.0.len()));
-
-        for (placeholder, entry) in entries {
-            // Fast SIMD presence check: if the placeholder isn't in result, skip suffix search and replace!
-            if result.sz_find(placeholder.as_str()).is_none() {
-                continue;
-            }
-
-            // Check for placeholder with attached suffix: e.g. `{{NAME_1}}'e`, `{{NAME_1}}'in`, `Can Demir'e`
-            let patterns_to_check = [
-                format!("{placeholder}'"),
-                format!("{placeholder}’"),
-                format!("{placeholder}´"),
-            ];
-
-            const MAX_ITERATIONS: usize = 9999;
-            let mut iteration_count = 0;
-
-            for prefix in &patterns_to_check {
-                let mut search_start = 0;
-                while search_start < result.len() {
-                    iteration_count += 1;
-                    if iteration_count > MAX_ITERATIONS {
-                        break; // Prevent ReDoS / unbounded loops from adversarial input
-                    }
-
-                    if let Some(rel_pos) = result[search_start..].sz_find(prefix.as_str()) {
-                        let pos = search_start + rel_pos;
-                        let after_prefix = pos + prefix.len();
-                        let suffix_len: usize = result[after_prefix..]
-                            .chars()
-                            .take_while(|c| c.is_alphabetic())
-                            .map(|c| c.len_utf8())
-                            .sum();
-
-                        let found_suffix = &result[after_prefix..after_prefix + suffix_len];
-                        let full_match_len: usize = prefix.len() + suffix_len;
-
+        let mut keys: Vec<&str> = self
+            .placeholder_to_entry
+            .keys()
+            .map(String::as_str)
+            .filter(|k| !k.is_empty() && llm_response.contains(*k))
+            .collect();
+        if keys.is_empty() {
+            return llm_response.to_string();
+        }
+        // The regex alternation is leftmost-first, so longer placeholders must come first
+        // ({{AD_10}} before {{AD_1}}).
+        keys.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+        let alternation = keys
+            .iter()
+            .map(|k| regex::escape(k))
+            .collect::<Vec<_>>()
+            .join("|");
+        // Placeholder, then optionally an apostrophe and the suffix the LLM attached to it:
+        // `{{AD_1}}'e`, `{{AD_1}}'in`, `Can Demir'e`.
+        // Thousands of distinct placeholders in one response exceed the default compiled size;
+        // if even this limit is exceeded the response is returned unrestored (placeholders kept).
+        let pattern = match regex::RegexBuilder::new(&format!(
+            r"({alternation})(?:(['’´])(\p{{Alphabetic}}*))?"
+        ))
+        .size_limit(256 << 20)
+        .build()
+        {
+            Ok(re) => re,
+            Err(_) => return llm_response.to_string(),
+        };
+        pattern
+            .replace_all(llm_response, |caps: &regex::Captures| {
+                let entry = &self.placeholder_to_entry[&caps[1]];
+                match caps.get(3) {
+                    Some(found_suffix) => {
+                        let found_suffix = found_suffix.as_str();
                         // If a case suffix is detected on the placeholder, harmonize it onto the original stem!
-                        let replacement = if let Some(case) = detect_suffix_case(found_suffix) {
+                        if let Some(case) = detect_suffix_case(found_suffix) {
                             harmonize_suffix(&entry.original_stem, case)
                         } else {
                             format!("{}'{}", entry.original_stem, found_suffix)
-                        };
-
-                        let repl_len = replacement.len();
-                        result.replace_range(pos..pos + full_match_len, &replacement);
-                        search_start = pos + repl_len;
-                    } else {
-                        break;
+                        }
                     }
+                    None => entry.original_text.clone(),
                 }
-            }
-
-            // Replace standard isolated placeholder (only if still present)
-            if result.sz_find(placeholder.as_str()).is_some() {
-                result = result.replace(placeholder.as_str(), &entry.original_text);
-            }
-        }
-
-        result
+            })
+            .into_owned()
     }
 
     /// Returns a direct key-value mapping from placeholder/surrogate to the original sensitive text.
@@ -219,32 +250,77 @@ impl PiiVault {
     }
 }
 
-/// Generates valid-looking, realistic Turkish synthetic surrogates for LLM fluency.
+/// Generates valid-looking, realistic Turkish synthetic surrogates for LLM fluency, a different
+/// one for every index: they used to repeat after 3-5 values (index modulo a short list), so
+/// the 6th person got the 1st person's surrogate and restore turned both into the 6th.
 fn get_synthetic_surrogate(label: &str, index: usize) -> String {
-    static FAKE_NAMES: &[&str] = &[
-        "Can Demir",
-        "Burak Şahin",
-        "Merve Kaya",
-        "Zeynep Çelik",
-        "Emre Yılmaz",
+    static FIRST_NAMES: &[&str] = &[
+        "Can", "Burak", "Merve", "Zeynep", "Emre", "Elif", "Kerem", "Selin", "Onur", "Derya",
+        "Arda", "Esra",
     ];
-    static FAKE_TCKNS: &[&str] = &["10000000146", "51980838902", "12345678950", "98765432108"];
-    static FAKE_IBANS: &[&str] = &[
-        "TR330006100519786457841326",
-        "TR440001000000000000000001",
-        "TR550006200000000000000002",
+    static SURNAMES: &[&str] = &[
+        "Demir", "Şahin", "Kaya", "Çelik", "Yılmaz", "Aydın", "Arslan", "Doğan", "Kılıç", "Koç",
+        "Kurt", "Özdemir",
     ];
-    static FAKE_PHONES: &[&str] = &["0555 987 65 43", "0544 123 99 88", "0533 555 44 33"];
+    let i = index.saturating_sub(1);
 
     match label {
-        "NAME" | "PERSON" | "AD" | "KISI" => FAKE_NAMES[(index - 1) % FAKE_NAMES.len()].to_string(),
-        "TCKN" | "TC" => FAKE_TCKNS[(index - 1) % FAKE_TCKNS.len()].to_string(),
-        "IBAN" => FAKE_IBANS[(index - 1) % FAKE_IBANS.len()].to_string(),
-        "PHONE" | "TEL" => FAKE_PHONES[(index - 1) % FAKE_PHONES.len()].to_string(),
+        "NAME" | "PERSON" | "AD" | "KISI" => {
+            // i -> (i mod 12, (i + i / 12) mod 12) visits all 144 pairs before repeating.
+            let combos = FIRST_NAMES.len() * SURNAMES.len();
+            if i >= combos {
+                return format!("[{}_{}]", label, index);
+            }
+            let first = i % FIRST_NAMES.len();
+            let last = (i + i / FIRST_NAMES.len()) % SURNAMES.len();
+            format!("{} {}", FIRST_NAMES[first], SURNAMES[last])
+        }
+        "TCKN" | "TC" => surrogate_tckn(i),
+        "IBAN" => surrogate_iban(i),
+        "PHONE" | "TEL" => {
+            let n = 9_876_543 - (i as u64 % 9_000_000);
+            format!(
+                "0555 {:03} {:02} {:02}",
+                n / 10_000,
+                (n / 100) % 100,
+                n % 100
+            )
+        }
         "OZEL_URL" => format!("https://portal.example.com/dosya/{:06}", 100000 + index),
-        "OZEL_TARIH" | "DOGUM_TARIHI" => format!("{:02}.05.1990", 10 + index % 18),
+        "OZEL_TARIH" | "DOGUM_TARIHI" => {
+            // Distinct day/month/year for every index (28 days x 12 months x 40 years).
+            let (day, month, year) = (1 + i % 28, 1 + (i / 28) % 12, 1990 - (i / 336) as i64 % 40);
+            format!("{day:02}.{month:02}.{year}")
+        }
         _ => format!("[{}_{}]", label, index),
     }
+}
+
+/// A TCKN with valid check digits, distinct for every index (first nine digits 9xxxxxxxx).
+fn surrogate_tckn(i: usize) -> String {
+    let base = format!("{:09}", 900_000_000 + (i as u64 * 7_919) % 99_999_999);
+    let d: Vec<u32> = base.chars().filter_map(|c| c.to_digit(10)).collect();
+    let odd: u32 = d[0] + d[2] + d[4] + d[6] + d[8];
+    let even: u32 = d[1] + d[3] + d[5] + d[7];
+    let d10 = (odd * 7 + 10 * 10 - even) % 10;
+    let d11 = (d.iter().sum::<u32>() + d10) % 10;
+    let tckn = format!("{base}{d10}{d11}");
+    debug_assert!(validate_tckn(&tckn));
+    tckn
+}
+
+/// A Turkish IBAN with valid check digits, distinct for every index (bank code 00099).
+fn surrogate_iban(i: usize) -> String {
+    let bban = format!("000990{:016}", 1_000_000 + i as u64);
+    // ISO 13616 check digits: move "TR00" to the end, letters to numbers (T=29, R=27), mod 97.
+    let rearranged = format!("{bban}292700");
+    let rem = rearranged
+        .chars()
+        .filter_map(|c| c.to_digit(10))
+        .fold(0u64, |acc, d| (acc * 10 + d as u64) % 97);
+    let iban = format!("TR{:02}{bban}", 98 - rem);
+    debug_assert!(validate_iban(&iban));
+    iban
 }
 
 #[cfg(test)]

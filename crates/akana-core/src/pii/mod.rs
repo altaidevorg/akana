@@ -13,6 +13,7 @@
 pub mod embedding_scorer;
 pub mod gazetteer;
 pub mod morphology;
+mod normalize;
 pub mod patterns;
 pub mod secrets;
 pub mod spelled_numbers;
@@ -173,6 +174,8 @@ lazy_static::lazy_static! {
     static ref CARD_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:kart\s*no|kredi\s*kart[ıi]|kart)[:\s]*((?:\d[ -]?){13,19})\b").unwrap();
     static ref PLATE_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,5}\b").unwrap();
     static ref VIN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b[A-HJ-NPR-Z0-9]{17}\b").unwrap();
+    /// Text in the input that has the shape of a vault placeholder ({{AD_1}}, {{IBAN_1}}).
+    static ref PLACEHOLDER_LITERAL_REGEX: regex::Regex = regex::Regex::new(r"\{\{[^{}\s]{1,64}\}\}").unwrap();
     static ref ADDRESS_REGEX: regex::Regex = regex::Regex::new(
         r"(?ix)
         \b[A-ZÇĞİÖŞÜ][a-zçğıöşü]+\s+(?:Mahallesi|Mah\.|Mah)\b
@@ -263,7 +266,31 @@ impl TurkishPiiEngine {
     }
 
     /// Detects all PII entities in the given text.
+    ///
+    /// Zero-width and bidi format characters, full-width ASCII and non-Latin digits are folded
+    /// first (see `normalize`), so they cannot hide a value from the detectors; the returned
+    /// spans and texts are those of `text` itself.
     pub fn detect(&self, text: &str) -> Vec<PiiEntity> {
+        let Some(folded) = normalize::fold_for_detection(text) else {
+            return self.detect_folded(text);
+        };
+        self.detect_folded(&folded.text)
+            .into_iter()
+            .map(|mut e| {
+                let folded_text = e.text.clone();
+                let (start, end) = folded.original_range(e.start, e.end);
+                e.start = start;
+                e.end = end;
+                e.text = text[start..end].to_string();
+                if e.stem == folded_text {
+                    e.stem = e.text.clone();
+                }
+                e
+            })
+            .collect()
+    }
+
+    fn detect_folded(&self, text: &str) -> Vec<PiiEntity> {
         let mut candidates = Vec::new();
 
         // 1. Algorithmic Checksum Detections
@@ -302,7 +329,7 @@ impl TurkishPiiEngine {
         candidates.retain(|e| self.is_type_enabled(e.pii_type));
 
         // 8. Conflict Resolution & Non-Overlapping Span Arbitration
-        resolve_conflicts(candidates)
+        resolve_conflicts(candidates, text)
     }
 
     /// Intercepts outbound prompt, detects PII, and returns masked text with a freshly populated session vault.
@@ -318,22 +345,54 @@ impl TurkishPiiEngine {
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 
-        for entity in &entities {
-            if entity.start < last_end {
+        // Placeholder-shaped text already in the input ({{IBAN_1}} in a web page an agent
+        // read) is masked too, as a placeholder of its own that restores to that literal text.
+        // Left as it was, restore would replace it with the real value it names.
+        let literals = PLACEHOLDER_LITERAL_REGEX
+            .find_iter(text)
+            .filter(|m| {
+                !entities
+                    .iter()
+                    .any(|e| e.start < m.end() && m.start() < e.end)
+            })
+            .map(|m| (m.start(), m.end()));
+        let mut spans: Vec<(usize, usize, Option<&PiiEntity>)> = entities
+            .iter()
+            .map(|e| (e.start, e.end, Some(e)))
+            .chain(literals.map(|(s, e)| (s, e, None)))
+            .collect();
+        spans.sort_by_key(|&(start, _, _)| start);
+
+        for (start, end, entity) in spans {
+            if start < last_end {
                 continue; // Skip overlapping spans already handled
             }
-            masked.push_str(&text[last_end..entity.start]);
+            masked.push_str(&text[last_end..start]);
 
-            let placeholder = vault.register(
-                &entity.text,
-                entity.pii_type.as_str(),
-                &entity.stem,
-                entity.suffix.as_deref(),
-                mode,
-            );
+            let placeholder = match entity {
+                Some(entity) => vault.register_in(
+                    text,
+                    &entity.text,
+                    entity.pii_type.as_str(),
+                    &entity.stem,
+                    entity.suffix.as_deref(),
+                    mode,
+                ),
+                None => {
+                    let literal = &text[start..end];
+                    vault.register_in(
+                        text,
+                        literal,
+                        "YER_TUTUCU",
+                        literal,
+                        None,
+                        PiiMode::Placeholder,
+                    )
+                }
+            };
             masked.push_str(&placeholder);
 
-            last_end = entity.end;
+            last_end = end;
         }
 
         if last_end < text.len() {
@@ -1901,8 +1960,10 @@ impl TurkishPiiEngine {
                             i += 1;
                         }
                     } else if let Some(scorer) = self.embedding_scorer.as_ref() {
-                        let ctx_start = span_start.saturating_sub(40);
-                        let ctx_end = std::cmp::min(text.len(), span_end + 40);
+                        // About 40 bytes of context on each side, widened to character
+                        // boundaries: a bare byte offset fell inside ç/ş/ğ and panicked.
+                        let ctx_start = floor_char_boundary(text, span_start.saturating_sub(40));
+                        let ctx_end = ceil_char_boundary(text, span_end + 40);
                         // Exclude the ambiguous word itself so its literal noun sense does not bias the context embedding
                         let surrounding = format!(
                             "{} {}",
@@ -1989,19 +2050,23 @@ impl TurkishPiiEngine {
     }
 
     fn detect_sensitive_categories(&self, text: &str, out: &mut Vec<PiiEntity>) {
-        let lower = to_turkish_lower(text);
+        // Terms are found in the lower-cased text, whose byte offsets differ from `text`'s after
+        // every İ or I: using them directly masked the wrong bytes and panicked inside İ.
+        let (lower, origin) = normalize::turkish_lower_with_origin(text);
+        let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
 
         // Blood types
         for bt in BLOOD_TYPES.iter() {
             if let Some(pos) = lower.sz_find(bt.as_str()) {
+                let (start, end) = (orig(pos), orig(pos + bt.len()));
                 out.push(PiiEntity {
-                    text: text[pos..pos + bt.len()].to_string(),
+                    text: text[start..end].to_string(),
                     label: PiiType::BloodType.as_str().to_string(),
                     pii_type: PiiType::BloodType,
-                    start: pos,
-                    end: pos + bt.len(),
+                    start,
+                    end,
                     confidence: 0.98,
-                    stem: text[pos..pos + bt.len()].to_string(),
+                    stem: text[start..end].to_string(),
                     suffix: None,
                 });
             }
@@ -2013,14 +2078,15 @@ impl TurkishPiiEngine {
             while let Some(pos) = lower[start_idx..].sz_find(ht.as_str()) {
                 let actual_pos = start_idx + pos;
                 let end_pos = actual_pos + ht.len();
+                let (start, end) = (orig(actual_pos), orig(end_pos));
                 out.push(PiiEntity {
-                    text: text[actual_pos..end_pos].to_string(),
+                    text: text[start..end].to_string(),
                     label: PiiType::Health.as_str().to_string(),
                     pii_type: PiiType::Health,
-                    start: actual_pos,
-                    end: end_pos,
+                    start,
+                    end,
                     confidence: 0.95,
-                    stem: text[actual_pos..end_pos].to_string(),
+                    stem: text[start..end].to_string(),
                     suffix: None,
                 });
                 start_idx = end_pos;
@@ -2030,14 +2096,15 @@ impl TurkishPiiEngine {
         // Religion terms
         for rt in RELIGION_TERMS.iter() {
             if let Some(pos) = lower.sz_find(rt.as_str()) {
+                let (start, end) = (orig(pos), orig(pos + rt.len()));
                 out.push(PiiEntity {
-                    text: text[pos..pos + rt.len()].to_string(),
+                    text: text[start..end].to_string(),
                     label: "DIN".to_string(),
                     pii_type: PiiType::Health, // Sensitive KVKK 6
-                    start: pos,
-                    end: pos + rt.len(),
+                    start,
+                    end,
                     confidence: 0.90,
-                    stem: text[pos..pos + rt.len()].to_string(),
+                    stem: text[start..end].to_string(),
                     suffix: None,
                 });
             }
@@ -2060,8 +2127,9 @@ impl TurkishPiiEngine {
             for trig in CLINICAL_TRIGGERS {
                 let mut start_idx = 0;
                 while let Some(pos) = lower[start_idx..].sz_find(trig) {
-                    let actual_pos = start_idx + pos;
-                    let window_start = actual_pos.saturating_sub(40);
+                    let lower_pos = start_idx + pos;
+                    let actual_pos = orig(lower_pos);
+                    let window_start = floor_char_boundary(text, actual_pos.saturating_sub(40));
                     let candidate_context = text[window_start..actual_pos].trim();
                     if let Some(last_word) = candidate_context.split_whitespace().last() {
                         let clean_word = last_word.trim_matches(|c: char| !c.is_alphabetic());
@@ -2087,15 +2155,44 @@ impl TurkishPiiEngine {
                             }
                         }
                     }
-                    start_idx = actual_pos + trig.len();
+                    start_idx = lower_pos + trig.len();
                 }
             }
         }
     }
 }
 
-/// Resolves overlapping spans, keeping the longest, most specific, or highest confidence match.
-fn resolve_conflicts(mut candidates: Vec<PiiEntity>) -> Vec<PiiEntity> {
+/// `'in`, `’e`: an apostrophe and the letters of a suffix.
+fn is_apostrophe_suffix(s: &str) -> bool {
+    let mut chars = s.chars();
+    matches!(chars.next(), Some('\'' | '’')) && {
+        let rest = chars.as_str();
+        !rest.is_empty() && rest.chars().all(char::is_alphabetic)
+    }
+}
+
+/// The largest char boundary of `text` at or before `i`.
+fn floor_char_boundary(text: &str, i: usize) -> usize {
+    let mut i = i.min(text.len());
+    while !text.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
+/// The smallest char boundary of `text` at or after `i`.
+fn ceil_char_boundary(text: &str, i: usize) -> usize {
+    let mut i = i.min(text.len());
+    while !text.is_char_boundary(i) {
+        i += 1;
+    }
+    i
+}
+
+/// Resolves overlapping spans into non-overlapping ones. Overlapping detections are merged
+/// into one span covering both, labelled as the more confident one: keeping only the more
+/// confident span unmasked the rest of the other (a credential around an e-mail-like part of it).
+fn resolve_conflicts(mut candidates: Vec<PiiEntity>, text: &str) -> Vec<PiiEntity> {
     if candidates.is_empty() {
         return candidates;
     }
@@ -2112,11 +2209,31 @@ fn resolve_conflicts(mut candidates: Vec<PiiEntity>) -> Vec<PiiEntity> {
     let mut resolved: Vec<PiiEntity> = Vec::with_capacity(candidates.len());
     for cand in candidates {
         if let Some(last) = resolved.last_mut() {
-            // Overlap condition
+            // Overlap condition (sorted by start, so last.start <= cand.start)
             if cand.start < last.end {
-                // If candidate has strictly higher confidence, replace
-                if cand.confidence > last.confidence {
-                    *last = cand;
+                let start = last.start;
+                let mut end = last.end.max(cand.end);
+                let winner = if cand.confidence > last.confidence {
+                    cand
+                } else {
+                    last.clone()
+                };
+                // A case suffix after an apostrophe (Ahmet'in) stays outside the masked name, as
+                // the text it is restored into: do not widen over it.
+                if end > winner.end && is_apostrophe_suffix(&text[winner.end..end]) {
+                    end = winner.end;
+                }
+                // Keep the winner's own text, stem and suffix when its span is the merged one.
+                let span_changed = (winner.start, winner.end) != (start, end);
+                *last = PiiEntity {
+                    start,
+                    end,
+                    ..winner
+                };
+                if span_changed {
+                    last.text = text[start..end].to_string();
+                    last.stem = last.text.clone();
+                    last.suffix = None;
                 }
                 continue;
             }
@@ -2628,5 +2745,54 @@ mod tests {
         assert!(!is_file_like_email("support@company.md"));
         assert!(!is_file_like_email("contact@gov.md"));
         assert!(!is_file_like_email("qa@test.com"));
+    }
+
+    fn entity(text: &str, start: usize, end: usize, label: &str, confidence: f32) -> PiiEntity {
+        PiiEntity {
+            text: text[start..end].to_string(),
+            label: label.to_string(),
+            pii_type: PiiType::Credentials,
+            start,
+            end,
+            confidence,
+            stem: text[start..end].to_string(),
+            suffix: None,
+        }
+    }
+
+    #[test]
+    fn overlapping_detections_are_merged_not_shrunk() {
+        // A more confident e-mail-like part inside a credential used to replace it, leaving the
+        // rest of the credential unmasked.
+        let text = "url deploy:VhVWE6pSMTnz6pJu@git.example.com son";
+        let long = entity(text, 4, 43, "SIFRE", 0.9);
+        let inner = entity(text, 11, 43, "EMAIL", 0.99);
+        let out = resolve_conflicts(vec![long, inner], text);
+        assert_eq!(out.len(), 1);
+        assert_eq!((out[0].start, out[0].end), (4, 43));
+        assert_eq!(out[0].label, "EMAIL");
+        assert_eq!(out[0].text, "deploy:VhVWE6pSMTnz6pJu@git.example.com");
+
+        // A less confident span reaching past the winner widens it...
+        let text = "x ab12cd34ef56@host.com.tr y";
+        let a = entity(text, 2, 19, "EMAIL", 0.99);
+        let b = entity(text, 9, 26, "SIFRE", 0.8);
+        let out = resolve_conflicts(vec![a, b], text);
+        assert_eq!(
+            (out[0].start, out[0].end, out[0].label.as_str()),
+            (2, 26, "EMAIL")
+        );
+
+        // ...but not over a case suffix after an apostrophe, which restoration needs.
+        let text = "Ahmet'in kaydı";
+        let mut name = entity(text, 0, 5, "AD", 0.95);
+        name.suffix = Some("in".to_string());
+        let entropy = entity(text, 0, 8, "SIFRE", 0.9);
+        let out = resolve_conflicts(vec![entropy, name], text);
+        assert_eq!(
+            (out[0].start, out[0].end, out[0].label.as_str()),
+            (0, 5, "AD")
+        );
+        assert_eq!(out[0].suffix.as_deref(), Some("in"));
     }
 }
