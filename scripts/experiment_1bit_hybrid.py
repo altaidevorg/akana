@@ -48,7 +48,8 @@ def run_experiment():
             kind=MetricKind.Cos,
             signature=MetricSignature.ArrayArraySize,
         )
-        idx2 = Index(ndim=64, metric=m2, dtype="u8")
+        # b1 with 8 * nbytes dims stores the packed bytes verbatim (a u8 index would unpack them as bits)
+        idx2 = Index(ndim=64 * 8, metric=m2, dtype="b1")
         for d in docs:
             idx2.add(d["key"], np.frombuffer(akana.embed_packed_2bit(d["text"]), dtype=np.uint8))
 
@@ -58,7 +59,7 @@ def run_experiment():
             kind=MetricKind.Hamming,
             signature=MetricSignature.ArrayArraySize,
         )
-        idx1 = Index(ndim=32, metric=m1, dtype="u8")
+        idx1 = Index(ndim=32 * 8, metric=m1, dtype="b1")
         for d in docs:
             idx1.add(d["key"], np.frombuffer(akana.embed_packed_1bit(d["text"]), dtype=np.uint8))
 
