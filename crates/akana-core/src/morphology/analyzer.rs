@@ -111,6 +111,11 @@ impl TurkishMorphology {
         }
     }
 
+    /// The lexicon items whose root is exactly `root` (lower-case), without analysing it.
+    pub fn root_items(&self, root: &str) -> &[DictionaryItem] {
+        self.lexicon.get_items(root).map_or(&[], Vec::as_slice)
+    }
+
     /// Adds a dictionary item to the morphological analyzer at runtime.
     pub fn add_item(&mut self, item: DictionaryItem) {
         self.lexicon.add_item(item);

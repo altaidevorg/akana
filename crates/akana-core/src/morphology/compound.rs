@@ -1,6 +1,8 @@
 //! Turkish Compound Word Analysis and Decomposition (Bileşik Sözcük Ayrıştırıcı).
 
 use super::analyzer::{MorphParse, TurkishMorphology};
+use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
+use super::suffixes::SuffixType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -76,4 +78,131 @@ impl CompoundDecomposer {
 
         results
     }
+
+    /// Splits a lexicon root into the two roots of a noun compound, from the lexicon alone: a
+    /// noun, adjective or numeral, then a noun or adjective either bare (baş+bakan, yüz+yıl,
+    /// büyük+şehir) or with the compound's 3rd-person possessive (deniz+alt-ı, zeytin+yağ-ı,
+    /// cumhur+başkan-ı, ayak+kab-ı). Returns the two roots (deniz, alt).
+    ///
+    /// Unlike `decompose`, which accepts any split whose halves have any analysis, neither part
+    /// may carry other suffixes, verbs, proper nouns and abbreviations do not count, parts have
+    /// at least three letters (two for the possessive stem of a word the lexicon marks
+    /// CompoundP3sg: hanım+el-i), and a word that is a shorter root plus a derivation is not a
+    /// compound (dava-cı, not dav+acı; yetki-li). Splitting inflected surfaces instead turned
+    /// davacıya into dav + acıya and görevlisi into gör + evlisi.
+    pub fn split_lexical_compound(
+        morphology: &TurkishMorphology,
+        word: &str,
+    ) -> Option<(String, String)> {
+        let lower = crate::phonology::to_turkish_lower(word.trim());
+        let chars: Vec<char> = lower.chars().collect();
+        let n = chars.len();
+        if n < 6 {
+            return None;
+        }
+        let marked = morphology
+            .root_items(&lower)
+            .iter()
+            .any(|i| i.attributes.contains(RootAttr::COMPOUND_P3SG));
+        let derived = morphology.analyze(&lower).iter().any(|p| {
+            p.root != lower
+                && p.morpheme_tags
+                    .iter()
+                    .any(|t| DERIVATIONS.iter().any(|d| d.tag() == t))
+        });
+        if derived {
+            return None;
+        }
+
+        let is_root = |s: &str, second: bool| {
+            morphology.root_items(s).iter().any(|i| {
+                !matches!(
+                    i.secondary_pos,
+                    SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+                ) && match i.primary_pos {
+                    PrimaryPos::Noun | PrimaryPos::Adj => true,
+                    PrimaryPos::Num => !second,
+                    _ => false,
+                }
+            })
+        };
+        let possessive_stem = |s: &str| -> Option<String> {
+            let min = if marked { 2 } else { 3 };
+            ["sı", "si", "su", "sü", "ı", "i", "u", "ü"]
+                .iter()
+                .filter_map(|p| s.strip_suffix(p))
+                .filter(|stem| stem.chars().count() >= min)
+                .flat_map(|stem| [stem.to_string(), unvoice(stem)])
+                .find(|stem| is_root(stem, true))
+        };
+
+        for split in 3..=(n - 3) {
+            let left: String = chars[..split].iter().collect();
+            if !is_root(&left, false) {
+                continue;
+            }
+            let right: String = chars[split..].iter().collect();
+            // A word marked CompoundP3sg ends in the possessive: zeytin+yağ-ı, not the
+            // archaic root yağı.
+            if marked {
+                if let Some(stem) = possessive_stem(&right) {
+                    return Some((left, stem));
+                }
+            }
+            if is_root(&right, true) {
+                return Some((left, right));
+            }
+            if let Some(stem) = possessive_stem(&right) {
+                return Some((left, stem));
+            }
+        }
+        None
+    }
+}
+
+/// Suffixes that open a new inflectional group; a word with one of these after a shorter root
+/// is derived, not compounded.
+const DERIVATIONS: &[SuffixType] = &[
+    SuffixType::DerivInfinitive,
+    SuffixType::DerivActNoun,
+    SuffixType::DerivManner,
+    SuffixType::DerivIm,
+    SuffixType::DerivGi,
+    SuffixType::DerivNess,
+    SuffixType::DerivAgent,
+    SuffixType::DiminutiveCik,
+    SuffixType::DerivWith,
+    SuffixType::DerivWithout,
+    SuffixType::DerivPresPart,
+    SuffixType::DerivPastPart,
+    SuffixType::DerivFutPart,
+    SuffixType::DerivAorPart,
+    SuffixType::DerivGin,
+    SuffixType::DerivGen,
+    SuffixType::DerivRelated,
+    SuffixType::DerivAdvErek,
+    SuffixType::DerivAdvInce,
+    SuffixType::DerivAdvIp,
+    SuffixType::DerivWhile,
+    SuffixType::DerivSinceDoingSo,
+    SuffixType::DerivWithoutHavingDoneSo,
+    SuffixType::DerivLy,
+    SuffixType::DerivLe,
+    SuffixType::DerivLes,
+    SuffixType::DerivLendir,
+];
+
+/// kab -> kap, reng -> renk, ağac -> ağaç (the stem before a possessive may be voiced).
+fn unvoice(stem: &str) -> String {
+    let mut chars: Vec<char> = stem.chars().collect();
+    if let Some(last) = chars.last_mut() {
+        *last = match *last {
+            'b' => 'p',
+            'c' => 'ç',
+            'd' => 't',
+            'ğ' | 'g' => 'k',
+            c => c,
+        };
+    }
+    chars.into_iter().collect()
 }
