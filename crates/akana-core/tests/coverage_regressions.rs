@@ -141,3 +141,48 @@ fn negative_aorist_participle() {
     // The aorist tense stays the first reading of the bare form.
     assert!(best("bilmez").contains("Neg+Aor"), "{}", best("bilmez"));
 }
+
+#[test]
+fn suffixes_agree_in_vowel_harmony() {
+    let morph = TurkishMorphology::new();
+    // Every allomorph used to be accepted after any stem.
+    for word in ["kitaplerde", "evlarda", "geldilar", "okulde"] {
+        assert!(morph.analyze(word).is_empty(), "{word}: {}", best(word));
+    }
+    // Two-way and four-way harmony, the fixed vowels of -Iyor/-ken/-ki, vowel-dropped and
+    // progressive-dropped stems, and roots marked InverseHarmony.
+    assert!(has_tags("kitaplarda", "kitap", &["Noun", "A3pl", "Loc"]));
+    assert!(has_tags("gözü", "göz", &["Noun", "P3sg"]));
+    assert!(has_tags(
+        "geliyorlardı",
+        "gel",
+        &["Verb", "Prog", "A3pl", "CopPast"]
+    ));
+    assert!(has_tags("gelirken", "gel", &["Verb", "Aor", "While"]));
+    assert!(has_tags(
+        "evdekiler",
+        "ev",
+        &["Noun", "Loc", "RelClitic", "A3pl"]
+    ));
+    assert!(has_tags("burnu", "burun", &["Noun", "P3sg"]));
+    assert!(has_tags("akdi", "akit", &["Noun", "P3sg"]));
+    assert!(has_tags("özlüyoruz", "özle", &["Verb", "Prog", "A1pl"]));
+    assert!(has_tags("başlıyor", "başla", &["Verb", "Prog"]));
+    assert!(has_tags("saatler", "saat", &["Noun", "A3pl"]));
+    assert!(has_tags("alkolü", "alkol", &["Noun", "P3sg"]));
+    // A wrong-harmony reading no longer competes: ak-di would need ak-tı.
+    assert!(!has_tags("akdi", "ak", &["Adj", "CopPast"]));
+    // Stems without a vowel are not checked.
+    assert!(!morph.analyze("TBMM'de").is_empty());
+}
+
+#[test]
+fn long_tokens_are_analysed_in_linear_time() {
+    // Every prefix of the token was tried as a root (and copied), so a 1 MB token took hours.
+    let morph = TurkishMorphology::new();
+    let token: String = "ab1cdefghk".repeat(20_000);
+    let t = std::time::Instant::now();
+    morph.analyze(&token);
+    CompoundDecomposer::new().decompose(&token);
+    assert!(t.elapsed().as_secs_f64() < 2.0, "{:?}", t.elapsed());
+}

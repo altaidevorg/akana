@@ -64,6 +64,48 @@ fn copula_after_tense_person(tags: &[String], suffix: SuffixType) -> bool {
     tense_ok && person_ok
 }
 
+/// Whether a suffix allomorph agrees in vowel harmony with the stem before it, whose last vowel
+/// (as harmony sees it) is `stem_vowel`: the allomorph's first vowel must be the two-way (a/e)
+/// or four-way (ı/i/u/ü) vowel that `stem_vowel` calls for (ev-ler, kitap-lar, göz-ü, kol-u).
+/// -Iyor's o, -ken and -ki keep their vowel; a stem without a vowel (TBMM'de, 2026'da) is not
+/// checked. The templates list every allomorph, so without this kitap-ler-de and ak-di
+/// analysed.
+fn harmony_fits(suffix: SuffixType, template: &str, stem_vowel: Option<char>) -> bool {
+    let Some(stem_vowel) = stem_vowel else {
+        return true;
+    };
+    if matches!(suffix, SuffixType::DerivWhile | SuffixType::CliticKi) || template == "yor" {
+        return true;
+    }
+    match template
+        .chars()
+        .find(|&c| super::super::phonology::is_turkish_vowel(c))
+    {
+        Some(v @ ('a' | 'e')) => v == super::super::phonology::harmony_a_type(stem_vowel),
+        Some(v @ ('ı' | 'i' | 'u' | 'ü')) => {
+            v == super::super::phonology::harmony_i_type(stem_vowel)
+        }
+        _ => true,
+    }
+}
+
+/// The vowel harmony starts from after `root`: its last vowel, made front for a root that
+/// takes front-vowel suffixes despite a back vowel (saat-ler, alkol-ü, kalb-i: InverseHarmony).
+fn root_harmony_vowel(root: &str, attributes: RootAttr) -> Option<char> {
+    let v = super::super::phonology::last_vowel(root)?;
+    Some(if attributes.contains(RootAttr::INVERSE_HARMONY) {
+        match v {
+            'a' => 'e',
+            'ı' => 'i',
+            'o' => 'ö',
+            'u' => 'ü',
+            v => v,
+        }
+    } else {
+        v
+    })
+}
+
 /// How a candidate stem was recovered from the surface; the root must allow it.
 #[derive(Clone, Copy)]
 enum StemChange {
@@ -191,6 +233,7 @@ impl TurkishMorphology {
             MorphState::NounRoot,
             PrimaryPos::Noun,
             stem.chars().last().unwrap_or(' '),
+            super::super::phonology::last_vowel(stem),
             ending,
             &guessed,
             clean,
@@ -533,10 +576,24 @@ impl TurkishMorphology {
                     _ => vec![item.primary_pos.as_str().to_string()],
                 };
 
+                // The lexicon root, not the surface stem: the dropped vowel still decides
+                // (akit -> akd-i, burun -> burn-u). With the progressive vowel drop -Iyor takes
+                // the place of the root's final vowel and agrees with the one before it
+                // (özle -> özl-üyor, başla -> başl-ıyor, oyna -> oyn-uyor; de -> d-iyor).
+                let harmony_vowel = match change {
+                    StemChange::ProgressiveVowelDrop => {
+                        let mut stem = root_cand.chars();
+                        stem.next_back();
+                        root_harmony_vowel(stem.as_str(), item.attributes)
+                            .or_else(|| root_harmony_vowel(root_cand, item.attributes))
+                    }
+                    _ => root_harmony_vowel(root_cand, item.attributes),
+                };
                 self.search_suffix_chain(
                     start_state,
                     item.primary_pos,
                     root_cand.chars().last().unwrap_or(' '),
+                    harmony_vowel,
                     suffix_str,
                     item,
                     original_surface,
@@ -549,13 +606,15 @@ impl TurkishMorphology {
     }
 
     /// `prev` is the last letter matched so far (root or previous suffix), which conditions
-    /// allomorphs such as the passive.
+    /// allomorphs such as the passive; `vowel` is the last vowel so far as vowel harmony sees
+    /// it, which the next suffix must agree with.
     #[allow(clippy::too_many_arguments)]
     fn search_suffix_chain(
         &self,
         state: MorphState,
         pos: PrimaryPos,
         prev: char,
+        vowel: Option<char>,
         remaining_suffix: &str,
         item: &DictionaryItem,
         original_surface: &str,
@@ -657,13 +716,22 @@ impl TurkishMorphology {
                         continue;
                     }
                     if let Some(next_remaining) = remaining_suffix.strip_prefix(template) {
+                        if !harmony_fits(tr.suffix_type, template, vowel) {
+                            continue;
+                        }
                         let tag_str = tr.suffix_type.tag().to_string();
                         tags.push(tag_str);
+                        let next_vowel = template
+                            .chars()
+                            .rev()
+                            .find(|&c| super::super::phonology::is_turkish_vowel(c))
+                            .or(vowel);
 
                         self.search_suffix_chain(
                             tr.to_state,
                             next_pos,
                             template.chars().last().unwrap_or(prev),
+                            next_vowel,
                             next_remaining,
                             item,
                             original_surface,
