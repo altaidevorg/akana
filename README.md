@@ -153,12 +153,12 @@ Evaluated on **`metunlp/ragturk`** (Turkish agglutinative morphology failure mod
 | Retrieval Engine | Bytes / Vector | RAM Footprint (1M Docs) | Turkuaz Recall@10 | Turkuaz MRR@10 | RagTurk Recall@10 | RagTurk MRR@10 | Query Latency (RagTurk) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Dense FP32 (256-dim, exact cosine)** | 1,024 B | 1,024 MB | 75.8% | 0.390 | 93.2% | 0.772 | — |
-| **Akana Dense 2-Bit (TurboQuant)** | **64 B** | **`64 MB` (16x smaller)** | 73.8% | 0.375 | 91.2% | 0.738 | **193 µs** |
-| **Akana Dense 1-Bit (Binary Hamming)** | **32 B** | **`32 MB` (32x smaller)** | 67.0% | 0.329 | 86.3% | 0.662 | **106 µs** |
-| **Akana Morphological BM25 (inverted index)** | Inverted | ~116 MB | **`83.6%`** | **`0.453`** | 95.8% | **`0.846`** | 3,138 µs |
-| **Akana Single-Buffer Hybrid (128B)** | **128 B** | **`128 MB` (8x smaller)** | 80.8% | 0.413 | 93.0% | 0.760 | 1,398 µs |
-| **Akana Dual-Index RRF (2-Bit + BM25)** | 64 B + Inverted | ~180 MB | 82.0% | 0.445 | **`97.2%`** | 0.838 | 4,550 µs |
-| **Akana Dual-Index RRF (1-Bit + BM25)** | 32 B + Inverted | ~148 MB | 80.0% | 0.404 | 97.0% | 0.805 | 4,542 µs |
+| **Akana Dense 2-Bit (TurboQuant)** | **64 B** | **`64 MB` (16x smaller)** | 73.8% | 0.375 | 91.2% | 0.738 | **148 µs** |
+| **Akana Dense 1-Bit (Binary Hamming)** | **32 B** | **`32 MB` (32x smaller)** | 67.0% | 0.329 | 86.3% | 0.662 | **82 µs** |
+| **Akana Morphological BM25 (inverted index)** | Inverted | ~116 MB | **`84.8%`** | **`0.450`** | 95.2% | **`0.848`** | 1,695 µs |
+| **Akana Single-Buffer Hybrid (128B)** | **128 B** | **`128 MB` (8x smaller)** | 81.0% | 0.412 | 92.7% | 0.759 | 551 µs |
+| **Akana Dual-Index RRF (2-Bit + BM25)** | 64 B + Inverted | ~180 MB | 81.8% | 0.425 | **`96.7%`** | 0.835 | 2,255 µs |
+| **Akana Dual-Index RRF (1-Bit + BM25)** | 32 B + Inverted | ~148 MB | 79.6% | 0.394 | 96.5% | 0.807 | 2,251 µs |
 
 Latency is per query and end to end (query embedding + search) in a single Python process on a laptop CPU; the BM25 inverted index is the pure-Python one in the benchmark script, so the BM25 and RRF rows are dominated by Python. The FP32 row is exact brute-force cosine over `akana.embed` vectors.
 
@@ -169,9 +169,10 @@ Latency is per query and end to end (query embedding + search) in a single Pytho
 #### Key Empirical Findings
 
 1. **2-bit TurboQuant keeps almost all of FP32's quality**: 0.738 vs 0.772 MRR@10 on RagTurk and 0.375 vs 0.390 on Turkuaz, at 1/16 of the memory. **1-bit** halves the memory again and costs another 0.05–0.08 MRR@10.
-2. **Morphological BM25 is the strongest single retriever on both sets** (RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF gives the best RagTurk Recall@10 (97.2%) at about the same MRR@10.
+2. **Morphological BM25 is the strongest single retriever on both sets** (RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF gives the best RagTurk Recall@10 (96.7%) at about the same MRR@10.
 3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.02 (RagTurk) and +0.04 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 79 morphological terms) and carries no IDF.
-4. **Hybrid vectors depend on the morphology version.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search). Build an index and embed its queries with the same Akana version.
+4. **Hybrid vectors depend on the morphology build.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search); later analyzer and compound fixes change it again, with retrieval unchanged within noise. Build an index and embed its queries with the same Akana build, and check a fingerprint of `embed_hybrid` on fixed texts when opening an index.
+5. **Embedding cost:** the 128-byte hybrid embeds about 330 court-decision chunks of 256 tokens per second per CPU core (the dense half alone about 4,300); `embed_batch_hybrid` is single-threaded, so large builds should run one process per core.
 
 #### Comparison with RAGTurk (`arXiv:2602.03652`) & Heavy Neural Pipelines
 
@@ -181,7 +182,7 @@ Latency is per query and end to end (query embedding + search) in a single Pytho
 | **RAGTurk Baseline (EmbeddingGemma)** | ~600 MB | 1,024 MB (1.0 GB) | ~15 ms | ~70–75% | Neural embedder, drops on morphology |
 | **RAGTurk "Production-Friendly" (MiniLM Reranker)** | ~730 MB | 1,024 MB (1.0 GB) | 40–80 ms | ~90.1% | Requires cross-encoder over all candidate pairs |
 | **RAGTurk "Max Accuracy" (HyDE + LLM)** | Multi-GB | 1,024 MB (1.0 GB) | 1,500–4,000 ms | ~92.0% | Heavy LLM query generation ($3.7\times$ tokens) |
-| **Akana Dual-Index RRF (2-Bit + Morph BM25)** | **`2.50 MB`** | **`~180 MB`** | **`4.6 ms`** | **`97.2%`** (RagTurk, 600 questions) | **Zero LLMs, zero GPUs. Runs entirely on CPU** |
+| **Akana Dual-Index RRF (2-Bit + Morph BM25)** | **`2.50 MB`** | **`~180 MB`** | **`2.3 ms`** | **`96.7%`** (RagTurk, 600 questions) | **Zero LLMs, zero GPUs. Runs entirely on CPU** |
 
 *The neural rows are as reported for their own setups; the Akana row is measured on the 300-article RagTurk subset above, so the two are not a like-for-like comparison.*
 
