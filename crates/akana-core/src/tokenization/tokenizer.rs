@@ -4,6 +4,9 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+/// Longest possible email address (RFC 5321 path limit), in bytes.
+const MAX_EMAIL_LEN: usize = 254;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TokenType {
     Word,
@@ -180,11 +183,13 @@ impl TurkishTokenizer {
 
             // 5. Alphabetic Words, Turkish Proper Nouns, and Abbreviations
             if first_char.is_alphabetic() {
-                // Quick check for email (if contains '@' before whitespace)
+                // Quick check for email: an '@' before the next whitespace, looked for no further
+                // than an address can be long (254). Scanning to the next whitespace from every
+                // word start made whitespace-free text (base64, minified JSON) quadratic.
                 if remaining
-                    .split_whitespace()
-                    .next()
-                    .is_some_and(|w| w.contains('@'))
+                    .char_indices()
+                    .take_while(|&(i, c)| i < MAX_EMAIL_LEN && !c.is_whitespace())
+                    .any(|(_, c)| c == '@')
                 {
                     if let Some(mat) = EMAIL_REGEX.find(remaining) {
                         let token_text = mat.as_str();
