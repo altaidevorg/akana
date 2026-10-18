@@ -1229,11 +1229,12 @@ pub struct PyTurkishPiiEngine {
 #[pymethods]
 impl PyTurkishPiiEngine {
     #[new]
-    #[pyo3(signature = (use_embeddings=false, preserve_corporate_emails=true, disabled_types=None))]
+    #[pyo3(signature = (use_embeddings=false, preserve_corporate_emails=true, disabled_types=None, preserve_public_figures=false))]
     fn new(
         use_embeddings: bool,
         preserve_corporate_emails: bool,
         disabled_types: Option<Vec<String>>,
+        preserve_public_figures: bool,
     ) -> Self {
         let mut engine = if use_embeddings {
             let emb = std::sync::Arc::new(akana_core::embeddings::TurkishEmbeddings::new());
@@ -1242,6 +1243,7 @@ impl PyTurkishPiiEngine {
             akana_core::pii::TurkishPiiEngine::new()
         };
         engine.set_preserve_corporate_emails(preserve_corporate_emails);
+        engine.set_preserve_public_figures(preserve_public_figures);
         if let Some(types) = disabled_types {
             for t in types {
                 if let Some(pii_type) = akana_core::pii::PiiType::from_name(&t) {

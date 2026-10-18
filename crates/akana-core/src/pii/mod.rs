@@ -13,6 +13,9 @@
 pub mod embedding_scorer;
 pub mod gazetteer;
 pub mod morphology;
+mod names;
+#[rustfmt::skip]
+mod names_data;
 mod normalize;
 pub mod passwords;
 pub mod patterns;
@@ -32,7 +35,6 @@ pub use validators::*;
 pub use vault::*;
 
 use crate::phonology::to_turkish_lower;
-use crate::tokenization::TurkishTokenizer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use stringzilla::StringZilla;
@@ -192,6 +194,7 @@ lazy_static::lazy_static! {
 pub struct TurkishPiiEngine {
     embedding_scorer: Option<PiiEmbeddingScorer>,
     preserve_corporate_emails: bool,
+    preserve_public_figures: bool,
     disabled_types: std::collections::HashSet<PiiType>,
 }
 
@@ -207,6 +210,7 @@ impl TurkishPiiEngine {
         Self {
             embedding_scorer: None,
             preserve_corporate_emails: true,
+            preserve_public_figures: false,
             disabled_types: std::collections::HashSet::new(),
         }
     }
@@ -218,6 +222,7 @@ impl TurkishPiiEngine {
         Self {
             embedding_scorer: Some(PiiEmbeddingScorer::new(embeddings)),
             preserve_corporate_emails: true,
+            preserve_public_figures: false,
             disabled_types: std::collections::HashSet::new(),
         }
     }
@@ -260,6 +265,14 @@ impl TurkishPiiEngine {
     /// should be preserved rather than masked as individual personal data.
     pub fn set_preserve_corporate_emails(&mut self, preserve: bool) {
         self.preserve_corporate_emails = preserve;
+    }
+
+    /// Configures whether the names of well-known public figures (Atatürk, Mustafa Kemal
+    /// Atatürk, Nazım Hikmet, Fatih Sultan Mehmet, Orhan Pamuk; see `names_data.rs`) are left
+    /// unmasked. Off by default. A detected name is kept only when it lies wholly inside such a
+    /// phrase, so "Mustafa Kemal Yılmaz" or a private "Nazım" are still masked.
+    pub fn set_preserve_public_figures(&mut self, preserve: bool) {
+        self.preserve_public_figures = preserve;
     }
 
     /// Returns a reference to the embedding scorer, if initialized.
@@ -329,6 +342,17 @@ impl TurkishPiiEngine {
 
         // Retain only entities whose PiiType is currently enabled
         candidates.retain(|e| self.is_type_enabled(e.pii_type));
+
+        // Names of well-known public figures, when asked to keep them
+        if self.preserve_public_figures {
+            let figures = names::public_figure_spans(text);
+            if !figures.is_empty() {
+                candidates.retain(|e| {
+                    !matches!(e.pii_type, PiiType::Name | PiiType::Person)
+                        || !figures.iter().any(|&(s, t)| s <= e.start && e.end <= t)
+                });
+            }
+        }
 
         // 8. Conflict Resolution & Non-Overlapping Span Arbitration
         resolve_conflicts(candidates, text)
@@ -1816,187 +1840,7 @@ impl TurkishPiiEngine {
     }
 
     fn detect_names_and_persons(&self, text: &str, out: &mut Vec<PiiEntity>) {
-        let tokens = TurkishTokenizer::tokenize(text);
-        let n = tokens.len();
-        let mut i = 0;
-
-        while i < n {
-            let tok = &tokens[i];
-            let clean_tok = tok
-                .text
-                .trim_matches(|c: char| !c.is_alphabetic() && c != '\'' && c != '’');
-            if clean_tok.is_empty() {
-                i += 1;
-                continue;
-            }
-
-            let stemmed = split_stem_suffix(clean_tok, tok.start);
-            let lower_stem = to_turkish_lower(stemmed.stem);
-
-            // Check honorific title preceding: e.g. `Dr. Ayşe`, `Sayın Ahmet Bey`
-            let is_title = TITLE_TRIGGERS.contains(lower_stem.as_str());
-            let preceded_by_title = i > 0
-                && TITLE_TRIGGERS.contains(
-                    to_turkish_lower(
-                        tokens[i - 1]
-                            .text
-                            .trim_matches(|c: char| !c.is_alphabetic()),
-                    )
-                    .as_str(),
-                );
-            let followed_by_title = i + 1 < n
-                && TITLE_TRIGGERS.contains(
-                    to_turkish_lower(
-                        tokens[i + 1]
-                            .text
-                            .trim_matches(|c: char| !c.is_alphabetic()),
-                    )
-                    .as_str(),
-                );
-
-            let is_in_given = GIVEN_NAMES.contains(lower_stem.as_str());
-            let _is_in_surnames = SURNAMES.contains(lower_stem.as_str());
-            let is_polysemous = POLYSEMOUS_NAMES.contains(lower_stem.as_str());
-
-            let is_capitalized = stemmed
-                .stem
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_uppercase());
-
-            // Polysemy Guard: If name is polysemous (e.g. Deniz, Barış, Gül), require capitalization
-            // and either a title, another capitalized name following (e.g. Deniz Yılmaz), or clear proper noun context
-            let mut name_confirmed = false;
-            let mut span_start = tok.start;
-            let mut span_end = stemmed.stem_end;
-            let mut span_text = stemmed.stem.to_string();
-
-            if is_title && i + 1 < n {
-                // Preceded by title / role trigger: e.g. `Dr. Ayşe`, `Sayın Ahmet Yılmaz`, `Müşteri Caner Çetin`
-                let next_tok = &tokens[i + 1];
-                let next_stemmed = split_stem_suffix(next_tok.text, next_tok.start);
-                if next_stemmed
-                    .stem
-                    .chars()
-                    .next()
-                    .is_some_and(|c| c.is_uppercase())
-                {
-                    name_confirmed = true;
-                    // The title itself remains untouched, the name span starts at the first name token
-                    span_start = next_tok.start;
-                    span_end = next_stemmed.stem_end;
-                    span_text = next_stemmed.stem.to_string();
-                    // Check if second name / surname follows: e.g. `Müşteri Caner Çetin`
-                    if i + 2 < n
-                        && tokens[i + 2]
-                            .text
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_uppercase())
-                    {
-                        let third_stemmed =
-                            split_stem_suffix(tokens[i + 2].text, tokens[i + 2].start);
-                        span_end = third_stemmed.stem_end;
-                        span_text = format!("{} {}", span_text, third_stemmed.stem);
-                        i += 1;
-                    }
-                    i += 1;
-                }
-            } else if is_capitalized {
-                if is_polysemous {
-                    if preceded_by_title || followed_by_title {
-                        name_confirmed = true;
-                    } else if i + 1 < n
-                        && tokens[i + 1]
-                            .text
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_uppercase())
-                    {
-                        // `Deniz Kaya`
-                        let next_stemmed =
-                            split_stem_suffix(tokens[i + 1].text, tokens[i + 1].start);
-                        let next_lower = to_turkish_lower(next_stemmed.stem);
-                        if SURNAMES.contains(next_lower.as_str())
-                            || GIVEN_NAMES.contains(next_lower.as_str())
-                        {
-                            name_confirmed = true;
-                            span_end = next_stemmed.stem_end;
-                            span_text = format!("{} {}", stemmed.stem, next_stemmed.stem);
-                            i += 1;
-                        }
-                    } else if let Some(scorer) = self.embedding_scorer.as_ref() {
-                        // About 40 bytes of context on each side, widened to character
-                        // boundaries: a bare byte offset fell inside ç/ş/ğ and panicked.
-                        let ctx_start = floor_char_boundary(text, span_start.saturating_sub(40));
-                        let ctx_end = ceil_char_boundary(text, span_end + 40);
-                        // Exclude the ambiguous word itself so its literal noun sense does not bias the context embedding
-                        let surrounding = format!(
-                            "{} {}",
-                            &text[ctx_start..span_start],
-                            &text[span_end..ctx_end]
-                        );
-                        if scorer.is_person_context(surrounding.trim()) {
-                            name_confirmed = true;
-                        }
-                    }
-                } else if is_in_given {
-                    // Non-polysemous given name (e.g. Mehmet, Mustafa, Ahmet, Zeynep, Fatma, Caner)
-                    name_confirmed = true;
-                    // Check if followed by surname
-                    if i + 1 < n
-                        && tokens[i + 1]
-                            .text
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_uppercase())
-                    {
-                        let next_stemmed =
-                            split_stem_suffix(tokens[i + 1].text, tokens[i + 1].start);
-                        let next_lower = to_turkish_lower(next_stemmed.stem);
-                        if SURNAMES.contains(next_lower.as_str())
-                            || GIVEN_NAMES.contains(next_lower.as_str())
-                            || preceded_by_title
-                        {
-                            span_end = next_stemmed.stem_end;
-                            span_text = format!("{} {}", stemmed.stem, next_stemmed.stem);
-                            i += 1;
-                        }
-                    }
-                } else if i + 1 < n
-                    && tokens[i + 1]
-                        .text
-                        .chars()
-                        .next()
-                        .is_some_and(|c| c.is_uppercase())
-                {
-                    // Two consecutive capitalized words where word 2 is in SURNAMES (e.g. Caner Çetin, Ada Demir)
-                    let next_stemmed = split_stem_suffix(tokens[i + 1].text, tokens[i + 1].start);
-                    let next_lower = to_turkish_lower(next_stemmed.stem);
-                    if SURNAMES.contains(next_lower.as_str()) {
-                        name_confirmed = true;
-                        span_end = next_stemmed.stem_end;
-                        span_text = format!("{} {}", stemmed.stem, next_stemmed.stem);
-                        i += 1;
-                    }
-                }
-            }
-
-            if name_confirmed {
-                out.push(PiiEntity {
-                    text: span_text.clone(),
-                    label: PiiType::Name.as_str().to_string(),
-                    pii_type: PiiType::Name,
-                    start: span_start,
-                    end: span_end,
-                    confidence: 0.95,
-                    stem: span_text,
-                    suffix: stemmed.suffix.map(|s| s.to_string()),
-                });
-            }
-
-            i += 1;
-        }
+        names::detect_names(text, self.embedding_scorer.as_ref(), out);
     }
 
     fn detect_addresses(&self, text: &str, out: &mut Vec<PiiEntity>) {

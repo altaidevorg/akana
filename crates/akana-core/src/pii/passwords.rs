@@ -90,7 +90,8 @@ lazy_static! {
     .into_iter()
     .collect();
 
-    static ref MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
+    /// Shared with names.rs, which asks whether a word is a common word.
+    pub(super) static ref MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
 }
 
 /// Connectors between a password word and its value; the first group makes the value
