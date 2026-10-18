@@ -340,7 +340,7 @@ def check_grammar(text: str) -> GrammarCheckResult:
     return GrammarCheckResult(json.loads(raw_json))
 
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 __all__ = [
     "Chunk",
     "CompoundDecomposer",

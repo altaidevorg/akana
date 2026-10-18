@@ -16,7 +16,7 @@ comparison, and a logistic regression (cross-validated, or trained on one set an
 another). Prototype words are kept out of the test items, which earlier runs did not do and
 which flattered them.
 
-Findings (akana 0.7.0 + this branch): embeddings help for B (the engine now uses the two-sided
+Findings (akana 0.8.0): embeddings help for B (the engine now uses the two-sided
 comparison with a morphology guard: 0 -> 0.89 recall on the held-out set), a little for A
 (0.61-0.69 accuracy, not reliable), and not for C or D, where explicit trigger words do better.
 
