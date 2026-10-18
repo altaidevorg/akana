@@ -40,6 +40,8 @@ lazy_static! {
             (?P<cvv>kart\s*g[üuÜU]venl[iİıI]k\s*kod(?:um|u)?|g[üuÜU]venl[iİıI]k\s*kodu|cvv2?|cvc2?)
             |
             (?P<pin>p[iİıI]n\s*kodu|p[iİıI]n)
+            |
+            (?P<phone>telefon(?:um|u|unuz|umun)?(?:\s*numaras[ıiIİ]|\s*numaram|\s*no)?|tel(?:\s*no)?|cep(?:\s*telefonu(?:m)?|\s*numaram|\s*no)?|gsm(?:\s*no)?|numaram|numaras[ıiIİ]|whatsapp)
         )
         \b
         [:\s]*
@@ -68,6 +70,12 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
         "pin",
         "güvenlik",
         "guvenlik",
+        "telefon",
+        "tel",
+        "cep",
+        "gsm",
+        "numara",
+        "whatsapp",
     ];
     let has_trigger = SPELLED_TRIGGERS
         .iter()
@@ -103,6 +111,8 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
                 (PiiType::AccountNo, "MUSTERI_NO")
             } else if cap.name("account").is_some() {
                 (PiiType::AccountNo, "HESAP_NO")
+            } else if cap.name("phone").is_some() {
+                (PiiType::Phone, "TEL")
             } else {
                 continue;
             };

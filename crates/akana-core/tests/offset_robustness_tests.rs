@@ -51,7 +51,7 @@ fn cliche_offsets_after_dotted_capital_i() {
     let found = ClicheMatcher::find_all(text);
     let m = found
         .iter()
-        .find(|m| m.pattern_name.len() > 0 && m.text.to_lowercase() == "bu bağlamda")
+        .find(|m| !m.pattern_name.is_empty() && m.text.to_lowercase() == "bu bağlamda")
         .expect("cliché found");
     assert_eq!(&text[m.start..m.end], "Bu bağlamda");
 }

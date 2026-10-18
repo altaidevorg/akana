@@ -16,6 +16,7 @@ pub mod morphology;
 mod normalize;
 pub mod passwords;
 pub mod patterns;
+mod phones;
 pub mod secrets;
 pub mod spelled_numbers;
 pub mod validators;
@@ -682,8 +683,9 @@ impl TurkishPiiEngine {
         let has_digits = text.bytes().any(|b| b.is_ascii_digit());
         let lower = to_turkish_lower(text);
 
-        // Phone numbers
+        // Phone numbers: the layout regex, then any grouping by numbering plan (phones.rs)
         if has_digits {
+            phones::detect_phones(text, out);
             for mat in PHONE_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
