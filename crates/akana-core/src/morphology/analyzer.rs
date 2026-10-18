@@ -374,15 +374,18 @@ impl TurkishMorphology {
             }
         }
 
-        // Sort by score descending, then drop repeats of the same reading wherever they sit,
-        // keeping the best-scored one. A reading is its analysis string plus its secondary POS:
-        // the string does not show it, so deduplicating on the string alone (adjacent only)
-        // dropped Ekmek's proper-noun reading when it tied with the common noun and kept such
-        // pairs when they did not tie.
+        // Sort by score descending; among equal scores prefer fewer morphemes (ol-an over
+        // o-NounToVerb-Pass, takım-ı over tak-ım-ı, başla-dı over baş-la-dı), and only then the
+        // analysis string, which on its own preferred the shortest root. Then drop repeats of
+        // the same reading wherever they sit, keeping the best-scored one. A reading is its
+        // analysis string plus its secondary POS: the string does not show it, so
+        // deduplicating on the string alone (adjacent only) dropped Ekmek's proper-noun reading
+        // when it tied with the common noun and kept such pairs when they did not tie.
         results.sort_by(|a, b| {
             b.score
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.morpheme_tags.len().cmp(&b.morpheme_tags.len()))
                 .then_with(|| a.formatted.cmp(&b.formatted))
         });
         let mut seen = std::collections::HashSet::new();
