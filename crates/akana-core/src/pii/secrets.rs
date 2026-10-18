@@ -954,6 +954,20 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     if is_glued_reference(token) {
         return true;
     }
+    // a setting with a number (PORT=6379, TIMEOUT=30, retries:5): secret settings are found by
+    // name (ASSIGNMENT_SECRET_REGEX), and a number alone is not key material
+    if let Some((key, value)) = token.split_once(['=', ':']) {
+        let key_ok = key
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && key
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        if key_ok && !value.is_empty() && value.chars().all(|c| c.is_ascii_digit()) {
+            return true;
+        }
+    }
     false
 }
 

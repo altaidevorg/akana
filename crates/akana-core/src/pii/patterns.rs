@@ -67,7 +67,7 @@ lazy_static! {
         r"(?ix)
         \b(\d{1,5})\s*(?:nolu\s+|numaralı\s+)?port(?:u|unda|undan|una|unu)?\b
         | \bport(?:u|unu)?(?:\s*[:=]\s*|\s+)(\d{2,5})\b
-        | (?:\blocalhost|\b(?:\d{1,3}\.){3}\d{1,3}|\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+|\])
+        | (?:\blocalhost|\b(?:\d{1,3}\.){3}\d{1,3}|\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+|\[[0-9a-f.]*:[0-9a-f:.]*\])
           :(\d{2,5})\b
         "
     ).unwrap();
@@ -128,31 +128,25 @@ lazy_static! {
         r"(?i)\b(?:sgk|ssk|bağkur)(?:\s*(?:sicil\s+no|sicil\s+numarası|no))?[:\s]*([0-9- ]{9,16})\b"
     ).unwrap();
 
-    /// Positive birth date regex: matches when explicit birth triggers are present.
-    /// E.g. `doğum tarihi: 12.04.1985`, `14 Nisan 1993 doğumlu`, `09.09.1992 doğanlara`, `26.05.1953'te doğan`
+    /// A date of birth: after a birth word (doğum tarihi: 12.04.1985, D.T.: 12/04/1985, doğum
+    /// günüm 12 Mart, date of birth: 1985-04-12, DOB 04/12/1985, born on March 12, 1985), before
+    /// one (14 Nisan 1993 doğumlu, 09.09.1992 doğanlara, 26.05.1953'te doğan, 5 Mayıs 2024
+    /// tarihinde doğdu), or a year of birth (1985 doğumluyum). `date` is the date, `year` the
+    /// year; the previous pattern returned the day alone for most of these.
     pub static ref BIRTH_DATE_POSITIVE_REGEX: Regex = Regex::new(
         r"(?ix)
-        (?:
-            (?:doğum\s+tarihi(?:m|miz)?[:\s]*)
-            (?:
-                ([0-3]?[0-9])\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(19[2-9][0-9]|20[0-2][0-9])
-                |
-                (0[1-9]|[12][0-9]|3[01])[./-](0[1-9]|1[0-2])[./-](19[2-9][0-9]|20[0-2][0-9])
-                |
-                (19[2-9][0-9]|20[0-2][0-9])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])
-            )
-        )
+        \b(?:doğum\s+tarihi(?:m|miz|niz)?|doğum\s+günü(?:m|müz|nüz)?|d\.\s?t\.|doğ\.\s*tar\.
+           |date\s+of\s+birth|birth\s*date|dob|born(?:\s+on)?)
+        \s*[:\-]?\s*
+        (?P<date>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+[0-3]?[0-9],?\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))|(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)))
         |
-        (?:
-            (?:
-                ([0-3]?[0-9])\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(19[2-9][0-9]|20[0-2][0-9])
-                |
-                (0[1-9]|[12][0-9]|3[01])[./-](0[1-9]|1[0-2])[./-](19[2-9][0-9]|20[0-2][0-9])
-                |
-                (19[2-9][0-9]|20[0-2][0-9])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])
-            )
-            (?:\s*(?:'de|'da|'te|'ta|'e|'a)?\s*(?:doğumlu(?:yum)?|doğan(?:lar)?(?:a|a\s+özel)?))
-        )"
+        (?P<date2>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+[0-3]?[0-9],?\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))
+        (?:\s*'?(?:de|da|te|ta|e|a))?\s*(?:tarihinde\s+)?
+        (?:doğumlu(?:yum|yuz|sun|dur)?|doğan(?:lar)?(?:a|a\s+özel)?|doğdu(?:m|k)?|doğmuş(?:tur|um)?
+           |dünyaya\s+geldi(?:m)?)
+        |
+        \b(?P<year>19[0-9][0-9]|20[0-2][0-9])(?:'?(?:de|da|te|ta|li|lı|lu|lü))?\s+doğumlu(?:yum|yuz|sun|dur)?\b
+        "
     ).unwrap();
 
     /// Positive private date trigger regex: matches personal lifecycle/account dates.
@@ -196,6 +190,26 @@ lazy_static! {
             |
             ayın\s+[0-3]?[0-9](?:\'?(?:i|si|sı|ü|u))?
         )\b"
+    ).unwrap();
+
+    /// The date of a personal event, over Turkish lower-cased text: after the event word in any
+    /// possessive or case form, with or without tarihi / günü (randevum 5 Mayıs, ameliyat
+    /// tarihim 12.03.2024, kargom 21/06/2023, mezuniyet törenim 3 Ocak, faturamın son ödeme
+    /// günü ...), or before "tarihinde" and a verb in the first person (eşimle 5 Mayıs 2024
+    /// tarihinde evlendik). PRIVATE_DATE_TRIGGER_REGEX needs the exact phrase (randevu
+    /// tarihim) and, being case-insensitive only in ASCII, missed every İ (İşe giriş tarihim).
+    pub static ref PRIVATE_EVENT_DATE_REGEX: Regex = Regex::new(
+        r"(?x)
+        \b(?:randevu|ameliyat|muayene|kontrol|tahlil|teslimat|teslim|kargo|sipariş|fatura
+           |son\s+ödeme|abonelik|üyelik|sözleşme|rezervasyon|mezuniyet|tören|düğün|nikah|nikâh
+           |nişan|uçuş|sınav|işe\s+giriş|işten\s+ayrılış|doğum|vefat|ölüm|taburcu|yatış)
+        [a-zçğıöşü]{0,6}
+        (?:\s+(?:tarihi|günü|saati|tarih|gün)[a-zçğıöşü]{0,3})?
+        \s*(?:için)?[:\s]+
+        (?P<date>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)(?:\s+(?:19[0-9][0-9]|20[0-3][0-9]))?|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))
+        |
+        (?P<date2>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))\s+tarihinde\s+[a-zçğıöşü]+(?:dı|di|du|dü|tı|ti|tu|tü)(?:m|k|nız|niz|nuz|nüz)\b
+        "
     ).unwrap();
 
     /// Date preceding a lifecycle role trigger with `olan`:

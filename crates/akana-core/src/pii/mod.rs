@@ -344,7 +344,11 @@ impl TurkishPiiEngine {
         candidates.retain(|e| self.is_type_enabled(e.pii_type));
 
         // Names of well-known public figures, when asked to keep them
-        if self.preserve_public_figures {
+        if self.preserve_public_figures
+            && candidates
+                .iter()
+                .any(|e| matches!(e.pii_type, PiiType::Name | PiiType::Person))
+        {
             let figures = names::public_figure_spans(text);
             if !figures.is_empty() {
                 candidates.retain(|e| {
@@ -822,23 +826,28 @@ impl TurkishPiiEngine {
         if has_digits && (lower.sz_find("port").is_some() || text.sz_find(":").is_some()) {
             for cap in PORT_REGEX.captures_iter(text) {
                 let full = cap.get(0).unwrap();
-                let port_str = (1..=3).find_map(|g| cap.get(g)).map_or("", |m| m.as_str());
-                // host:2013/772 or host:10.1017 is a reference, not a port
+                let Some(port) = (1..=3).find_map(|g| cap.get(g)) else {
+                    continue;
+                };
+                let port_str = port.as_str();
+                // host:2013/772, host:10.1017 or ]:2016-17 is a reference or a range, not a port
                 let after = &text.as_bytes()[full.end()..];
                 if after.len() > 1
-                    && matches!(after[0], b'/' | b'.' | b',')
+                    && matches!(after[0], b'/' | b'.' | b',' | b'-')
                     && after[1].is_ascii_digit()
                 {
                     continue;
                 }
                 if let Ok(p) = port_str.parse::<u32>() {
                     if (1..=65535).contains(&p) {
+                        // the span is the number's: masking "8080 portu" whole lost "portu" on
+                        // restore, which put back only the number
                         out.push(PiiEntity {
                             text: port_str.to_string(),
                             label: PiiType::Port.as_str().to_string(),
                             pii_type: PiiType::Port,
-                            start: full.start(),
-                            end: full.end(),
+                            start: port.start(),
+                            end: port.end(),
                             confidence: 0.95,
                             stem: port_str.to_string(),
                             suffix: None,
@@ -1128,18 +1137,30 @@ impl TurkishPiiEngine {
         }
 
         // Positive Date of birth (explicit birth triggers)
-        if has_digits && (lower.sz_find("doğ").is_some() || lower.sz_find("dog").is_some()) {
-            for cap in BIRTH_DATE_POSITIVE_REGEX.captures_iter(text) {
-                let date_match = cap.get(1).or_else(|| cap.get(4)).or_else(|| cap.get(0));
+        if has_digits
+            && ["doğ", "dog", "d.t.", "d. t.", "birth", "dob", "born"]
+                .iter()
+                .any(|t| lower.sz_find(t).is_some())
+        {
+            // on the Turkish lower-cased text, whose offsets are mapped back: the regex is
+            // case-insensitive only in ASCII, and missed every İ (DOĞUM TARİHİ)
+            let (low, origin) = normalize::turkish_lower_with_origin(text);
+            let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
+            for cap in BIRTH_DATE_POSITIVE_REGEX.captures_iter(&low) {
+                let date_match = cap
+                    .name("date")
+                    .or_else(|| cap.name("date2"))
+                    .or_else(|| cap.name("year"));
                 if let Some(mat) = date_match {
+                    let (start, end) = (orig(mat.start()), orig(mat.end()));
                     out.push(PiiEntity {
-                        text: mat.as_str().to_string(),
+                        text: text[start..end].to_string(),
                         label: PiiType::BirthDate.as_str().to_string(),
                         pii_type: PiiType::BirthDate,
-                        start: mat.start(),
-                        end: mat.end(),
+                        start,
+                        end,
                         confidence: 0.98,
-                        stem: mat.as_str().to_string(),
+                        stem: text[start..end].to_string(),
                         suffix: None,
                     });
                 }
@@ -1185,96 +1206,72 @@ impl TurkishPiiEngine {
             "tarih",
             "günü",
             "gunu",
+            "ameliyat",
+            "kontrol",
+            "tahlil",
+            "kargo",
+            "sipariş",
+            "siparis",
+            "tören",
+            "toren",
+            "düğün",
+            "dugun",
+            "nikah",
+            "nikâh",
+            "nişan",
+            "nisan",
+            "uçuş",
+            "ucus",
+            "vefat",
+            "ölüm",
+            "olum",
+            "taburcu",
+            "yatış",
+            "yatis",
         ];
         if has_digits
             && DATE_TRIGGERS
                 .iter()
                 .any(|&trig| lower.sz_find(trig).is_some())
         {
-            for cap in PRIVATE_DATE_TRIGGER_REGEX.captures_iter(text) {
+            let (low, origin) = normalize::turkish_lower_with_origin(text);
+            let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
+            let push_private = |m: regex::Match<'_>, out: &mut Vec<PiiEntity>| {
+                let (start, end) = (orig(m.start()), orig(m.end()));
+                out.push(PiiEntity {
+                    text: text[start..end].to_string(),
+                    label: "OZEL_TARIH".to_string(),
+                    pii_type: PiiType::PrivateDate,
+                    start,
+                    end,
+                    confidence: 0.98,
+                    stem: text[start..end].to_string(),
+                    suffix: None,
+                });
+            };
+            for cap in PRIVATE_DATE_TRIGGER_REGEX.captures_iter(&low) {
                 if let Some(mat) = cap.get(1) {
-                    out.push(PiiEntity {
-                        text: mat.as_str().to_string(),
-                        label: "OZEL_TARIH".to_string(),
-                        pii_type: PiiType::PrivateDate,
-                        start: mat.start(),
-                        end: mat.end(),
-                        confidence: 0.98,
-                        stem: mat.as_str().to_string(),
-                        suffix: None,
-                    });
+                    push_private(mat, out);
+                }
+            }
+            for cap in PRIVATE_EVENT_DATE_REGEX.captures_iter(&low) {
+                if let Some(mat) = cap.name("date").or_else(|| cap.name("date2")) {
+                    push_private(mat, out);
                 }
             }
             if lower.sz_find("olan").is_some() {
-                for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(text) {
+                for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(&low) {
                     if let Some(mat) = cap.get(1) {
-                        out.push(PiiEntity {
-                            text: mat.as_str().to_string(),
-                            label: "OZEL_TARIH".to_string(),
-                            pii_type: PiiType::PrivateDate,
-                            start: mat.start(),
-                            end: mat.end(),
-                            confidence: 0.98,
-                            stem: mat.as_str().to_string(),
-                            suffix: None,
-                        });
+                        push_private(mat, out);
                     }
                 }
             }
         }
 
-        // Semantic embedding disambiguation for candidate dates (when embeddings are initialized)
-        if has_digits {
-            if let Some(scorer) = self.embedding_scorer.as_ref() {
-                for mat in TURKISH_DATE_CANDIDATE_REGEX.find_iter(text) {
-                    let ctx_start = if mat.start() >= 40 {
-                        mat.start() - 40
-                    } else {
-                        0
-                    };
-                    let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
-                    let ctx = &text[ctx_start..ctx_end];
-                    if scorer.is_private_date_context(ctx) {
-                        out.push(PiiEntity {
-                            text: mat.as_str().to_string(),
-                            label: PiiType::BirthDate.as_str().to_string(),
-                            pii_type: PiiType::BirthDate,
-                            start: mat.start(),
-                            end: mat.end(),
-                            confidence: 0.90,
-                            stem: mat.as_str().to_string(),
-                            suffix: None,
-                        });
-                    }
-                }
-                if text.sz_find(".").is_some()
-                    || text.sz_find("/").is_some()
-                    || text.sz_find("-").is_some()
-                {
-                    for mat in NUMERIC_DATE_CANDIDATE_REGEX.find_iter(text) {
-                        let ctx_start = if mat.start() >= 40 {
-                            mat.start() - 40
-                        } else {
-                            0
-                        };
-                        let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
-                        let ctx = &text[ctx_start..ctx_end];
-                        if scorer.is_private_date_context(ctx) {
-                            out.push(PiiEntity {
-                                text: mat.as_str().to_string(),
-                                label: PiiType::BirthDate.as_str().to_string(),
-                                pii_type: PiiType::BirthDate,
-                                start: mat.start(),
-                                end: mat.end(),
-                                confidence: 0.90,
-                                stem: mat.as_str().to_string(),
-                                suffix: None,
-                            });
-                        }
-                    }
-                }
-            }
-        }
+        // Dates are personal by their trigger words above. The embedding check of a date's
+        // context (PiiEmbeddingScorer::is_private_date_context) was taken out: on 90 labeled
+        // dates it found none the rules miss and took 9 of 45 public ones, and it marked 238 of
+        // 1,461 dates in court decisions and 62 of 1,012 in Wikipedia as dates of birth.
 
         // IMEI device numbers
         if has_digits && (lower.sz_find("imei").is_some() || text.len() >= 15) {
@@ -1939,7 +1936,14 @@ impl TurkishPiiEngine {
                 "hastaligi",
                 "hastası",
                 "hastasi",
+                "ilacı",
+                "ilaci",
+                "rahatsızlığı",
+                "rahatsizligi",
+                "nöbeti",
+                "nobeti",
             ];
+            let stopwords = crate::morphology::TurkishStopwords::new();
             for trig in CLINICAL_TRIGGERS {
                 let mut start_idx = 0;
                 while let Some(pos) = lower[start_idx..].sz_find(trig) {
@@ -1949,9 +1953,15 @@ impl TurkishPiiEngine {
                     let candidate_context = text[window_start..actual_pos].trim();
                     if let Some(last_word) = candidate_context.split_whitespace().last() {
                         let clean_word = last_word.trim_matches(|c: char| !c.is_alphabetic());
-                        if clean_word.len() >= 4
-                            && scorer.score_similarity(clean_word, PiiPrototypeCategory::Health)
-                                >= 0.25
+                        let letters = clean_word.chars().count();
+                        // three letters or more (gut, lupus), or an acronym (MS, ALS, OKB)
+                        let long_enough = letters >= 3
+                            || (letters == 2 && clean_word.chars().all(char::is_uppercase));
+                        let lower_word = to_turkish_lower(clean_word);
+                        if long_enough
+                            && !stopwords.is_stopword(&lower_word)
+                            && names::is_bare_nominal_or_unknown(&lower_word)
+                            && scorer.is_health_condition(clean_word)
                         {
                             if let Some(word_pos) =
                                 text[window_start..actual_pos].sz_rfind(clean_word)

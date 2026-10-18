@@ -99,6 +99,35 @@ struct Readings {
     only_inflected: bool,
 }
 
+/// Whether `lower` can name a thing as it stands: a word the lexicon does not know (Hashimoto,
+/// endometriozis), or one it has as a bare noun or adjective (migren, çiçek, sedef). Not a verb
+/// form (bulunarak, çıkan, yitiren) or an inflected word (konusu, sebeple, başlangıçta), which
+/// is what stands before "hastalığın" or "rahatsızlığı" in prose.
+pub(super) fn is_bare_nominal_or_unknown(lower: &str) -> bool {
+    use crate::morphology::PrimaryPos;
+    let fold = |s: &str| -> String {
+        s.chars()
+            .map(|c| match c {
+                'â' => 'a',
+                'î' => 'i',
+                'û' => 'u',
+                _ => c,
+            })
+            .collect()
+    };
+    let parses = MORPHOLOGY.analyze(lower);
+    let bare = fold(lower);
+    parses.is_empty()
+        || parses.iter().any(|p| {
+            fold(&p.root) == bare
+                && matches!(p.primary_pos, PrimaryPos::Noun | PrimaryPos::Adj)
+                && matches!(
+                    p.pos,
+                    PrimaryPos::Noun | PrimaryPos::Adj | PrimaryPos::Unknown
+                )
+        })
+}
+
 /// Whether every reading of `lower` as a common word is an inflected form (kupası,
 /// gerekçesiyle): see `Readings::only_inflected`.
 pub(super) fn is_inflected_word(lower: &str) -> bool {
@@ -216,7 +245,9 @@ lazy_static! {
         }
     };
 
-    /// Public-figure phrases as whole words, longest first, over Turkish lower-cased text.
+    /// Public-figure phrases, longest first, over Turkish lower-cased text. Word boundaries are
+    /// checked in `public_figure_spans`: a Unicode `\b` keeps the regex off its fast engines,
+    /// and with some 300 alternatives that cost 0.8 ms a text.
     static ref PUBLIC_FIGURE_REGEX: Regex = {
         let mut phrases: Vec<String> = with_ascii(PUBLIC_FIGURES.iter().copied())
             .into_iter()
@@ -228,7 +259,7 @@ lazy_static! {
             .iter()
             .map(|p| p.split_whitespace().map(regex::escape).collect::<Vec<_>>().join(r"\s+"))
             .collect();
-        Regex::new(&format!(r"\b(?:{})\b", alternatives.join("|"))).unwrap()
+        Regex::new(&format!(r"(?:{})", alternatives.join("|"))).unwrap()
     };
 }
 
@@ -1022,10 +1053,20 @@ pub(super) fn detect_names(
 pub(super) fn public_figure_spans(text: &str) -> Vec<(usize, usize)> {
     let (lower, origin) = super::normalize::turkish_lower_with_origin(text);
     let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
-    PUBLIC_FIGURE_REGEX
-        .find_iter(&lower)
-        .map(|m| (orig(m.start()), orig(m.end())))
-        .collect()
+    let mut out = Vec::new();
+    let mut at = 0;
+    while let Some(m) = PUBLIC_FIGURE_REGEX.find_at(&lower, at) {
+        let before = lower[..m.start()].chars().next_back();
+        let after = lower[m.end()..].chars().next();
+        if before.is_some_and(char::is_alphanumeric) || after.is_some_and(char::is_alphanumeric) {
+            // inside a longer word: look again from the next character
+            at = m.start() + lower[m.start()..].chars().next().map_or(1, char::len_utf8);
+            continue;
+        }
+        out.push((orig(m.start()), orig(m.end())));
+        at = m.end();
+    }
+    out
 }
 
 #[cfg(test)]

@@ -273,6 +273,11 @@ fn embedding_context_window_respects_char_boundaries() {
         for pre in ["a", "ab", ""] {
             let text = format!("{pre}{} Deniz{}.", "ç".repeat(k), " çşğ".repeat(12));
             engine.mask(&text, PiiMode::Placeholder);
+            // so was the window around a date (found on a court decision)
+            for date in ["12 Mart 2021", "12.03.2021", "12/03/2021"] {
+                let text = format!("{pre}{} {date}{}.", "ı".repeat(k), " çşı".repeat(12));
+                engine.mask(&text, PiiMode::Placeholder);
+            }
         }
     }
 }
@@ -491,5 +496,93 @@ fn seed_phrase_scan_leaves_chants_and_labels_alone() {
             .filter(|e| e.pii_type == PiiType::Credentials)
             .collect();
         assert!(found.is_empty(), "{text}: {found:?}");
+    }
+}
+
+#[test]
+fn port_spans_are_the_number_and_restore_whole() {
+    let e = engine();
+    let text = "Sunucu 8080 portu ile, yedek [::1]:9090 adresinde.";
+    let res = e.mask(text, PiiMode::Placeholder);
+    for ent in res.entities.iter().filter(|x| x.pii_type == PiiType::Port) {
+        assert_eq!(&text[ent.start..ent.end], ent.text);
+    }
+    assert!(res.masked_text.contains("portu"), "{}", res.masked_text);
+    assert_eq!(e.restore_response(&res.masked_text, &res.vault), text);
+    let ports: Vec<_> = e
+        .detect("(2016-17 sezonu) Not:[ŞL]:2016-17 UEFA")
+        .into_iter()
+        .filter(|x| x.pii_type == PiiType::Port)
+        .collect();
+    assert!(ports.is_empty(), "{ports:?}");
+}
+
+#[test]
+fn birth_dates_in_more_phrasings() {
+    let birth = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| matches!(e.pii_type, PiiType::BirthDate | PiiType::PrivateDate))
+            .map(|e| e.text)
+            .collect()
+    };
+    for (text, date) in [
+        ("Doğum tarihi: 12.03.1985", "12.03.1985"),
+        ("doğum tarihim 12 Mart 1985", "12 Mart 1985"),
+        ("D.T.: 12/03/1985", "12/03/1985"),
+        ("Doğum günüm 12 Mart.", "12 Mart"),
+        ("date of birth: 1985-03-12", "1985-03-12"),
+        ("DOB 03/12/1985", "03/12/1985"),
+        ("born on March 12, 1985", "March 12, 1985"),
+        ("Kızım 5 Mayıs 2024 tarihinde doğdu.", "5 Mayıs 2024"),
+        ("14 Nisan 1993 doğumlu", "14 Nisan 1993"),
+        ("26.05.1953'te doğan", "26.05.1953"),
+        ("1985 doğumluyum", "1985"),
+    ] {
+        assert!(
+            birth(text).iter().any(|d| d == date),
+            "{text}: {:?}",
+            birth(text)
+        );
+    }
+}
+
+#[test]
+fn private_event_dates_in_more_phrasings() {
+    let dates = |text: &str| -> Vec<String> {
+        engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| matches!(e.pii_type, PiiType::BirthDate | PiiType::PrivateDate))
+            .map(|e| e.text)
+            .collect()
+    };
+    for (text, date) in [
+        ("Diş randevum 5 Mayıs 2024 günü saat 10'da.", "5 Mayıs 2024"),
+        (
+            "Ameliyat tarihim 12.03.2024 olarak belirlendi.",
+            "12.03.2024",
+        ),
+        ("Kargom 21/06/2023 tarihinde teslim edilecek.", "21/06/2023"),
+        ("Mezuniyet törenim 3 Ocak günü.", "3 Ocak"),
+        ("Faturamın son ödeme günü 14.02.2025.", "14.02.2025"),
+        ("İşe giriş tarihim 5 Mayıs 2024.", "5 Mayıs 2024"),
+        ("TESLİMAT TARİHİ: 12.03.2024", "12.03.2024"),
+        ("Eşimle 5 Mayıs 2024 tarihinde evlendik.", "5 Mayıs 2024"),
+        ("Otel rezervasyonum 21/06/2023 için yapıldı.", "21/06/2023"),
+    ] {
+        assert!(
+            dates(text).iter().any(|d| d == date),
+            "{text}: {:?}",
+            dates(text)
+        );
+    }
+    for text in [
+        "Mahkemenin 14/12/2016 tarihli kararıyla dava reddedilmiştir.",
+        "Kanun 5 Mayıs 2024 tarihinde Resmî Gazete'de yayımlandı.",
+        "Seçimler 21/06/2023 tarihinde yapıldı.",
+    ] {
+        assert!(dates(text).is_empty(), "{text}: {:?}", dates(text));
     }
 }

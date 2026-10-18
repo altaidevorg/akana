@@ -31,6 +31,7 @@ pub struct PiiEmbeddingScorer {
     public_context_centroid: Vec<f32>,
     person_agent_centroid: Vec<f32>,
     nature_object_centroid: Vec<f32>,
+    everyday_centroid: Vec<f32>,
 }
 
 impl PiiEmbeddingScorer {
@@ -57,6 +58,10 @@ impl PiiEmbeddingScorer {
         let nature_object_centroid = embeddings.embed(
             "deniz göl nehir su dağ kaya taş toprak tarla bahçe gül çiçek ağaç yağmur rüzgar fırtına bulut hava"
         );
+        // What else stands before tanısı, tedavisi, hastasıyım or ilacı: hobbies (futbol
+        // hastasıyım), faults (arıza teşhisi), pests (böcek ilacı) and materials (ahşap tedavisi).
+        let everyday_centroid = embeddings
+            .embed("oyun spor film yemek tatlı alışveriş telefon makine cihaz bakım onarım tamir");
 
         Self {
             embeddings,
@@ -68,6 +73,7 @@ impl PiiEmbeddingScorer {
             public_context_centroid,
             person_agent_centroid,
             nature_object_centroid,
+            everyday_centroid,
         }
     }
 
@@ -111,6 +117,17 @@ impl PiiEmbeddingScorer {
 
         // Positive private score that exceeds public context score or has strong absolute match
         sim_priv > sim_pub && sim_priv >= 0.15 || sim_priv >= 0.35
+    }
+
+    /// Whether a word before a clinical trigger (tanısı, tedavisi, hastası, ilacı) names a
+    /// health condition: closer to the health prototype than to the everyday one. A single
+    /// threshold on the health similarity (0.25) found 5 of 28 conditions missing from the
+    /// dictionary (çölyak, tendinit, vertigo); the comparison finds 25 of them, with 6 of 23
+    /// hobbies and faults taken (futbol hastasıyım, fren arızası teşhisi).
+    pub fn is_health_condition(&self, word: &str) -> bool {
+        let vec = self.embeddings.embed(word);
+        cosine_similarity(&vec, &self.health_centroid)
+            > cosine_similarity(&vec, &self.everyday_centroid)
     }
 
     /// Determines if a context window around a polysemous word (e.g. Deniz, Barış, Kaya, Gül)
@@ -173,6 +190,14 @@ mod tests {
         // Test private date vs public context
         assert!(scorer.is_private_date_context("muayene randevum için kayıt açıldı"));
         assert!(!scorer.is_private_date_context("bayram kampanyası duyurusu kapsamında indirim"));
+
+        // Conditions missing from the dictionary, and what else comes before the triggers
+        for word in ["fibromiyalji", "tendinit", "migren"] {
+            assert!(scorer.is_health_condition(word), "{word}");
+        }
+        for word in ["futbol", "satranç", "kahve"] {
+            assert!(!scorer.is_health_condition(word), "{word}");
+        }
 
         // Test person context vs nature
         assert!(scorer.is_person_context("Barış Bey toplantıda yeni projeyi anlattı"));
