@@ -13,6 +13,7 @@
 mod addresses;
 pub mod embedding_scorer;
 pub mod gazetteer;
+mod ids;
 pub mod morphology;
 mod names;
 #[rustfmt::skip]
@@ -462,6 +463,8 @@ impl TurkishPiiEngine {
         if !has_digits {
             return;
         }
+        // IBAN, TCKN and VKN by shape and trigger, checksum or not (ids.rs)
+        ids::detect_ids(text, out);
 
         // TCKN candidates (11-digit numbers)
         for mat in TCKN_CANDIDATE_REGEX.find_iter(text) {

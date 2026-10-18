@@ -661,3 +661,23 @@ fn long_numbers_with_a_suffix_are_masked() {
         "4799585158750652",
     );
 }
+
+#[test]
+fn identifiers_by_shape_and_spelled_tax_numbers() {
+    assert_masked(
+        "IBAN alanına TR3333 3333 3333 3333 3333 3333 55 girildi",
+        "3333 3333 3333",
+    );
+    assert_masked("IBAN TR33 6370 7659 **** **** ** kaydedildi", "6370 7659");
+    assert_masked(
+        "TC kimlik no hanesinde 54128950340 bulunuyor",
+        "54128950340",
+    );
+    assert_masked(
+        "vatandaşlık numarası 08577-580-979 kaydedildi",
+        "08577-580-979",
+    );
+    assert_masked("mukellef numarasi 1654184088 bilgisi mevcut", "1654184088");
+    let out = masked("vergi no dokuz dokuz sekiz dört sıfır altı yedi üç yedi dokuz kayıtlı mı");
+    assert!(!out.contains("sekiz dört sıfır"), "{out}");
+}
