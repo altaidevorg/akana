@@ -753,6 +753,9 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
+    // 27. Wallet recovery phrases without a trigger word
+    detect_bare_seed_phrases(text, out);
+
     // 10. Free-Floating High-Entropy Secret Scanner
     for (token_start, token) in tokenize_words_with_offsets(text) {
         // Quotes, brackets and sentence punctuation around a token are not part of it (JSON
@@ -785,6 +788,85 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
             });
         }
     }
+}
+
+/// A wallet recovery phrase with no word before it that names it: 12, 15, 18, 21 or 24
+/// lower-case ASCII words of three to eight letters (the shape of BIP-39 words), one after the
+/// other or numbered one per line (1. abandon 2. ability), with none of the function words
+/// that every English or Turkish sentence of that length has. Two-letter words (of, to, is, ve,
+/// da) end a run by their length.
+fn detect_bare_seed_phrases(text: &str, out: &mut Vec<PiiEntity>) {
+    const FUNCTION_WORDS: &[&str] = &[
+        "the", "and", "for", "that", "this", "with", "from", "have", "was", "were", "are", "not",
+        "but", "his", "her", "its", "they", "she", "their", "which", "would", "could", "should",
+        "there", "been", "has", "had", "you", "your", "them", "than", "then", "these", "those",
+        "what", "when", "where", "who", "why", "how", "into", "our", "bir", "ile", "icin", "gibi",
+        "daha", "cok", "olan", "olarak", "kadar", "sonra", "ama", "veya", "ise", "her", "hem",
+        "ben", "sen", "biz", "siz", "onlar", "bunu", "buna", "sey", "var", "yok", "degil",
+    ];
+    let is_word = |t: &str| {
+        let t = t.trim_end_matches(['.', ',']);
+        (3..=8).contains(&t.len())
+            && t.bytes().all(|b| b.is_ascii_lowercase())
+            && !FUNCTION_WORDS.contains(&t)
+    };
+    // "1." / "12)" before a word of a numbered list
+    let is_number = |t: &str| {
+        let digits = t.trim_end_matches(['.', ')', ':']);
+        !digits.is_empty()
+            && digits.len() <= 2
+            && t.len() > digits.len()
+            && digits.bytes().all(|b| b.is_ascii_digit())
+    };
+    let tokens = tokenize_words_with_offsets(text);
+    let mut run: Vec<(usize, &str)> = Vec::new();
+    let flush = |run: &mut Vec<(usize, &str)>, out: &mut Vec<PiiEntity>| {
+        // at least half the words of a phrase are distinct; chants repeat theirs
+        let distinct = run
+            .iter()
+            .map(|(_, w)| *w)
+            .collect::<std::collections::HashSet<_>>()
+            .len();
+        if matches!(run.len(), 12 | 15 | 18 | 21 | 24) && distinct * 2 >= run.len() {
+            let (start, _) = run[0];
+            let (last_start, last) = run[run.len() - 1];
+            let end = last_start + last.len();
+            out.push(PiiEntity {
+                text: text[start..end].to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start,
+                end,
+                confidence: 0.9,
+                stem: text[start..end].to_string(),
+                suffix: None,
+            });
+        }
+        run.clear();
+    };
+    for (raw_start, raw) in tokens {
+        // a label before a value (kullanma:, mnemonic=) is not part of the phrase after it
+        if raw.ends_with([':', '=']) {
+            flush(&mut run, out);
+            continue;
+        }
+        // quotes and brackets around a word are not part of it ('abandon ... accident'})
+        let (lead, token) = trim_value(raw);
+        let start = raw_start + lead;
+        if is_word(token) {
+            run.push((start, token));
+            // a full stop, comma or semicolon after a word ends the run
+            let bare = raw.trim_end_matches(['"', '\'', ')', ']', '}', '`']);
+            if bare.ends_with(['.', ',', ';']) {
+                flush(&mut run, out);
+            }
+        } else if is_number(raw) {
+            continue; // the numbers of a list, one word per line
+        } else {
+            flush(&mut run, out);
+        }
+    }
+    flush(&mut run, out);
 }
 
 /// Filters out tokens that should not be classified by the free-floating entropy scanner.

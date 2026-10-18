@@ -407,13 +407,23 @@ fn special_category_terms_are_words_and_every_occurrence() {
         ("Hastanın kanserli dokusu alındı.", "kanser"),
         ("Diyabetim var.", "Diyabet"),
         ("Engel durumu: %40 ortopedik", "%40 ortopedik"),
-        ("çocuğunun %90 oranında engelli olduğu", "%90 oranında engelli"),
+        (
+            "çocuğunun %90 oranında engelli olduğu",
+            "%90 oranında engelli",
+        ),
         ("Sağlık raporu: Tip 2 diyabet", "Tip 2 diyabet"),
     ] {
-        assert!(health(text).iter().any(|h| h == value), "{text}: {:?}", health(text));
+        assert!(
+            health(text).iter().any(|h| h == value),
+            "{text}: {:?}",
+            health(text)
+        );
     }
     // "engelli" is health data, the words after it are not
-    for text in ["Kararda, engelli olan başvurucunun talebi", "engelli kişiler ve aileleri"] {
+    for text in [
+        "Kararda, engelli olan başvurucunun talebi",
+        "engelli kişiler ve aileleri",
+    ] {
         assert_eq!(health(text), ["engelli"], "{text}");
     }
     // every occurrence, not only the first
@@ -423,4 +433,63 @@ fn special_category_terms_are_words_and_every_occurrence() {
     let text = "Kan grubu A Rh+ olan hasta ve yine A Rh+ olan kardeşi";
     let out = masked(text);
     assert!(!out.contains("Rh+"), "{out}");
+}
+
+#[test]
+fn seed_phrases_without_a_trigger_word() {
+    let phrase =
+        "abandon ability able about above absent absorb abstract absurd abuse access accident";
+    assert_masked(&format!("Yedek: {phrase}"), phrase);
+    assert_masked(&format!("{phrase}."), phrase);
+    let numbered = "1. abandon\n2. ability\n3. able\n4. about\n5. above\n6. absent\n7. absorb\n8. abstract\n9. absurd\n10. abuse\n11. access\n12. accident";
+    let out = masked(numbered);
+    assert!(
+        !out.contains("abstract") && !out.contains("accident"),
+        "{out}"
+    );
+    // prose of the same length has function words or longer words
+    for text in [
+        "the quick brown fox jumps over the lazy dog and runs away into the forest",
+        "please send me the report before friday so that we can review it together",
+        "bugün hava çok güzel ve biz de parka gidip biraz yürüyüş yapmak istiyoruz",
+    ] {
+        let found: Vec<_> = engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Credentials)
+            .collect();
+        assert!(found.is_empty(), "{text}: {found:?}");
+    }
+}
+
+#[test]
+fn seed_phrases_in_quotes_and_logs() {
+    let phrase =
+        "abandon ability able about above absent absorb abstract absurd abuse access accident";
+    assert_masked(
+        &format!("2026-10-18T07:12:01Z INFO request headers={{'x': '{phrase}'}}"),
+        phrase,
+    );
+    assert_masked(&format!("{{\"mnemonic_backup\": \"{phrase}\"}}"), phrase);
+}
+
+#[test]
+fn seed_phrase_scan_leaves_chants_and_labels_alone() {
+    let phrase =
+        "abandon ability able about above absent absorb abstract absurd abuse access accident";
+    assert_masked(
+        &format!("Lütfen şu anahtarı kullanma: {phrase} teşekkürler."),
+        phrase,
+    );
+    for text in [
+        "intikam, intikam, gerilla, gerilla, vur vur vur vur gerilla vur, vur gurban olurum sana",
+        "xakurke zap sizi bekler, vur vur vur gerilla vur vur gurban olurum sana, vur vur",
+    ] {
+        let found: Vec<_> = engine()
+            .detect(text)
+            .into_iter()
+            .filter(|e| e.pii_type == PiiType::Credentials)
+            .collect();
+        assert!(found.is_empty(), "{text}: {found:?}");
+    }
 }

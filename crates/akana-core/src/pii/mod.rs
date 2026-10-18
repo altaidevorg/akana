@@ -824,7 +824,7 @@ impl TurkishPiiEngine {
                 let full = cap.get(0).unwrap();
                 let port_str = (1..=3).find_map(|g| cap.get(g)).map_or("", |m| m.as_str());
                 // host:2013/772 or host:10.1017 is a reference, not a port
-                let after = text[full.end()..].as_bytes();
+                let after = &text.as_bytes()[full.end()..];
                 if after.len() > 1
                     && matches!(after[0], b'/' | b'.' | b',')
                     && after[1].is_ascii_digit()
