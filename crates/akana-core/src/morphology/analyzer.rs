@@ -58,10 +58,7 @@ fn copula_after_tense_person(tags: &[String], suffix: SuffixType) -> bool {
     };
     let tense_ok = matches!(tense.as_str(), "Prog" | "Evid" | "Fut" | "Aor" | "Nec");
     let person_ok = match suffix {
-        SuffixType::Copula => matches!(
-            person.as_str(),
-            "A1sg" | "A2sg" | "A1pl" | "A2pl" | "A3pl"
-        ),
+        SuffixType::Copula => matches!(person.as_str(), "A1sg" | "A2sg" | "A1pl" | "A2pl" | "A3pl"),
         _ => person == "A3pl",
     };
     tense_ok && person_ok

@@ -77,14 +77,46 @@ fn oyle_boyle_soyle_take_the_copula() {
 #[test]
 fn persons_after_a_tense_take_the_copula() {
     // vA3pl_ST -> PastAfterTense / NarrAfterTense / Cond / Cop / While, vA1sg_ST.. -> Cop.
-    assert!(has_tags("yapıyorlardı", "yap", &["Verb", "Prog", "A3pl", "CopPast"]));
-    assert!(has_tags("gelmişlerdi", "gel", &["Verb", "Evid", "A3pl", "CopPast"]));
-    assert!(has_tags("vermişlerdir", "ver", &["Verb", "Evid", "A3pl", "Cop"]));
-    assert!(has_tags("gelirlermiş", "gel", &["Verb", "Aor", "A3pl", "CopEvid"]));
-    assert!(has_tags("geliyorlarsa", "gel", &["Verb", "Prog", "A3pl", "CopCond"]));
-    assert!(has_tags("gelirlerken", "gel", &["Verb", "Aor", "A3pl", "While"]));
-    assert!(has_tags("gelmişimdir", "gel", &["Verb", "Evid", "A1sg", "Cop"]));
-    assert!(has_tags("olmuşlardır", "ol", &["Verb", "Evid", "A3pl", "Cop"]));
+    assert!(has_tags(
+        "yapıyorlardı",
+        "yap",
+        &["Verb", "Prog", "A3pl", "CopPast"]
+    ));
+    assert!(has_tags(
+        "gelmişlerdi",
+        "gel",
+        &["Verb", "Evid", "A3pl", "CopPast"]
+    ));
+    assert!(has_tags(
+        "vermişlerdir",
+        "ver",
+        &["Verb", "Evid", "A3pl", "Cop"]
+    ));
+    assert!(has_tags(
+        "gelirlermiş",
+        "gel",
+        &["Verb", "Aor", "A3pl", "CopEvid"]
+    ));
+    assert!(has_tags(
+        "geliyorlarsa",
+        "gel",
+        &["Verb", "Prog", "A3pl", "CopCond"]
+    ));
+    assert!(has_tags(
+        "gelirlerken",
+        "gel",
+        &["Verb", "Aor", "A3pl", "While"]
+    ));
+    assert!(has_tags(
+        "gelmişimdir",
+        "gel",
+        &["Verb", "Evid", "A1sg", "Cop"]
+    ));
+    assert!(has_tags(
+        "olmuşlardır",
+        "ol",
+        &["Verb", "Evid", "A3pl", "Cop"]
+    ));
     // Not after the past tense, not after a nominal copula, and only -DIr after a non-A3pl
     // person.
     let morph = TurkishMorphology::new();
@@ -96,8 +128,16 @@ fn persons_after_a_tense_take_the_copula() {
 #[test]
 fn negative_aorist_participle() {
     // vAorPartNeg_S -> adjAfterVerb_ST: bil-me-z-lik.
-    assert!(has_tags("bilmezlik", "bil", &["Verb", "Neg", "AorPart", "Ness"]));
-    assert!(has_tags("gelmezlik", "gel", &["Verb", "Neg", "AorPart", "Ness"]));
+    assert!(has_tags(
+        "bilmezlik",
+        "bil",
+        &["Verb", "Neg", "AorPart", "Ness"]
+    ));
+    assert!(has_tags(
+        "gelmezlik",
+        "gel",
+        &["Verb", "Neg", "AorPart", "Ness"]
+    ));
     // The aorist tense stays the first reading of the bare form.
     assert!(best("bilmez").contains("Neg+Aor"), "{}", best("bilmez"));
 }

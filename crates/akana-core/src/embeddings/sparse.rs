@@ -220,13 +220,17 @@ mod tests {
                  Danıştay kararına göre edilmelidir.",
             )
             .terms;
-        for junk in ["dav", "acıya", "gör", "evlisi", "kar", "arına", "tay", "melidir", "muştur"] {
+        for junk in [
+            "dav", "acıya", "gör", "evlisi", "kar", "arına", "tay", "melidir", "muştur",
+        ] {
             assert!(!terms.iter().any(|t| t == junk), "{junk} in {terms:?}");
         }
         let terms = encoder
             .encode_sparse("Cumhurbaşkanı zeytinyağı ve denizaltında başbakan")
             .terms;
-        for part in ["cumhur", "başkan", "zeytin", "yağ", "deniz", "alt", "baş", "bakan"] {
+        for part in [
+            "cumhur", "başkan", "zeytin", "yağ", "deniz", "alt", "baş", "bakan",
+        ] {
             assert!(terms.iter().any(|t| t == part), "{part} not in {terms:?}");
         }
     }
