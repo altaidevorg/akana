@@ -69,7 +69,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - **Hardware SIMD Acceleration**: Accelerated with **StringZilla** for zero-regex, full-text substring and edit-distance scanning reaching **>1,470 sentences/sec** (>16,000 tokens/sec) on a single CPU core.
   - **Linguistic Diagnostics**: Detailed Turkish and English explanations with character-level finding offsets and confidence scores.
 - **Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)**:
-  - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum), Credit Card (Luhn check), Turkish person names and surnames (with polysemy disambiguation), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
+  - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum; IBAN, TCKN and VKN shapes after their trigger words are masked even when the checksum fails), Credit Card (Luhn check), Turkish and international person names and surnames (curated lists plus 4,592 given names from Zemberek; names that are also words, such as *Deniz* or *Metin*, need a title, a role, a surname or a capital in mid-sentence), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
   - **Positive Private Date & URL Detection**: Accurately isolates private personal dates (birth dates, appointment schedules, billing due dates) without false positives on calendar holidays or campaign end dates. Recognizes private URLs containing sensitive authentication and session tokens.
   - **Bi-Directional Restoration with Morphological Vowel Harmony**: Automatically tracks an in-memory or serializable mapping dictionary to restore masked entities losslessly, adapting case and possessive suffixes in downstream text according to Turkish 2-way and 4-way vowel harmony (e.g. `{{AD_1}}'a` $\rightarrow$ `Ahmet Yılmaz'a`, `{{AD_1}}'e` $\rightarrow$ `Mehmet Demir'e`). Supports conversational session continuity via `mask_with_vault` to persist identifiers across multi-turn dialogues.
   - **Multiple Masking Modes**:
@@ -77,9 +77,10 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
     - `surrogate`: Statistically and morphologically valid Turkish synthetic replacements (e.g., valid surrogate TCKNs, realistic Turkish names, valid surrogate IBANs).
     - `tag`: Standard semantic entity tags (`[AD]`, `[TCKN]`, `[IBAN]`).
     - `anonymize`: Category label redaction replacing sensitive data with uppercase entity tags (`[AD]`, `[TCKN]`, `[SIFRE]`, `[IBAN]`).
-  - **Smart Non-PII Filtering**: Preserves corporate/functional emails (`info@`, `destek@`, `satis@`) and public dates while filtering individual personal data.
-  - **Zero-Dependency Model2Vec Disambiguation**: Employs Akana's built-in 256-dim Turkish embeddings to contextually distinguish ambiguous names (*Deniz*, *Barış*, *Gül*, *Kaya*) from common nouns and verbs based on contextual semantic similarity.
-  - **High Performance**: **>3,500 docs/sec** (< 280 µs per document) on CPU.
+  - **Smart Non-PII Filtering**: Preserves corporate/functional emails (`info@`, `destek@`, `satis@`) and public dates while filtering individual personal data. Optionally keeps the names of well-known public figures (`preserve_public_figures=True`: *Atatürk*, *Nazım Hikmet*, *Fatih Sultan Mehmet*), only when the whole name is such a phrase.
+  - **Informal Addresses**: Abbreviated, lower-case and all-caps addresses as people type them (*sedefli mh bayır sk. bina 89 D: 22*), with the district and province around them.
+  - **Optional Model2Vec Context Scoring** (`use_embeddings=True`): Akana's built-in 256-dim Turkish embeddings decide ambiguous names with no other evidence, and find health conditions missing from the dictionary before a clinical trigger (*fibromiyalji tanısı*, not *futbol hastasıyım*). `scripts/experiment_pii_embeddings.py` measures where this helps and where trigger words do better.
+  - **High Performance**: **>4,500 docs/sec** on short messages (about 0.2 ms per 90-character document) on one CPU core.
 - **High-Performance Architecture**:
   - Pure Rust core with zero JVM dependency.
   - Python package via `pyo3` and `maturin` (compatible with `uv`).
@@ -188,16 +189,21 @@ Latency is per query and end to end (query embedding + search) in a single Pytho
 
 *In Section 6.1 of the RAGTurk paper, the authors explicitly highlight the need to: "(iv) study Turkish morphology-aware retrieval features (e.g., lemma-aware sparse retrieval, morphological analyzers)." Akana directly solves this challenge natively in Rust.*
 
-### Turkish PII Detection & Masking Benchmark (Saturday Labs & Belgin Datasets)
+### Turkish PII Detection & Masking Benchmark (Saturday Labs, Belgin & BTX24 Datasets)
 
-Evaluated across established Turkish PII and privacy benchmarks:
+Span recall on three public Turkish PII datasets (a value counts as found when at least half of
+it is masked), measured with `scripts/benchmark_pii_datasets.py` from the local Hugging Face
+cache:
 
-| Benchmark / Dataset | Evaluated Dimension | Akana Performance / Accuracy | Key Strength |
-| :--- | :--- | :---: | :--- |
-| **Saturday Labs Benchmark** (`cagrigungor/turkish-pii-masking-benchmark`) | **Recall (200 diverse samples)** | **94.1%** | **100% recall across 34 core categories** (TCKN, VKN, IBAN, Credit Card, Passports, Plates, Phone, Email, Coordinates, MAC, IMEI, Passwords) |
-| **Belgin Dataset** (`negentropi/belgin-pii-dataset`) | **Private Date Recall** | **100.0%** (270/270) | Specific detection of birth dates, medical appointments, and billing due dates |
-| **Belgin Dataset** (`negentropi/belgin-pii-dataset`) | **Public Date Preservation** | **100.0%** (300/300) | Zero false positives on calendar holidays and campaign deadlines |
-| **Throughput & Latency** | **CPU Throughput (Single-Core)** | **`3,570 docs/sec`** | **0.28 ms** average latency per document with zero neural network overhead |
+| Dataset | Values | Recall | Over-masked characters | Notes |
+| :--- | ---: | :---: | :---: | :--- |
+| **Saturday Labs** (`cagrigungor/turkish-pii-masking-benchmark`, 1,000 rows) | 2,096 | **92.4%** | 21% | Values aligned from the expected masked output; 100% on VKN, phone, blood type, passwords, IP and MAC addresses |
+| **Belgin** (`negentropi/belgin-pii-dataset`, all splits) | 1,851 | **73.6%** | 2.3% | Private dates 292/292, addresses 98.5%; **0/300** public dates (holidays, campaigns) masked |
+| **BTX24** (`BTX24/turkish-privacy-pii-ner`, test) | 10,393 | **89.0%** | 1.3% | IBAN 99.6%, phone 99.9%, email 97.4%, person 92.1% |
+| **Throughput** | | **`~4,600 docs/sec`** | | Short messages (about 90 characters), one CPU core, no neural network |
+
+The previous version of this table (94.1% on 200 Saturday Labs samples) had no script behind it;
+on the same three datasets the 0.6.0 engine reaches 85.6%, 50.9% and 58.4%.
 
 * 🛡️ **KVKK Compliance**: Algorithmic validation for Turkish IDs (TCKN, VKN, IBAN, Driving License, Plate) prevents false positives while capturing authentic identifiers.
 * 🔄 **100% Reversible Restoration**: Restores anonymized text losslessly with Turkish morphological vowel harmony adjustment on inflected suffixes.
@@ -415,7 +421,7 @@ raw_text = (
 # A. Reversible Structured Placeholder Masking
 masked = akana.pii_mask(raw_text, mode="placeholder")
 print("Masked:", masked["masked_text"])
-# -> "Müşterimiz {{AD_1}}, {{TCKN_1}} nolu TCKN ve {{IBAN_1}} nolu IBAN ile {{OZEL_TARIH_1}} doğumludur. Şifresi: {{SIFRE_1}}."
+# -> "Müşterimiz {{AD_1}}, {{TCKN_1}} nolu TCKN ve {{IBAN_1}} nolu IBAN ile {{DOGUM_TARIHI_1}} doğumludur. Şifresi: {{SIFRE_1}}."
 print("Mapping:", masked["mapping"])
 
 # B. Lossless Restoration with Turkish Vowel Harmony
@@ -431,6 +437,11 @@ print(akana.pii_restore(inflected_text, masked["mapping"]))
 surrogate = akana.pii_mask(raw_text, mode="surrogate")
 print("Surrogate:", surrogate["masked_text"])
 # -> "Müşterimiz Can Demir, 52381940562 nolu TCKN ve TR92 0006 1000 ... doğumludur..."
+
+# D. Keep the names of well-known public figures, mask everyone else
+engine = akana.TurkishPiiEngine(preserve_public_figures=True)
+print(engine.mask("Nazım Hikmet'i en çok Ahmet Yılmaz okurdu.")["masked_text"])
+# -> "Nazım Hikmet'i en çok {{AD_1}} okurdu."
 ```
 
 ---
