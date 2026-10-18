@@ -94,6 +94,8 @@ pub enum SuffixType {
     DerivLy,                  // -CA on adjectives: açıkça, güzelce (Ly)
     DerivRelated,             // -sAl: duygusal, geleneksel (Related)
     TenseImp,                 // -sIn: gelsin, olsun (Imp, 3rd person)
+    Copula,                   // -DIr after a verbal person: gelmiş-im-dir, gelmiş-ler-dir (Cop)
+    DerivAorPart,             // -z after negation: bil-me-z-lik, gel-me-z-lik (AorPartNeg)
 }
 
 impl SuffixType {
@@ -105,7 +107,7 @@ impl SuffixType {
             DerivInfinitive | DerivActNoun | DerivManner | DerivIm | DerivGi | DerivNess
             | DerivAgent | DiminutiveCik => Some(PrimaryPos::Noun),
             DerivWith | DerivWithout | DerivPresPart | DerivPastPart | DerivFutPart | DerivGin
-            | DerivGen | CliticKi | DerivRelated => Some(PrimaryPos::Adj),
+            | DerivGen | CliticKi | DerivRelated | DerivAorPart => Some(PrimaryPos::Adj),
             DerivAdvErek
             | DerivAdvInce
             | DerivAdvIp
@@ -215,6 +217,8 @@ impl SuffixType {
             SuffixType::DerivLy => "Ly",
             SuffixType::DerivRelated => "Related",
             SuffixType::TenseImp => "Imp",
+            SuffixType::Copula => "Cop",
+            SuffixType::DerivAorPart => "AorPart",
         }
     }
 }

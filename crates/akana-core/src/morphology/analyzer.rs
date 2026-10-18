@@ -48,6 +48,25 @@ fn passive_allomorph_fits(template: &str, prev: char) -> bool {
     }
 }
 
+/// Whether a copula or -ken may follow a verbal person: only right after Prog, Evid, Fut, Aor
+/// or Nec and the person (Zemberek's a3plCopWhile / a3sgCopWhile), and except for -DIr only
+/// after A3pl. gelmiş-ler-di, gelmiş-im-dir, gelir-ler-ken; not gel-di-ler-di, ev-de-yim-di,
+/// gelmiş-im-di.
+fn copula_after_tense_person(tags: &[String], suffix: SuffixType) -> bool {
+    let [.., tense, person] = tags else {
+        return false;
+    };
+    let tense_ok = matches!(tense.as_str(), "Prog" | "Evid" | "Fut" | "Aor" | "Nec");
+    let person_ok = match suffix {
+        SuffixType::Copula => matches!(
+            person.as_str(),
+            "A1sg" | "A2sg" | "A1pl" | "A2pl" | "A3pl"
+        ),
+        _ => person == "A3pl",
+    };
+    tense_ok && person_ok
+}
+
 /// How a candidate stem was recovered from the surface; the root must allow it.
 #[derive(Clone, Copy)]
 enum StemChange {
@@ -56,6 +75,8 @@ enum StemChange {
     Voiced,
     /// burn- from burun (RootAttr::VOWEL_DROP)
     VowelDropped,
+    /// kayb- from kayıp, akd- from akit (RootAttr::VOWEL_DROP and RootAttr::VOICING)
+    VowelDroppedVoiced,
     /// hakk- from hak (RootAttr::CONSONANT_DOUBLING)
     Doubled,
     /// bekl-iyor from bekle (any vowel-final verb)
@@ -281,6 +302,18 @@ impl TurkishMorphology {
                     &mut results,
                     StemChange::VowelDropped,
                 );
+                // Both at once (kayıp -> kayb-ı, akit -> akd-i, nakit -> nakd-i): each change
+                // alone finds no root.
+                let voiced = self.unsoften_stem(&restored);
+                if voiced != restored {
+                    self.match_and_traverse(
+                        &voiced,
+                        &suffix_part,
+                        clean,
+                        &mut results,
+                        StemChange::VowelDroppedVoiced,
+                    );
+                }
             }
 
             // d) Consonant doubling (e.g. "hakk" from "hak", "hiss" from "his")
@@ -425,6 +458,10 @@ impl TurkishMorphology {
                     StemChange::None => true,
                     StemChange::Voiced => item.attributes.contains(RootAttr::VOICING),
                     StemChange::VowelDropped => item.attributes.contains(RootAttr::VOWEL_DROP),
+                    StemChange::VowelDroppedVoiced => {
+                        item.attributes.contains(RootAttr::VOWEL_DROP)
+                            && item.attributes.contains(RootAttr::VOICING)
+                    }
                     StemChange::Doubled => item.attributes.contains(RootAttr::CONSONANT_DOUBLING),
                     StemChange::ProgressiveVowelDrop | StemChange::DeYeNarrowing => {
                         item.primary_pos == PrimaryPos::Verb
@@ -433,23 +470,33 @@ impl TurkishMorphology {
                 if !allowed {
                     continue;
                 }
-                // Closed classes take no suffixes (Zemberek's terminal adverb, conjunction,
-                // interjection, determiner, duplicator and postposition root states); they
-                // used to inflect like nouns (yo-la, he-m, fır-ın-ın).
-                if matches!(
-                    item.primary_pos,
-                    PrimaryPos::Adv
-                        | PrimaryPos::Conj
-                        | PrimaryPos::Interj
-                        | PrimaryPos::Det
-                        | PrimaryPos::Dup
-                        | PrimaryPos::Postp
-                        | PrimaryPos::Punc
-                ) {
+                // Postpositions, and the adverbs öyle/böyle/şöyle, take only the nominal
+                // copula and persons (Zemberek's postpZero_S and advForVerbDeriv_ST ->
+                // nVerb_S): ait-tir, gibi-yim, kadar-dı, şöyle-dir. NounCase is the state
+                // that offers just those (and -ki: bugüne kadar-ki).
+                let copula_only = item.primary_pos == PrimaryPos::Postp
+                    || (item.primary_pos == PrimaryPos::Adv
+                        && matches!(item.root.as_str(), "öyle" | "böyle" | "şöyle"));
+                // Other closed classes take no suffixes (Zemberek's terminal adverb,
+                // conjunction, interjection, determiner and duplicator root states); they used
+                // to inflect like nouns (yo-la, he-m, fır-ın-ın).
+                if !copula_only
+                    && matches!(
+                        item.primary_pos,
+                        PrimaryPos::Adv
+                            | PrimaryPos::Conj
+                            | PrimaryPos::Interj
+                            | PrimaryPos::Det
+                            | PrimaryPos::Dup
+                            | PrimaryPos::Postp
+                            | PrimaryPos::Punc
+                    )
+                {
                     continue;
                 }
 
                 let start_state = match item.primary_pos {
+                    _ if copula_only => MorphState::NounCase,
                     // "değil" carries the negation and behaves like a nominal predicate:
                     // değil-im, değil-di, değil-se (Zemberek's nVerbDegil_S).
                     PrimaryPos::Verb if item.root == "değil" => MorphState::NounCase,
@@ -555,6 +602,22 @@ impl TurkishMorphology {
                     | SuffixType::DerivGi
                     | SuffixType::DerivGin
                     | SuffixType::DerivGen => tags.len() > 1,
+                    // -DIk and -AcAk participles take a possessive before any case
+                    // (ol-duğ-u, yap-acağ-ın-a), so a bare case would only duplicate them.
+                    SuffixType::CaseAcc
+                    | SuffixType::CaseDat
+                    | SuffixType::CaseGen
+                    | SuffixType::CaseInst
+                        if state == MorphState::DerivedAdj =>
+                    {
+                        matches!(
+                            tags.last().map(String::as_str),
+                            Some("PastPart" | "FutPart")
+                        )
+                    }
+                    _ if state == MorphState::VerbPerson => {
+                        !copula_after_tense_person(tags, tr.suffix_type)
+                    }
                     _ => false,
                 };
                 if skip {
