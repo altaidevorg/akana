@@ -253,3 +253,29 @@ def test_usearch_stores_vectors_verbatim_and_uses_the_akana_metric(embed, nbytes
     for m in index.search(q, count=len(corpus), exact=True):
         v = np.ascontiguousarray(vectors[int(m.key)])
         assert m.distance == pytest.approx(rust_metric(q.ctypes.data, v.ctypes.data, nbytes), abs=1e-6)
+
+
+@pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
+@pytest.mark.parametrize("view", [False, True])
+def test_reloaded_index_needs_the_compiled_metric_again(tmp_path, view):
+    """load()/view() restore the metric from the file header, which holds no function pointer;
+    setting index.metric afterwards brings back Akana's metric (searching without it crashes)."""
+    metric = CompiledMetric(pointer=akana.get_usearch_metric_pointer_hybrid(0.5), kind=MetricKind.Cos,
+                            signature=MetricSignature.ArrayArraySize)
+    built = _byte_index(128, metric)
+    texts = ["Taşınmaz davacıya aittir.", "Vergi ziyaı cezası kaldırıldı.", "Makul sürede yargılanma hakkı ihlal edildi."]
+    for key, t in enumerate(texts):
+        built.add(key, np.frombuffer(akana.embed_hybrid(t), dtype=np.uint8))
+    path = str(tmp_path / "hybrid.usearch")
+    built.save(path)
+
+    q = np.frombuffer(akana.embed_hybrid("vergi cezası"), dtype=np.uint8)
+    expected = [(int(m.key), float(m.distance)) for m in built.search(q, count=3, exact=True)]
+
+    reloaded = _byte_index(128, metric)
+    (reloaded.view if view else reloaded.load)(path)
+    reloaded.metric = metric
+    got = [(int(m.key), float(m.distance)) for m in reloaded.search(q, count=3, exact=True)]
+    assert [k for k, _ in got] == [k for k, _ in expected]
+    assert [d for _, d in got] == pytest.approx([d for _, d in expected], abs=1e-6)
+    del reloaded  # release the memory map before tmp_path is removed
