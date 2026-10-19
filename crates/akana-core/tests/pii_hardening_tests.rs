@@ -910,3 +910,40 @@ fn health_union_and_address_values_after_their_keys() {
         assert_masked(text, value);
     }
 }
+
+#[test]
+fn decomposed_letters_do_not_hide_values() {
+    // NFD text, as macOS and PDFs send it: ş is s + U+0327, and words split at the mark
+    for (text, value) in [
+        (
+            "S\u{327}u\u{308}kru\u{308} O\u{308}ztu\u{308}rk geldi.",
+            "S\u{327}u\u{308}kru\u{308} O\u{308}ztu\u{308}rk",
+        ),
+        (
+            "Bas\u{327}vurucu C\u{327}ag\u{306}lar Gu\u{308}ndog\u{306}du'nun talebi",
+            "C\u{327}ag\u{306}lar Gu\u{308}ndog\u{306}du",
+        ),
+        (
+            "adresim O\u{308}rnek Mahallesi C\u{327}ic\u{327}ek Sokak No: 5",
+            "Mahallesi C\u{327}ic\u{327}ek Sokak No: 5",
+        ),
+        // ŞİFRE lower-cased by Unicode rules: i + U+0307
+        ("s\u{327}i\u{307}fre: Kedi1234!", "Kedi1234!"),
+    ] {
+        assert_masked(text, value);
+        let res = engine().mask(text, PiiMode::Placeholder);
+        assert_eq!(
+            engine().restore_response(&res.masked_text, &res.vault),
+            text
+        );
+    }
+    // a suffix the reply puts on the placeholder follows the composed vowels, on the stem as
+    // it was sent
+    let text = "Hasta S\u{327}u\u{308}kru\u{308} O\u{308}ztu\u{308}rk geldi.";
+    let res = engine().mask(text, PiiMode::Placeholder);
+    assert_eq!(res.masked_text, "Hasta {{AD_1}} geldi.");
+    assert_eq!(
+        engine().restore_response("{{AD_1}}'a randevu verildi.", &res.vault),
+        "S\u{327}u\u{308}kru\u{308} O\u{308}ztu\u{308}rk'e randevu verildi."
+    );
+}

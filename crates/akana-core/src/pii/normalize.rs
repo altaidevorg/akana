@@ -3,11 +3,16 @@
 //! Zero-width and bidirectional format characters are dropped, and full-width ASCII and
 //! non-Latin decimal digits are folded to ASCII, so `787\u{200B}05685624`, `７８７０５６８５６２４`
 //! and `٧٨٧٠٥٦٨٥٦٢٤` are all seen as the TCKN they spell, and a zero-width space inside an API key
-//! no longer splits it in two. Detection runs on the folded text; spans are mapped back to the
-//! original bytes, so masking replaces exactly what the caller sent.
+//! no longer splits it in two. Decomposed letters are composed (NFC): macOS and PDF text send
+//! ş as s + U+0327, and the tokenizer split words at the mark, so "Şükrü Öztürk" in that form
+//! was not a name. Detection runs on the folded text; spans are mapped back to the original
+//! bytes, so masking replaces exactly what the caller sent.
+
+use unicode_normalization::char::is_combining_mark;
+use unicode_normalization::{is_nfc_quick, IsNormalized, UnicodeNormalization};
 
 /// Folded text plus, for every byte of it, the byte offset in the original of the character it
-/// came from.
+/// came from (a composed letter: of its base letter).
 pub(crate) struct Folded {
     pub text: String,
     origin: Vec<usize>,
@@ -73,23 +78,66 @@ fn fold_char(c: char) -> Option<char> {
 /// `None` when nothing needs folding (the common case: no copy is made).
 pub(crate) fn fold_for_detection(text: &str) -> Option<Folded> {
     if text.is_ascii()
-        || !text
+        || (!text
             .chars()
             .any(|c| !c.is_ascii() && (is_invisible(c) || fold_char(c).is_some()))
+            && is_nfc_quick(text.chars()) == IsNormalized::Yes)
     {
         return None;
     }
     let mut folded = String::with_capacity(text.len());
     let mut origin = Vec::with_capacity(text.len());
-    for (i, c) in text.char_indices() {
+    let mut emit = |c: char, at: usize| {
+        origin.extend(std::iter::repeat_n(at, c.len_utf8()));
+        folded.push(c);
+    };
+    let mut chars = text.char_indices().peekable();
+    let mut marks: Vec<(usize, char)> = Vec::new();
+    while let Some((i, c)) = chars.next() {
         if is_invisible(c) {
             continue;
         }
-        let out = fold_char(c).unwrap_or(c);
-        for _ in 0..out.len_utf8() {
-            origin.push(i);
+        let base = fold_char(c).unwrap_or(c);
+        // the combining marks after it (an invisible character between them is dropped too)
+        marks.clear();
+        while let Some(&(j, m)) = chars.peek() {
+            if is_invisible(m) {
+                chars.next();
+            } else if is_combining_mark(m) {
+                marks.push((j, m));
+                chars.next();
+            } else {
+                break;
+            }
         }
-        folded.push(out);
+        if marks.is_empty() {
+            emit(base, i);
+            continue;
+        }
+        // The letter and its marks as one composed letter, when there is one. The dot above
+        // that Unicode lower-casing leaves on i (İ to i + U+0307, so ŞİFRE to "şi\u{307}fre")
+        // is dropped: i has its dot already.
+        let soft_dotted = matches!(base, 'i' | 'j');
+        let composed: String = std::iter::once(base)
+            .chain(
+                marks
+                    .iter()
+                    .map(|&(_, m)| m)
+                    .filter(|&m| !(soft_dotted && m == '\u{0307}')),
+            )
+            .nfc()
+            .collect();
+        let mut one = composed.chars();
+        match (one.next(), one.next()) {
+            (Some(letter), None) => emit(letter, i),
+            // marks that do not all compose are left as they were
+            _ => {
+                emit(base, i);
+                for &(j, m) in &marks {
+                    emit(m, j);
+                }
+            }
+        }
     }
     Some(Folded {
         text: folded,
@@ -157,6 +205,39 @@ mod tests {
     fn plain_text_is_left_alone() {
         assert!(fold_for_detection("Ahmet Yılmaz 0532 123 45 67").is_none());
         assert!(fold_for_detection("ascii only").is_none());
+        assert!(fold_for_detection("Şükrü Öztürk, Çağlayan İstanbul'da").is_none());
+    }
+
+    #[test]
+    fn decomposed_letters_compose_and_map_back() {
+        let text = "S\u{327}u\u{308}kru\u{308} geldi";
+        let f = fold_for_detection(text).expect("needs composing");
+        assert_eq!(f.text, "Şükrü geldi");
+        let (s, e) = f.original_range(0, "Şükrü".len());
+        assert_eq!(&text[s..e], "S\u{327}u\u{308}kru\u{308}");
+        let at = f.text.find("geldi").unwrap();
+        assert_eq!(
+            f.original_range(at, at + 5),
+            (text.find("geldi").unwrap(), text.len())
+        );
+        // an invisible character between a letter and its mark does not keep them apart
+        assert_eq!(
+            fold_for_detection("c\u{200B}\u{327}ay").unwrap().text,
+            "çay"
+        );
+        // capital I with a dot above is İ; the dot that lower-casing leaves on i goes
+        assert_eq!(
+            fold_for_detection("I\u{307}stanbul").unwrap().text,
+            "İstanbul"
+        );
+        assert_eq!(fold_for_detection("şi\u{307}fre").unwrap().text, "şifre");
+        // marks that do not compose into one letter stay as they were
+        assert_eq!(
+            fold_for_detection("x\u{301}\u{302} ve ş\u{200B}")
+                .unwrap()
+                .text,
+            "x\u{301}\u{302} ve ş"
+        );
     }
 
     #[test]

@@ -279,8 +279,8 @@ impl TurkishPiiEngine {
     /// Detects all PII entities in the given text.
     ///
     /// Zero-width and bidi format characters, full-width ASCII and non-Latin digits are folded
-    /// first (see `normalize`), so they cannot hide a value from the detectors; the returned
-    /// spans and texts are those of `text` itself.
+    /// and decomposed letters composed first (see `normalize`), so they cannot hide a value from
+    /// the detectors; the returned spans and texts are those of `text` itself.
     pub fn detect(&self, text: &str) -> Vec<PiiEntity> {
         let Some(folded) = normalize::fold_for_detection(text) else {
             return self.detect_folded(text);
@@ -289,12 +289,19 @@ impl TurkishPiiEngine {
             .into_iter()
             .map(|mut e| {
                 let folded_text = e.text.clone();
+                // A stem that begins the value is mapped back like it: the vault restores the
+                // stem when the reply puts a suffix on the placeholder, and it must be what the
+                // caller sent (the decomposed letters, not the composed ones).
+                let stem_end = (e.stem != folded_text && folded_text.starts_with(&e.stem))
+                    .then(|| folded.original_range(e.start, e.start + e.stem.len()).1);
                 let (start, end) = folded.original_range(e.start, e.end);
                 e.start = start;
                 e.end = end;
                 e.text = text[start..end].to_string();
                 if e.stem == folded_text {
                     e.stem = e.text.clone();
+                } else if let Some(stem_end) = stem_end {
+                    e.stem = text[start..stem_end.clamp(start, end)].to_string();
                 }
                 e
             })

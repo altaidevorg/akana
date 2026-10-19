@@ -433,3 +433,19 @@ def test_entity_offsets_are_python_indices_and_linear():
     assert time.perf_counter() - t0 < 5.0
     last = entities[-1]
     assert log[last["start"]:last["end"]] == last["text"]
+
+
+def test_decomposed_letters_are_masked_and_restored_as_sent():
+    # NFD text (macOS, PDFs) spells ş as s + U+0327; offsets stay Python indices of that text.
+    import unicodedata
+
+    text = unicodedata.normalize(
+        "NFD", "Başvurucu Şükrü Öztürk, adresi Örnek Mahallesi Çiçek Sokak No: 5, TC 10000000146."
+    )
+    result = akana.pii_mask(text, mode="placeholder")
+    labels = {e["label"] for e in result["entities"]}
+    assert {"AD", "ADRES", "TCKN"} <= labels, result["entities"]
+    for e in result["entities"]:
+        assert text[e["start"]:e["end"]] == e["text"]
+    assert unicodedata.normalize("NFD", "Şükrü") not in result["masked_text"]
+    assert akana.pii_restore(result["masked_text"], result["mapping"]) == text
