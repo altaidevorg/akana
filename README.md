@@ -69,7 +69,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - **Hardware SIMD Acceleration**: Accelerated with **StringZilla** for zero-regex, full-text substring and edit-distance scanning reaching **>1,470 sentences/sec** (>16,000 tokens/sec) on a single CPU core.
   - **Linguistic Diagnostics**: Detailed Turkish and English explanations with character-level finding offsets and confidence scores.
 - **Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)**:
-  - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum), Credit Card (Luhn check), Turkish person names and surnames (with polysemy disambiguation), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
+  - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum; IBAN, TCKN and VKN shapes after their trigger words are masked even when the checksum fails), Credit Card (Luhn check), Turkish and international person names and surnames (curated lists plus 4,592 given names from Zemberek; names that are also words, such as *Deniz* or *Metin*, need a title, a role, a surname or a capital in mid-sentence), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
   - **Positive Private Date & URL Detection**: Accurately isolates private personal dates (birth dates, appointment schedules, billing due dates) without false positives on calendar holidays or campaign end dates. Recognizes private URLs containing sensitive authentication and session tokens.
   - **Bi-Directional Restoration with Morphological Vowel Harmony**: Automatically tracks an in-memory or serializable mapping dictionary to restore masked entities losslessly, adapting case and possessive suffixes in downstream text according to Turkish 2-way and 4-way vowel harmony (e.g. `{{AD_1}}'a` $\rightarrow$ `Ahmet Yılmaz'a`, `{{AD_1}}'e` $\rightarrow$ `Mehmet Demir'e`). Supports conversational session continuity via `mask_with_vault` to persist identifiers across multi-turn dialogues.
   - **Multiple Masking Modes**:
@@ -77,9 +77,10 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
     - `surrogate`: Statistically and morphologically valid Turkish synthetic replacements (e.g., valid surrogate TCKNs, realistic Turkish names, valid surrogate IBANs).
     - `tag`: Standard semantic entity tags (`[AD]`, `[TCKN]`, `[IBAN]`).
     - `anonymize`: Category label redaction replacing sensitive data with uppercase entity tags (`[AD]`, `[TCKN]`, `[SIFRE]`, `[IBAN]`).
-  - **Smart Non-PII Filtering**: Preserves corporate/functional emails (`info@`, `destek@`, `satis@`) and public dates while filtering individual personal data.
-  - **Zero-Dependency Model2Vec Disambiguation**: Employs Akana's built-in 256-dim Turkish embeddings to contextually distinguish ambiguous names (*Deniz*, *Barış*, *Gül*, *Kaya*) from common nouns and verbs based on contextual semantic similarity.
-  - **High Performance**: **>3,500 docs/sec** (< 280 µs per document) on CPU.
+  - **Smart Non-PII Filtering**: Preserves corporate/functional emails (`info@`, `destek@`, `satis@`) and public dates while filtering individual personal data. Optionally keeps the names of well-known public figures (`preserve_public_figures=True`: *Atatürk*, *Nazım Hikmet*, *Fatih Sultan Mehmet*), only when the whole name is such a phrase.
+  - **Informal Addresses**: Abbreviated, lower-case and all-caps addresses as people type them (*sedefli mh bayır sk. bina 89 D: 22*), with the district and province around them.
+  - **Optional Model2Vec Context Scoring** (`use_embeddings=True`): Akana's built-in 256-dim Turkish embeddings decide ambiguous names with no other evidence, and find health conditions missing from the dictionary before a clinical trigger (*fibromiyalji tanısı*, not *futbol hastasıyım*). `scripts/experiment_pii_embeddings.py` measures where this helps and where trigger words do better.
+  - **High Performance**: **>4,500 docs/sec** on short messages (about 0.2 ms per 90-character document) on one CPU core.
 - **High-Performance Architecture**:
   - Pure Rust core with zero JVM dependency.
   - Python package via `pyo3` and `maturin` (compatible with `uv`).
@@ -93,7 +94,7 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 
 | Benchmark Metric | Zeyrek (Python Zemberek Port) | Akana (Rust + StringZilla SIMD) | Performance / Throughput |
 | :--- | :--- | :--- | :--- |
-| **Active Root Lexicon** | ~90,000 roots | **93,167 roots** | **Full Coverage** |
+| **Active Root Lexicon** | ~90,000 roots | **66,603 roots** | **Full Coverage** |
 | **Startup / Lexicon Init** | `2,733.8 ms` (~2.7s) | **`200.2 ms`** | **13.6x faster** |
 | **Morphological Parse (10.5k words)** | `55,349.7 ms` (55.3s) | **`989.7 ms`** (0.98s) | **55.9x faster** (`10,609 words/sec`) |
 | **Tokenization (Zero-Allocation)** | ~230 words/sec | **`949,991 tokens/sec`** | **>4,000x faster** (<21 ms for 19.5k tokens) |
@@ -148,30 +149,31 @@ Evaluated on standard Turkish Semantic Textual Similarity Benchmark (STSb) test 
 
 ### Ultra-Low-Memory Turkish RAG Retrieval Benchmark (RagTurk & Turkuaz-RAG)
 
-Evaluated on **`metunlp/ragturk`** (Turkish agglutinative morphology failure modes, [arXiv:2602.03652](https://arxiv.org/abs/2602.03652)) and **`eneSadi/turkuaz-rag`** (Multi-context QA) paired with compiled **USearch** (`unum-cloud/usearch`):
+Evaluated on **`metunlp/ragturk`** (Turkish agglutinative morphology failure modes, [arXiv:2602.03652](https://arxiv.org/abs/2602.03652); first 300 articles of `formal_5k`: 2,732 chunks, 600 questions) and **`eneSadi/turkuaz-rag`** (multi-context QA; first 500 samples: 1,000 news texts, 500 questions) with compiled **USearch** (`unum-cloud/usearch`) metrics. Recall@k counts a question as answered when any of its gold passages is in the top k.
 
-| Retrieval Engine | Bytes / Vector | RAM Footprint (1M Docs) | Turkuaz Recall@10 | RagTurk Recall@10 | RagTurk MRR@10 | Query Latency | Throughput (QPS) |
+| Retrieval Engine | Bytes / Vector | RAM Footprint (1M Docs) | Turkuaz Recall@10 | Turkuaz MRR@10 | RagTurk Recall@10 | RagTurk MRR@10 | Query Latency (RagTurk) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Standard Dense (FP32, 256-dim)** | 1,024 B | 1,024 MB (1.02 GB) | 65.0% | 65.0% | 0.360 | ~1,200 µs | ~830 QPS |
-| **Akana Dense 2-Bit (TurboQuant)** | **64 B** | **`64 MB` (16x smaller)** | 65.0% | 56.7% | 0.293 | **557 µs** | **`1,795 QPS`** |
-| **Akana Dense 1-Bit (Binary Hamming)** | **32 B** | **`32 MB` (32x smaller)** | 90.0% | 70.0% | 0.389 | **324 µs** | **`3,085 QPS`** |
-| **Akana Single-Buffer Hybrid (128B)** | **128 B** | **`128 MB` (8x smaller)** | 47.5% | 36.7% | 0.162 | 3,845 µs | ~260 QPS |
-| **Akana Dual-Index RRF (2-Bit + BM25)** | 64 B + Inverted | **~180 MB** | **`97.5%`** | **`96.7%`** | **`0.615`** | 3,633 µs | ~275 QPS |
-| **Akana Dual-Index RRF (1-Bit + BM25)** | **32 B + Inverted** | **`~148 MB` (Go-To)** | **`100.0%`** | **`96.7%`** | **`0.726`** | **`3,400 µs`** | **`295 QPS`** |
+| **Dense FP32 (256-dim, exact cosine)** | 1,024 B | 1,024 MB | 75.8% | 0.390 | 93.2% | 0.772 | — |
+| **Akana Dense 2-Bit (TurboQuant)** | **64 B** | **`64 MB` (16x smaller)** | 73.8% | 0.375 | 91.2% | 0.738 | **148 µs** |
+| **Akana Dense 1-Bit (Binary Hamming)** | **32 B** | **`32 MB` (32x smaller)** | 67.0% | 0.329 | 86.3% | 0.662 | **82 µs** |
+| **Akana Morphological BM25 (inverted index)** | Inverted | ~116 MB | **`84.2%`** | **`0.449`** | 95.3% | **`0.848`** | 1,695 µs |
+| **Akana Single-Buffer Hybrid (128B)** | **128 B** | **`128 MB` (8x smaller)** | 81.6% | 0.407 | 92.8% | 0.758 | 551 µs |
+| **Akana Dual-Index RRF (2-Bit + BM25)** | 64 B + Inverted | ~180 MB | 81.6% | 0.430 | **`96.8%`** | 0.840 | 2,255 µs |
+| **Akana Dual-Index RRF (1-Bit + BM25)** | 32 B + Inverted | ~148 MB | 79.6% | 0.396 | 96.5% | 0.819 | 2,251 µs |
 
-> **Reproducibility:** Run the full reproducible benchmark suite via [`scripts/benchmark_rag_real_data.py`](scripts/benchmark_rag_real_data.py) and test runnable workflows in [`examples/11_ultra_low_memory_retrieval_usearch.py`](examples/11_ultra_low_memory_retrieval_usearch.py).
+Latency is per query and end to end (query embedding + search) in a single Python process on a laptop CPU; the BM25 inverted index is the pure-Python one in the benchmark script, so the BM25 and RRF rows are dominated by Python. The FP32 row is exact brute-force cosine over `akana.embed` vectors.
 
-#### Key Empirical Findings & Insights
+> **Reproducibility:** `python scripts/benchmark_rag_real_data.py --dataset all` (defaults: 300 RagTurk articles, 500 Turkuaz samples) and the runnable workflows in [`examples/11_ultra_low_memory_retrieval_usearch.py`](examples/11_ultra_low_memory_retrieval_usearch.py).
 
-1. **Why 1-Bit Dense Binary Outperforms 2-Bit Dense (70.0% vs 56.7% Recall@10):**
-   - **Angular Locality-Sensitive Hashing (LSH):** In TurboQuant, the 256-dimensional embeddings undergo randomized Haar orthogonal rotation into zero-mean, spherically isotropic space. Under the Goemans–Williamson / Charikar angular LSH theorem, the sign bit $h_i(x) = \text{sign}(x_i) \in \{0, 1\}$ acts as a random hyperplane partition, and Hamming distance provides an unbiased, strictly monotonic estimator of the angular distance $\theta = \arccos(\cos(u, v))$.
-   - **Suppression of Outlier Coordinate Dominance:** 2-bit quantization maps coordinates to $\{-3, -1, 1, 3\}$, where outer-bucket coordinates $(\pm 3)$ contribute $9\times$ more energy to the dot product ($3^2 = 9$ vs $1^2 = 1$). In sentence mean-pooling, a few extreme coordinate spikes from noisy subwords or common tokens can perturb borderline rankings. 1-bit binarization collapses all coordinates to equal 1-bit votes, providing an implicit non-linear regularization against token-level variance.
-   - **Hardware Acceleration:** Native 64-bit `POPCNT` calculates the exact Hamming distance in 4 CPU cycles, yielding **324 µs latency (3,085 QPS)** on a single laptop CPU core.
+> **Correction (0.8.0):** earlier versions of this table (and of the benchmark script, example and README snippets) built USearch indexes as `Index(ndim=nbytes, dtype="u8")` and added numpy `uint8` arrays. USearch reads `uint8` arrays as packed bits and unpacks them into such an index, so it kept only the first `nbytes` bits of each vector as 0/1 bytes: 1/8 of each dense vector, and none of the hybrid's sparse half. Every USearch row of the old table measured that loss (for example 36.7% RagTurk Recall@10 for the hybrid, and 1-bit appearing better than 2-bit). Indexes must store the packed bytes verbatim: `Index(ndim=8 * nbytes, dtype="b1", metric=...)`, which also passes `nbytes` to the compiled metric. Any index built the old way has to be rebuilt. After `Index.load()` or `Index.view()`, set `index.metric` to the compiled metric again: USearch restores the metric from the file header, which cannot hold a function pointer (a reloaded `b1` index crashes on search without it; a reloaded `u8` index silently used USearch's own cosine).
 
-2. **Why 1-Bit Dense + Morphological BM25 RRF Is the Recommended Go-To Architecture:**
-   - **New SOTA Accuracy:** Fusing 1-bit binary dense vectors with morphological BM25 pushes **MRR@10 from 0.615 to 0.726** (+18% relative boost), jumps **Recall@1 from 43.3% to 63.3%** (+20 percentage points), and achieves **100.0% Recall@10** on Turkuaz-RAG!
-   - **Half the Storage Overhead:** Dense vector memory is cut by **50% (32 bytes vs 64 bytes)**, requiring only **32 MB for 1,000,000 dense vectors**.
-   - **Fastest Hybrid Execution:** Hardware POPCNT accelerates candidate generation over 2-bit LUTs.
+#### Key Empirical Findings
+
+1. **2-bit TurboQuant keeps almost all of FP32's quality**: 0.738 vs 0.772 MRR@10 on RagTurk and 0.375 vs 0.390 on Turkuaz, at 1/16 of the memory. **1-bit** halves the memory again and costs another 0.05–0.08 MRR@10.
+2. **Morphological BM25 is the strongest single retriever on both sets** (RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF gives the best RagTurk Recall@10 (96.8%) at about the same MRR@10.
+3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.02 (RagTurk) and +0.03 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 79 morphological terms) and carries no IDF.
+4. **Hybrid vectors depend on the morphology build.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search); 0.8.0's analyzer, compound and vowel-harmony fixes change it again (the table is measured with them), with retrieval unchanged within noise. Build an index and embed its queries with the same Akana build, and check a fingerprint of `embed_hybrid` on fixed texts when opening an index.
+5. **Embedding cost:** the 128-byte hybrid embeds about 330 court-decision chunks of 256 tokens per second per CPU core (the dense half alone about 4,300); `embed_batch_hybrid` is single-threaded, so large builds should run one process per core.
 
 #### Comparison with RAGTurk (`arXiv:2602.03652`) & Heavy Neural Pipelines
 
@@ -181,20 +183,27 @@ Evaluated on **`metunlp/ragturk`** (Turkish agglutinative morphology failure mod
 | **RAGTurk Baseline (EmbeddingGemma)** | ~600 MB | 1,024 MB (1.0 GB) | ~15 ms | ~70–75% | Neural embedder, drops on morphology |
 | **RAGTurk "Production-Friendly" (MiniLM Reranker)** | ~730 MB | 1,024 MB (1.0 GB) | 40–80 ms | ~90.1% | Requires cross-encoder over all candidate pairs |
 | **RAGTurk "Max Accuracy" (HyDE + LLM)** | Multi-GB | 1,024 MB (1.0 GB) | 1,500–4,000 ms | ~92.0% | Heavy LLM query generation ($3.7\times$ tokens) |
-| **Akana Dual-Index RRF (1-Bit + Morph BM25)** | **`2.50 MB`** | **`~148 MB`** | **`3.4 ms`** | **`96.7% – 100.0%`** | **Zero LLMs, zero GPUs. Runs entirely on CPU** |
+| **Akana Dual-Index RRF (2-Bit + Morph BM25)** | **`2.50 MB`** | **`~180 MB`** | **`2.3 ms`** | **`96.7%`** (RagTurk, 600 questions) | **Zero LLMs, zero GPUs. Runs entirely on CPU** |
+
+*The neural rows are as reported for their own setups; the Akana row is measured on the 300-article RagTurk subset above, so the two are not a like-for-like comparison.*
 
 *In Section 6.1 of the RAGTurk paper, the authors explicitly highlight the need to: "(iv) study Turkish morphology-aware retrieval features (e.g., lemma-aware sparse retrieval, morphological analyzers)." Akana directly solves this challenge natively in Rust.*
 
-### Turkish PII Detection & Masking Benchmark (Saturday Labs & Belgin Datasets)
+### Turkish PII Detection & Masking Benchmark (Saturday Labs, Belgin & BTX24 Datasets)
 
-Evaluated across established Turkish PII and privacy benchmarks:
+Span recall on three public Turkish PII datasets (a value counts as found when at least half of
+it is masked), measured with `scripts/benchmark_pii_datasets.py` from the local Hugging Face
+cache:
 
-| Benchmark / Dataset | Evaluated Dimension | Akana Performance / Accuracy | Key Strength |
-| :--- | :--- | :---: | :--- |
-| **Saturday Labs Benchmark** (`cagrigungor/turkish-pii-masking-benchmark`) | **Recall (200 diverse samples)** | **94.1%** | **100% recall across 34 core categories** (TCKN, VKN, IBAN, Credit Card, Passports, Plates, Phone, Email, Coordinates, MAC, IMEI, Passwords) |
-| **Belgin Dataset** (`negentropi/belgin-pii-dataset`) | **Private Date Recall** | **100.0%** (270/270) | Specific detection of birth dates, medical appointments, and billing due dates |
-| **Belgin Dataset** (`negentropi/belgin-pii-dataset`) | **Public Date Preservation** | **100.0%** (300/300) | Zero false positives on calendar holidays and campaign deadlines |
-| **Throughput & Latency** | **CPU Throughput (Single-Core)** | **`3,570 docs/sec`** | **0.28 ms** average latency per document with zero neural network overhead |
+| Dataset | Values | Recall | Over-masked characters | Notes |
+| :--- | ---: | :---: | :---: | :--- |
+| **Saturday Labs** (`cagrigungor/turkish-pii-masking-benchmark`, 1,000 rows) | 2,096 | **92.4%** | 21% | Values aligned from the expected masked output; 100% on VKN, phone, blood type, passwords, IP and MAC addresses |
+| **Belgin** (`negentropi/belgin-pii-dataset`, all splits) | 1,851 | **73.6%** | 2.3% | Private dates 292/292, addresses 98.5%; **0/300** public dates (holidays, campaigns) masked |
+| **BTX24** (`BTX24/turkish-privacy-pii-ner`, test) | 10,393 | **89.0%** | 1.3% | IBAN 99.6%, phone 99.9%, email 97.4%, person 92.1% |
+| **Throughput** | | **`~4,600 docs/sec`** | | Short messages (about 90 characters), one CPU core, no neural network |
+
+The previous version of this table (94.1% on 200 Saturday Labs samples) had no script behind it;
+on the same three datasets the 0.6.0 engine reaches 85.6%, 50.9% and 58.4%.
 
 * 🛡️ **KVKK Compliance**: Algorithmic validation for Turkish IDs (TCKN, VKN, IBAN, Driving License, Plate) prevents false positives while capturing authentic identifiers.
 * 🔄 **100% Reversible Restoration**: Restores anonymized text losslessly with Turkish morphological vowel harmony adjustment on inflected suffixes.
@@ -339,7 +348,9 @@ metric_2bit = CompiledMetric(
     kind=MetricKind.Cos,
     signature=MetricSignature.ArrayArraySize,
 )
-index = Index(ndim=64, metric=metric_2bit, dtype="u8")
+# USearch reads uint8 arrays as packed bits: a b1 index of 8 * 64 dims stores the 64 bytes as given
+# (a u8 index of 64 dims would keep only their first 64 bits)
+index = Index(ndim=64 * 8, metric=metric_2bit, dtype="b1")
 index.add(0, np.frombuffer(vec_2bit, dtype=np.uint8))
 
 # B. 1-Bit Binary Packed Vectors (32 bytes per document - 32 MB for 1M docs)
@@ -349,7 +360,7 @@ metric_1bit = CompiledMetric(
     kind=MetricKind.Hamming,
     signature=MetricSignature.ArrayArraySize,
 )
-index_1bit = Index(ndim=32, metric=metric_1bit, dtype="u8")
+index_1bit = Index(ndim=32 * 8, metric=metric_1bit, dtype="b1")
 index_1bit.add(0, np.frombuffer(vec_1bit, dtype=np.uint8))
 
 # C. Morphological BM25 Sparse Embeddings (Agglutinative roots, lemmas & compounds)
@@ -410,7 +421,7 @@ raw_text = (
 # A. Reversible Structured Placeholder Masking
 masked = akana.pii_mask(raw_text, mode="placeholder")
 print("Masked:", masked["masked_text"])
-# -> "Müşterimiz {{AD_1}}, {{TCKN_1}} nolu TCKN ve {{IBAN_1}} nolu IBAN ile {{OZEL_TARIH_1}} doğumludur. Şifresi: {{SIFRE_1}}."
+# -> "Müşterimiz {{AD_1}}, {{TCKN_1}} nolu TCKN ve {{IBAN_1}} nolu IBAN ile {{DOGUM_TARIHI_1}} doğumludur. Şifresi: {{SIFRE_1}}."
 print("Mapping:", masked["mapping"])
 
 # B. Lossless Restoration with Turkish Vowel Harmony
@@ -426,6 +437,11 @@ print(akana.pii_restore(inflected_text, masked["mapping"]))
 surrogate = akana.pii_mask(raw_text, mode="surrogate")
 print("Surrogate:", surrogate["masked_text"])
 # -> "Müşterimiz Can Demir, 52381940562 nolu TCKN ve TR92 0006 1000 ... doğumludur..."
+
+# D. Keep the names of well-known public figures, mask everyone else
+engine = akana.TurkishPiiEngine(preserve_public_figures=True)
+print(engine.mask("Nazım Hikmet'i en çok Ahmet Yılmaz okurdu.")["masked_text"])
+# -> "Nazım Hikmet'i en çok {{AD_1}} okurdu."
 ```
 
 ---

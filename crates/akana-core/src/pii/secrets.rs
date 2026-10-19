@@ -17,36 +17,27 @@ lazy_static! {
     pub static ref CONTEXTUAL_SECRET_REGEX: Regex = Regex::new(
         r"(?ix)
         \b(?:
-            ş[iİıI]fre(?:m|s[iİıI]|n[iİıI]z)?
-            | parola(?:m|s[ıiIİ])?
-            | p[iİıI]n(?:[iİıI]m|s[iİıI]|_kodu|\s+kodu)?
-            | kullan[ıiIİ]c[ıiIİ]\s*ş[iİıI]fres[iİıI]
-            | (?:sms\s+)?do[ğgĞG]rulama\s+kodu(?:m|nu)?
-            | onay\s+kodu(?:m|nu)?
-            | tek\s+kullan[ıiIİ]ml[ıiIİ]k\s+ş[iİıI]fre(?:m)?
-            | ge[çcÇC][iİıI]c[iİıI]\s+ş[iİıI]fre(?:m)?
-            | mob[iİıI]l\s+onay\s+p[iİıI]n(?:[iİıI]m)?
-            | otp(?:\s*kodu(?:m)?)?
-            | 2fa(?:\s*kodu(?:m)?)?
-            | g[iİıI]zl[iİıI]\s*anahtar(?:[ıiIİ]m)?
+            g[iİıI]zl[iİıI]\s*anahtar(?:[ıiIİ]m)?
             | ap[iİıI]\s*(?:anahtar[ıiIİ]|key)
             | secret\s*key
+            | private\s*key
+            | [öÖ]zel\s*anahtar(?:[ıiIİ]m)?
             | access\s*token
             | bearer\s*token
         )
         \b
         [:\s=]+
-        ([^\s,;:.]{4,64})"
+        (\S{4,4096})"
     ).unwrap();
 
     /// OpenAI API Keys: sk-..., sk-proj-..., sk-svcacct-...
     pub static ref OPENAI_KEY_REGEX: Regex = Regex::new(
-        r"\b(sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,128})\b"
+        r"\b(sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,512})\b"
     ).unwrap();
 
     /// Anthropic API Keys: sk-ant-api03-..., sk-ant-admin01-...
     pub static ref ANTHROPIC_KEY_REGEX: Regex = Regex::new(
-        r"\b(sk-ant-[A-Za-z0-9_-]{20,128})\b"
+        r"\b(sk-ant-[A-Za-z0-9_-]{20,512})\b"
     ).unwrap();
 
     /// GitLab Personal Access Tokens (glpat-...)
@@ -109,9 +100,23 @@ lazy_static! {
         r#"(?i)\bAccountKey\s*=\s*([^;\s"'\r\n]{16,128})"#
     ).unwrap();
 
-    /// Assignment values for password, pwd, secret, and api_key / api-key
+    /// Assignment values whose key name ends in a secret keyword: password=, DB_PASSWORD=,
+    /// SECRET_KEY=, aws_secret_access_key =, "password": "...", x-api-key:. The keyword has to
+    /// end the key, so max_tokens: 1000 and tokenizer: bert are not secrets.
     pub static ref ASSIGNMENT_SECRET_REGEX: Regex = Regex::new(
-        r#"(?i)\b(?:password|pwd|secret|api[_-]key)\s*[:=]\s*(?:"([^"\r\n]{2,128})"|'([^'\r\n]{2,128})'|([^\s,;:\r\n"'>}]+))"#
+        r#"(?i)\b[A-Za-z0-9_.-]*?(?:password|passwd|pwd|passphrase|secret|token|credentials?|api[_-]?key|(?:access|secret|private|signing|encryption|client|master)[_-]?key|client[_-]?secret)["']?\s*[:=]\s*(?:"([^"\r\n]{2,4096})"|'([^'\r\n]{2,4096})'|([^\s,;\r\n"'>}]+))"#
+    ).unwrap();
+
+    /// Long structured tokens the entropy scanner (64 characters at most) cannot see, and a few
+    /// prefixed ones: PyPI, Atlassian, age, Postman, Google OAuth access tokens, Slack app
+    /// tokens, and hex private keys (0x + 64 hex; addresses are 0x + 40).
+    pub static ref LONG_PREFIXED_TOKEN_REGEX: Regex = Regex::new(
+        r"\b(pypi-AgEIcHlwaS5vcmc[0-9A-Za-z_-]{50,}|ATATT3[0-9A-Za-z_\-=]{150,}|AGE-SECRET-KEY-1[0-9A-Z]{58}|PMAK-[0-9a-f]{24}-[0-9a-f]{34}|ya29\.[0-9A-Za-z_-]{20,}|xapp-[0-9]-[0-9A-Za-z-]{20,}|0x[0-9a-fA-F]{64})\b"
+    ).unwrap();
+
+    /// Wallet recovery phrases after an explicit trigger: 12-24 lower-case words.
+    pub static ref SEED_PHRASE_REGEX: Regex = Regex::new(
+        r"(?i)\b(?:seed\s*phrase|mnemonic(?:\s*phrase)?|(?:secret\s*)?recovery\s*phrase|kurtarma\s*(?:ifadesi|ifadem|kelimeleri(?:m)?|cümlesi)|gizli\s*kelimeler(?:im|i)?|cüzdan\s*kelimeleri(?:m)?)\b[^\n\w]{0,10}((?:[a-z]{3,8}[ \t]+){11,23}[a-z]{3,8})\b"
     ).unwrap();
 
     /// SendGrid API Keys (SG.xxx.yyy)
@@ -136,7 +141,7 @@ lazy_static! {
 
     /// Slack Bot & User Tokens (xoxb-, xoxp-, xoxa-, xoxr-, xoxs-)
     pub static ref SLACK_TOKEN_REGEX: Regex = Regex::new(
-        r"\b(xox[baprs]-[0-9A-Za-z-]{10,72})\b"
+        r"\b(xox[baprse]-[0-9A-Za-z-]{10,512})\b"
     ).unwrap();
 
     /// Google Cloud API Keys (AIza...)
@@ -154,9 +159,10 @@ lazy_static! {
         r"(?i)\bBearer\s+([A-Za-z0-9._~+/-]{20,}={0,2})\b"
     ).unwrap();
 
-    /// PEM Private Key Block Header & Digest
+    /// PEM private key blocks of any kind (RSA, EC, OPENSSH, ENCRYPTED, PGP ... BLOCK), also with
+    /// JSON-escaped newlines, and up to the end of the key material when the END line is missing.
     pub static ref PRIVATE_KEY_BLOCK_REGEX: Regex = Regex::new(
-        r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"
+        r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----(?:[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----|(?:(?:\r?\n|\\[rn])+(?:(?:Proc-Type|DEK-Info|Comment):[^\r\n\\]*|[A-Za-z0-9+/=]+))+)"
     ).unwrap();
 }
 
@@ -202,27 +208,37 @@ pub fn has_mixed_character_classes(s: &str) -> bool {
 
 /// Detects all secrets, passwords, OTPs, API keys, and high-entropy credentials.
 pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
-    // 1. Contextual Secrets & OTPs (Fast SIMD pre-check for triggers before running unicode regex)
-    let lower = text.to_lowercase();
-    const CONTEXTUAL_TRIGGERS: &[&str] = &[
-        "şifre", "sifre", "parola", "pin", "kodu", "anahtar", "token", "key", "otp", "2fa",
-    ];
-    let has_context_trigger = CONTEXTUAL_TRIGGERS
-        .iter()
-        .any(|&trig| lower.sz_find(trig).is_some());
+    // Both lower-cased forms for every trigger gate below (see `Lowered`): with Rust's alone
+    // "GİZLİ KELİMELER" never contained "kelime", with the Turkish alone "MNEMONIC" never
+    // contained "mnemonic".
+    let lowered = super::normalize::Lowered::of(text);
+
+    // 0. Passwords, PINs and one-time codes (sentences, commands, configs, URLs, headers)
+    super::passwords::detect_passwords_in(text, &lowered, out);
+
+    // 1. Contextual key material: gizli/özel anahtar, API key, secret/private key, tokens
+    const CONTEXTUAL_TRIGGERS: &[&str] = &["anahtar", "token", "key"];
+    let has_context_trigger = CONTEXTUAL_TRIGGERS.iter().any(|&trig| lowered.has(trig));
     if has_context_trigger {
         for cap in CONTEXTUAL_SECRET_REGEX.captures_iter(text) {
             if let Some(val) = cap.get(1) {
-                let val_str = val.as_str().trim_matches(|c: char| {
-                    c == '.' || c == ',' || c == ';' || c == ':' || c == '?'
-                });
-                if val_str.len() >= 4 {
+                // Sentence punctuation and quotes around the value are not part of it; inside
+                // it they are (Kedi.Mavi.99).
+                let (lead, val_str) = trim_value(val.as_str());
+                // The value ends where the next field begins (api key: X,user=ali; X&lang=tr):
+                // the capture takes any non-space run so that dots inside it stay (Kedi.Mavi.99).
+                let val_str = trim_value(cut_at_next_field(val_str)).1;
+                let separator = &text[cap.get(0).unwrap().start()..val.start()];
+                let strong = separator.contains([':', '=']);
+                if val_str.len() >= 4
+                    && (strong || super::passwords::looks_like_password(val_str, false))
+                {
                     out.push(PiiEntity {
                         text: val_str.to_string(),
                         label: "SIFRE".to_string(),
                         pii_type: PiiType::Credentials,
-                        start: val.start(),
-                        end: val.start() + val_str.len(),
+                        start: val.start() + lead,
+                        end: val.start() + lead + val_str.len(),
                         confidence: 0.98,
                         stem: val_str.to_string(),
                         suffix: None,
@@ -269,8 +285,11 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 3. GitHub Tokens (SIMD anchor: gh)
-    if text.sz_find("gh").is_some() {
+    // 3. GitHub Tokens (SIMD anchors: the token prefixes; "gh" alone is in high, eight, ...)
+    if ["ghp_", "gho_", "ghu_", "ghs_", "ghr_"]
+        .iter()
+        .any(|p| text.sz_find(p).is_some())
+    {
         for cap in GITHUB_TOKEN_REGEX.captures_iter(text) {
             let val = cap.get(1).unwrap();
             out.push(PiiEntity {
@@ -371,16 +390,31 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 9. PEM Private Key Blocks (SIMD anchor: -----BEGIN)
+    // 9. PEM Private Key Blocks (SIMD anchor: -----BEGIN). Without an END line the block is
+    // the base64 lines after BEGIN; a line it stopped inside (prose after a blank line) is not
+    // part of it.
     if text.sz_find("-----BEGIN").is_some() {
         for mat in PRIVATE_KEY_BLOCK_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
+            let mut span_str = mat.as_str();
+            let at_line_end = text[mat.end()..].is_empty()
+                || text[mat.end()..].starts_with(['\n', '\r'])
+                || text[mat.end()..].starts_with("\\n")
+                || text[mat.end()..].starts_with("\\r");
+            if !span_str.contains("-----END") && !at_line_end {
+                // stopped inside a line of prose ("Thanks for ..."): end at the line before it
+                if let Some(cut) = span_str
+                    .rfind(['\n', '\r'])
+                    .or_else(|| span_str.rfind("\\n"))
+                {
+                    span_str = span_str[..cut].trim_end_matches(['\n', '\r', '\\']);
+                }
+            }
             out.push(PiiEntity {
                 text: span_str.to_string(),
                 label: "SIFRE".to_string(),
                 pii_type: PiiType::Credentials,
                 start: mat.start(),
-                end: mat.end(),
+                end: mat.start() + span_str.len(),
                 confidence: 1.0,
                 stem: span_str.to_string(),
                 suffix: None,
@@ -545,13 +579,10 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
 
     // 18. Database Connection URLs (SIMD anchor: :// and protocol keywords)
     if text.sz_find("://").is_some()
-        && (text.sz_find("postgres").is_some()
-            || text.sz_find("mysql").is_some()
-            || text.sz_find("mongodb").is_some()
-            || text.sz_find("redis").is_some()
-            || text.sz_find("amqp").is_some()
-            || text.sz_find("mssql").is_some()
-            || text.sz_find("sqlserver").is_some())
+        // in any case, as the regex is (REDIS://...)
+        && ["postgres", "mysql", "mongodb", "redis", "amqp", "mssql", "sqlserver"]
+            .iter()
+            .any(|k| lowered.has(k))
     {
         for mat in DATABASE_URL_REGEX.find_iter(text) {
             let val_str = mat.as_str().trim_end_matches(|c: char| {
@@ -653,7 +684,7 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     }
 
     // 23. Azure Storage Connection String AccountKey value (AccountName is not a secret)
-    if text.sz_find("AccountKey").is_some() || lower.sz_find("accountkey").is_some() {
+    if text.sz_find("AccountKey").is_some() || lowered.has("accountkey") {
         for cap in AZURE_STORAGE_KEY_REGEX.captures_iter(text) {
             if let Some(val) = cap.get(1) {
                 out.push(PiiEntity {
@@ -670,18 +701,27 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
-    // 24. Assignment values for password, pwd, secret, and api_key / api-key
-    if lower.sz_find("password").is_some()
-        || lower.sz_find("pwd").is_some()
-        || lower.sz_find("secret").is_some()
-        || lower.sz_find("api_key").is_some()
-        || lower.sz_find("api-key").is_some()
+    // 24. Assignment values whose key ends in a secret keyword
+    if ["pass", "pwd", "secret", "token", "credential", "key"]
+        .iter()
+        .any(|k| lowered.has(k))
     {
         for cap in ASSIGNMENT_SECRET_REGEX.captures_iter(text) {
             let matched = cap.get(1).or_else(|| cap.get(2)).or_else(|| cap.get(3));
             if let Some(val) = matched {
-                let val_str = val.as_str().trim();
+                // the span is the trimmed value; a bare one ends where the next field begins
+                // (token=X&user=bob)
+                let raw = val.as_str();
+                let lead = raw.len() - raw.trim_start().len();
+                let mut val_str = raw.trim();
+                if cap.get(3).is_some() {
+                    val_str = cut_at_next_field(val_str).trim_end();
+                }
+                let val_start = val.start() + lead;
+                // Short numbers are settings (timeout = 30, max_token = 512), not secrets.
+                let short_number = val_str.len() < 6 && val_str.chars().all(|c| c.is_ascii_digit());
                 if val_str.len() >= 2
+                    && !short_number
                     && !val_str.eq_ignore_ascii_case("null")
                     && !val_str.eq_ignore_ascii_case("none")
                     && !val_str.eq_ignore_ascii_case("true")
@@ -691,8 +731,8 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
                         text: val_str.to_string(),
                         label: "SIFRE".to_string(),
                         pii_type: PiiType::Credentials,
-                        start: val.start(),
-                        end: val.end(),
+                        start: val_start,
+                        end: val_start + val_str.len(),
                         confidence: 1.0,
                         stem: val_str.to_string(),
                         suffix: None,
@@ -702,14 +742,78 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
         }
     }
 
+    // 25. Long structured tokens and hex private keys
+    for cap in LONG_PREFIXED_TOKEN_REGEX.captures_iter(text) {
+        let val = cap.get(1).unwrap();
+        out.push(PiiEntity {
+            text: val.as_str().to_string(),
+            label: "SIFRE".to_string(),
+            pii_type: PiiType::Credentials,
+            start: val.start(),
+            end: val.end(),
+            confidence: 1.0,
+            stem: val.as_str().to_string(),
+            suffix: None,
+        });
+    }
+
+    // 26. Wallet recovery phrases
+    if has_context_trigger
+        || ["seed", "mnemonic", "recovery", "kurtarma", "kelime"]
+            .iter()
+            .any(|k| lowered.has(k))
+    {
+        for cap in SEED_PHRASE_REGEX.captures_iter(text) {
+            let val = cap.get(1).unwrap();
+            out.push(PiiEntity {
+                text: val.as_str().to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start: val.start(),
+                end: val.end(),
+                confidence: 1.0,
+                stem: val.as_str().to_string(),
+                suffix: None,
+            });
+        }
+    }
+
+    // 27. Wallet recovery phrases without a trigger word
+    detect_bare_seed_phrases(text, out);
+
     // 10. Free-Floating High-Entropy Secret Scanner
-    for (start_idx, token) in tokenize_words_with_offsets(text) {
-        let clean_token =
-            token.trim_matches(|c: char| c == '.' || c == ',' || c == ';' || c == ':' || c == '?');
+    // Spans the rules above already took (sorted, with the furthest end so far), so that a
+    // token they matched is not reported twice.
+    let mut taken: Vec<(usize, usize)> = out.iter().map(|e| (e.start, e.end)).collect();
+    taken.sort_unstable();
+    let mut furthest = Vec::with_capacity(taken.len());
+    let mut reach = 0;
+    for &(_, end) in &taken {
+        reach = reach.max(end);
+        furthest.push(reach);
+    }
+    let inside_taken = |start: usize, end: usize| {
+        let i = taken.partition_point(|&(s, _)| s <= start);
+        i > 0 && furthest[i - 1] >= end
+    };
+    let fields = tokenize_words_with_offsets(text)
+        .into_iter()
+        .flat_map(|(start, token)| {
+            value_fields(token)
+                .into_iter()
+                .map(move |(offset, field)| (start + offset, field))
+        });
+    for (token_start, token) in fields {
+        // Quotes, brackets and sentence punctuation around a token are not part of it (JSON
+        // "key": "value", markdown `value`); the span starts after what was trimmed.
+        let (lead, clean_token) = trim_value(token);
+        let start_idx = token_start + lead;
         if clean_token.len() < 8 || clean_token.len() > 64 {
             continue;
         }
-        if is_suppressed_entropy_token(clean_token) {
+        if is_suppressed_entropy_token(clean_token)
+            || inside_taken(start_idx, start_idx + clean_token.len())
+        {
             continue;
         }
 
@@ -734,6 +838,153 @@ pub fn detect_secrets(text: &str, out: &mut Vec<PiiEntity>) {
     }
 }
 
+/// Whether `key` reads as the name of a setting or a field (api_key, DB_PASS, user, x-token).
+fn is_field_key(key: &str) -> bool {
+    !key.is_empty()
+        && key.len() <= 32
+        && key.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+        && key
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+}
+
+/// The byte offsets of the separators (`,` `;` `&` `|`) in `value` that start another field:
+/// followed by a field name and `=` or `:` (X,user=ali; X;lang:tr). Separators inside a value
+/// (Ab;cd!) are not among them.
+fn field_starts(value: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    for (i, c) in value.char_indices() {
+        if !matches!(c, ',' | ';' | '&' | '|') {
+            continue;
+        }
+        let rest = value[i + 1..].trim_start();
+        let key_len = rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.')))
+            .unwrap_or(rest.len());
+        let after = rest[key_len..].trim_start();
+        if key_len > 0 && is_field_key(&rest[..key_len]) && after.starts_with(['=', ':']) {
+            out.push(i);
+        }
+    }
+    out
+}
+
+/// A field's value without its `key=` or `key:` (api_key=X is X), with its offset; a base64
+/// value with its padding (c2VjcmV0==) or a field without a key is itself.
+fn field_value(field: &str) -> (usize, &str) {
+    let split = field.find(['=', ':']).and_then(|i| {
+        let (key, value) = (&field[..i], &field[i + 1..]);
+        (is_field_key(key) && !value.trim_start_matches('=').is_empty()).then_some((i + 1, value))
+    });
+    split.unwrap_or((0, field))
+}
+
+/// The values of a token made of fields (api_key=X;user=ali, DB_PASS=X;HOST=db,
+/// sk9Xq2Lm7Pz,user=ali), each with its offset and without its key; any other token whole.
+/// Scored whole, such a token was masked with its keys and the fields after the secret.
+fn value_fields(token: &str) -> Vec<(usize, &str)> {
+    let starts = field_starts(token);
+    if starts.is_empty() {
+        let (offset, value) = field_value(token);
+        return vec![(offset, value)];
+    }
+    let mut out = Vec::new();
+    let mut begin = 0;
+    for end in starts.into_iter().chain(std::iter::once(token.len())) {
+        let (offset, value) = field_value(&token[begin..end]);
+        out.push((begin + offset, value));
+        begin = (end + 1).min(token.len());
+    }
+    out
+}
+
+/// `value` up to where another field starts (see `field_starts`).
+pub(crate) fn cut_at_next_field(value: &str) -> &str {
+    match field_starts(value).first() {
+        Some(&i) => &value[..i],
+        None => value,
+    }
+}
+
+/// A wallet recovery phrase with no word before it that names it: 12, 15, 18, 21 or 24
+/// lower-case ASCII words of three to eight letters (the shape of BIP-39 words), one after the
+/// other or numbered one per line (1. abandon 2. ability), with none of the function words
+/// that every English or Turkish sentence of that length has. Two-letter words (of, to, is, ve,
+/// da) end a run by their length.
+fn detect_bare_seed_phrases(text: &str, out: &mut Vec<PiiEntity>) {
+    const FUNCTION_WORDS: &[&str] = &[
+        "the", "and", "for", "that", "this", "with", "from", "have", "was", "were", "are", "not",
+        "but", "his", "her", "its", "they", "she", "their", "which", "would", "could", "should",
+        "there", "been", "has", "had", "you", "your", "them", "than", "then", "these", "those",
+        "what", "when", "where", "who", "why", "how", "into", "our", "bir", "ile", "icin", "gibi",
+        "daha", "cok", "olan", "olarak", "kadar", "sonra", "ama", "veya", "ise", "her", "hem",
+        "ben", "sen", "biz", "siz", "onlar", "bunu", "buna", "sey", "var", "yok", "degil",
+    ];
+    let is_word = |t: &str| {
+        let t = t.trim_end_matches(['.', ',']);
+        (3..=8).contains(&t.len())
+            && t.bytes().all(|b| b.is_ascii_lowercase())
+            && !FUNCTION_WORDS.contains(&t)
+    };
+    // "1." / "12)" before a word of a numbered list
+    let is_number = |t: &str| {
+        let digits = t.trim_end_matches(['.', ')', ':']);
+        !digits.is_empty()
+            && digits.len() <= 2
+            && t.len() > digits.len()
+            && digits.bytes().all(|b| b.is_ascii_digit())
+    };
+    let tokens = tokenize_words_with_offsets(text);
+    let mut run: Vec<(usize, &str)> = Vec::new();
+    let flush = |run: &mut Vec<(usize, &str)>, out: &mut Vec<PiiEntity>| {
+        // at least half the words of a phrase are distinct; chants repeat theirs
+        let distinct = run
+            .iter()
+            .map(|(_, w)| *w)
+            .collect::<std::collections::HashSet<_>>()
+            .len();
+        if (12..=25).contains(&run.len()) && distinct * 2 >= run.len() {
+            let (start, _) = run[0];
+            let (last_start, last) = run[run.len() - 1];
+            let end = last_start + last.len();
+            out.push(PiiEntity {
+                text: text[start..end].to_string(),
+                label: "SIFRE".to_string(),
+                pii_type: PiiType::Credentials,
+                start,
+                end,
+                confidence: 0.9,
+                stem: text[start..end].to_string(),
+                suffix: None,
+            });
+        }
+        run.clear();
+    };
+    for (raw_start, raw) in tokens {
+        // a label before a value (kullanma:, mnemonic=) is not part of the phrase after it
+        if raw.ends_with([':', '=']) {
+            flush(&mut run, out);
+            continue;
+        }
+        // quotes and brackets around a word are not part of it ('abandon ... accident'})
+        let (lead, token) = trim_value(raw);
+        let start = raw_start + lead;
+        if is_word(token) {
+            run.push((start, token));
+            // a full stop, comma or semicolon after a word ends the run
+            let bare = raw.trim_end_matches(['"', '\'', ')', ']', '}', '`']);
+            if bare.ends_with(['.', ',', ';']) {
+                flush(&mut run, out);
+            }
+        } else if is_number(raw) {
+            continue; // the numbers of a list, one word per line
+        } else {
+            flush(&mut run, out);
+        }
+    }
+    flush(&mut run, out);
+}
+
 /// Filters out tokens that should not be classified by the free-floating entropy scanner.
 ///
 /// NOTE: Structured secrets (API keys, JWT, Webhooks, and Database connection URLs) are extracted
@@ -746,8 +997,13 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     if token.sz_find("://").is_some() {
         return true; // Protocol URIs (handled by dedicated database/webhook extractors)
     }
-    if token.sz_find("@").is_some() || token.sz_find("/").is_some() || token.sz_find("\\").is_some()
-    {
+    if token.sz_find("@").is_some() || token.sz_find("\\").is_some() {
+        return true;
+    }
+    // Paths (src/main.rs, /usr/bin) are not secrets, but base64 key material such as an AWS
+    // secret access key contains '/' too: only a pure base64 run of 30+ characters with upper,
+    // lower and digits is kept.
+    if token.sz_find("/").is_some() && !is_base64_run(token) {
         return true;
     }
     if token.ends_with(".com")
@@ -763,37 +1019,18 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     if token.starts_with("bc1") {
         return true; // Bitcoin address
     }
-    // Suppress IBAN candidates (alphanumeric 15..34 starting with 2 letters and 2 digits)
+    // An IBAN shape (two capitals, two check digits, capitals and digits: GB82WEST1234...) is
+    // an IBAN, valid or not, not a password; a token with lower-case letters is not one
+    // (Ab12xK9mQ2pL7vR4tZ). The prefixes of the dedicated token rules (sk-, gh, xox, AIza,
+    // ...) are no longer let off: a value the rule rejected (a malformed or cut token,
+    // ghX9kLq2mP7vR4tZ) was then taken by nothing.
     let b = token.as_bytes();
-    if b.len() >= 15
-        && b.len() <= 34
-        && b[0].is_ascii_alphabetic()
-        && b[1].is_ascii_alphabetic()
-        && b[2].is_ascii_digit()
-        && b[3].is_ascii_digit()
-    {
-        return true;
-    }
-    // Suppress structured secrets handled by dedicated extractors
-    if token.starts_with("sk-")
-        || token.starts_with("gh")
-        || token.starts_with("glpat-")
-        || token.starts_with("dop_v1_")
-        || token.starts_with("shpat_")
-        || token.starts_with("shpca_")
-        || token.starts_with("shppa_")
-        || token.starts_with("shpss_")
-        || token.starts_with("shcap_")
-        || token.starts_with("sq0atp-")
-        || token.starts_with("sq0csp-")
-        || token.starts_with("hf_")
-        || token.starts_with("npm_")
-        || token.starts_with("AIza")
-        || token.starts_with("eyJ")
-        || token.starts_with("SG.")
-        || token.starts_with("AKIA")
-        || token.starts_with("ASIA")
-        || token.starts_with("xox")
+    if (15..=34).contains(&b.len())
+        && b[..2].iter().all(u8::is_ascii_uppercase)
+        && b[2..4].iter().all(u8::is_ascii_digit)
+        && b[4..]
+            .iter()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
     {
         return true;
     }
@@ -805,7 +1042,160 @@ fn is_suppressed_entropy_token(token: &str) -> bool {
     {
         return true; // Ordinary words
     }
+    // Words in any script and case shape, also hyphenated, with an apostrophe suffix or in
+    // brackets/quotes (telekomünikasyon, Başsavcılık, Coudenhove-Kalergi, Ergenekon'un): the
+    // ASCII-only check above let every long Turkish word through as a password.
+    if is_word_shaped(token) {
+        return true;
+    }
+    if is_glued_reference(token) {
+        return true;
+    }
+    // a setting with a number (PORT=6379, TIMEOUT=30, retries:5): secret settings are found by
+    // name (ASSIGNMENT_SECRET_REGEX), and a number alone is not key material
+    if let Some((key, value)) = token.split_once(['=', ':']) {
+        let key_ok = key
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && key
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        if key_ok && !value.is_empty() && value.chars().all(|c| c.is_ascii_digit()) {
+            return true;
+        }
+    }
     false
+}
+
+/// Prose with a number glued to it, as text copied from web pages and PDFs has: footnote and
+/// list numbers (Kupası16, Anayasa'nın46, Basketball-Reference.com21, 1Hillsborough), and a
+/// word before an amount or a time (gerekçesiyle20.000, göre16.40, 5.000,00TL'dir). A word
+/// with a plain number after it (kedi2020, Galatasaray1905) is a common password and stays a
+/// candidate unless the word is an inflected form (kupası, gerekçesiyle), carries an apostrophe
+/// suffix or is a domain.
+fn is_glued_reference(token: &str) -> bool {
+    let token = token.trim_end_matches(['.', ',', ';', ':', '…']);
+    let split = |s: &str| -> Option<(usize, usize)> {
+        // (end of the leading letters, start of the trailing number)
+        let letters_end = s.find(|c: char| c.is_ascii_digit())?;
+        Some((letters_end, letters_end))
+    };
+    // a number then a word: 1Hillsborough, 5.000,00TL'dir, 20.000TL
+    if token.starts_with(|c: char| c.is_ascii_digit()) {
+        let num_end = token
+            .find(|c: char| !(c.is_ascii_digit() || c == '.' || c == ','))
+            .unwrap_or(token.len());
+        let (num, word) = token.split_at(num_end);
+        let separated = num.contains(['.', ',']);
+        let word_ok = !word.is_empty() && is_word_shaped(word);
+        let list_number = num.len() <= 2 && word.chars().count() >= 5;
+        return word_ok && (separated || list_number);
+    }
+    let Some((letters_end, _)) = split(token) else {
+        return false;
+    };
+    let (word, num) = token.split_at(letters_end);
+    if word.is_empty()
+        || !is_word_shaped(word)
+        || !num
+            .chars()
+            .all(|c| c.is_ascii_digit() || c == '.' || c == ',')
+        || !num.starts_with(|c: char| c.is_ascii_digit())
+    {
+        return false;
+    }
+    if num.contains(['.', ',']) {
+        return true; // an amount or a time after a word: gerekçesiyle20.000, göre16.40
+    }
+    if num.len() > 3 {
+        return false;
+    }
+    let lower = crate::phonology::to_turkish_lower(word);
+    lower.contains(['\'', '’'])
+        || [".com", ".org", ".net", ".tr", ".edu", ".gov"]
+            .iter()
+            .any(|tld| lower.ends_with(tld))
+        || super::names::is_inflected_word(&lower)
+}
+
+/// Every part between hyphens, dashes, apostrophes, dots, commas, quotes and brackets is a
+/// word (all lower case, capitalised, or all upper case letters) or a number (1980'lerde,
+/// %50'sinden, 20.000). Random mixed-case or letter-digit strings are not.
+pub(crate) fn is_word_shaped(token: &str) -> bool {
+    if is_code_shaped(token) {
+        return false;
+    }
+    const SEPARATORS: &[char] = &[
+        '-', '–', '—', '\'', '’', '‘', '.', ',', '"', '“', '”', '«', '»', '(', ')', '[', ']', '…',
+        '!', '?', ':', ';',
+    ];
+    // a number of eight digits or more is an identifier with a suffix (4799585158750652'nin),
+    // not prose like 1980'lerde
+    if token
+        .split(SEPARATORS)
+        .any(|p| p.len() >= 8 && p.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return false;
+    }
+    token.split(SEPARATORS).all(|part| {
+        let mut chars = part.chars();
+        let Some(first) = chars.next() else {
+            return true;
+        };
+        let rest = chars.as_str();
+        let word = first.is_alphabetic()
+            && rest.chars().all(char::is_alphabetic)
+            && (rest.chars().all(char::is_lowercase)
+                || (first.is_uppercase() && rest.chars().all(char::is_uppercase)));
+        let number = part.chars().all(|c| c.is_ascii_digit() || c == '%');
+        word || number
+    })
+}
+
+/// A reference, account or access code, or a password of that shape: letter parts and number
+/// parts joined by hyphens or underscores, with three digits or more in a number part or two
+/// number parts (FAT-2025-26486, REF-9962-QK, DEMO-TOKEN-153, Temp-4577!, ACC-TR-98026-181).
+/// Words with a short number stay words (COVID-19, 1980'lerde).
+fn is_code_shaped(token: &str) -> bool {
+    let token = token.trim_end_matches(['!', '?', '.', ',', '*', '#']);
+    if !token.contains(['-', '_']) || token.contains(['\'', '’']) {
+        return false;
+    }
+    let parts: Vec<&str> = token.split(['-', '_']).filter(|p| !p.is_empty()).collect();
+    let letters = parts
+        .iter()
+        .any(|p| p.len() >= 2 && p.chars().all(|c| c.is_ascii_alphabetic()));
+    let numbers: Vec<&&str> = parts
+        .iter()
+        .filter(|p| p.chars().all(|c| c.is_ascii_digit()))
+        .collect();
+    letters && (numbers.len() >= 2 || numbers.iter().any(|p| p.len() >= 3))
+}
+
+/// Strips surrounding sentence punctuation, quotes and brackets from a candidate value;
+/// returns the number of leading bytes removed and the value.
+pub(crate) fn trim_value(raw: &str) -> (usize, &str) {
+    const EDGE: &[char] = &[
+        '.', ',', ';', ':', '?', '"', '\'', '`', '(', ')', '[', ']', '{', '}', '<', '>', '“', '”',
+        '‘', '’', '«', '»',
+    ];
+    let start_trimmed = raw.trim_start_matches(EDGE);
+    let lead = raw.len() - start_trimmed.len();
+    (lead, start_trimmed.trim_end_matches(EDGE))
+}
+
+/// A base64 run that is not a path: 30+ characters of the base64 alphabet, not starting with
+/// '/', with upper case, lower case and digits.
+fn is_base64_run(token: &str) -> bool {
+    token.len() >= 30
+        && !token.starts_with('/')
+        && token
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'/' | b'='))
+        && token.bytes().any(|b| b.is_ascii_uppercase())
+        && token.bytes().any(|b| b.is_ascii_lowercase())
+        && token.bytes().any(|b| b.is_ascii_digit())
 }
 
 /// Tokenizes text into (byte_offset, token) pairs by splitting on whitespace.

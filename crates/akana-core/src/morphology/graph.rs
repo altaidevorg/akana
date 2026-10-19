@@ -1068,6 +1068,60 @@ impl TurkishMorphotactics {
             Possessive3Pl,
             &["ları", "leri"],
         ));
+        // A derived adjective (-lI, -sIz, participles) zero-derives to a noun with the nominal
+        // paradigm (adjZeroDeriv_S -> noun_S). It lacked the vowel-final -sI and every case but
+        // the locative and ablative (görevli-si, görevli-ye, gelen-e, gelen-in, görevli-yle).
+        // The vowel-final -m, -n, -mIz, -nIz are left out: without a harmony check, -lI-m and
+        // -lI-n matched inside ordinary words (kana-lı-n-da, top-lu-m-un) far more often than
+        // they are possessives (görevli-m). The analyzer keeps the cases off the past and
+        // future participles, whose -DIk/-AcAk takes a possessive first (ol-duğ-u).
+        v.push(t(
+            DerivedAdj,
+            NounPossessive,
+            Possessive3Sg,
+            &["sı", "si", "su", "sü"],
+        ));
+        v.push(t(
+            DerivedAdj,
+            NounCase,
+            CaseAcc,
+            &["ı", "i", "u", "ü", "yı", "yi", "yu", "yü"],
+        ));
+        v.push(t(DerivedAdj, NounCase, CaseDat, &["a", "e", "ya", "ye"]));
+        v.push(t(
+            DerivedAdj,
+            NounCase,
+            CaseGen,
+            &["ın", "in", "un", "ün", "nın", "nin", "nun", "nün"],
+        ));
+        v.push(t(
+            DerivedAdj,
+            NounCase,
+            CaseInst,
+            &["la", "le", "yla", "yle"],
+        ));
+
+        // Negative aorist participle -z (vAorPartNeg_S -> adjAfterVerb_ST): bil-me-z,
+        // bil-me-z-lik, gel-me-z-lik.
+        v.push(t(VerbNegation, DerivedAdj, DerivAorPart, &["z"]));
+
+        // After a tense, a person takes the copula -DIr (gelmiş-im-dir, gelir-ler-dir) and A3pl
+        // also the past, evidential and conditional copulas and -ken (yapıyor-lar-dı,
+        // gelir-ler-miş, gelmiş-ler-se, gelir-ler-ken): Zemberek's vA3pl_ST and vA1sg_ST..
+        // transitions with a3plCopWhile / previousNotPastNarrCond. The analyzer allows them
+        // only right after Prog, Evid, Fut, Aor or Nec and a person (not gel-di-ler-di,
+        // ev-de-yim-di).
+        v.push(t(
+            VerbPerson,
+            VerbTerminal,
+            Copula,
+            &["dır", "dir", "dur", "dür"],
+        ));
+        v.push(t(VerbPerson, VerbTerminal, CopulaPast, &["dı", "di"]));
+        v.push(t(VerbPerson, VerbTerminal, CopulaEvid, &["mış", "miş"]));
+        v.push(t(VerbPerson, VerbTerminal, CopulaCond, &["sa", "se"]));
+        v.push(t(VerbPerson, DerivedAdv, DerivWhile, &["ken"]));
+
         for from in [NounRoot, DerivedAdj] {
             v.push(t(from, DerivedAdv, DerivLy, &["ca", "ce", "ça", "çe"]));
         }

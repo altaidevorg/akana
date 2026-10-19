@@ -6,6 +6,7 @@
 
 use crate::phonology::to_turkish_lower;
 use stringzilla::StringZilla;
+use unicode_normalization::UnicodeNormalization;
 
 /// Result of splitting a word into its stem and suffix.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -99,7 +100,9 @@ pub fn detect_suffix_case(suffix: &str) -> Option<TurkishCase> {
 /// - `harmonize_suffix("Mehmet", TurkishCase::Locative)` -> `"Mehmet'te"`
 /// - `harmonize_suffix("Can", TurkishCase::Locative)` -> `"Can'da"`
 pub fn harmonize_suffix(stem: &str, case: TurkishCase) -> String {
-    let lower_stem = to_turkish_lower(stem);
+    // composed for the vowels only (the stem is returned as it was): a decomposed "Ömrü" ends
+    // in U+0308, and its "u" read as a back vowel
+    let lower_stem = to_turkish_lower(&stem.nfc().collect::<String>());
     let last_char = lower_stem.chars().last().unwrap_or('a');
     let last_vowel = lower_stem
         .chars()

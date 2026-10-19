@@ -1,7 +1,6 @@
 //! Cliché, bureaucratic connector, inflated hedges, and rhetorical translationese pattern matcher for Turkish text.
 //! Accelerated with StringZilla SIMD substring searching.
 
-use crate::phonology::to_turkish_lower;
 use lazy_static::lazy_static;
 use regex::Regex;
 use stringzilla::StringZilla;
@@ -342,7 +341,10 @@ impl ClicheMatcher {
     /// Utilizes StringZilla SIMD substring searches for fast phrase matching.
     pub fn find_all(text: &str) -> Vec<MatchedPattern> {
         let mut matches = Vec::new();
-        let lower = to_turkish_lower(text);
+        // Offsets in the lower-cased copy differ from `text`'s after every İ/I; findings are
+        // reported in `text`'s offsets.
+        let (lower, origin) = crate::phonology::to_turkish_lower_with_origin(text);
+        let orig = |i| crate::phonology::origin_offset(&origin, text.len(), i);
 
         // 1. Fast StringZilla SIMD search for literal clichés and phrases
         for item in LITERAL_CLICHES.iter() {
@@ -371,21 +373,13 @@ impl ClicheMatcher {
                     };
 
                     if prev_ok && next_ok {
-                        let text_slice = if end <= text.len()
-                            && text.is_char_boundary(start)
-                            && text.is_char_boundary(end)
-                        {
-                            text[start..end].to_string()
-                        } else {
-                            needle.to_string()
-                        };
-
+                        let (o_start, o_end) = (orig(start), orig(end));
                         matches.push(MatchedPattern {
                             category: item.category.clone(),
                             pattern_name: item.pattern_name,
-                            text: text_slice,
-                            start,
-                            end,
+                            text: text[o_start..o_end].to_string(),
+                            start: o_start,
+                            end: o_end,
                             explanation: item.explanation,
                             suggestion: item.suggestion,
                         });

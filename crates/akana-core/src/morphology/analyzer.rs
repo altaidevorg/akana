@@ -48,6 +48,64 @@ fn passive_allomorph_fits(template: &str, prev: char) -> bool {
     }
 }
 
+/// Whether a copula or -ken may follow a verbal person: only right after Prog, Evid, Fut, Aor
+/// or Nec and the person (Zemberek's a3plCopWhile / a3sgCopWhile), and except for -DIr only
+/// after A3pl. gelmiş-ler-di, gelmiş-im-dir, gelir-ler-ken; not gel-di-ler-di, ev-de-yim-di,
+/// gelmiş-im-di.
+fn copula_after_tense_person(tags: &[String], suffix: SuffixType) -> bool {
+    let [.., tense, person] = tags else {
+        return false;
+    };
+    let tense_ok = matches!(tense.as_str(), "Prog" | "Evid" | "Fut" | "Aor" | "Nec");
+    let person_ok = match suffix {
+        SuffixType::Copula => matches!(person.as_str(), "A1sg" | "A2sg" | "A1pl" | "A2pl" | "A3pl"),
+        _ => person == "A3pl",
+    };
+    tense_ok && person_ok
+}
+
+/// Whether a suffix allomorph agrees in vowel harmony with the stem before it, whose last vowel
+/// (as harmony sees it) is `stem_vowel`: the allomorph's first vowel must be the two-way (a/e)
+/// or four-way (ı/i/u/ü) vowel that `stem_vowel` calls for (ev-ler, kitap-lar, göz-ü, kol-u).
+/// -Iyor's o, -ken and -ki keep their vowel; a stem without a vowel (TBMM'de, 2026'da) is not
+/// checked. The templates list every allomorph, so without this kitap-ler-de and ak-di
+/// analysed.
+fn harmony_fits(suffix: SuffixType, template: &str, stem_vowel: Option<char>) -> bool {
+    let Some(stem_vowel) = stem_vowel else {
+        return true;
+    };
+    if matches!(suffix, SuffixType::DerivWhile | SuffixType::CliticKi) || template == "yor" {
+        return true;
+    }
+    match template
+        .chars()
+        .find(|&c| super::super::phonology::is_turkish_vowel(c))
+    {
+        Some(v @ ('a' | 'e')) => v == super::super::phonology::harmony_a_type(stem_vowel),
+        Some(v @ ('ı' | 'i' | 'u' | 'ü')) => {
+            v == super::super::phonology::harmony_i_type(stem_vowel)
+        }
+        _ => true,
+    }
+}
+
+/// The vowel harmony starts from after `root`: its last vowel, made front for a root that
+/// takes front-vowel suffixes despite a back vowel (saat-ler, alkol-ü, kalb-i: InverseHarmony).
+fn root_harmony_vowel(root: &str, attributes: RootAttr) -> Option<char> {
+    let v = super::super::phonology::last_vowel(root)?;
+    Some(if attributes.contains(RootAttr::INVERSE_HARMONY) {
+        match v {
+            'a' => 'e',
+            'ı' => 'i',
+            'o' => 'ö',
+            'u' => 'ü',
+            v => v,
+        }
+    } else {
+        v
+    })
+}
+
 /// How a candidate stem was recovered from the surface; the root must allow it.
 #[derive(Clone, Copy)]
 enum StemChange {
@@ -56,6 +114,8 @@ enum StemChange {
     Voiced,
     /// burn- from burun (RootAttr::VOWEL_DROP)
     VowelDropped,
+    /// kayb- from kayıp, akd- from akit (RootAttr::VOWEL_DROP and RootAttr::VOICING)
+    VowelDroppedVoiced,
     /// hakk- from hak (RootAttr::CONSONANT_DOUBLING)
     Doubled,
     /// bekl-iyor from bekle (any vowel-final verb)
@@ -88,6 +148,16 @@ impl TurkishMorphology {
             lexicon,
             transitions: TurkishMorphotactics::transitions(),
         }
+    }
+
+    /// Length in characters of the longest root in the lexicon.
+    pub fn max_root_chars(&self) -> usize {
+        self.lexicon.max_root_chars()
+    }
+
+    /// The lexicon items whose root is exactly `root` (lower-case), without analysing it.
+    pub fn root_items(&self, root: &str) -> &[DictionaryItem] {
+        self.lexicon.get_items(root).map_or(&[], Vec::as_slice)
     }
 
     /// Adds a dictionary item to the morphological analyzer at runtime.
@@ -163,6 +233,7 @@ impl TurkishMorphology {
             MorphState::NounRoot,
             PrimaryPos::Noun,
             stem.chars().last().unwrap_or(' '),
+            super::super::phonology::last_vowel(stem),
             ending,
             &guessed,
             clean,
@@ -240,11 +311,19 @@ impl TurkishMorphology {
             }
         }
 
-        // 2. Multi-affix morphological traversal
+        // 2. Multi-affix morphological traversal. No root is longer than the lexicon's longest
+        // (+1 for a vowel or k a stem change restores): trying every prefix of the word, each
+        // one copied, was quadratic in its length, and a 1 MB token (a base64 blob) took hours.
         let char_count = lower.chars().count();
-        for stem_len in 1..=char_count {
-            let candidate_stem: String = lower.chars().take(stem_len).collect();
-            let suffix_part: String = lower.chars().skip(stem_len).collect();
+        let max_stem = char_count.min(self.lexicon.max_root_chars() + 1);
+        let boundaries: Vec<usize> = lower
+            .char_indices()
+            .map(|(i, _)| i)
+            .chain(std::iter::once(lower.len()))
+            .collect();
+        for stem_len in 1..=max_stem {
+            let candidate_stem = lower[..boundaries[stem_len]].to_string();
+            let suffix_part = lower[boundaries[stem_len]..].to_string();
 
             if suffix_part.is_empty() {
                 continue;
@@ -281,6 +360,18 @@ impl TurkishMorphology {
                     &mut results,
                     StemChange::VowelDropped,
                 );
+                // Both at once (kayıp -> kayb-ı, akit -> akd-i, nakit -> nakd-i): each change
+                // alone finds no root.
+                let voiced = self.unsoften_stem(&restored);
+                if voiced != restored {
+                    self.match_and_traverse(
+                        &voiced,
+                        &suffix_part,
+                        clean,
+                        &mut results,
+                        StemChange::VowelDroppedVoiced,
+                    );
+                }
             }
 
             // d) Consonant doubling (e.g. "hakk" from "hak", "hiss" from "his")
@@ -341,15 +432,18 @@ impl TurkishMorphology {
             }
         }
 
-        // Sort by score descending, then drop repeats of the same reading wherever they sit,
-        // keeping the best-scored one. A reading is its analysis string plus its secondary POS:
-        // the string does not show it, so deduplicating on the string alone (adjacent only)
-        // dropped Ekmek's proper-noun reading when it tied with the common noun and kept such
-        // pairs when they did not tie.
+        // Sort by score descending; among equal scores prefer fewer morphemes (ol-an over
+        // o-NounToVerb-Pass, takım-ı over tak-ım-ı, başla-dı over baş-la-dı), and only then the
+        // analysis string, which on its own preferred the shortest root. Then drop repeats of
+        // the same reading wherever they sit, keeping the best-scored one. A reading is its
+        // analysis string plus its secondary POS: the string does not show it, so
+        // deduplicating on the string alone (adjacent only) dropped Ekmek's proper-noun reading
+        // when it tied with the common noun and kept such pairs when they did not tie.
         results.sort_by(|a, b| {
             b.score
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| a.morpheme_tags.len().cmp(&b.morpheme_tags.len()))
                 .then_with(|| a.formatted.cmp(&b.formatted))
         });
         let mut seen = std::collections::HashSet::new();
@@ -425,6 +519,10 @@ impl TurkishMorphology {
                     StemChange::None => true,
                     StemChange::Voiced => item.attributes.contains(RootAttr::VOICING),
                     StemChange::VowelDropped => item.attributes.contains(RootAttr::VOWEL_DROP),
+                    StemChange::VowelDroppedVoiced => {
+                        item.attributes.contains(RootAttr::VOWEL_DROP)
+                            && item.attributes.contains(RootAttr::VOICING)
+                    }
                     StemChange::Doubled => item.attributes.contains(RootAttr::CONSONANT_DOUBLING),
                     StemChange::ProgressiveVowelDrop | StemChange::DeYeNarrowing => {
                         item.primary_pos == PrimaryPos::Verb
@@ -433,23 +531,33 @@ impl TurkishMorphology {
                 if !allowed {
                     continue;
                 }
-                // Closed classes take no suffixes (Zemberek's terminal adverb, conjunction,
-                // interjection, determiner, duplicator and postposition root states); they
-                // used to inflect like nouns (yo-la, he-m, fır-ın-ın).
-                if matches!(
-                    item.primary_pos,
-                    PrimaryPos::Adv
-                        | PrimaryPos::Conj
-                        | PrimaryPos::Interj
-                        | PrimaryPos::Det
-                        | PrimaryPos::Dup
-                        | PrimaryPos::Postp
-                        | PrimaryPos::Punc
-                ) {
+                // Postpositions, and the adverbs öyle/böyle/şöyle, take only the nominal
+                // copula and persons (Zemberek's postpZero_S and advForVerbDeriv_ST ->
+                // nVerb_S): ait-tir, gibi-yim, kadar-dı, şöyle-dir. NounCase is the state
+                // that offers just those (and -ki: bugüne kadar-ki).
+                let copula_only = item.primary_pos == PrimaryPos::Postp
+                    || (item.primary_pos == PrimaryPos::Adv
+                        && matches!(item.root.as_str(), "öyle" | "böyle" | "şöyle"));
+                // Other closed classes take no suffixes (Zemberek's terminal adverb,
+                // conjunction, interjection, determiner and duplicator root states); they used
+                // to inflect like nouns (yo-la, he-m, fır-ın-ın).
+                if !copula_only
+                    && matches!(
+                        item.primary_pos,
+                        PrimaryPos::Adv
+                            | PrimaryPos::Conj
+                            | PrimaryPos::Interj
+                            | PrimaryPos::Det
+                            | PrimaryPos::Dup
+                            | PrimaryPos::Postp
+                            | PrimaryPos::Punc
+                    )
+                {
                     continue;
                 }
 
                 let start_state = match item.primary_pos {
+                    _ if copula_only => MorphState::NounCase,
                     // "değil" carries the negation and behaves like a nominal predicate:
                     // değil-im, değil-di, değil-se (Zemberek's nVerbDegil_S).
                     PrimaryPos::Verb if item.root == "değil" => MorphState::NounCase,
@@ -468,10 +576,24 @@ impl TurkishMorphology {
                     _ => vec![item.primary_pos.as_str().to_string()],
                 };
 
+                // The lexicon root, not the surface stem: the dropped vowel still decides
+                // (akit -> akd-i, burun -> burn-u). With the progressive vowel drop -Iyor takes
+                // the place of the root's final vowel and agrees with the one before it
+                // (özle -> özl-üyor, başla -> başl-ıyor, oyna -> oyn-uyor; de -> d-iyor).
+                let harmony_vowel = match change {
+                    StemChange::ProgressiveVowelDrop => {
+                        let mut stem = root_cand.chars();
+                        stem.next_back();
+                        root_harmony_vowel(stem.as_str(), item.attributes)
+                            .or_else(|| root_harmony_vowel(root_cand, item.attributes))
+                    }
+                    _ => root_harmony_vowel(root_cand, item.attributes),
+                };
                 self.search_suffix_chain(
                     start_state,
                     item.primary_pos,
                     root_cand.chars().last().unwrap_or(' '),
+                    harmony_vowel,
                     suffix_str,
                     item,
                     original_surface,
@@ -484,13 +606,15 @@ impl TurkishMorphology {
     }
 
     /// `prev` is the last letter matched so far (root or previous suffix), which conditions
-    /// allomorphs such as the passive.
+    /// allomorphs such as the passive; `vowel` is the last vowel so far as vowel harmony sees
+    /// it, which the next suffix must agree with.
     #[allow(clippy::too_many_arguments)]
     fn search_suffix_chain(
         &self,
         state: MorphState,
         pos: PrimaryPos,
         prev: char,
+        vowel: Option<char>,
         remaining_suffix: &str,
         item: &DictionaryItem,
         original_surface: &str,
@@ -555,6 +679,22 @@ impl TurkishMorphology {
                     | SuffixType::DerivGi
                     | SuffixType::DerivGin
                     | SuffixType::DerivGen => tags.len() > 1,
+                    // -DIk and -AcAk participles take a possessive before any case
+                    // (ol-duğ-u, yap-acağ-ın-a), so a bare case would only duplicate them.
+                    SuffixType::CaseAcc
+                    | SuffixType::CaseDat
+                    | SuffixType::CaseGen
+                    | SuffixType::CaseInst
+                        if state == MorphState::DerivedAdj =>
+                    {
+                        matches!(
+                            tags.last().map(String::as_str),
+                            Some("PastPart" | "FutPart")
+                        )
+                    }
+                    _ if state == MorphState::VerbPerson => {
+                        !copula_after_tense_person(tags, tr.suffix_type)
+                    }
                     _ => false,
                 };
                 if skip {
@@ -576,13 +716,22 @@ impl TurkishMorphology {
                         continue;
                     }
                     if let Some(next_remaining) = remaining_suffix.strip_prefix(template) {
+                        if !harmony_fits(tr.suffix_type, template, vowel) {
+                            continue;
+                        }
                         let tag_str = tr.suffix_type.tag().to_string();
                         tags.push(tag_str);
+                        let next_vowel = template
+                            .chars()
+                            .rev()
+                            .find(|&c| super::super::phonology::is_turkish_vowel(c))
+                            .or(vowel);
 
                         self.search_suffix_chain(
                             tr.to_state,
                             next_pos,
                             template.chars().last().unwrap_or(prev),
+                            next_vowel,
                             next_remaining,
                             item,
                             original_surface,

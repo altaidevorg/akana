@@ -5,7 +5,8 @@ Evaluates:
   1. Dense 2-bit TurboQuant (64 bytes/vector) + USearch Compiled Cosine Metric
   2. Dense 1-bit Binary (32 bytes/vector) + USearch Compiled Hamming Metric
   3. Single-Buffer Hybrid (128 bytes/vector) + USearch Compiled Joint Metric
-  4. Dual-Index Reciprocal Rank Fusion (Dense 2-bit + Akana Morphological BM25)
+  4. Dual-Index Reciprocal Rank Fusion (Dense 2-bit / 1-bit + Akana Morphological BM25)
+  5. Akana Morphological BM25 inverted index on its own
 
 Benchmark Datasets:
   - RagTurk (metunlp/ragturk, arXiv:2602.03652): Turkish RAG failure modes, morphological variations
@@ -317,7 +318,10 @@ def evaluate_retrieval(
         kind=MetricKind.Cos,
         signature=MetricSignature.ArrayArraySize,
     )
-    index_2bit = Index(ndim=64, metric=metric_2bit, dtype="u8")
+    # USearch reads numpy uint8 arrays as packed bits. A b1 index of 8 * nbytes dimensions stores
+    # Akana's packed vectors byte for byte (and passes nbytes to the compiled metric); a u8 index
+    # of nbytes dimensions would unpack them and keep only their first nbytes bits.
+    index_2bit = Index(ndim=64 * 8, metric=metric_2bit, dtype="b1")
     for d in docs:
         b = akana.embed_packed_2bit(d["text"])
         index_2bit.add(d["key"], np.frombuffer(b, dtype=np.uint8))
@@ -330,7 +334,7 @@ def evaluate_retrieval(
         kind=MetricKind.Hamming,
         signature=MetricSignature.ArrayArraySize,
     )
-    index_1bit = Index(ndim=32, metric=metric_1bit, dtype="u8")
+    index_1bit = Index(ndim=32 * 8, metric=metric_1bit, dtype="b1")
     for d in docs:
         b = akana.embed_packed_1bit(d["text"])
         index_1bit.add(d["key"], np.frombuffer(b, dtype=np.uint8))
@@ -343,7 +347,7 @@ def evaluate_retrieval(
         kind=MetricKind.Cos,
         signature=MetricSignature.ArrayArraySize,
     )
-    index_hybrid = Index(ndim=128, metric=metric_hybrid, dtype="u8")
+    index_hybrid = Index(ndim=128 * 8, metric=metric_hybrid, dtype="b1")
     for d in docs:
         b = akana.embed_hybrid(d["text"])
         index_hybrid.add(d["key"], np.frombuffer(b, dtype=np.uint8))
@@ -358,6 +362,7 @@ def evaluate_retrieval(
     build_time_sparse = (time.perf_counter() - t0) * 1000
 
     methods = [
+        "Morphological BM25 (inverted index)",
         "Dense 2-bit (64B)",
         "Dense 1-bit (32B)",
         "Single-Buffer Hybrid (128B)",
@@ -397,10 +402,11 @@ def evaluate_retrieval(
         keys_hybrid = [h.key for h in hits_hybrid]
         _record(metrics["Single-Buffer Hybrid (128B)"], keys_hybrid, gold, t_elapsed)
 
-        # Common sparse search for RRF
+        # Common sparse search for RRF, also scored on its own
         t_start_sp = time.perf_counter()
         sparse_hits = sparse_index.search(q_text, top_k=20)
         t_elapsed_sp = time.perf_counter() - t_start_sp
+        _record(metrics["Morphological BM25 (inverted index)"], [k for k, _ in sparse_hits], gold, t_elapsed_sp)
 
         # --- Method 4: Dual-Index RRF (2-bit + BM25) ---
         t_start = time.perf_counter()
@@ -421,6 +427,7 @@ def evaluate_retrieval(
     print("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
 
     ram_map = {
+        "Morphological BM25 (inverted index)": ("Inverted", "~116 MB"),
         "Dense 2-bit (64B)": ("64 B", "64 MB"),
         "Dense 1-bit (32B)": ("32 B", "32 MB"),
         "Single-Buffer Hybrid (128B)": ("128 B", "128 MB"),
@@ -467,8 +474,8 @@ def _record(stat: dict[str, Any], retrieved_keys: list[int], gold_keys: set[int]
 def main():
     parser = argparse.ArgumentParser(description="Akana RAG Real-World Dataset Benchmark")
     parser.add_argument("--dataset", choices=["ragturk", "turkuaz", "synthetic", "all"], default="ragturk")
-    parser.add_argument("--max-articles", type=int, default=20)
-    parser.add_argument("--max-turkuaz", type=int, default=40)
+    parser.add_argument("--max-articles", type=int, default=300)
+    parser.add_argument("--max-turkuaz", type=int, default=500)
     args = parser.parse_args()
 
     if args.dataset in ("ragturk", "all"):

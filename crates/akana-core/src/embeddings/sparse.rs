@@ -2,7 +2,7 @@
 //!
 //! Converts Turkish text into sparse lexical vectors weighted by:
 //! - Turkish morphological analysis & disambiguation (true lemma / root)
-//! - Compound noun decomposition (`denizaltı` -> `deniz` + `altı`)
+//! - Compound noun decomposition of the word's root (`denizaltı` -> `deniz` + `alt`)
 //! - Linguistic Part-of-Speech weighting (Proper Nouns/Numbers > Nouns > Verbs > Adverbs)
 //! - BM25 term frequency saturation
 
@@ -48,7 +48,6 @@ pub fn hash_term_24bit(term: &str) -> u32 {
 /// Turkish morphological sparse encoder.
 pub struct MorphologicalSparseEncoder {
     morphology: TurkishMorphology,
-    decomposer: CompoundDecomposer,
     stopwords: TurkishStopwords,
 }
 
@@ -63,7 +62,6 @@ impl MorphologicalSparseEncoder {
     pub fn new() -> Self {
         Self {
             morphology: TurkishMorphology::new(),
-            decomposer: CompoundDecomposer::new(),
             stopwords: TurkishStopwords::default(),
         }
     }
@@ -123,18 +121,25 @@ impl MorphologicalSparseEncoder {
                     .1 += 1;
             }
 
-            // Compound word decomposition: only for words >= 6 chars, both parts >= 3 chars
-            if lower_token.chars().count() >= 6 {
-                let compounds = self.decomposer.decompose(&lower_token);
-                if let Some(c) = compounds.first() {
-                    let p1 = to_turkish_lower(&c.part1);
-                    let p2 = to_turkish_lower(&c.part2);
-                    if p1.chars().count() >= 3 && p2.chars().count() >= 3 {
-                        if !self.stopwords.is_stopword(&p1) {
-                            term_counts.entry(p1).or_insert((1.0, 0)).1 += 1;
-                        }
-                        if !self.stopwords.is_stopword(&p2) {
-                            term_counts.entry(p2).or_insert((1.0, 0)).1 += 1;
+            // Compound parts of the word's root (denizaltı-nda -> deniz + alt, cumhurbaşkanı
+            // -> cumhur + başkan), from the lexicon. Splitting the inflected surface instead
+            // emitted fragments such as dav + acıya, gör + evlisi, kar + arına.
+            let mut compound_roots: Vec<String> = parses
+                .iter()
+                .take(3)
+                .map(|p| to_turkish_lower(&p.root))
+                .collect();
+            if compound_roots.is_empty() {
+                compound_roots.push(lower_token.clone());
+            }
+            compound_roots.dedup();
+            for root in compound_roots {
+                if let Some((p1, p2)) =
+                    CompoundDecomposer::split_lexical_compound(&self.morphology, &root)
+                {
+                    for part in [p1, p2] {
+                        if part.chars().count() > 1 && !self.stopwords.is_stopword(&part) {
+                            term_counts.entry(part).or_insert((1.0, 0)).1 += 1;
                         }
                     }
                 }
@@ -204,6 +209,30 @@ mod tests {
             "expected lemma 'kedi' in extracted terms, got {:?}",
             vec.terms
         );
+    }
+
+    #[test]
+    fn compound_parts_come_from_the_lexicon_not_from_inflected_surfaces() {
+        let encoder = MorphologicalSparseEncoder::new();
+        let terms = encoder
+            .encode_sparse(
+                "Bu taşınmaz davacıya aittir ve görevlisi tarafından el konulmuştur; \
+                 Danıştay kararına göre edilmelidir.",
+            )
+            .terms;
+        for junk in [
+            "dav", "acıya", "gör", "evlisi", "kar", "arına", "tay", "melidir", "muştur",
+        ] {
+            assert!(!terms.iter().any(|t| t == junk), "{junk} in {terms:?}");
+        }
+        let terms = encoder
+            .encode_sparse("Cumhurbaşkanı zeytinyağı ve denizaltında başbakan")
+            .terms;
+        for part in [
+            "cumhur", "başkan", "zeytin", "yağ", "deniz", "alt", "baş", "bakan",
+        ] {
+            assert!(terms.iter().any(|t| t == part), "{part} not in {terms:?}");
+        }
     }
 
     #[test]

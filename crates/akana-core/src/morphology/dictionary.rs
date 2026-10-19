@@ -36,6 +36,8 @@ impl DictionaryItem {
 
 pub struct RootLexicon {
     items_by_root: HashMap<String, Vec<DictionaryItem>>,
+    /// Length in characters of the longest root, which bounds the stems worth looking up.
+    max_root_chars: usize,
 }
 
 impl Default for RootLexicon {
@@ -48,6 +50,7 @@ impl RootLexicon {
     pub fn new() -> Self {
         let mut lexicon = Self {
             items_by_root: HashMap::new(),
+            max_root_chars: 0,
         };
         lexicon.load_builtin_lexicon();
         lexicon
@@ -56,12 +59,14 @@ impl RootLexicon {
     pub fn empty() -> Self {
         Self {
             items_by_root: HashMap::new(),
+            max_root_chars: 0,
         }
     }
 
     /// Adds an item; an item equal to one already stored is ignored (the built-in list and
     /// the generated lexicon repeat many entries, and an exact copy only duplicates work).
     pub fn add_item(&mut self, item: DictionaryItem) {
+        self.max_root_chars = self.max_root_chars.max(item.root.chars().count());
         let bucket = self.items_by_root.entry(item.root.clone()).or_default();
         if !bucket.contains(&item) {
             bucket.push(item);
@@ -70,6 +75,11 @@ impl RootLexicon {
 
     pub fn get_items(&self, root: &str) -> Option<&Vec<DictionaryItem>> {
         self.items_by_root.get(root)
+    }
+
+    /// Length in characters of the longest root in the lexicon.
+    pub fn max_root_chars(&self) -> usize {
+        self.max_root_chars
     }
 
     pub fn contains_root(&self, root: &str) -> bool {

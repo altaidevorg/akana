@@ -27,6 +27,8 @@ lazy_static! {
         r"(?ix)
         \b
         (?:
+            (?P<vkn>verg[iİıI]\s*(?:k[iİıI]ml[iİıI]k\s*)?(?:no(?:su)?|numaras[ıiIİ]|numaram)|vkn|m[üuÜU]kellef\s*(?:no|numaras[ıiIİ]))
+            |
             (?P<tckn>t\.?c\.?(?:\s*k[iİıI]ml[iİıI]k(?:\s*no(?:su)?)?|\s*no)?|k[iİıI]ml[iİıI]k\s*no)
             |
             (?P<iban>[iİıI]ban\s*no|[iİıI]ban(?:[ıiIİ]m)?|[iİıI]ban)
@@ -40,6 +42,8 @@ lazy_static! {
             (?P<cvv>kart\s*g[üuÜU]venl[iİıI]k\s*kod(?:um|u)?|g[üuÜU]venl[iİıI]k\s*kodu|cvv2?|cvc2?)
             |
             (?P<pin>p[iİıI]n\s*kodu|p[iİıI]n)
+            |
+            (?P<phone>telefon(?:um|u|unuz|umun)?(?:\s*numaras[ıiIİ]|\s*numaram|\s*no)?|tel(?:\s*no)?|cep(?:\s*telefonu(?:m)?|\s*numaram|\s*no)?|gsm(?:\s*no)?|numaram|numaras[ıiIİ]|whatsapp)
         )
         \b
         [:\s]*
@@ -68,6 +72,16 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
         "pin",
         "güvenlik",
         "guvenlik",
+        "telefon",
+        "tel",
+        "cep",
+        "gsm",
+        "numara",
+        "whatsapp",
+        "vergi",
+        "vkn",
+        "mükellef",
+        "mukellef",
     ];
     let has_trigger = SPELLED_TRIGGERS
         .iter()
@@ -91,6 +105,8 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
         if let Some(cap) = SPELLED_TRIGGER_REGEX.captures(prefix.trim_end()) {
             let (pii_type, label) = if cap.name("tckn").is_some() {
                 (PiiType::Tckn, "TCKN")
+            } else if cap.name("vkn").is_some() {
+                (PiiType::Vkn, "VKN")
             } else if cap.name("iban").is_some() {
                 (PiiType::Iban, "IBAN")
             } else if cap.name("card").is_some() {
@@ -103,6 +119,8 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
                 (PiiType::AccountNo, "MUSTERI_NO")
             } else if cap.name("account").is_some() {
                 (PiiType::AccountNo, "HESAP_NO")
+            } else if cap.name("phone").is_some() {
+                (PiiType::Phone, "TEL")
             } else {
                 continue;
             };

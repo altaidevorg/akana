@@ -110,7 +110,9 @@ def main():
         kind=MetricKind.Cos,
         signature=MetricSignature.ArrayArraySize,
     )
-    index_2bit = Index(ndim=64, metric=metric_2bit, dtype="u8")
+    # USearch reads numpy uint8 arrays as packed bits: a b1 index of 8 * 64 dimensions stores the
+    # 64 bytes as given (a u8 index of 64 dimensions would keep only their first 64 bits).
+    index_2bit = Index(ndim=64 * 8, metric=metric_2bit, dtype="b1")
 
     # Index all documents
     for doc in DOCUMENTS:
@@ -141,7 +143,7 @@ def main():
         kind=MetricKind.Hamming,
         signature=MetricSignature.ArrayArraySize,
     )
-    index_1bit = Index(ndim=32, metric=metric_1bit, dtype="u8")
+    index_1bit = Index(ndim=32 * 8, metric=metric_1bit, dtype="b1")  # 32 bytes, stored verbatim
 
     for doc in DOCUMENTS:
         vec_bytes = akana.embed_packed_1bit(doc["text"])

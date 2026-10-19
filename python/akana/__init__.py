@@ -340,7 +340,7 @@ def check_grammar(text: str) -> GrammarCheckResult:
     return GrammarCheckResult(json.loads(raw_json))
 
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 __all__ = [
     "Chunk",
     "CompoundDecomposer",
@@ -445,6 +445,7 @@ def pii_mask(
     preserve_corporate_emails: bool = True,
     disabled_types: list[str] | set[str] | None = None,
     vault: Any | None = None,
+    preserve_public_figures: bool = False,
 ) -> dict[str, Any]:
     """
     Detects and masks/pseudonymizes Turkish PII entities (KVKK aligned).
@@ -462,6 +463,9 @@ def pii_mask(
         disabled_types: Optional list or set of PiiTypes to disable (e.g. ['Name', 'Person', 'Age']).
             Spans of disabled types are left completely verbatim.
         vault: Optional persistent PiiVault session instance to continue conversational context.
+        preserve_public_figures: If True, names of well-known public figures (Atatürk, Nazım
+            Hikmet, Fatih Sultan Mehmet, Orhan Pamuk, ...) are left unmasked. A name is kept only
+            when it lies wholly inside such a phrase, so "Mustafa Kemal Yılmaz" is still masked.
 
     Returns:
         Dict containing:
@@ -475,6 +479,7 @@ def pii_mask(
         use_embeddings=use_embeddings,
         preserve_corporate_emails=preserve_corporate_emails,
         disabled_types=list(disabled_types) if disabled_types else None,
+        preserve_public_figures=preserve_public_figures,
     )
     if vault is not None:
         return engine.mask_with_vault(text, vault, mode=mode)

@@ -14,6 +14,17 @@ except ImportError:
     np = None
 
 
+def _byte_index(nbytes, metric):
+    """USearch index that stores Akana's packed vectors byte for byte.
+
+    USearch reads a numpy uint8 array as packed bits: into a `u8` or `i8` index it unpacks the
+    first `ndim` bits into 0/1 bytes, so `Index(ndim=nbytes, dtype="u8")` keeps 1/8 of each vector.
+    A `b1` index of `8 * nbytes` dimensions stores the bytes as given, and the compiled metric
+    receives `nbytes` as its size argument.
+    """
+    return Index(ndim=8 * nbytes, metric=metric, dtype="b1")
+
+
 def test_packed_2bit_constants_and_types():
     assert akana.PACKED_2BIT_BYTES == 64
     assert akana.PACKED_1BIT_BYTES == 32
@@ -115,7 +126,7 @@ def test_usearch_2bit_compiled_metric():
         kind=MetricKind.Cos,
         signature=MetricSignature.ArrayArraySize,
     )
-    index = Index(ndim=64, metric=metric, dtype="u8")
+    index = _byte_index(64, metric)
 
     corpus = [
         "Türkiye'nin başkenti Ankara'dır ve İç Anadolu bölgesindedir.",
@@ -154,7 +165,7 @@ def test_usearch_1bit_compiled_metric():
         kind=MetricKind.Hamming,
         signature=MetricSignature.ArrayArraySize,
     )
-    index = Index(ndim=32, metric=metric, dtype="u8")
+    index = _byte_index(32, metric)
 
     corpus = [
         "Kedi koltuğun üzerinde uyuyor.",
@@ -186,7 +197,7 @@ def test_usearch_hybrid_compiled_metric():
         kind=MetricKind.Cos,
         signature=MetricSignature.ArrayArraySize,
     )
-    index = Index(ndim=128, metric=metric, dtype="u8")
+    index = _byte_index(128, metric)
 
     corpus = [
         "Galatasaray ile Fenerbahçe arasındaki derbi maçı nefes kesti.",
@@ -207,3 +218,64 @@ def test_usearch_hybrid_compiled_metric():
     matches = index.search(q_arr, count=2)
     assert len(matches) > 0
     assert matches[0].key == 0
+
+
+@pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
+@pytest.mark.parametrize(
+    "embed, nbytes, pointer",
+    [
+        (akana.embed_packed_2bit, 64, akana.get_usearch_metric_pointer_2bit),
+        (akana.embed_packed_1bit, 32, akana.get_usearch_metric_pointer_1bit),
+        (akana.embed_hybrid, 128, lambda: akana.get_usearch_metric_pointer_hybrid(0.5)),
+    ],
+)
+def test_usearch_stores_vectors_verbatim_and_uses_the_akana_metric(embed, nbytes, pointer):
+    """The index must hold the exact bytes Akana produced, and USearch's distances must be the
+    ones the compiled metric computes on those bytes (a self-match alone cannot show either)."""
+    import ctypes
+
+    ptr = pointer()
+    rust_metric = ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t)(ptr)
+    index = _byte_index(nbytes, CompiledMetric(pointer=ptr, kind=MetricKind.Cos,
+                                               signature=MetricSignature.ArrayArraySize))
+    corpus = [
+        "Davacının tazminat talebi kısmen kabul edildi.",
+        "Ankara'da kar yağışı etkili oldu.",
+        "Kira bedelinin uyarlanması davası açıldı.",
+        "Yapay zeka modelleri hızla gelişiyor.",
+    ]
+    vectors = [np.frombuffer(embed(t), dtype=np.uint8) for t in corpus]
+    for key, v in enumerate(vectors):
+        index.add(key, v)
+        assert np.array_equal(np.asarray(index.get(key)).ravel(), v)
+
+    q = np.frombuffer(embed("tazminat davası"), dtype=np.uint8).copy()
+    for m in index.search(q, count=len(corpus), exact=True):
+        v = np.ascontiguousarray(vectors[int(m.key)])
+        assert m.distance == pytest.approx(rust_metric(q.ctypes.data, v.ctypes.data, nbytes), abs=1e-6)
+
+
+@pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
+@pytest.mark.parametrize("view", [False, True])
+def test_reloaded_index_needs_the_compiled_metric_again(tmp_path, view):
+    """load()/view() restore the metric from the file header, which holds no function pointer;
+    setting index.metric afterwards brings back Akana's metric (searching without it crashes)."""
+    metric = CompiledMetric(pointer=akana.get_usearch_metric_pointer_hybrid(0.5), kind=MetricKind.Cos,
+                            signature=MetricSignature.ArrayArraySize)
+    built = _byte_index(128, metric)
+    texts = ["Taşınmaz davacıya aittir.", "Vergi ziyaı cezası kaldırıldı.", "Makul sürede yargılanma hakkı ihlal edildi."]
+    for key, t in enumerate(texts):
+        built.add(key, np.frombuffer(akana.embed_hybrid(t), dtype=np.uint8))
+    path = str(tmp_path / "hybrid.usearch")
+    built.save(path)
+
+    q = np.frombuffer(akana.embed_hybrid("vergi cezası"), dtype=np.uint8)
+    expected = [(int(m.key), float(m.distance)) for m in built.search(q, count=3, exact=True)]
+
+    reloaded = _byte_index(128, metric)
+    (reloaded.view if view else reloaded.load)(path)
+    reloaded.metric = metric
+    got = [(int(m.key), float(m.distance)) for m in reloaded.search(q, count=3, exact=True)]
+    assert [k for k, _ in got] == [k for k, _ in expected]
+    assert [d for _, d in got] == pytest.approx([d for _, d in expected], abs=1e-6)
+    del reloaded  # release the memory map before tmp_path is removed

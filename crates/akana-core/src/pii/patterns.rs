@@ -14,6 +14,62 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
+/// A regex over Turkish lower-cased text that also matches the text typed without Turkish
+/// letters or in ASCII capitals: outside character classes and escapes, ı and i become [ıi]
+/// (Turkish lower-casing turns an ASCII I into ı), and ş, ğ, ç, ö, ü also take s, g, c, o, u
+/// (dogum tarihi, DOGUM TARIHI, MAHALLESI, kimlik numarasi).
+pub fn loose_turkish(pattern: &str) -> String {
+    let mut out = String::with_capacity(pattern.len() * 2);
+    let mut chars = pattern.chars().peekable();
+    let mut in_class = false;
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                out.push(c);
+                if let Some(n) = chars.next() {
+                    out.push(n);
+                    // \p{L}, \x{41}: the braces belong to the escape
+                    if matches!(n, 'p' | 'P' | 'x') && chars.peek() == Some(&'{') {
+                        for b in chars.by_ref() {
+                            out.push(b);
+                            if b == '}' {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            '[' if !in_class => {
+                in_class = true;
+                out.push(c);
+            }
+            ']' if in_class => {
+                in_class = false;
+                out.push(c);
+            }
+            '(' if !in_class && chars.peek() == Some(&'?') => {
+                // a group header: (?x), (?i:, (?P<name>
+                out.push(c);
+                for h in chars.by_ref() {
+                    out.push(h);
+                    if matches!(h, ':' | ')' | '>') {
+                        break;
+                    }
+                }
+            }
+            _ if in_class => out.push(c),
+            'ı' | 'i' => out.push_str("[ıi]"),
+            'ş' => out.push_str("[şs]"),
+            'ğ' => out.push_str("[ğg]"),
+            'ç' => out.push_str("[çc]"),
+            'ö' => out.push_str("[öo]"),
+            'ü' => out.push_str("[üu]"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 lazy_static! {
     /// Phone regex matching Turkish mobile, landline, 0850, and 444 numbers.
     ///
@@ -59,8 +115,17 @@ lazy_static! {
     ).unwrap();
 
     /// Port number following 'portu', 'portunda', etc., or ':PORT'
+    /// A port: before or after the word port (8080 portu, port 8080, --port=8080, PORT: 5432),
+    /// or after a host and a colon (localhost:3000, 10.0.0.5:5432, db.internal:6379, [::1]:80).
+    /// A colon and a number alone are file numbers, times and references (B. No:2013/772,
+    /// E:2014/26, saat 12:22, doi:10.1017, 74:30), not ports.
     pub static ref PORT_REGEX: Regex = Regex::new(
-        r"(?i)\b(\d{1,5})\s*(?:nolu\s+|numaralı\s+)?port(?:u|unda|undan|una)?\b|:([0-9]{2,5})\b"
+        r"(?ix)
+        \b(\d{1,5})\s*(?:nolu\s+|numaralı\s+)?port(?:u|unda|undan|una|unu)?\b
+        | \bport(?:u|unu)?(?:\s*[:=]\s*|\s+)(\d{2,5})\b
+        | (?:\blocalhost|\b(?:\d{1,3}\.){3}\d{1,3}|\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+|\[[0-9a-f.]*:[0-9a-f:.]*\])
+          :(\d{2,5})\b
+        "
     ).unwrap();
 
     /// Turkish Passport number pattern (e.g. `U12345678`, `A12345678`, `EP1234567`).
@@ -103,10 +168,6 @@ lazy_static! {
         r"(?i)\b(?:verg[iİıI]\s*(?:k[iİıI]ml[iİıI]k)?\s*no(?:su)?|vkn)[\s:]*([0-9]{10})\b"
     ).unwrap();
 
-    /// Password / Secret credentials in context.
-    pub static ref CREDENTIALS_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:şifre(?:m|si)?|parola(?:m|sı)?|pin(?:\s*kodu)?|kullanıcı\s+şifresi)[:\s]*([A-Za-z0-9!@#$%^&*()_+=\-]{4,32})\b"
-    ).unwrap();
 
     /// Salary / Income amounts in context: `maaşım 45.000 TL`, `aylık gelir: 60000 TRY`.
     pub static ref SALARY_REGEX: Regex = Regex::new(
@@ -123,37 +184,31 @@ lazy_static! {
         r"(?i)\b(?:sgk|ssk|bağkur)(?:\s*(?:sicil\s+no|sicil\s+numarası|no))?[:\s]*([0-9- ]{9,16})\b"
     ).unwrap();
 
-    /// Positive birth date regex: matches when explicit birth triggers are present.
-    /// E.g. `doğum tarihi: 12.04.1985`, `14 Nisan 1993 doğumlu`, `09.09.1992 doğanlara`, `26.05.1953'te doğan`
-    pub static ref BIRTH_DATE_POSITIVE_REGEX: Regex = Regex::new(
+    /// A date of birth: after a birth word (doğum tarihi: 12.04.1985, D.T.: 12/04/1985, doğum
+    /// günüm 12 Mart, date of birth: 1985-04-12, DOB 04/12/1985, born on March 12, 1985), before
+    /// one (14 Nisan 1993 doğumlu, 09.09.1992 doğanlara, 26.05.1953'te doğan, 5 Mayıs 2024
+    /// tarihinde doğdu), or a year of birth (1985 doğumluyum). `date` is the date, `year` the
+    /// year; the previous pattern returned the day alone for most of these.
+    pub static ref BIRTH_DATE_POSITIVE_REGEX: Regex = Regex::new(&loose_turkish(
         r"(?ix)
-        (?:
-            (?:doğum\s+tarihi(?:m|miz)?[:\s]*)
-            (?:
-                ([0-3]?[0-9])\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(19[2-9][0-9]|20[0-2][0-9])
-                |
-                (0[1-9]|[12][0-9]|3[01])[./-](0[1-9]|1[0-2])[./-](19[2-9][0-9]|20[0-2][0-9])
-                |
-                (19[2-9][0-9]|20[0-2][0-9])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])
-            )
-        )
+        \b(?:doğum\s+tarihi(?:m|miz|niz)?|doğum\s+günü(?:m|müz|nüz)?|d\.\s?t\.|doğ\.\s*tar\.
+           |date\s+of\s+birth|birth\s*date|dob|born(?:\s+on)?)
+        \s*[:\-]?\s*
+        (?P<date>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+[0-3]?[0-9],?\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]))|(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)))
         |
-        (?:
-            (?:
-                ([0-3]?[0-9])\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(19[2-9][0-9]|20[0-2][0-9])
-                |
-                (0[1-9]|[12][0-9]|3[01])[./-](0[1-9]|1[0-2])[./-](19[2-9][0-9]|20[0-2][0-9])
-                |
-                (19[2-9][0-9]|20[0-2][0-9])-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])
-            )
-            (?:\s*(?:'de|'da|'te|'ta|'e|'a)?\s*(?:doğumlu(?:yum)?|doğan(?:lar)?(?:a|a\s+özel)?))
-        )"
+        (?P<date2>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık|january|february|march|april|may|june|july|august|september|october|november|december)\s+[0-3]?[0-9],?\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))
+        (?:\s*'?(?:de|da|te|ta|e|a))?\s*(?:tarihinde\s+)?
+        (?:doğumlu(?:yum|yuz|sun|dur)?|doğan(?:lar)?(?:a|a\s+özel)?|doğdu(?:m|k)?|doğmuş(?:tur|um)?
+           |dünyaya\s+geldi(?:m)?)
+        |
+        \b(?P<year>19[0-9][0-9]|20[0-2][0-9])(?:'?(?:de|da|te|ta|li|lı|lu|lü))?\s+doğumlu(?:yum|yuz|sun|dur)?\b
+        ")
     ).unwrap();
 
     /// Positive private date trigger regex: matches personal lifecycle/account dates.
     /// E.g. `fatura kesim tarihim: 01.10.2025`, `randevu günüm 2 mayıs 2011`, `teslimat tarihi 17 ağustos 2001`,
     /// `mezuniyet tarihi 2 Aralık 1957`, `kayıt tarihim ayın 16'sı`
-    pub static ref PRIVATE_DATE_TRIGGER_REGEX: Regex = Regex::new(
+    pub static ref PRIVATE_DATE_TRIGGER_REGEX: Regex = Regex::new(&loose_turkish(
         r"(?ix)
         \b(?:
             fatura\s+kesim\s+tarihi(?:m)?
@@ -190,12 +245,35 @@ lazy_static! {
             (?:19[2-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])
             |
             ayın\s+[0-3]?[0-9](?:\'?(?:i|si|sı|ü|u))?
-        )\b"
+        )\b")
+    ).unwrap();
+
+    /// The date of a personal event, over Turkish lower-cased text: after the event word in a
+    /// possessive form or before tarihi / günü (randevum 5 Mayıs, ameliyat
+    /// tarihim 12.03.2024, kargom 21/06/2023, mezuniyet törenim 3 Ocak, faturamın son ödeme
+    /// günü ...), or before "tarihinde" and a verb in the first person (eşimle 5 Mayıs 2024
+    /// tarihinde evlendik); not the bare word (kargo 29.10.2026 sonrası ücretsiz, a campaign).
+    /// PRIVATE_DATE_TRIGGER_REGEX needs the exact phrase (randevu tarihim) and, being
+    /// case-insensitive only in ASCII, missed every İ (İşe giriş tarihim).
+    pub static ref PRIVATE_EVENT_DATE_REGEX: Regex = Regex::new(&loose_turkish(
+        r"(?x)
+        \b(?:randevu|ameliyat|muayene|kontrol|tahlil|teslimat|teslim|kargo|sipariş|fatura
+           |son\s+ödeme|abonelik|üyelik|sözleşme|rezervasyon|mezuniyet|tören|düğün|nikah|nikâh
+           |nişan|uçuş|sınav|işe\s+giriş|işten\s+ayrılış|doğum|vefat|ölüm|taburcu|yatış)
+        (?:
+          (?:y?[ıiuü]?[mn](?:[ıiuü]z)?(?:[ıiuü]n)?)(?:\s+(?:tarihi|günü|saati)[a-zçğıöşü]{0,3})?
+          | [a-zçğıöşü]{0,4}\s+(?:tarihi|günü|saati)[a-zçğıöşü]{0,3}
+        )
+        \s*(?:için)?[:\s]+
+        (?P<date>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)(?:\s+(?:19[0-9][0-9]|20[0-3][0-9]))?|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))
+        |
+        (?P<date2>(?:[0-3]?[0-9]\.?\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)\s+(?:19[0-9][0-9]|20[0-3][0-9])|(?:0?[1-9]|[12][0-9]|3[01])[./-](?:0?[1-9]|1[0-2])[./-](?:19[0-9][0-9]|20[0-3][0-9])|(?:19[0-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])))\s+tarihinde\s+[a-zçğıöşü]+(?:dı|di|du|dü|tı|ti|tu|tü)(?:m|k|nız|niz|nuz|nüz)\b
+        ")
     ).unwrap();
 
     /// Date preceding a lifecycle role trigger with `olan`:
     /// E.g. `4 mayıs 1995 olan ödeme itiraz tarihim`, `13.12.2026 olan kayıt tarihim`
-    pub static ref PRIVATE_DATE_POST_TRIGGER_REGEX: Regex = Regex::new(
+    pub static ref PRIVATE_DATE_POST_TRIGGER_REGEX: Regex = Regex::new(&loose_turkish(
         r"(?ix)
         \b(
             (?:(?:pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)\s+)?[0-3]?[0-9]\s+(?:ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)(?:\s+(?:19[2-9][0-9]|20[0-3][0-9]))?
@@ -205,7 +283,7 @@ lazy_static! {
             (?:19[2-9][0-9]|20[0-3][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])
             |
             ayın\s+[0-3]?[0-9](?:\'?(?:i|si|sı|ü|u))?
-        )\s+olan\s+(?:[^\s,;.]+\s+){1,3}(?:tarihi(?:m)?|günü(?:m)?|randevum?)\b"
+        )\s+olan\s+(?:[^\s,;.]+\s+){1,3}(?:tarihi(?:m)?|günü(?:m)?|randevum?)\b")
     ).unwrap();
 
     /// Turkish calendar date candidate regex (for embedding context disambiguation).
@@ -321,19 +399,58 @@ lazy_static! {
         r"(?i)\b(?:adli\s+para\s+cezası\s+kaydı|kabahat\s+kaydı(?:\s*mevcut)?|denetimli\s+serbestlik\s+kaydı|icra\s+takibi\s+kaydı|adli\s+sicil\s+kaydı|sabıka\s+kaydı)\b"
     ).unwrap();
 
-    /// Health Data under KVKK Article 6.
+    /// Health Data under KVKK Article 6: the condition after a health key (sağlık raporumda
+    /// böbrek nakli geçmişi yazıyor, sağlık notu: insülin bağımlı diyabet, kronik rahatsızlığım
+    /// astım var), up to five words and up to a word that closes it (yazıyor, var, mevcut,
+    /// olarak) or punctuation. A key must stand as a word, so the prose after "rahatsızlığın"
+    /// or "sağlık raporunun" (rahatsızlığın tespitine ilişkin bir rapor) is not taken. A bare
+    /// diagnosis word (tanı, teşhis, hastalığı, rahatsızlığı) is a key only with a separator
+    /// after it: "teşhis etmiştir", "hastalığı nedeniyle" are prose. The value is group 1 or 2.
+    /// (In verbose mode a space inside a class is ignored too, hence \x20.)
     pub static ref HEALTH_RECORD_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:sağlık\s+raporu(?:m)?(?:nda)?|rahatsızlığı|kronik\s+rahatsızlık|engel\s+durumu)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü\s]{4,35})\b"
+        r"(?ix)
+        (?:\b(?:sağlık\s+(?:raporu(?:m|muz)?(?:n?da)?|notu|durumu(?:m)?|bilgisi|kaydı(?:nda)?)
+              |kronik\s+(?:rahatsızlı(?:k|ğı|ğım)|hastalı(?:k|ğı|ğım))
+              |engel\s+durumu)\b
+           \s*[:=-]?\s*
+           ((?:[\p{L}\d%'’-]+[\x20\t]+){0,4}?[\p{L}\d%'’-]+?)
+          |\b(?:rahatsızlığı(?:m)?|hastalığı(?:m)?|tanı(?:sı)?|teşhis(?:i)?)
+           (?:[\x20\t]*[:=]|[\x20\t]+-)[\x20\t]*
+           ((?:[\p{L}\d%'’-]+[\x20\t]+){0,4}?[\p{L}\d%'’-]+?))
+        (?:[\x20\t]+(?:yazıyor|yazılı|yazmakta|yazılmış|var|mevcut|görünüyor|bulunuyor|bulunmaktadır|olarak|geçiyor|tespit\s+edildi)\b|[\x20\t]*(?:[,;.\n]|$))
+        "
     ).unwrap();
 
-    /// Disability status under KVKK Article 6.
+    /// The value of a disability key (Engel durumu: %40 ortopedik, Engellilik oranı %60,
+    /// engelli raporu: görme), or a degree before "engelli" (%90 oranında engelli). The words
+    /// after a bare "engelli" are prose (engelli kişiler, engelli olan başvurucunun), and were
+    /// masked as disability data.
     pub static ref DISABILITY_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:engel\s*durumu|engell[iİıI]l[iİıI]k(?:\s*oran[ıiIİ])?|engell[iİıI](?:\s*raporu)?|[öoÖO]z[üuÜU]r\s*durumu)[\s:]*([a-zA-ZçğıöşüÇĞİÖŞÜ0-9%\s]+?)(?:\s+(?:olarak|sebeb[iİıI]yle|neden[iİıI]yle|var)|[,;.\n]|$)"
+        r"(?ix)
+        \b(?:engel\s*durumu|engel\s*oran[ıiIİ]|engell[iİıI]l[iİıI]k(?:\s*oran[ıiIİ])?|engell[iİıI]\s*raporu|[öoÖO]z[üuÜU]r\s*(?:durumu|oran[ıiIİ]))
+        \s*[:=]?\s*
+        (
+          (?:
+            (?:%\s*\d{1,3}|\d{1,3}\s*%|yüzde\s*\d{1,3})
+            (?:\s*(?:oranında\s+)?(?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma))?
+            | (?:ortopedik|görme|işitme|zihinsel|ruhsal|süreğen|dil\s+ve\s+konuşma)
+          )
+          (?:\s+engell[iİıI](?:\s+raporu)?|\s+engel)?(?:\s+(?:mevcut|var|bulunmaktadır))?
+          | (?:engel\s+durumu\s+)?(?:var|yok|mevcut|bulunmaktadır|bulunmamaktadır)
+        )
+        | ((?:%\s*\d{1,3}|\b\d{1,3}\s*%|\byüzde\s*\d{1,3})\s*(?:oranında\s+)?(?:(?:ortopedik|görme|işitme|zihinsel|ruhsal)\s+)?engell[iİıI])
+        "
     ).unwrap();
 
     /// Trade Union Membership under KVKK Article 6.
+    /// A union by its name, capitalised words ending in Sendikası, -Sen or -İş (Eğitim-Sen,
+    /// Türk Metal Sendikası), after "sendika" or before "üyesi". Case-insensitive, "-Sen" was
+    /// also the pronoun "sen", and the lazy name began at the start of the sentence. After
+    /// "sendika" a capitalised word with "sen" glued on is a name too (Basisen, Eğitimsen); a
+    /// name like Gülsen before "üyesi" is not. "sendika üyeliği yok / var" is the membership
+    /// itself. The value is group 1, 2 or 3, not the key before it.
     pub static ref TRADE_UNION_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:sendika(?:\s*bilgisi)?|sendikası)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü\s-]+?(?:Sendikası|Sen|-İş)(?:\s+üyesi)?)\b|\b([A-ZÇĞİÖŞÜa-zçğıöşü\s-]+?(?:Sendikası|Sen|-İş)\s+üyesi)\b"
+        r"\b(?i:sendika(?:\s*bilgisi)?|sendikası)[:\s]*((?:(?:[A-ZÇĞİÖŞÜ][\p{L}]*[\x20-]+){0,4}[A-ZÇĞİÖŞÜ][\p{L}]*(?:\x20Sendikası|-Sen|-İş)|[A-ZÇĞİÖŞÜ]\p{L}+sen)\b(?:\s+üyesi)?)|\b((?:[A-ZÇĞİÖŞÜ][\p{L}]*[\x20-]+){0,4}[A-ZÇĞİÖŞÜ][\p{L}]*(?:\x20Sendikası|-Sen|-İş)\s+üyesi)\b|\b((?i:sendika\s+üyeliği\s+(?:yok|var|mevcut|bulunmuyor|bulunmamaktadır|bulunmaktadır)))\b"
     ).unwrap();
 
     /// Username in context.
@@ -357,8 +474,12 @@ lazy_static! {
     ).unwrap();
 
     /// Workplace / Institution.
+    /// An employer named after a workplace word (işyeri: Acıbadem Hastanesi, şirketim Akana
+    /// Ltd. Şti.) or before "bünyesinde". The name is at most 60 characters on one line, and
+    /// both the trigger and the AŞ suffix are words: "şirket" inside "şirkette" and "aş" at
+    /// the end of "maaş" made one match of 600 characters of a court decision.
     pub static ref WORKPLACE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:[iİıI][şsŞS]yer[iİıI]|[iİıI]syer[iİıI]|kurum|[şsŞS][iİıI]rket)[:\s]*([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9\s.&-]+?(?:Hastan[iİıI]s[iİıI]|Beled[iİıI]yes[iİıI]|M[üuÜU]d[üuÜU]rl[üuÜU][ğgĞG][üuÜU]|Bakanl[ıiIİ][ğgĞG][ıiIİ]|A\.Ş\.|AŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Hold[iİıI]ng|Anon[iİıI]m\s*[ŞS][iİıI]rket[iİıI]))\b|\b([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9\s&-]{2,50}?(?:A\.Ş\.|AŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ŞS][iİıI]rket[iİıI]|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Beled[iİıI]yes[iİıI]))\s+b[üuÜU]nyes[iİıI]nde\b"
+        r"(?i)\b(?:[iİıI][şsŞS]yer[iİıI]|[iİıI]syer[iİıI]|kurum|[şsŞS][iİıI]rket)(?:[iİıI]m|[iİıI]m[iİıI]z|[iİıI])?\b[:\s]*([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 .&-]{1,60}?(?:Hastanes[iİıI]|Beled[iİıI]yes[iİıI]|M[üuÜU]d[üuÜU]rl[üuÜU][ğgĞG][üuÜU]|Bakanl[ıiIİ][ğgĞG][ıiIİ]|\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Hold[iİıI]ng|Anon[iİıI]m\s*[ŞS][iİıI]rket[iİıI]))\b|\b([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 &-]{2,50}?(?:\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ŞS][iİıI]rket[iİıI]|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Beled[iİıI]yes[iİıI]))\s+b[üuÜU]nyes[iİıI]nde\b"
     ).unwrap();
 
     /// Hardware / Device ID in context (e.g. `cihaz id DEV-99381290`).
@@ -442,5 +563,21 @@ mod tests {
             text
         );
         assert_eq!(cap.unwrap().get(1).unwrap().as_str(), "RUM");
+    }
+}
+
+#[cfg(test)]
+mod loose_tests {
+    use super::*;
+
+    #[test]
+    fn loose_turkish_keeps_classes_escapes_and_headers() {
+        assert_eq!(
+            loose_turkish(r"(?ix)doğum\s[a-zı]\p{Lu}"),
+            r"(?ix)do[ğg]um\s[a-zı]\p{Lu}"
+        );
+        assert_eq!(loose_turkish("(?P<date>tarihi)"), "(?P<date>tar[ıi]h[ıi])");
+        let re = Regex::new(&loose_turkish("doğum tarihi")).unwrap();
+        assert!(re.is_match("dogum tarıhı") && re.is_match("doğum tarihi"));
     }
 }

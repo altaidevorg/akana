@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 authors = ["Akana NLP Contributors"]
 license = "MIT OR Apache-2.0"
@@ -31,3 +31,14 @@ clap = { version = "4.4", features = ["derive"] }
 pyo3 = { version = "0.22", features = ["extension-module", "abi3-py310"] }
 flate2 = "1.0"
 unicode-normalization = "0.1"
+
+# Dependencies optimised in debug builds too (cargo test, maturin develop): unoptimised, the
+# regex engine made each pass over a megabyte of text about 15 times slower than in a release
+# build, so the linear-time tests measured the debug regex engine rather than the detectors.
+[profile.dev.package."*"]
+opt-level = 3
+
+# The detectors themselves lightly optimised in debug builds: per-character loops ran about 15
+# times slower unoptimised. Overflow checks and debug assertions stay on.
+[profile.dev.package.akana-core]
+opt-level = 1

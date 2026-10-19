@@ -10,10 +10,18 @@
 //! - Comprehensive pattern recognizers (Phone, Email, IP, Port, Age, Addresses, Credentials)
 //! - Reversible Session Vault with vowel-harmony aware restoration for LLM gateways
 
+mod addresses;
 pub mod embedding_scorer;
 pub mod gazetteer;
+mod ids;
 pub mod morphology;
+mod names;
+#[rustfmt::skip]
+mod names_data;
+mod normalize;
+pub mod passwords;
 pub mod patterns;
+mod phones;
 pub mod secrets;
 pub mod spelled_numbers;
 pub mod validators;
@@ -29,7 +37,6 @@ pub use validators::*;
 pub use vault::*;
 
 use crate::phonology::to_turkish_lower;
-use crate::tokenization::TurkishTokenizer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use stringzilla::StringZilla;
@@ -173,20 +180,17 @@ lazy_static::lazy_static! {
     static ref CARD_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:kart\s*no|kredi\s*kart[ıi]|kart)[:\s]*((?:\d[ -]?){13,19})\b").unwrap();
     static ref PLATE_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,5}\b").unwrap();
     static ref VIN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b[A-HJ-NPR-Z0-9]{17}\b").unwrap();
-    static ref ADDRESS_REGEX: regex::Regex = regex::Regex::new(
-        r"(?ix)
-        \b[A-ZÇĞİÖŞÜ][a-zçğıöşü]+\s+(?:Mahallesi|Mah\.|Mah)\b
-        (?:[,\s]+[A-ZÇĞİÖŞÜ][a-zçğıöşü\s]+(?:Caddesi|Cad\.|Cad|Sokağı|Sok\.|Sok|Bulvarı|Bulv\.|Bulv))?
-        (?:[,\s]+(?:No|Kapı\s*No|Daire|Kat)[:\s]*[0-9/A-Za-z]+)?
-        (?:[,\s]+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s*/\s*[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)?)?
-        "
-    ).unwrap();
+    /// Text in the input that has the shape of a vault placeholder ({{AD_1}}, {{IBAN_1}}).
+    static ref PLACEHOLDER_LITERAL_REGEX: regex::Regex = regex::Regex::new(r"\{\{[^{}\s]{1,64}\}\}").unwrap();
+    /// A tag of the tag and anonymize modes ([AD], [TCKN], [OZEL_TARIH]).
+    static ref TAG_LITERAL_REGEX: regex::Regex = regex::Regex::new(r"\[[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ_0-9]{0,39}\]").unwrap();
 }
 
 /// High-performance Turkish PII Detection and Pseudonymization Engine.
 pub struct TurkishPiiEngine {
     embedding_scorer: Option<PiiEmbeddingScorer>,
     preserve_corporate_emails: bool,
+    preserve_public_figures: bool,
     disabled_types: std::collections::HashSet<PiiType>,
 }
 
@@ -202,6 +206,7 @@ impl TurkishPiiEngine {
         Self {
             embedding_scorer: None,
             preserve_corporate_emails: true,
+            preserve_public_figures: false,
             disabled_types: std::collections::HashSet::new(),
         }
     }
@@ -213,6 +218,7 @@ impl TurkishPiiEngine {
         Self {
             embedding_scorer: Some(PiiEmbeddingScorer::new(embeddings)),
             preserve_corporate_emails: true,
+            preserve_public_figures: false,
             disabled_types: std::collections::HashSet::new(),
         }
     }
@@ -257,13 +263,52 @@ impl TurkishPiiEngine {
         self.preserve_corporate_emails = preserve;
     }
 
+    /// Configures whether the names of well-known public figures (Atatürk, Mustafa Kemal
+    /// Atatürk, Nazım Hikmet, Fatih Sultan Mehmet, Orhan Pamuk; see `names_data.rs`) are left
+    /// unmasked. Off by default. A detected name is kept only when it lies wholly inside such a
+    /// phrase, so "Mustafa Kemal Yılmaz" or a private "Nazım" are still masked.
+    pub fn set_preserve_public_figures(&mut self, preserve: bool) {
+        self.preserve_public_figures = preserve;
+    }
+
     /// Returns a reference to the embedding scorer, if initialized.
     pub fn embedding_scorer(&self) -> Option<&PiiEmbeddingScorer> {
         self.embedding_scorer.as_ref()
     }
 
     /// Detects all PII entities in the given text.
+    ///
+    /// Zero-width and bidi format characters, full-width ASCII and non-Latin digits are folded
+    /// and decomposed letters composed first (see `normalize`), so they cannot hide a value from
+    /// the detectors; the returned spans and texts are those of `text` itself.
     pub fn detect(&self, text: &str) -> Vec<PiiEntity> {
+        let Some(folded) = normalize::fold_for_detection(text) else {
+            return self.detect_folded(text);
+        };
+        self.detect_folded(&folded.text)
+            .into_iter()
+            .map(|mut e| {
+                let folded_text = e.text.clone();
+                // A stem that begins the value is mapped back like it: the vault restores the
+                // stem when the reply puts a suffix on the placeholder, and it must be what the
+                // caller sent (the decomposed letters, not the composed ones).
+                let stem_end = (e.stem != folded_text && folded_text.starts_with(&e.stem))
+                    .then(|| folded.original_range(e.start, e.start + e.stem.len()).1);
+                let (start, end) = folded.original_range(e.start, e.end);
+                e.start = start;
+                e.end = end;
+                e.text = text[start..end].to_string();
+                if e.stem == folded_text {
+                    e.stem = e.text.clone();
+                } else if let Some(stem_end) = stem_end {
+                    e.stem = text[start..stem_end.clamp(start, end)].to_string();
+                }
+                e
+            })
+            .collect()
+    }
+
+    fn detect_folded(&self, text: &str) -> Vec<PiiEntity> {
         let mut candidates = Vec::new();
 
         // 1. Algorithmic Checksum Detections
@@ -301,8 +346,23 @@ impl TurkishPiiEngine {
         // Retain only entities whose PiiType is currently enabled
         candidates.retain(|e| self.is_type_enabled(e.pii_type));
 
+        // Names of well-known public figures, when asked to keep them
+        if self.preserve_public_figures
+            && candidates
+                .iter()
+                .any(|e| matches!(e.pii_type, PiiType::Name | PiiType::Person))
+        {
+            let figures = names::public_figure_spans(text);
+            if !figures.is_empty() {
+                candidates.retain(|e| {
+                    !matches!(e.pii_type, PiiType::Name | PiiType::Person)
+                        || !figures.iter().any(|&(s, t)| s <= e.start && e.end <= t)
+                });
+            }
+        }
+
         // 8. Conflict Resolution & Non-Overlapping Span Arbitration
-        resolve_conflicts(candidates)
+        resolve_conflicts(candidates, text)
     }
 
     /// Intercepts outbound prompt, detects PII, and returns masked text with a freshly populated session vault.
@@ -318,22 +378,65 @@ impl TurkishPiiEngine {
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 
-        for entity in &entities {
-            if entity.start < last_end {
+        // Placeholder-shaped text already in the input ({{IBAN_1}} in a web page an agent
+        // read) is masked too, as a placeholder of its own that restores to that literal text.
+        // Left as it was, restore would replace it with the real value it names.
+        // In tag and anonymize modes a tag in the input ([AD] in a template) is masked the same
+        // way: every [AD] restores to the one original, so it would have become the person.
+        let tag_literals = matches!(mode, PiiMode::Tag | PiiMode::Anonymize)
+            .then(|| TAG_LITERAL_REGEX.find_iter(text))
+            .into_iter()
+            .flatten();
+        // the entities are sorted and do not overlap: a literal overlaps one if the last entity
+        // starting before its end reaches past its start (one search, not a scan per literal)
+        let overlaps_entity = |s: usize, e: usize| {
+            let i = entities.partition_point(|x| x.start < e);
+            i > 0 && entities[i - 1].end > s
+        };
+        let literals = PLACEHOLDER_LITERAL_REGEX
+            .find_iter(text)
+            .chain(tag_literals)
+            .filter(|m| !overlaps_entity(m.start(), m.end()))
+            .map(|m| (m.start(), m.end()));
+        let mut spans: Vec<(usize, usize, Option<&PiiEntity>)> = entities
+            .iter()
+            .map(|e| (e.start, e.end, Some(e)))
+            .chain(literals.map(|(s, e)| (s, e, None)))
+            .collect();
+        spans.sort_by_key(|&(start, _, _)| start);
+        // the placeholder- and surrogate-shaped strings of the text, collected once
+        let taken = vault::issued_shapes_in(text);
+
+        for (start, end, entity) in spans {
+            if start < last_end {
                 continue; // Skip overlapping spans already handled
             }
-            masked.push_str(&text[last_end..entity.start]);
+            masked.push_str(&text[last_end..start]);
 
-            let placeholder = vault.register(
-                &entity.text,
-                entity.pii_type.as_str(),
-                &entity.stem,
-                entity.suffix.as_deref(),
-                mode,
-            );
+            let placeholder = match entity {
+                Some(entity) => vault.register_avoiding(
+                    &taken,
+                    &entity.text,
+                    entity.pii_type.as_str(),
+                    &entity.stem,
+                    entity.suffix.as_deref(),
+                    mode,
+                ),
+                None => {
+                    let literal = &text[start..end];
+                    vault.register_avoiding(
+                        &taken,
+                        literal,
+                        "YER_TUTUCU",
+                        literal,
+                        None,
+                        PiiMode::Placeholder,
+                    )
+                }
+            };
             masked.push_str(&placeholder);
 
-            last_end = entity.end;
+            last_end = end;
         }
 
         if last_end < text.len() {
@@ -372,6 +475,8 @@ impl TurkishPiiEngine {
         if !has_digits {
             return;
         }
+        // IBAN, TCKN and VKN by shape and trigger, checksum or not (ids.rs)
+        ids::detect_ids(text, out);
 
         // TCKN candidates (11-digit numbers)
         for mat in TCKN_CANDIDATE_REGEX.find_iter(text) {
@@ -413,7 +518,7 @@ impl TurkishPiiEngine {
         if lower.sz_find("tc").is_some() || lower.sz_find("kimlik").is_some() {
             for cap in TCKN_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
+                    let (val_start, val_end, span_str) = trimmed_match(val);
                     let clean_digits: String =
                         span_str.chars().filter(|c| c.is_ascii_digit()).collect();
                     if clean_digits.len() == 11 {
@@ -426,8 +531,8 @@ impl TurkishPiiEngine {
                             text: span_str.to_string(),
                             label: PiiType::Tckn.as_str().to_string(),
                             pii_type: PiiType::Tckn,
-                            start: val.start(),
-                            end: val.end(),
+                            start: val_start,
+                            end: val_end,
                             confidence: conf,
                             stem: span_str.to_string(),
                             suffix: None,
@@ -523,13 +628,13 @@ impl TurkishPiiEngine {
         if lower.sz_find("plaka").is_some() {
             for cap in PLATE_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
+                    let (val_start, val_end, span_str) = trimmed_match(val);
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: PiiType::Plate.as_str().to_string(),
                         pii_type: PiiType::Plate,
-                        start: val.start(),
-                        end: val.end(),
+                        start: val_start,
+                        end: val_end,
                         confidence: 0.98,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -540,14 +645,26 @@ impl TurkishPiiEngine {
 
         // Credit/Debit Card candidates (13-19 digits, possibly space/dash grouped)
         for mat in CARD_CANDIDATE_REGEX.find_iter(text) {
-            let span_str = mat.as_str();
-            if let Some(_brand) = validate_credit_card(span_str) {
+            // The match is greedy and may end in a separator: "4111 1111 1111 1111 123" failed
+            // Luhn as a whole. The longest prefix that ends at a group and passes is the card.
+            let whole = mat.as_str().trim_end_matches([' ', '-']);
+            let mut cuts: Vec<usize> = whole
+                .char_indices()
+                .filter(|&(_, c)| c == ' ' || c == '-')
+                .map(|(i, _)| i)
+                .collect();
+            cuts.push(whole.len());
+            let card = cuts.iter().rev().map(|&i| &whole[..i]).find(|prefix| {
+                let digits = prefix.bytes().filter(u8::is_ascii_digit).count();
+                (13..=19).contains(&digits) && validate_credit_card(prefix).is_some()
+            });
+            if let Some(span_str) = card {
                 out.push(PiiEntity {
                     text: span_str.to_string(),
                     label: PiiType::CreditCard.as_str().to_string(),
                     pii_type: PiiType::CreditCard,
                     start: mat.start(),
-                    end: mat.end(),
+                    end: mat.start() + span_str.len(),
                     confidence: 1.0,
                     stem: span_str.to_string(),
                     suffix: None,
@@ -559,7 +676,9 @@ impl TurkishPiiEngine {
         if lower.sz_find("kart").is_some() {
             for cap in CARD_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
-                    let span_str = val.as_str().trim();
+                    let (val_start, val_end, span_str) = trimmed_match(val);
+                    let span_str = span_str.trim_end_matches('-');
+                    let val_end = val_end.min(val_start + span_str.len());
                     let clean_digits: String =
                         span_str.chars().filter(|c| c.is_ascii_digit()).collect();
                     if (13..=19).contains(&clean_digits.len()) {
@@ -572,8 +691,8 @@ impl TurkishPiiEngine {
                             text: span_str.to_string(),
                             label: PiiType::CreditCard.as_str().to_string(),
                             pii_type: PiiType::CreditCard,
-                            start: val.start(),
-                            end: val.end(),
+                            start: val_start,
+                            end: val_end,
                             confidence: conf,
                             stem: span_str.to_string(),
                             suffix: None,
@@ -622,8 +741,9 @@ impl TurkishPiiEngine {
         let has_digits = text.bytes().any(|b| b.is_ascii_digit());
         let lower = to_turkish_lower(text);
 
-        // Phone numbers
+        // Phone numbers: the layout regex, then any grouping by numbering plan (phones.rs)
         if has_digits {
+            phones::detect_phones(text, out);
             for mat in PHONE_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
@@ -736,15 +856,28 @@ impl TurkishPiiEngine {
         if has_digits && (lower.sz_find("port").is_some() || text.sz_find(":").is_some()) {
             for cap in PORT_REGEX.captures_iter(text) {
                 let full = cap.get(0).unwrap();
-                let port_str = cap.get(1).or_else(|| cap.get(2)).unwrap().as_str();
+                let Some(port) = (1..=3).find_map(|g| cap.get(g)) else {
+                    continue;
+                };
+                let port_str = port.as_str();
+                // host:2013/772, host:10.1017 or ]:2016-17 is a reference or a range, not a port
+                let after = &text.as_bytes()[full.end()..];
+                if after.len() > 1
+                    && matches!(after[0], b'/' | b'.' | b',' | b'-')
+                    && after[1].is_ascii_digit()
+                {
+                    continue;
+                }
                 if let Ok(p) = port_str.parse::<u32>() {
                     if (1..=65535).contains(&p) {
+                        // the span is the number's: masking "8080 portu" whole lost "portu" on
+                        // restore, which put back only the number
                         out.push(PiiEntity {
                             text: port_str.to_string(),
                             label: PiiType::Port.as_str().to_string(),
                             pii_type: PiiType::Port,
-                            start: full.start(),
-                            end: full.end(),
+                            start: port.start(),
+                            end: port.end(),
                             confidence: 0.95,
                             stem: port_str.to_string(),
                             suffix: None,
@@ -765,14 +898,15 @@ impl TurkishPiiEngine {
                 || text.sz_find("ep").is_some())
         {
             for cap in PASSPORT_REGEX.captures_iter(text) {
-                let full = cap.get(0).unwrap();
-                let val = cap.get(1).unwrap().as_str();
+                // the number, not "pasaport no: " before it (restore put back only the number)
+                let number = cap.get(1).unwrap();
+                let val = number.as_str();
                 out.push(PiiEntity {
                     text: val.to_string(),
                     label: PiiType::Passport.as_str().to_string(),
                     pii_type: PiiType::Passport,
-                    start: full.start(),
-                    end: full.end(),
+                    start: number.start(),
+                    end: number.end(),
                     confidence: 0.95,
                     stem: val.to_string(),
                     suffix: None,
@@ -945,15 +1079,17 @@ impl TurkishPiiEngine {
             || lower.sz_find("ozur").is_some()
         {
             for cap in DISABILITY_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let span_str = val.as_str().trim();
+                let Some(val) = cap.get(1).or_else(|| cap.get(2)) else {
+                    continue;
+                };
+                let span_str = val.as_str().trim_end();
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: "ENGEL_DURUMU".to_string(),
                         pii_type: PiiType::Health,
                         start: val.start(),
-                        end: val.end(),
+                        end: val.start() + span_str.len(),
                         confidence: 0.98,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -962,44 +1098,7 @@ impl TurkishPiiEngine {
             }
         }
 
-        // Credentials / Passwords
-        if lower.sz_find("şifre").is_some()
-            || lower.sz_find("sifre").is_some()
-            || lower.sz_find("parola").is_some()
-            || lower.sz_find("pin").is_some()
-        {
-            for cap in CREDENTIALS_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let val_lower = val.as_str().to_lowercase();
-                if matches!(
-                    val_lower.as_str(),
-                    "sıfırlama"
-                        | "sifirlama"
-                        | "değiştirme"
-                        | "degistirme"
-                        | "güncelleme"
-                        | "guncelleme"
-                        | "işlemi"
-                        | "islemi"
-                        | "talebi"
-                        | "isteği"
-                        | "hatası"
-                        | "ekranı"
-                ) {
-                    continue;
-                }
-                out.push(PiiEntity {
-                    text: val.as_str().to_string(),
-                    label: PiiType::Credentials.as_str().to_string(),
-                    pii_type: PiiType::Credentials,
-                    start: val.start(),
-                    end: val.end(),
-                    confidence: 0.95,
-                    stem: val.as_str().to_string(),
-                    suffix: None,
-                });
-            }
-        }
+        // Passwords, PINs and one-time codes: passwords::detect_passwords (via detect_secrets).
 
         // Salary / Income
         if has_digits
@@ -1069,18 +1168,30 @@ impl TurkishPiiEngine {
         }
 
         // Positive Date of birth (explicit birth triggers)
-        if has_digits && (lower.sz_find("doğ").is_some() || lower.sz_find("dog").is_some()) {
-            for cap in BIRTH_DATE_POSITIVE_REGEX.captures_iter(text) {
-                let date_match = cap.get(1).or_else(|| cap.get(4)).or_else(|| cap.get(0));
+        if has_digits
+            && ["doğ", "dog", "d.t.", "d. t.", "birth", "dob", "born"]
+                .iter()
+                .any(|t| lower.sz_find(t).is_some())
+        {
+            // on the Turkish lower-cased text, whose offsets are mapped back: the regex is
+            // case-insensitive only in ASCII, and missed every İ (DOĞUM TARİHİ)
+            let (low, origin) = normalize::turkish_lower_with_origin(text);
+            let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
+            for cap in BIRTH_DATE_POSITIVE_REGEX.captures_iter(&low) {
+                let date_match = cap
+                    .name("date")
+                    .or_else(|| cap.name("date2"))
+                    .or_else(|| cap.name("year"));
                 if let Some(mat) = date_match {
+                    let (start, end) = (orig(mat.start()), orig(mat.end()));
                     out.push(PiiEntity {
-                        text: mat.as_str().to_string(),
+                        text: text[start..end].to_string(),
                         label: PiiType::BirthDate.as_str().to_string(),
                         pii_type: PiiType::BirthDate,
-                        start: mat.start(),
-                        end: mat.end(),
+                        start,
+                        end,
                         confidence: 0.98,
-                        stem: mat.as_str().to_string(),
+                        stem: text[start..end].to_string(),
                         suffix: None,
                     });
                 }
@@ -1126,96 +1237,72 @@ impl TurkishPiiEngine {
             "tarih",
             "günü",
             "gunu",
+            "ameliyat",
+            "kontrol",
+            "tahlil",
+            "kargo",
+            "sipariş",
+            "siparis",
+            "tören",
+            "toren",
+            "düğün",
+            "dugun",
+            "nikah",
+            "nikâh",
+            "nişan",
+            "nisan",
+            "uçuş",
+            "ucus",
+            "vefat",
+            "ölüm",
+            "olum",
+            "taburcu",
+            "yatış",
+            "yatis",
         ];
         if has_digits
             && DATE_TRIGGERS
                 .iter()
                 .any(|&trig| lower.sz_find(trig).is_some())
         {
-            for cap in PRIVATE_DATE_TRIGGER_REGEX.captures_iter(text) {
+            let (low, origin) = normalize::turkish_lower_with_origin(text);
+            let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
+            let push_private = |m: regex::Match<'_>, out: &mut Vec<PiiEntity>| {
+                let (start, end) = (orig(m.start()), orig(m.end()));
+                out.push(PiiEntity {
+                    text: text[start..end].to_string(),
+                    label: "OZEL_TARIH".to_string(),
+                    pii_type: PiiType::PrivateDate,
+                    start,
+                    end,
+                    confidence: 0.98,
+                    stem: text[start..end].to_string(),
+                    suffix: None,
+                });
+            };
+            for cap in PRIVATE_DATE_TRIGGER_REGEX.captures_iter(&low) {
                 if let Some(mat) = cap.get(1) {
-                    out.push(PiiEntity {
-                        text: mat.as_str().to_string(),
-                        label: "OZEL_TARIH".to_string(),
-                        pii_type: PiiType::PrivateDate,
-                        start: mat.start(),
-                        end: mat.end(),
-                        confidence: 0.98,
-                        stem: mat.as_str().to_string(),
-                        suffix: None,
-                    });
+                    push_private(mat, out);
+                }
+            }
+            for cap in PRIVATE_EVENT_DATE_REGEX.captures_iter(&low) {
+                if let Some(mat) = cap.name("date").or_else(|| cap.name("date2")) {
+                    push_private(mat, out);
                 }
             }
             if lower.sz_find("olan").is_some() {
-                for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(text) {
+                for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(&low) {
                     if let Some(mat) = cap.get(1) {
-                        out.push(PiiEntity {
-                            text: mat.as_str().to_string(),
-                            label: "OZEL_TARIH".to_string(),
-                            pii_type: PiiType::PrivateDate,
-                            start: mat.start(),
-                            end: mat.end(),
-                            confidence: 0.98,
-                            stem: mat.as_str().to_string(),
-                            suffix: None,
-                        });
+                        push_private(mat, out);
                     }
                 }
             }
         }
 
-        // Semantic embedding disambiguation for candidate dates (when embeddings are initialized)
-        if has_digits {
-            if let Some(scorer) = self.embedding_scorer.as_ref() {
-                for mat in TURKISH_DATE_CANDIDATE_REGEX.find_iter(text) {
-                    let ctx_start = if mat.start() >= 40 {
-                        mat.start() - 40
-                    } else {
-                        0
-                    };
-                    let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
-                    let ctx = &text[ctx_start..ctx_end];
-                    if scorer.is_private_date_context(ctx) {
-                        out.push(PiiEntity {
-                            text: mat.as_str().to_string(),
-                            label: PiiType::BirthDate.as_str().to_string(),
-                            pii_type: PiiType::BirthDate,
-                            start: mat.start(),
-                            end: mat.end(),
-                            confidence: 0.90,
-                            stem: mat.as_str().to_string(),
-                            suffix: None,
-                        });
-                    }
-                }
-                if text.sz_find(".").is_some()
-                    || text.sz_find("/").is_some()
-                    || text.sz_find("-").is_some()
-                {
-                    for mat in NUMERIC_DATE_CANDIDATE_REGEX.find_iter(text) {
-                        let ctx_start = if mat.start() >= 40 {
-                            mat.start() - 40
-                        } else {
-                            0
-                        };
-                        let ctx_end = std::cmp::min(text.len(), mat.end() + 40);
-                        let ctx = &text[ctx_start..ctx_end];
-                        if scorer.is_private_date_context(ctx) {
-                            out.push(PiiEntity {
-                                text: mat.as_str().to_string(),
-                                label: PiiType::BirthDate.as_str().to_string(),
-                                pii_type: PiiType::BirthDate,
-                                start: mat.start(),
-                                end: mat.end(),
-                                confidence: 0.90,
-                                stem: mat.as_str().to_string(),
-                                suffix: None,
-                            });
-                        }
-                    }
-                }
-            }
-        }
+        // Dates are personal by their trigger words above. The embedding check of a date's
+        // context (PiiEmbeddingScorer::is_private_date_context) was taken out: on 90 labeled
+        // dates it found none the rules miss and took 9 of 45 public ones, and it marked 238 of
+        // 1,461 dates in court decisions and 62 of 1,012 in Wikipedia as dates of birth.
 
         // IMEI device numbers
         if has_digits && (lower.sz_find("imei").is_some() || text.len() >= 15) {
@@ -1572,23 +1659,37 @@ impl TurkishPiiEngine {
         }
 
         // Health record
-        if lower.sz_find("sağlık").is_some()
-            || lower.sz_find("saglik").is_some()
-            || lower.sz_find("rahatsızlık").is_some()
-            || lower.sz_find("rahatsizlik").is_some()
-            || lower.sz_find("kronik").is_some()
-            || lower.sz_find("engel").is_some()
+        // every trigger of the regex: "rahatsızlığı" does not contain "rahatsızlık", and
+        // tanı / teşhis / hastalığı had no gate word at all
+        if [
+            "sağlık",
+            "saglik",
+            "rahatsızl",
+            "rahatsizl",
+            "hastalığ",
+            "hastalig",
+            "tanı",
+            "tani",
+            "teşhis",
+            "teshis",
+            "kronik",
+            "engel",
+        ]
+        .iter()
+        .any(|k| lower.sz_find(k).is_some())
         {
             for cap in HEALTH_RECORD_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let span_str = val.as_str().trim();
+                let Some(val) = cap.get(1).or_else(|| cap.get(2)) else {
+                    continue;
+                };
+                let span_str = val.as_str().trim_end();
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: "SAGLIK".to_string(),
                         pii_type: PiiType::Health,
                         start: val.start(),
-                        end: val.end(),
+                        end: val.start() + span_str.len(),
                         confidence: 0.95,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -1606,7 +1707,11 @@ impl TurkishPiiEngine {
             || lower.sz_find("sen ").is_some()
             || lower.sz_find("sen\n").is_some()
         {
-            for mat in TRADE_UNION_REGEX.find_iter(text) {
+            for cap in TRADE_UNION_REGEX.captures_iter(text) {
+                // the union, not "sendika bilgisi" before it
+                let Some(mat) = cap.get(1).or_else(|| cap.get(2)).or_else(|| cap.get(3)) else {
+                    continue;
+                };
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
                     text: span_str.to_string(),
@@ -1687,15 +1792,14 @@ impl TurkishPiiEngine {
         // Family status
         if lower.sz_find("aile").is_some() || lower.sz_find("medeni").is_some() {
             for cap in FAMILY_STATUS_REGEX.captures_iter(text) {
-                let val = cap.get(1).unwrap();
-                let span_str = val.as_str().trim();
+                let (val_start, val_end, span_str) = trimmed_match(cap.get(1).unwrap());
                 if !span_str.is_empty() {
                     out.push(PiiEntity {
                         text: span_str.to_string(),
                         label: "AILE".to_string(),
                         pii_type: PiiType::Person,
-                        start: val.start(),
-                        end: val.end(),
+                        start: val_start,
+                        end: val_end,
                         confidence: 0.95,
                         stem: span_str.to_string(),
                         suffix: None,
@@ -1751,7 +1855,11 @@ impl TurkishPiiEngine {
             .iter()
             .any(|&trig| lower.sz_find(trig).is_some())
         {
-            for mat in WORKPLACE_REGEX.find_iter(text) {
+            for cap in WORKPLACE_REGEX.captures_iter(text) {
+                // the name, not the "İşyeri:" before it or "bünyesinde" after it
+                let Some(mat) = cap.get(1).or_else(|| cap.get(2)) else {
+                    continue;
+                };
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
                     text: span_str.to_string(),
@@ -1791,217 +1899,33 @@ impl TurkishPiiEngine {
     }
 
     fn detect_names_and_persons(&self, text: &str, out: &mut Vec<PiiEntity>) {
-        let tokens = TurkishTokenizer::tokenize(text);
-        let n = tokens.len();
-        let mut i = 0;
-
-        while i < n {
-            let tok = &tokens[i];
-            let clean_tok = tok
-                .text
-                .trim_matches(|c: char| !c.is_alphabetic() && c != '\'' && c != '’');
-            if clean_tok.is_empty() {
-                i += 1;
-                continue;
-            }
-
-            let stemmed = split_stem_suffix(clean_tok, tok.start);
-            let lower_stem = to_turkish_lower(stemmed.stem);
-
-            // Check honorific title preceding: e.g. `Dr. Ayşe`, `Sayın Ahmet Bey`
-            let is_title = TITLE_TRIGGERS.contains(lower_stem.as_str());
-            let preceded_by_title = i > 0
-                && TITLE_TRIGGERS.contains(
-                    to_turkish_lower(
-                        tokens[i - 1]
-                            .text
-                            .trim_matches(|c: char| !c.is_alphabetic()),
-                    )
-                    .as_str(),
-                );
-            let followed_by_title = i + 1 < n
-                && TITLE_TRIGGERS.contains(
-                    to_turkish_lower(
-                        tokens[i + 1]
-                            .text
-                            .trim_matches(|c: char| !c.is_alphabetic()),
-                    )
-                    .as_str(),
-                );
-
-            let is_in_given = GIVEN_NAMES.contains(lower_stem.as_str());
-            let _is_in_surnames = SURNAMES.contains(lower_stem.as_str());
-            let is_polysemous = POLYSEMOUS_NAMES.contains(lower_stem.as_str());
-
-            let is_capitalized = stemmed
-                .stem
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_uppercase());
-
-            // Polysemy Guard: If name is polysemous (e.g. Deniz, Barış, Gül), require capitalization
-            // and either a title, another capitalized name following (e.g. Deniz Yılmaz), or clear proper noun context
-            let mut name_confirmed = false;
-            let mut span_start = tok.start;
-            let mut span_end = stemmed.stem_end;
-            let mut span_text = stemmed.stem.to_string();
-
-            if is_title && i + 1 < n {
-                // Preceded by title / role trigger: e.g. `Dr. Ayşe`, `Sayın Ahmet Yılmaz`, `Müşteri Caner Çetin`
-                let next_tok = &tokens[i + 1];
-                let next_stemmed = split_stem_suffix(next_tok.text, next_tok.start);
-                if next_stemmed
-                    .stem
-                    .chars()
-                    .next()
-                    .is_some_and(|c| c.is_uppercase())
-                {
-                    name_confirmed = true;
-                    // The title itself remains untouched, the name span starts at the first name token
-                    span_start = next_tok.start;
-                    span_end = next_stemmed.stem_end;
-                    span_text = next_stemmed.stem.to_string();
-                    // Check if second name / surname follows: e.g. `Müşteri Caner Çetin`
-                    if i + 2 < n
-                        && tokens[i + 2]
-                            .text
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_uppercase())
-                    {
-                        let third_stemmed =
-                            split_stem_suffix(tokens[i + 2].text, tokens[i + 2].start);
-                        span_end = third_stemmed.stem_end;
-                        span_text = format!("{} {}", span_text, third_stemmed.stem);
-                        i += 1;
-                    }
-                    i += 1;
-                }
-            } else if is_capitalized {
-                if is_polysemous {
-                    if preceded_by_title || followed_by_title {
-                        name_confirmed = true;
-                    } else if i + 1 < n
-                        && tokens[i + 1]
-                            .text
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_uppercase())
-                    {
-                        // `Deniz Kaya`
-                        let next_stemmed =
-                            split_stem_suffix(tokens[i + 1].text, tokens[i + 1].start);
-                        let next_lower = to_turkish_lower(next_stemmed.stem);
-                        if SURNAMES.contains(next_lower.as_str())
-                            || GIVEN_NAMES.contains(next_lower.as_str())
-                        {
-                            name_confirmed = true;
-                            span_end = next_stemmed.stem_end;
-                            span_text = format!("{} {}", stemmed.stem, next_stemmed.stem);
-                            i += 1;
-                        }
-                    } else if let Some(scorer) = self.embedding_scorer.as_ref() {
-                        let ctx_start = span_start.saturating_sub(40);
-                        let ctx_end = std::cmp::min(text.len(), span_end + 40);
-                        // Exclude the ambiguous word itself so its literal noun sense does not bias the context embedding
-                        let surrounding = format!(
-                            "{} {}",
-                            &text[ctx_start..span_start],
-                            &text[span_end..ctx_end]
-                        );
-                        if scorer.is_person_context(surrounding.trim()) {
-                            name_confirmed = true;
-                        }
-                    }
-                } else if is_in_given {
-                    // Non-polysemous given name (e.g. Mehmet, Mustafa, Ahmet, Zeynep, Fatma, Caner)
-                    name_confirmed = true;
-                    // Check if followed by surname
-                    if i + 1 < n
-                        && tokens[i + 1]
-                            .text
-                            .chars()
-                            .next()
-                            .is_some_and(|c| c.is_uppercase())
-                    {
-                        let next_stemmed =
-                            split_stem_suffix(tokens[i + 1].text, tokens[i + 1].start);
-                        let next_lower = to_turkish_lower(next_stemmed.stem);
-                        if SURNAMES.contains(next_lower.as_str())
-                            || GIVEN_NAMES.contains(next_lower.as_str())
-                            || preceded_by_title
-                        {
-                            span_end = next_stemmed.stem_end;
-                            span_text = format!("{} {}", stemmed.stem, next_stemmed.stem);
-                            i += 1;
-                        }
-                    }
-                } else if i + 1 < n
-                    && tokens[i + 1]
-                        .text
-                        .chars()
-                        .next()
-                        .is_some_and(|c| c.is_uppercase())
-                {
-                    // Two consecutive capitalized words where word 2 is in SURNAMES (e.g. Caner Çetin, Ada Demir)
-                    let next_stemmed = split_stem_suffix(tokens[i + 1].text, tokens[i + 1].start);
-                    let next_lower = to_turkish_lower(next_stemmed.stem);
-                    if SURNAMES.contains(next_lower.as_str()) {
-                        name_confirmed = true;
-                        span_end = next_stemmed.stem_end;
-                        span_text = format!("{} {}", stemmed.stem, next_stemmed.stem);
-                        i += 1;
-                    }
-                }
-            }
-
-            if name_confirmed {
-                out.push(PiiEntity {
-                    text: span_text.clone(),
-                    label: PiiType::Name.as_str().to_string(),
-                    pii_type: PiiType::Name,
-                    start: span_start,
-                    end: span_end,
-                    confidence: 0.95,
-                    stem: span_text,
-                    suffix: stemmed.suffix.map(|s| s.to_string()),
-                });
-            }
-
-            i += 1;
-        }
+        names::detect_names(text, self.embedding_scorer.as_ref(), out);
     }
 
     fn detect_addresses(&self, text: &str, out: &mut Vec<PiiEntity>) {
-        for mat in ADDRESS_REGEX.find_iter(text) {
-            let span_str = mat.as_str().trim();
-            out.push(PiiEntity {
-                text: span_str.to_string(),
-                label: PiiType::Address.as_str().to_string(),
-                pii_type: PiiType::Address,
-                start: mat.start(),
-                end: mat.end(),
-                confidence: 0.90,
-                stem: span_str.to_string(),
-                suffix: None,
-            });
-        }
+        // addresses.rs; the regex that was here (Mahallesi + one street word, case-insensitive)
+        // ran across lines and cut inside words (Sok in "sokakta", Cad in "caddede")
+        addresses::detect_addresses(text, out);
     }
 
     fn detect_sensitive_categories(&self, text: &str, out: &mut Vec<PiiEntity>) {
-        let lower = to_turkish_lower(text);
+        // Terms are found in the lower-cased text, whose byte offsets differ from `text`'s after
+        // every İ or I: using them directly masked the wrong bytes and panicked inside İ.
+        let (lower, origin) = normalize::turkish_lower_with_origin(text);
+        let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
 
         // Blood types
         for bt in BLOOD_TYPES.iter() {
-            if let Some(pos) = lower.sz_find(bt.as_str()) {
+            for (pos, pos_end) in term_spans(&lower, bt) {
+                let (start, end) = (orig(pos), orig(pos_end));
                 out.push(PiiEntity {
-                    text: text[pos..pos + bt.len()].to_string(),
+                    text: text[start..end].to_string(),
                     label: PiiType::BloodType.as_str().to_string(),
                     pii_type: PiiType::BloodType,
-                    start: pos,
-                    end: pos + bt.len(),
+                    start,
+                    end,
                     confidence: 0.98,
-                    stem: text[pos..pos + bt.len()].to_string(),
+                    stem: text[start..end].to_string(),
                     suffix: None,
                 });
             }
@@ -2009,35 +1933,33 @@ impl TurkishPiiEngine {
 
         // Health terms
         for ht in HEALTH_TERMS.iter() {
-            let mut start_idx = 0;
-            while let Some(pos) = lower[start_idx..].sz_find(ht.as_str()) {
-                let actual_pos = start_idx + pos;
-                let end_pos = actual_pos + ht.len();
+            for (pos, pos_end) in term_spans(&lower, ht) {
+                let (start, end) = (orig(pos), orig(pos_end));
                 out.push(PiiEntity {
-                    text: text[actual_pos..end_pos].to_string(),
+                    text: text[start..end].to_string(),
                     label: PiiType::Health.as_str().to_string(),
                     pii_type: PiiType::Health,
-                    start: actual_pos,
-                    end: end_pos,
+                    start,
+                    end,
                     confidence: 0.95,
-                    stem: text[actual_pos..end_pos].to_string(),
+                    stem: text[start..end].to_string(),
                     suffix: None,
                 });
-                start_idx = end_pos;
             }
         }
 
         // Religion terms
         for rt in RELIGION_TERMS.iter() {
-            if let Some(pos) = lower.sz_find(rt.as_str()) {
+            for (pos, pos_end) in term_spans(&lower, rt) {
+                let (start, end) = (orig(pos), orig(pos_end));
                 out.push(PiiEntity {
-                    text: text[pos..pos + rt.len()].to_string(),
+                    text: text[start..end].to_string(),
                     label: "DIN".to_string(),
                     pii_type: PiiType::Health, // Sensitive KVKK 6
-                    start: pos,
-                    end: pos + rt.len(),
+                    start,
+                    end,
                     confidence: 0.90,
-                    stem: text[pos..pos + rt.len()].to_string(),
+                    stem: text[start..end].to_string(),
                     suffix: None,
                 });
             }
@@ -2056,18 +1978,32 @@ impl TurkishPiiEngine {
                 "hastaligi",
                 "hastası",
                 "hastasi",
+                "ilacı",
+                "ilaci",
+                "rahatsızlığı",
+                "rahatsizligi",
+                "nöbeti",
+                "nobeti",
             ];
+            let stopwords = crate::morphology::TurkishStopwords::new();
             for trig in CLINICAL_TRIGGERS {
                 let mut start_idx = 0;
                 while let Some(pos) = lower[start_idx..].sz_find(trig) {
-                    let actual_pos = start_idx + pos;
-                    let window_start = actual_pos.saturating_sub(40);
+                    let lower_pos = start_idx + pos;
+                    let actual_pos = orig(lower_pos);
+                    let window_start = floor_char_boundary(text, actual_pos.saturating_sub(40));
                     let candidate_context = text[window_start..actual_pos].trim();
                     if let Some(last_word) = candidate_context.split_whitespace().last() {
                         let clean_word = last_word.trim_matches(|c: char| !c.is_alphabetic());
-                        if clean_word.len() >= 4
-                            && scorer.score_similarity(clean_word, PiiPrototypeCategory::Health)
-                                >= 0.25
+                        let letters = clean_word.chars().count();
+                        // three letters or more (gut, lupus), or an acronym (MS, ALS, OKB)
+                        let long_enough = letters >= 3
+                            || (letters == 2 && clean_word.chars().all(char::is_uppercase));
+                        let lower_word = to_turkish_lower(clean_word);
+                        if long_enough
+                            && !stopwords.is_stopword(&lower_word)
+                            && names::is_bare_nominal_or_unknown(&lower_word)
+                            && scorer.is_health_condition(clean_word)
                         {
                             if let Some(word_pos) =
                                 text[window_start..actual_pos].sz_rfind(clean_word)
@@ -2087,15 +2023,86 @@ impl TurkishPiiEngine {
                             }
                         }
                     }
-                    start_idx = actual_pos + trig.len();
+                    start_idx = lower_pos + trig.len();
                 }
             }
         }
     }
 }
 
-/// Resolves overlapping spans, keeping the longest, most specific, or highest confidence match.
-fn resolve_conflicts(mut candidates: Vec<PiiEntity>) -> Vec<PiiEntity> {
+/// Every occurrence of `term` in `lower` as a word: starting at a word boundary, and for a
+/// term of four letters or fewer also ending at one (or at an apostrophe), so that a term is
+/// not found inside another word (sara in hasara or Saraçhane, hiv in archived) while longer
+/// terms keep their suffixes (kanserli, diyabetim, nörolojik). The previous version searched
+/// for substrings, and religion and blood-type terms only for their first occurrence.
+fn term_spans(lower: &str, term: &str) -> Vec<(usize, usize)> {
+    let short = term.chars().filter(|c| c.is_alphanumeric()).count() <= 4;
+    let mut out = Vec::new();
+    let mut from = 0;
+    while let Some(pos) = lower[from..].sz_find(term) {
+        let start = from + pos;
+        let end = start + term.len();
+        from = end;
+        let before = lower[..start].chars().next_back();
+        if before.is_some_and(char::is_alphanumeric) {
+            continue;
+        }
+        let ends_in_word = term.chars().next_back().is_some_and(char::is_alphanumeric);
+        if short
+            && ends_in_word
+            && lower[end..]
+                .chars()
+                .next()
+                .is_some_and(char::is_alphanumeric)
+        {
+            continue;
+        }
+        out.push((start, end));
+    }
+    out
+}
+
+/// The span of `m` without the whitespace around it, and its text: the entity text was trimmed
+/// but the span was not, so masking took the space after the value and restore lost it
+/// ("TC 12345678901 ve" became "TC {{TCKN_1}}ve").
+fn trimmed_match<'t>(m: regex::Match<'t>) -> (usize, usize, &'t str) {
+    let raw = m.as_str();
+    let lead = raw.len() - raw.trim_start().len();
+    let t = raw.trim();
+    (m.start() + lead, m.start() + lead + t.len(), t)
+}
+
+/// `'in`, `’e`: an apostrophe and the letters of a suffix.
+fn is_apostrophe_suffix(s: &str) -> bool {
+    let mut chars = s.chars();
+    matches!(chars.next(), Some('\'' | '’')) && {
+        let rest = chars.as_str();
+        !rest.is_empty() && rest.chars().all(char::is_alphabetic)
+    }
+}
+
+/// The largest char boundary of `text` at or before `i`.
+fn floor_char_boundary(text: &str, i: usize) -> usize {
+    let mut i = i.min(text.len());
+    while !text.is_char_boundary(i) {
+        i -= 1;
+    }
+    i
+}
+
+/// The smallest char boundary of `text` at or after `i`.
+fn ceil_char_boundary(text: &str, i: usize) -> usize {
+    let mut i = i.min(text.len());
+    while !text.is_char_boundary(i) {
+        i += 1;
+    }
+    i
+}
+
+/// Resolves overlapping spans into non-overlapping ones. Overlapping detections are merged
+/// into one span covering both, labelled as the more confident one: keeping only the more
+/// confident span unmasked the rest of the other (a credential around an e-mail-like part of it).
+fn resolve_conflicts(mut candidates: Vec<PiiEntity>, text: &str) -> Vec<PiiEntity> {
     if candidates.is_empty() {
         return candidates;
     }
@@ -2112,11 +2119,31 @@ fn resolve_conflicts(mut candidates: Vec<PiiEntity>) -> Vec<PiiEntity> {
     let mut resolved: Vec<PiiEntity> = Vec::with_capacity(candidates.len());
     for cand in candidates {
         if let Some(last) = resolved.last_mut() {
-            // Overlap condition
+            // Overlap condition (sorted by start, so last.start <= cand.start)
             if cand.start < last.end {
-                // If candidate has strictly higher confidence, replace
-                if cand.confidence > last.confidence {
-                    *last = cand;
+                let start = last.start;
+                let mut end = last.end.max(cand.end);
+                let winner = if cand.confidence > last.confidence {
+                    cand
+                } else {
+                    last.clone()
+                };
+                // A case suffix after an apostrophe (Ahmet'in) stays outside the masked name, as
+                // the text it is restored into: do not widen over it.
+                if end > winner.end && is_apostrophe_suffix(&text[winner.end..end]) {
+                    end = winner.end;
+                }
+                // Keep the winner's own text, stem and suffix when its span is the merged one.
+                let span_changed = (winner.start, winner.end) != (start, end);
+                *last = PiiEntity {
+                    start,
+                    end,
+                    ..winner
+                };
+                if span_changed {
+                    last.text = text[start..end].to_string();
+                    last.stem = last.text.clone();
+                    last.suffix = None;
                 }
                 continue;
             }
@@ -2628,5 +2655,54 @@ mod tests {
         assert!(!is_file_like_email("support@company.md"));
         assert!(!is_file_like_email("contact@gov.md"));
         assert!(!is_file_like_email("qa@test.com"));
+    }
+
+    fn entity(text: &str, start: usize, end: usize, label: &str, confidence: f32) -> PiiEntity {
+        PiiEntity {
+            text: text[start..end].to_string(),
+            label: label.to_string(),
+            pii_type: PiiType::Credentials,
+            start,
+            end,
+            confidence,
+            stem: text[start..end].to_string(),
+            suffix: None,
+        }
+    }
+
+    #[test]
+    fn overlapping_detections_are_merged_not_shrunk() {
+        // A more confident e-mail-like part inside a credential used to replace it, leaving the
+        // rest of the credential unmasked.
+        let text = "url deploy:VhVWE6pSMTnz6pJu@git.example.com son";
+        let long = entity(text, 4, 43, "SIFRE", 0.9);
+        let inner = entity(text, 11, 43, "EMAIL", 0.99);
+        let out = resolve_conflicts(vec![long, inner], text);
+        assert_eq!(out.len(), 1);
+        assert_eq!((out[0].start, out[0].end), (4, 43));
+        assert_eq!(out[0].label, "EMAIL");
+        assert_eq!(out[0].text, "deploy:VhVWE6pSMTnz6pJu@git.example.com");
+
+        // A less confident span reaching past the winner widens it...
+        let text = "x ab12cd34ef56@host.com.tr y";
+        let a = entity(text, 2, 19, "EMAIL", 0.99);
+        let b = entity(text, 9, 26, "SIFRE", 0.8);
+        let out = resolve_conflicts(vec![a, b], text);
+        assert_eq!(
+            (out[0].start, out[0].end, out[0].label.as_str()),
+            (2, 26, "EMAIL")
+        );
+
+        // ...but not over a case suffix after an apostrophe, which restoration needs.
+        let text = "Ahmet'in kaydı";
+        let mut name = entity(text, 0, 5, "AD", 0.95);
+        name.suffix = Some("in".to_string());
+        let entropy = entity(text, 0, 8, "SIFRE", 0.9);
+        let out = resolve_conflicts(vec![entropy, name], text);
+        assert_eq!(
+            (out[0].start, out[0].end, out[0].label.as_str()),
+            (0, 5, "AD")
+        );
+        assert_eq!(out[0].suffix.as_deref(), Some("in"));
     }
 }
