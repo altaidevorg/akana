@@ -70,6 +70,83 @@ pub fn loose_turkish(pattern: &str) -> String {
     out
 }
 
+/// A case-insensitive regex that also folds the Turkish i's. Rust's `(?i)` folds I with i
+/// only, never with İ or ı, so a trigger written in lower case missed the same trigger in
+/// Turkish capitals: "MÜŞTERİ 42 YAŞINDA", "SİCİL NO", "KREDİ NOTU", "ŞASİ NO" were left
+/// unmasked. Outside character classes every i, ı, I and İ becomes [iıIİ]; a class that lists
+/// one of them (not as a range end, not negated) gets all four. The other Turkish letters fold
+/// already (Ş with ş, Ü with ü), and the text is matched as it is, so a value such as a sicil
+/// or motor number keeps every letter it has.
+pub fn turkish_i_insensitive(pattern: &str) -> String {
+    const I_FORMS: &str = "iıIİ";
+    let is_i = |c: char| matches!(c, 'i' | 'ı' | 'I' | 'İ');
+    let mut out = String::with_capacity(pattern.len() * 2);
+    let mut chars = pattern.chars().peekable();
+    let mut in_class = false;
+    let mut negated = false;
+    let mut class_has_i = false;
+    let mut prev_in_class: Option<char> = None;
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                out.push(c);
+                if let Some(n) = chars.next() {
+                    out.push(n);
+                    // \p{L}, \x{41}: the braces belong to the escape
+                    if matches!(n, 'p' | 'P' | 'x') && chars.peek() == Some(&'{') {
+                        for b in chars.by_ref() {
+                            out.push(b);
+                            if b == '}' {
+                                break;
+                            }
+                        }
+                    }
+                }
+                prev_in_class = None;
+            }
+            '[' if !in_class => {
+                in_class = true;
+                class_has_i = false;
+                prev_in_class = None;
+                out.push(c);
+                negated = chars.peek() == Some(&'^');
+                if negated {
+                    out.push(chars.next().unwrap());
+                }
+            }
+            ']' if in_class => {
+                in_class = false;
+                out.push(c);
+            }
+            '(' if !in_class && chars.peek() == Some(&'?') => {
+                // a group header: (?i), (?ix), (?P<name>
+                out.push(c);
+                for h in chars.by_ref() {
+                    out.push(h);
+                    if matches!(h, ':' | ')' | '>') {
+                        break;
+                    }
+                }
+            }
+            _ if in_class => {
+                let range_end = prev_in_class == Some('-') || chars.peek() == Some(&'-');
+                if is_i(c) && !negated && !range_end {
+                    if !class_has_i {
+                        out.push_str(I_FORMS);
+                        class_has_i = true;
+                    }
+                } else {
+                    out.push(c);
+                }
+                prev_in_class = Some(c);
+            }
+            _ if is_i(c) => out.push_str("[iıIİ]"),
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 lazy_static! {
     /// Phone regex matching Turkish mobile, landline, 0850, and 444 numbers.
     ///
@@ -119,13 +196,13 @@ lazy_static! {
     /// or after a host and a colon (localhost:3000, 10.0.0.5:5432, db.internal:6379, [::1]:80).
     /// A colon and a number alone are file numbers, times and references (B. No:2013/772,
     /// E:2014/26, saat 12:22, doi:10.1017, 74:30), not ports.
-    pub static ref PORT_REGEX: Regex = Regex::new(
+    pub static ref PORT_REGEX: Regex = Regex::new(&turkish_i_insensitive(
         r"(?ix)
         \b(\d{1,5})\s*(?:nolu\s+|numaralı\s+)?port(?:u|unda|undan|una|unu)?\b
         | \bport(?:u|unu)?(?:\s*[:=]\s*|\s+)(\d{2,5})\b
         | (?:\blocalhost|\b(?:\d{1,3}\.){3}\d{1,3}|\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+|\[[0-9a-f.]*:[0-9a-f:.]*\])
           :(\d{2,5})\b
-        "
+        ")
     ).unwrap();
 
     /// Turkish Passport number pattern (e.g. `U12345678`, `A12345678`, `EP1234567`).
@@ -134,28 +211,28 @@ lazy_static! {
     ).unwrap();
 
     /// Age expression: `42 yaşında`, `35 yaşındayım`.
-    pub static ref AGE_REGEX: Regex = Regex::new(
-        r"(?i)\b([1-9][0-9]?)\s*(?:yaşında|yaşındayım|yaşındaki)\b"
+    pub static ref AGE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b([1-9][0-9]?)\s*(?:yaşında|yaşındayım|yaşındaki)\b")
     ).unwrap();
 
     /// Age range: `20-30 yaş arası`, `40 - 50 yaşlarında`.
-    pub static ref AGE_RANGE_REGEX: Regex = Regex::new(
-        r"(?i)\b([1-9][0-9]?)\s*[-–]\s*([1-9][0-9]?)\s*(?:yaş|yaşlarında|yaş\s*arası|yaş\s*aralığı(?:nda)?)\b"
+    pub static ref AGE_RANGE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b([1-9][0-9]?)\s*[-–]\s*([1-9][0-9]?)\s*(?:yaş|yaşlarında|yaş\s*arası|yaş\s*aralığı(?:nda)?)\b")
     ).unwrap();
 
     /// Card CVV / CVC code in context.
-    pub static ref CVV_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:cvv(?:(?:\s*['’]?\s*s?[iı])|\s+kodu)?|cvc2?|güvenlik\s+kodu(?:m|nu)?|güvenlik\s+no(?:su)?)[:\s]*([0-9]{3,4})\b"
+    pub static ref CVV_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:cvv(?:(?:\s*['’]?\s*s?[iı])|\s+kodu)?|cvc2?|güvenlik\s+kodu(?:m|nu)?|güvenlik\s+no(?:su)?)[:\s]*([0-9]{3,4})\b")
     ).unwrap();
 
     /// Card expiration date (SKT): `12/26`, `08/2028`.
-    pub static ref CARD_EXPIRY_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:skt|son\s+kullanma\s+tarihi|exp(?:\.|\s+date)?)[:\s]*(0[1-9]|1[0-2])\s*[/.-]\s*([0-9]{2}|20[2-3][0-9])\b"
+    pub static ref CARD_EXPIRY_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:skt|son\s+kullanma\s+tarihi|exp(?:\.|\s+date)?)[:\s]*(0[1-9]|1[0-2])\s*[/.-]\s*([0-9]{2}|20[2-3][0-9])\b")
     ).unwrap();
 
     /// Bank Account No / Customer No in context.
-    pub static ref ACCOUNT_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:m[üuÜU][şsŞS]ter[iİıI]\s*(?:no(?:su)?|numaras[ıiIİ]|id(?:s[iİıI])?|kodu)|muster[iİıI]\s*no)[:\s]*([A-Za-z0-9_-]{4,16})\b|\b(?:hesap(?:\s*no(?:su)?)?)[:\s]*([0-9]{3,5}[- ][0-9]{5,8}(?:[- ][0-9]{2,4})?|[0-9]{6,16})\b|\b(?:[öoÖO]deme\s+tal[iİıI]mat[ıiIİ](?:n[ıiIİ])?)[:\s]*([0-9]{3,5}[- ][0-9]{5,8}(?:[- ][0-9]{2,4})?)\b"
+    pub static ref ACCOUNT_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:m[üuÜU][şsŞS]ter[iİıI]\s*(?:no(?:su)?|numaras[ıiIİ]|id(?:s[iİıI])?|kodu)|muster[iİıI]\s*no)[:\s]*([A-Za-z0-9_-]{4,16})\b|\b(?:hesap(?:\s*no(?:su)?)?)[:\s]*([0-9]{3,5}[- ][0-9]{5,8}(?:[- ][0-9]{2,4})?|[0-9]{6,16})\b|\b(?:[öoÖO]deme\s+tal[iİıI]mat[ıiIİ](?:n[ıiIİ])?)[:\s]*([0-9]{3,5}[- ][0-9]{5,8}(?:[- ][0-9]{2,4})?)\b")
     ).unwrap();
 
     /// Turkish bank account standard format: 4-7-3 digits (e.g. 5427-5551073-146).
@@ -164,24 +241,24 @@ lazy_static! {
     ).unwrap();
 
     /// Tax Identification Number (VKN / Vergi Kimlik No) in context.
-    pub static ref VERGI_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:verg[iİıI]\s*(?:k[iİıI]ml[iİıI]k)?\s*no(?:su)?|vkn)[\s:]*([0-9]{10})\b"
+    pub static ref VERGI_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:verg[iİıI]\s*(?:k[iİıI]ml[iİıI]k)?\s*no(?:su)?|vkn)[\s:]*([0-9]{10})\b")
     ).unwrap();
 
 
     /// Salary / Income amounts in context: `maaşım 45.000 TL`, `aylık gelir: 60000 TRY`.
-    pub static ref SALARY_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:maaş(?:ım|ı)?|aylık\s+gelir(?:im|i)?|ücret(?:im|i)?)[:\s]*((?:aylık\s+)?[0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)\s*(?:tl|try|lira|₺)\b"
+    pub static ref SALARY_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:maaş(?:ım|ı)?|aylık\s+gelir(?:im|i)?|ücret(?:im|i)?)[:\s]*((?:aylık\s+)?[0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)\s*(?:tl|try|lira|₺)\b")
     ).unwrap();
 
     /// Driver's License number in context (supports new EU/TR format e.g. F1839528 or D6923973).
-    pub static ref DRIVER_LICENSE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:ehl[iİıI]yet(?:\s*no(?:su)?)?|s[üuÜU]r[üuÜU]c[üuÜU]\s+belges[iİıI](?:\s*no(?:su)?)?|[şsŞS]of[öoÖO]r\s+belge(?:s[iİıI]|m)?(?:\s*no(?:su)?)?)(?:[\s:]+(?:yen[iİıI]lend[iİıI]|ver[iİıI]ld[iİıI]))?[:\s]*([A-Z]?[0-9]{6,8})\b"
+    pub static ref DRIVER_LICENSE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:ehl[iİıI]yet(?:\s*no(?:su)?)?|s[üuÜU]r[üuÜU]c[üuÜU]\s+belges[iİıI](?:\s*no(?:su)?)?|[şsŞS]of[öoÖO]r\s+belge(?:s[iİıI]|m)?(?:\s*no(?:su)?)?)(?:[\s:]+(?:yen[iİıI]lend[iİıI]|ver[iİıI]ld[iİıI]))?[:\s]*([A-Z]?[0-9]{6,8})\b")
     ).unwrap();
 
     /// SGK / SSK / Bağkur registration number in context.
-    pub static ref SGK_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:sgk|ssk|bağkur)(?:\s*(?:sicil\s+no|sicil\s+numarası|no))?[:\s]*([0-9- ]{9,16})\b"
+    pub static ref SGK_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:sgk|ssk|bağkur)(?:\s*(?:sicil\s+no|sicil\s+numarası|no))?[:\s]*([0-9- ]{9,16})\b")
     ).unwrap();
 
     /// A date of birth: after a birth word (doğum tarihi: 12.04.1985, D.T.: 12/04/1985, doğum
@@ -302,13 +379,13 @@ lazy_static! {
     ).unwrap();
 
     /// Contextual private link trigger: `kişisel teslim linki https://...`, `özel link: https://...`
-    pub static ref PRIVATE_URL_TRIGGER_REGEX: Regex = Regex::new(
-        r#"(?i)\b(?:özel\s+(?:dosya\s+)?linki?|kişisel\s+(?:dosya\s+)?linki?|teslim\s+linki?|takip\s+linki?|belge\s+linki?|hesap\s+linki?|profil\s+linki?|özel\s+url)[:\s]+(https?://[^\s<>"'{}|\\^`]+)"#
+    pub static ref PRIVATE_URL_TRIGGER_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r#"(?i)\b(?:özel\s+(?:dosya\s+)?linki?|kişisel\s+(?:dosya\s+)?linki?|teslim\s+linki?|takip\s+linki?|belge\s+linki?|hesap\s+linki?|profil\s+linki?|özel\s+url)[:\s]+(https?://[^\s<>"'{}|\\^`]+)"#)
     ).unwrap();
 
     /// MAC Hardware Address regex (e.g. `1F:FA:B2:B3:CF:1D` or `00-14-22-01-23-45`).
-    pub static ref MAC_ADDRESS_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:mac(?:\s*adresi?)?[:\s]*)?((?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})\b"
+    pub static ref MAC_ADDRESS_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:mac(?:\s*adresi?)?[:\s]*)?((?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})\b")
     ).unwrap();
 
     /// Cryptocurrency Wallet Address (BTC, ETH, TRON, etc.).
@@ -317,8 +394,8 @@ lazy_static! {
     ).unwrap();
 
     /// IMEI device number (15 digits).
-    pub static ref IMEI_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:imei(?:\s*no(?:su)?)?[:\s]*)?([0-9]{15})\b"
+    pub static ref IMEI_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:imei(?:\s*no(?:su)?)?[:\s]*)?([0-9]{15})\b")
     ).unwrap();
 
     /// Vehicle Registration / Ruhsat No (e.g. `ruhsat no FY-568391` or `EM-123456`).
@@ -331,17 +408,17 @@ lazy_static! {
         r"(?i)\b(?:sözleşme(?:\s*no(?:su)?)?|sozlesme_no)[:\s]*([A-Za-z0-9]+(?:[-/][A-Za-z0-9]+)+|[0-9]{5,10})\b"
     ).unwrap();
 
-    pub static ref POLICY_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:poliçe(?:\s*no(?:su)?)?|police_no)[:\s]*([A-Za-z0-9]{2,6}[-/][A-Za-z0-9]{4,12}|[A-Za-z0-9]{8,14})\b"
+    pub static ref POLICY_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:poliçe(?:\s*no(?:su)?)?|police_no)[:\s]*([A-Za-z0-9]{2,6}[-/][A-Za-z0-9]{4,12}|[A-Za-z0-9]{8,14})\b")
     ).unwrap();
 
-    pub static ref REFERENCE_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:referans(?:[ıiIİ])?(?:\s*olarak)?(?:\s*no(?:su)?)?)[:\s]*(REF-[0-9]{4}-[0-9]{3,5}|RF[0-9]{6,10}|[A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)+)\b"
+    pub static ref REFERENCE_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:referans(?:[ıiIİ])?(?:\s*olarak)?(?:\s*no(?:su)?)?)[:\s]*(REF-[0-9]{4}-[0-9]{3,5}|RF[0-9]{6,10}|[A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)+)\b")
     ).unwrap();
 
     /// Vehicle Chassis / VIN number in context (e.g. `şasi no 6Z9741GSRLHSCNA73` or `şasi F7B6HT2ETFG9716N2`).
-    pub static ref CHASSIS_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:şasi(?:\s*no(?:su)?)?|sasi(?:\s*no(?:su)?)?|vin)[:\s]*([A-HJ-NPR-Z0-9]{17})\b"
+    pub static ref CHASSIS_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:şasi(?:\s*no(?:su)?)?|sasi(?:\s*no(?:su)?)?|vin)[:\s]*([A-HJ-NPR-Z0-9]{17})\b")
     ).unwrap();
 
     /// Engine / Motor number in context (e.g. `motor N66D336569`).
@@ -350,38 +427,38 @@ lazy_static! {
     ).unwrap();
 
     /// PIN code in context (e.g. `pin 690676`).
-    pub static ref PIN_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:pin(?:(?:\s*['’]?\s*i)|\s+kodu)?|kullanıcı\s+pini?)[:\s]*([0-9]{4,8})\b"
+    pub static ref PIN_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:pin(?:(?:\s*['’]?\s*i)|\s+kodu)?|kullanıcı\s+pini?)[:\s]*([0-9]{4,8})\b")
     ).unwrap();
 
     /// Credit rating / Findeks score in context (e.g. `kredi notu 570`).
-    pub static ref CREDIT_SCORE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:kredi\s+notu(?:m|nu)?|findeks(?:\s*notu)?)[:\s]*([0-9]{3,4})\b"
+    pub static ref CREDIT_SCORE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:kredi\s+notu(?:m|nu)?|findeks(?:\s*notu)?)[:\s]*([0-9]{3,4})\b")
     ).unwrap();
 
     /// Mother's maiden name in context (e.g. `annemin kızlık soyadı Karadeniz`).
-    pub static ref MOTHER_MAIDEN_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:anne(?:min|m)?\s+kızlık\s+soyadı(?:m|nız|nın)?|anne\s+kizlik\s+soyadi)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü]+)\b"
+    pub static ref MOTHER_MAIDEN_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:anne(?:min|m)?\s+kızlık\s+soyadı(?:m|nız|nın)?|anne\s+kizlik\s+soyadi)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü]+)\b")
     ).unwrap();
 
     /// Mother / Father given names in context (e.g. `anne adı Sevsevil`, `baba adı Bedri`).
-    pub static ref PARENT_NAMES_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:anne|annem(?:in)?|baba|babam(?:ın)?)\s+adı(?:m|nın|sı)?[:\s]*([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)\b"
+    pub static ref PARENT_NAMES_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:anne|annem(?:in)?|baba|babam(?:ın)?)\s+adı(?:m|nın|sı)?[:\s]*([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)\b")
     ).unwrap();
 
     /// Birthplace in context (e.g. `doğum yerim Denizli`).
-    pub static ref BIRTHPLACE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:doğum\s+yer(?:i|im|iniz)?|dogum\s+yeri)[:\s]*([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)\b"
+    pub static ref BIRTHPLACE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:doğum\s+yer(?:i|im|iniz)?|dogum\s+yeri)[:\s]*([A-ZÇĞİÖŞÜ][a-zçğıöşü]+)\b")
     ).unwrap();
 
     /// Gender identity in context (e.g. `cinsiyeti kadın`, `cinsiyet: erkek`, `24 yaşında kadın`).
-    pub static ref GENDER_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:c[iİıI]ns[iİıI]yet(?:[iİıI]|m)?|c[iİıI]ns[iİıI]yet[iİıI])[\s:]*(kad[ıiIİ]n|k[ıiIİ]z|erkek|bayan|d[iİıI][şsŞS][iİıI]|bay|er)\b|\b(?:ya[şsŞS][ıiIİ]nda|ya[şsŞS][ıiIİ]ndak[iİıI])\s+(kad[ıiIİ]n|erkek|k[ıiIİ]z|bayan)\b"
+    pub static ref GENDER_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:c[iİıI]ns[iİıI]yet(?:[iİıI]|m)?|c[iİıI]ns[iİıI]yet[iİıI])[\s:]*(kad[ıiIİ]n|k[ıiIİ]z|erkek|bayan|d[iİıI][şsŞS][iİıI]|bay|er)\b|\b(?:ya[şsŞS][ıiIİ]nda|ya[şsŞS][ıiIİ]ndak[iİıI])\s+(kad[ıiIİ]n|erkek|k[ıiIİ]z|bayan)\b")
     ).unwrap();
 
     /// Nationality / Demonym in context (e.g. `uyruğu Türk`, `uyruğu Alman`).
-    pub static ref NATIONALITY_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:uyruğu|uyruk|vatandaşlığı|vatandaşlık)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü]+)\b"
+    pub static ref NATIONALITY_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:uyruğu|uyruk|vatandaşlığı|vatandaşlık)[:\s]*([A-ZÇĞİÖŞÜa-zçğıöşü]+)\b")
     ).unwrap();
 
     /// Geolocation Coordinates (e.g. `41.6849, 31.2242`).
@@ -390,13 +467,13 @@ lazy_static! {
     ).unwrap();
 
     /// Digital Signature / E-Signature digest/hash/cert serial.
-    pub static ref SIGNATURE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:dijital\s+imza(?:\s*özeti)?\s+[A-Za-z0-9]+|imza\s*hash\s+[a-f0-9]+|e-imza(?:\s*sertifika(?:\s*seri\s*no)?)?[:\s]*[0-9]+)\b"
+    pub static ref SIGNATURE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:dijital\s+imza(?:\s*özeti)?\s+[A-Za-z0-9]+|imza\s*hash\s+[a-f0-9]+|e-imza(?:\s*sertifika(?:\s*seri\s*no)?)?[:\s]*[0-9]+)\b")
     ).unwrap();
 
     /// Criminal / Judicial record (e.g. `adli para cezası kaydı`, `KABAHAT KAYDI MEVCUT`).
-    pub static ref CRIMINAL_RECORD_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:adli\s+para\s+cezası\s+kaydı|kabahat\s+kaydı(?:\s*mevcut)?|denetimli\s+serbestlik\s+kaydı|icra\s+takibi\s+kaydı|adli\s+sicil\s+kaydı|sabıka\s+kaydı)\b"
+    pub static ref CRIMINAL_RECORD_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:adli\s+para\s+cezası\s+kaydı|kabahat\s+kaydı(?:\s*mevcut)?|denetimli\s+serbestlik\s+kaydı|icra\s+takibi\s+kaydı|adli\s+sicil\s+kaydı|sabıka\s+kaydı)\b")
     ).unwrap();
 
     /// Health Data under KVKK Article 6: the condition after a health key (sağlık raporumda
@@ -407,7 +484,7 @@ lazy_static! {
     /// diagnosis word (tanı, teşhis, hastalığı, rahatsızlığı) is a key only with a separator
     /// after it: "teşhis etmiştir", "hastalığı nedeniyle" are prose. The value is group 1 or 2.
     /// (In verbose mode a space inside a class is ignored too, hence \x20.)
-    pub static ref HEALTH_RECORD_REGEX: Regex = Regex::new(
+    pub static ref HEALTH_RECORD_REGEX: Regex = Regex::new(&turkish_i_insensitive(
         r"(?ix)
         (?:\b(?:sağlık\s+(?:raporu(?:m|muz)?(?:n?da)?|notu|durumu(?:m)?|bilgisi|kaydı(?:nda)?)
               |kronik\s+(?:rahatsızlı(?:k|ğı|ğım)|hastalı(?:k|ğı|ğım))
@@ -418,14 +495,14 @@ lazy_static! {
            (?:[\x20\t]*[:=]|[\x20\t]+-)[\x20\t]*
            ((?:[\p{L}\d%'’-]+[\x20\t]+){0,4}?[\p{L}\d%'’-]+?))
         (?:[\x20\t]+(?:yazıyor|yazılı|yazmakta|yazılmış|var|mevcut|görünüyor|bulunuyor|bulunmaktadır|olarak|geçiyor|tespit\s+edildi)\b|[\x20\t]*(?:[,;.\n]|$))
-        "
+        ")
     ).unwrap();
 
     /// The value of a disability key (Engel durumu: %40 ortopedik, Engellilik oranı %60,
     /// engelli raporu: görme), or a degree before "engelli" (%90 oranında engelli). The words
     /// after a bare "engelli" are prose (engelli kişiler, engelli olan başvurucunun), and were
     /// masked as disability data.
-    pub static ref DISABILITY_REGEX: Regex = Regex::new(
+    pub static ref DISABILITY_REGEX: Regex = Regex::new(&turkish_i_insensitive(
         r"(?ix)
         \b(?:engel\s*durumu|engel\s*oran[ıiIİ]|engell[iİıI]l[iİıI]k(?:\s*oran[ıiIİ])?|engell[iİıI]\s*raporu|[öoÖO]z[üuÜU]r\s*(?:durumu|oran[ıiIİ]))
         \s*[:=]?\s*
@@ -439,7 +516,7 @@ lazy_static! {
           | (?:engel\s+durumu\s+)?(?:var|yok|mevcut|bulunmaktadır|bulunmamaktadır)
         )
         | ((?:%\s*\d{1,3}|\b\d{1,3}\s*%|\byüzde\s*\d{1,3})\s*(?:oranında\s+)?(?:(?:ortopedik|görme|işitme|zihinsel|ruhsal)\s+)?engell[iİıI])
-        "
+        ")
     ).unwrap();
 
     /// Trade Union Membership under KVKK Article 6.
@@ -454,23 +531,23 @@ lazy_static! {
     ).unwrap();
 
     /// Username in context.
-    pub static ref USERNAME_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:kullan[ıiIİ]c[ıiIİ]\s+ad[ıiIİ](?:m|n[ıiIİ]z|s[ıiIİ])?|kullan[iİıI]c[iİıI]\s*ad[iİıI]|username)[:\s]*([A-Za-z0-9_.-]{4,24})\b|\b([A-Za-z0-9_.-]{4,24})'(?:[iİıI]n|[ıiIİ]n|[üuÜU]n|[uU]n)\s+oturumlar[ıiIİ]\b"
+    pub static ref USERNAME_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:kullan[ıiIİ]c[ıiIİ]\s+ad[ıiIİ](?:m|n[ıiIİ]z|s[ıiIİ])?|kullan[iİıI]c[iİıI]\s*ad[iİıI]|username)[:\s]*([A-Za-z0-9_.-]{4,24})\b|\b([A-Za-z0-9_.-]{4,24})'(?:[iİıI]n|[ıiIİ]n|[üuÜU]n|[uU]n)\s+oturumlar[ıiIİ]\b")
     ).unwrap();
 
     /// Biometric Data under KVKK Article 6.
-    pub static ref BIOMETRIC_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:avuç\s+içi\s+damar\s+izi|avuc\s+ici\s+damar\s+izi|parmak\s*izi|yüz\s*taraması|yuz\s*taramasi|iris\s*taraması|iris\s*taramasi|retina\s*taraması|retina\s*taramasi|biyometrik\s*(?:veri|imza|kayıt|giriş))\b"
+    pub static ref BIOMETRIC_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:avuç\s+içi\s+damar\s+izi|avuc\s+ici\s+damar\s+izi|parmak\s*izi|yüz\s*taraması|yuz\s*taramasi|iris\s*taraması|iris\s*taramasi|retina\s*taraması|retina\s*taramasi|biyometrik\s*(?:veri|imza|kayıt|giriş))\b")
     ).unwrap();
 
     /// Family / Marital status.
-    pub static ref FAMILY_STATUS_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:a[iİıI]le\s+durumu|meden[iİıI]\s+hal[iİıI])[:\s]*([a-zçğıöşüA-ZÇĞİÖŞÜ0-9\s]+?)(?:[,;.\n]|$)"
+    pub static ref FAMILY_STATUS_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:a[iİıI]le\s+durumu|meden[iİıI]\s+hal[iİıI])[:\s]*([a-zçğıöşüA-ZÇĞİÖŞÜ0-9\s]+?)(?:[,;.\n]|$)")
     ).unwrap();
 
     /// Ethnic Origin under KVKK Article 6.
-    pub static ref ETHNIC_ORIGIN_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:etn[iİıI]k\s+k[öoÖO]ken(?:[iİıI])?|etn[iİıI]k\s+k[öoÖO]ken)[\s:]*(?:alan[iİıI]\s*)?([A-ZÇĞİÖŞÜa-zçğıöşü]+)\b"
+    pub static ref ETHNIC_ORIGIN_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:etn[iİıI]k\s+k[öoÖO]ken(?:[iİıI])?|etn[iİıI]k\s+k[öoÖO]ken)[\s:]*(?:alan[iİıI]\s*)?([A-ZÇĞİÖŞÜa-zçğıöşü]+)\b")
     ).unwrap();
 
     /// Workplace / Institution.
@@ -478,18 +555,18 @@ lazy_static! {
     /// Ltd. Şti.) or before "bünyesinde". The name is at most 60 characters on one line, and
     /// both the trigger and the AŞ suffix are words: "şirket" inside "şirkette" and "aş" at
     /// the end of "maaş" made one match of 600 characters of a court decision.
-    pub static ref WORKPLACE_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:[iİıI][şsŞS]yer[iİıI]|[iİıI]syer[iİıI]|kurum|[şsŞS][iİıI]rket)(?:[iİıI]m|[iİıI]m[iİıI]z|[iİıI])?\b[:\s]*([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 .&-]{1,60}?(?:Hastanes[iİıI]|Beled[iİıI]yes[iİıI]|M[üuÜU]d[üuÜU]rl[üuÜU][ğgĞG][üuÜU]|Bakanl[ıiIİ][ğgĞG][ıiIİ]|\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Hold[iİıI]ng|Anon[iİıI]m\s*[ŞS][iİıI]rket[iİıI]))\b|\b([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 &-]{2,50}?(?:\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ŞS][iİıI]rket[iİıI]|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Beled[iİıI]yes[iİıI]))\s+b[üuÜU]nyes[iİıI]nde\b"
+    pub static ref WORKPLACE_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:[iİıI][şsŞS]yer[iİıI]|[iİıI]syer[iİıI]|kurum|[şsŞS][iİıI]rket)(?:[iİıI]m|[iİıI]m[iİıI]z|[iİıI])?\b[:\s]*([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 .&-]{1,60}?(?:Hastanes[iİıI]|Beled[iİıI]yes[iİıI]|M[üuÜU]d[üuÜU]rl[üuÜU][ğgĞG][üuÜU]|Bakanl[ıiIİ][ğgĞG][ıiIİ]|\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Hold[iİıI]ng|Anon[iİıI]m\s*[ŞS][iİıI]rket[iİıI]))\b|\b([A-ZÇĞİÖŞÜ][A-Za-zÇĞİÖŞÜçğıöşü0-9 &-]{2,50}?(?:\bA\.Ş\.|\bAŞ|Ltd\.\s*[ŞS]t[iİıI]\.|[ŞS][iİıI]rket[iİıI]|[ÜU]n[iİıI]vers[iİıI]tes[iİıI]|Beled[iİıI]yes[iİıI]))\s+b[üuÜU]nyes[iİıI]nde\b")
     ).unwrap();
 
     /// Hardware / Device ID in context (e.g. `cihaz id DEV-99381290`).
-    pub static ref DEVICE_ID_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:c[iİıI]haz\s+id(?:s[iİıI])?|dev[iİıI]ce\s+id|c[iİıI]haz\s+(?:e[şsŞS]le[şsŞS]t[iİıI]rme\s+)?kodu)[:\s]*([A-Za-z0-9_-]{8,36})\b"
+    pub static ref DEVICE_ID_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:c[iİıI]haz\s+id(?:s[iİıI])?|dev[iİıI]ce\s+id|c[iİıI]haz\s+(?:e[şsŞS]le[şsŞS]t[iİıI]rme\s+)?kodu)[:\s]*([A-Za-z0-9_-]{8,36})\b")
     ).unwrap();
 
     /// Employee Registry / Sicil No in context (e.g. `sicil SC3907`).
-    pub static ref SICIL_NO_REGEX: Regex = Regex::new(
-        r"(?i)\b(?:sicil(?:\s*no(?:su)?)?)[:\s]*([A-Za-z0-9]{4,10})\b"
+    pub static ref SICIL_NO_REGEX: Regex = Regex::new(&turkish_i_insensitive(
+        r"(?i)\b(?:sicil(?:\s*no(?:su)?)?)[:\s]*([A-Za-z0-9]{4,10})\b")
     ).unwrap();
 
     /// Vehicle License Plate with explicit trigger keyword.
@@ -579,5 +656,29 @@ mod loose_tests {
         assert_eq!(loose_turkish("(?P<date>tarihi)"), "(?P<date>tar[ıi]h[ıi])");
         let re = Regex::new(&loose_turkish("doğum tarihi")).unwrap();
         assert!(re.is_match("dogum tarıhı") && re.is_match("doğum tarihi"));
+    }
+
+    #[test]
+    fn turkish_i_insensitive_folds_the_four_i_forms() {
+        assert_eq!(
+            turkish_i_insensitive(r"(?i)\bsicil\s*no"),
+            r"(?i)\bs[iıIİ]c[iıIİ]l\s*no"
+        );
+        // a class gets the four forms once; negated classes, ranges, escapes and group
+        // headers are left alone
+        assert_eq!(turkish_i_insensitive("kart[ıi]"), "kart[iıIİ]");
+        assert_eq!(
+            turkish_i_insensitive(r"[^i][a-i]\p{Lu}(?P<iban>x)"),
+            r"[^i][a-i]\p{Lu}(?P<iban>x)"
+        );
+        let re = Regex::new(&turkish_i_insensitive(r"(?i)\bmüşteri\s+yaşında\b")).unwrap();
+        for text in [
+            "müşteri yaşında",
+            "MÜŞTERİ YAŞINDA",
+            "Müşteri Yaşında",
+            "MÜŞTERI YAŞİNDA",
+        ] {
+            assert!(re.is_match(text), "{text}");
+        }
     }
 }
