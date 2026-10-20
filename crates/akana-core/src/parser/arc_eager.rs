@@ -186,13 +186,27 @@ impl TurkishDependencyParser {
                 head = root_idx + 1;
                 deprel = "advmod".to_string();
             } else if parse.pos == PrimaryPos::Conj {
-                if i + 1 < n {
-                    head = i + 2;
-                    deprel = "cc".to_string();
+                // A conjunction attaches to the conjunct after it: a nominal or a verbal word,
+                // never a question particle or another conjunction. The particle attaches to
+                // the word before it, so "da" -> "mı" -> "da" made a cycle cut off from the root
+                // (Bu da mı gitti ?).
+                let next_is_conjunct = i + 1 < n
+                    && matches!(
+                        disambiguated[i + 1].pos,
+                        PrimaryPos::Noun
+                            | PrimaryPos::Pron
+                            | PrimaryPos::Verb
+                            | PrimaryPos::Adj
+                            | PrimaryPos::Adv
+                            | PrimaryPos::Num
+                            | PrimaryPos::Det
+                    );
+                head = if next_is_conjunct {
+                    i + 2
                 } else {
-                    head = root_idx + 1;
-                    deprel = "cc".to_string();
-                }
+                    root_idx + 1
+                };
+                deprel = "cc".to_string();
             } else if parse.pos == PrimaryPos::Noun || parse.pos == PrimaryPos::Pron {
                 // Check case features
                 if parse.morpheme_tags.contains(&"Acc".to_string()) {
@@ -238,6 +252,49 @@ impl TurkishDependencyParser {
             });
         }
 
+        make_tree(&mut nodes, root_idx);
         DependencyTree::new(nodes)
+    }
+}
+
+/// Makes the attachments a tree, whatever the rules above produced: the node at `root_idx` is
+/// the one root, every other head is a token of the sentence and not the node itself, and
+/// following heads from any node reaches the root. A node that breaks this is attached to the
+/// root.
+fn make_tree(nodes: &mut [DependencyNode], root_idx: usize) {
+    let n = nodes.len();
+    let root_id = root_idx + 1;
+    for (i, node) in nodes.iter_mut().enumerate() {
+        if i == root_idx {
+            node.head = 0;
+            node.deprel = "root".to_string();
+        } else if node.head == 0 || node.head > n || node.head == i + 1 {
+            node.head = root_id;
+            if node.deprel == "root" {
+                node.deprel = "dep".to_string();
+            }
+        }
+    }
+    // Follow the heads from every node. A walk that comes back to a node of its own path has
+    // gone round a cycle: attaching that node to the root breaks it, and the whole path then
+    // reaches the root. Every node is walked once (0: not seen, 1: on this walk, 2: reaches the
+    // root).
+    let mut state = vec![0u8; n];
+    state[root_idx] = 2;
+    let mut path = Vec::new();
+    for start in 0..n {
+        path.clear();
+        let mut i = start;
+        while state[i] == 0 {
+            state[i] = 1;
+            path.push(i);
+            i = nodes[i].head - 1;
+        }
+        if state[i] == 1 {
+            nodes[i].head = root_id;
+        }
+        for &p in &path {
+            state[p] = 2;
+        }
     }
 }
