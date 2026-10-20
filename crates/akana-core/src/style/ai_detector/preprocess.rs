@@ -10,7 +10,8 @@ use unicode_normalization::UnicodeNormalization;
 use super::markup::{
     collapse_blank_lines, is_fence_line, is_hr_line, is_letter, is_removable_invisible,
     remove_emoji, remove_think_blocks, strip_emphasis, strip_html, strip_latex,
-    strip_line_prefixes, strip_links, table_flags, table_row_to_sentence, TableLine, NBSP, NNBSP,
+    strip_line_prefixes, strip_links, table_flags, table_row_to_sentence, NextMatch, TableLine,
+    NBSP, NNBSP,
 };
 use crate::phonology::alphabet::to_turkish_lower;
 use crate::tokenization::SentenceSegmenter;
@@ -186,17 +187,18 @@ pub(super) fn normalize(text: &str) -> String {
 /// followed by whitespace. Stacked openers (`Elbette! İşte örnekler:`) are all removed,
 /// which also makes the function idempotent. Text without an opener is returned unchanged.
 pub(super) fn drop_chatbot_opener(text: &str) -> String {
-    let mut rest = text;
+    let mut units = OpenerUnits::new(text);
+    let mut pos = 0;
     let mut dropped = false;
-    while let Some(n) = match_chatbot_opener(rest) {
-        if n == 0 || n > rest.len() || !rest.is_char_boundary(n) {
+    while let Some(n) = units.match_opener(pos) {
+        if n == 0 || n > text.len() - pos || !text.is_char_boundary(pos + n) {
             break;
         }
-        rest = &rest[n..];
+        pos += n;
         dropped = true;
     }
     if dropped {
-        rest.trim_start().to_string()
+        text[pos..].trim_start().to_string()
     } else {
         text.to_string()
     }
@@ -497,7 +499,10 @@ const fn opener(prefix: &'static str, requirement: OpenerRequirement) -> Chatbot
 /// Matching is done on the first *opener unit* of the cleaned text: the first sentence
 /// according to [`SentenceSegmenter`], additionally cut at the first line break and at the
 /// first `:` followed by whitespace. The unit is lower-cased with Turkish rules
-/// (`İşte` → `işte`) and leading punctuation is skipped.
+/// (`İşte` → `işte`) and leading punctuation is skipped. A unit that does not end in sentence
+/// punctuation runs to the end of its line; it is an opener only up to
+/// [`MAX_UNTERMINATED_OPENER_WORDS`] words, so "Tabii" in front of a one-line text does not
+/// remove the text.
 ///
 /// | prefix                   | extra requirement                              |
 /// |--------------------------|------------------------------------------------|
@@ -533,31 +538,122 @@ pub(super) const CHATBOT_OPENERS: &[ChatbotOpener] = &[
     opener("merhaba", OpenerRequirement::Contains("yardımcı")),
 ];
 
-/// Byte length of the first opener unit of `body` (which must not start with whitespace).
-fn first_unit_len(body: &str) -> Option<usize> {
-    let line_end = body.find('\n').unwrap_or(body.len());
-    let line = &body[..line_end];
-    let sentences = SentenceSegmenter::segment(line);
-    let mut end = sentences
-        .first()
-        .map(|s| s.start + s.text.len())
-        .filter(|&e| e <= line.len() && line.is_char_boundary(e))
-        .unwrap_or(line.len());
-    let mut iter = line[..end].char_indices().peekable();
-    while let Some((idx, c)) = iter.next() {
-        if c == ':' && iter.peek().is_none_or(|&(_, n)| n.is_whitespace()) {
-            end = idx + 1;
-            break;
-        }
-    }
-    (end > 0).then_some(end)
+/// Opener units of a text, looked up at increasing offsets by the opener loop.
+///
+/// A unit is the first sentence of its line, cut after the first `:` that is followed by
+/// whitespace. Line ends and such colons are found with cursors that only move forward, and
+/// the sentence is segmented only as far as it reaches, so removing stacked openers costs time
+/// linear in the text instead of re-scanning the whole first line for each opener (210 KB of
+/// `Elbette! ` took 37 s).
+struct OpenerUnits<'a> {
+    text: &'a str,
+    newline: NextMatch,
+    colon: NextMatch,
 }
 
-/// Splits leading whitespace and the first opener unit off `text`:
-/// returns `(lead_len, unit_len)`.
-fn split_unit(text: &str) -> Option<(usize, usize)> {
-    let lead = text.len() - text.trim_start().len();
-    first_unit_len(&text[lead..]).map(|u| (lead, u))
+impl<'a> OpenerUnits<'a> {
+    fn new(text: &'a str) -> Self {
+        Self {
+            text,
+            newline: NextMatch::default(),
+            colon: NextMatch::default(),
+        }
+    }
+
+    /// Byte length of the opener unit at `start` (which must not be whitespace).
+    fn unit_len(&mut self, start: usize) -> Option<usize> {
+        let text = self.text;
+        let line_end = self
+            .newline
+            .find(start, |from| text[from..].find('\n').map(|k| from + k))
+            .unwrap_or(text.len());
+        // A colon at the end of the line is followed by the line break or the end of the text.
+        let colon = self.colon.find(start, |from| {
+            text[from..]
+                .match_indices(':')
+                .map(|(k, _)| from + k)
+                .find(|&k| text[k + 1..].chars().next().is_none_or(char::is_whitespace))
+        });
+        let line = &text[start..line_end];
+        let cap = match colon {
+            Some(c) if c < line_end => c + 1 - start,
+            _ => line.len(),
+        };
+        let end = SentenceSegmenter::first_sentence_end(line, cap);
+        (end > 0).then_some(end)
+    }
+
+    /// Splits leading whitespace and the opener unit off `text[pos..]`:
+    /// returns `(lead_len, unit_len)`.
+    fn split_unit(&mut self, pos: usize) -> Option<(usize, usize)> {
+        let rest = &self.text[pos..];
+        let lead = rest.len() - rest.trim_start().len();
+        self.unit_len(pos + lead).map(|u| (lead, u))
+    }
+
+    /// If `text[pos..]` starts with a chatbot opener from [`CHATBOT_OPENERS`], returns the
+    /// byte length of the opener (including the whitespace before it). Intended for cleaned
+    /// text (after `strip_format` + `normalize`).
+    fn match_opener(&mut self, pos: usize) -> Option<usize> {
+        let text = self.text;
+        let (lead, u1) = self.split_unit(pos)?;
+        let unit = &text[pos + lead..pos + lead + u1];
+        if is_long_unterminated(unit) {
+            return None;
+        }
+        let lower = to_turkish_lower(unit);
+        let core = lower.trim_start_matches(|c: char| !c.is_alphanumeric());
+        for op in CHATBOT_OPENERS {
+            if !starts_with_word(core, op.prefix) {
+                continue;
+            }
+            let end1 = lead + u1;
+            match op.requirement {
+                OpenerRequirement::None => return Some(end1),
+                OpenerRequirement::Exclamation => {
+                    if core[op.prefix.len()..].trim_start().starts_with('!') {
+                        return Some(end1);
+                    }
+                }
+                OpenerRequirement::EndsWithColon => {
+                    if unit.trim_end().ends_with(':') {
+                        return Some(end1);
+                    }
+                }
+                OpenerRequirement::Contains(word) => {
+                    if lower.contains(word) {
+                        return Some(end1);
+                    }
+                    if unit.split_whitespace().count() <= 4 {
+                        if let Some((lead2, u2)) = self.split_unit(pos + end1) {
+                            let start2 = pos + end1 + lead2;
+                            let unit2 = &text[start2..start2 + u2];
+                            if !is_long_unterminated(unit2)
+                                && to_turkish_lower(unit2).contains(word)
+                            {
+                                return Some(end1 + lead2 + u2);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+/// Most words an opener unit may have when it does not end in sentence punctuation.
+const MAX_UNTERMINATED_OPENER_WORDS: usize = 8;
+
+/// A unit without sentence punctuation runs to the end of its line, so with "Tabii" or
+/// "Elbette" in front of a one-line text it is the whole text. Such a unit is an opener only
+/// when it is short (`Elbette` on a line of its own).
+fn is_long_unterminated(unit: &str) -> bool {
+    let end = unit.trim_end_matches(|c: char| {
+        c.is_whitespace() || matches!(c, '"' | '”' | '’' | '\'' | ')' | ']' | '»')
+    });
+    !end.ends_with(['.', '!', '?', '…', ':'])
+        && unit.split_whitespace().count() > MAX_UNTERMINATED_OPENER_WORDS
 }
 
 fn starts_with_word(s: &str, prefix: &str) -> bool {
@@ -568,53 +664,13 @@ fn starts_with_word(s: &str, prefix: &str) -> bool {
             .is_none_or(|c| !c.is_alphabetic())
 }
 
-/// If `text` starts with a chatbot opener from [`CHATBOT_OPENERS`], returns the byte
-/// length of the opener (including the whitespace before it). Intended for cleaned text
-/// (after `strip_format` + `normalize`).
-pub(super) fn match_chatbot_opener(text: &str) -> Option<usize> {
-    let (lead, u1) = split_unit(text)?;
-    let unit = &text[lead..lead + u1];
-    let lower = to_turkish_lower(unit);
-    let core = lower.trim_start_matches(|c: char| !c.is_alphanumeric());
-    for op in CHATBOT_OPENERS {
-        if !starts_with_word(core, op.prefix) {
-            continue;
-        }
-        let end1 = lead + u1;
-        match op.requirement {
-            OpenerRequirement::None => return Some(end1),
-            OpenerRequirement::Exclamation => {
-                if core[op.prefix.len()..].trim_start().starts_with('!') {
-                    return Some(end1);
-                }
-            }
-            OpenerRequirement::EndsWithColon => {
-                if unit.trim_end().ends_with(':') {
-                    return Some(end1);
-                }
-            }
-            OpenerRequirement::Contains(word) => {
-                if lower.contains(word) {
-                    return Some(end1);
-                }
-                if unit.split_whitespace().count() <= 4 {
-                    let rest = &text[end1..];
-                    if let Some((lead2, u2)) = split_unit(rest) {
-                        let unit2 = &rest[lead2..lead2 + u2];
-                        if to_turkish_lower(unit2).contains(word) {
-                            return Some(end1 + lead2 + u2);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn match_chatbot_opener(text: &str) -> Option<usize> {
+        OpenerUnits::new(text).match_opener(0)
+    }
 
     // ---------------------------------------------------------------- normalize
 
@@ -789,6 +845,139 @@ mod tests {
     fn opener_found_through_markdown_and_think() {
         let raw = "<think>plan</think>\n\n**Elbette!** İşte *liste*:\n\n- Bir";
         assert_eq!(preprocess(raw), "Bir");
+    }
+
+    #[test]
+    fn opener_before_a_one_line_text_keeps_the_text() {
+        let line = "Bu konuda pek çok görüş var ve hepsini burada tek tek anlatmak mümkün değil";
+        for opener in ["Tabii", "Elbette"] {
+            let text = format!("{opener} {line}");
+            assert_eq!(drop_chatbot_opener(&text), text);
+        }
+        // A short opener line, and a long one that ends in punctuation, are still dropped.
+        assert_eq!(drop_chatbot_opener(&format!("Elbette\n{line}")), line);
+        assert_eq!(drop_chatbot_opener(&format!("Tabii {line}.\nSon.")), "Son.");
+    }
+
+    /// The opener loop as it was written first: each unit re-segments the rest of its line.
+    fn drop_chatbot_opener_naive(text: &str) -> String {
+        fn unit_len(body: &str) -> Option<usize> {
+            let line = &body[..body.find('\n').unwrap_or(body.len())];
+            let mut end = SentenceSegmenter::segment(line)
+                .first()
+                .map_or(line.len(), |s| s.start + s.text.len());
+            let mut iter = line[..end].char_indices().peekable();
+            while let Some((idx, c)) = iter.next() {
+                if c == ':' && iter.peek().is_none_or(|&(_, n)| n.is_whitespace()) {
+                    end = idx + 1;
+                    break;
+                }
+            }
+            (end > 0).then_some(end)
+        }
+        fn split(text: &str) -> Option<(usize, usize)> {
+            let lead = text.len() - text.trim_start().len();
+            unit_len(&text[lead..]).map(|u| (lead, u))
+        }
+        fn matches(text: &str) -> Option<usize> {
+            let (lead, u1) = split(text)?;
+            let unit = &text[lead..lead + u1];
+            if is_long_unterminated(unit) {
+                return None;
+            }
+            let lower = to_turkish_lower(unit);
+            let core = lower.trim_start_matches(|c: char| !c.is_alphanumeric());
+            let end1 = lead + u1;
+            for op in CHATBOT_OPENERS
+                .iter()
+                .filter(|op| starts_with_word(core, op.prefix))
+            {
+                match op.requirement {
+                    OpenerRequirement::None => return Some(end1),
+                    OpenerRequirement::Exclamation
+                        if core[op.prefix.len()..].trim_start().starts_with('!') =>
+                    {
+                        return Some(end1)
+                    }
+                    OpenerRequirement::EndsWithColon if unit.trim_end().ends_with(':') => {
+                        return Some(end1)
+                    }
+                    OpenerRequirement::Contains(word) => {
+                        if lower.contains(word) {
+                            return Some(end1);
+                        }
+                        if unit.split_whitespace().count() <= 4 {
+                            let rest = &text[end1..];
+                            if let Some((lead2, u2)) = split(rest) {
+                                let unit2 = &rest[lead2..lead2 + u2];
+                                if !is_long_unterminated(unit2)
+                                    && to_turkish_lower(unit2).contains(word)
+                                {
+                                    return Some(end1 + lead2 + u2);
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+        let mut rest = text;
+        while let Some(n) = matches(rest).filter(|&n| n > 0) {
+            rest = &rest[n..];
+        }
+        if rest.len() == text.len() {
+            text.to_string()
+        } else {
+            rest.trim_start().to_string()
+        }
+    }
+
+    #[test]
+    fn opener_scan_matches_the_naive_scan() {
+        let pieces = [
+            "Elbette! ",
+            "Elbette: ",
+            "Elbette http://: ",
+            "Tabii http://a: b. ",
+            "Merhaba! ",
+            "Size yardımcı olurum. ",
+            "Merhaba, ",
+            "İşte: ",
+            "İşte bazı öneriler:\n",
+            "Kesinlikle! ",
+            "Kesinlikle katılıyorum. ",
+            "Tabii ki 3. madde. ",
+            "Dr. Ali ",
+            "vb. ",
+            "\"Elbette!\" ",
+            "(Tabii.) ",
+            "Elbette…",
+            "\n",
+            "\n\n",
+            "Ankara başkenttir. ",
+            "Saat 12:30 oldu: ",
+            "Tabii bu konuda söylenecek çok şey var ama burada hepsini yazmak zor ",
+        ];
+        // Every sequence of up to three pieces, and longer repeats of each pair.
+        let mut texts = vec![String::new()];
+        for a in pieces {
+            for b in pieces {
+                texts.push(format!("{a}{b}"));
+                texts.push(format!("{a}{b}").repeat(5));
+                for c in pieces {
+                    texts.push(format!("{a}{b}{c}"));
+                }
+            }
+        }
+        for text in &texts {
+            assert_eq!(
+                drop_chatbot_opener(text),
+                drop_chatbot_opener_naive(text),
+                "{text:?}"
+            );
+        }
     }
 
     // ---------------------------------------------------------------- mask

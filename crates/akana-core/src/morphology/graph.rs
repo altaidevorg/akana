@@ -270,12 +270,8 @@ impl TurkishMorphotactics {
                 suffix_type: SuffixType::CopulaPres3Sg,
                 surface_templates: &["dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür"],
             },
-            SuffixTransition {
-                from_state: MorphState::NounCase,
-                to_state: MorphState::NounCopula,
-                suffix_type: SuffixType::CopulaPres3Sg,
-                surface_templates: &["dır", "dir", "dur", "dür"],
-            },
+            // NounCase -> NounCopula -DIr is added with the other nominal states in
+            // `zemberek_transitions`.
             SuffixTransition {
                 from_state: MorphState::NounRoot,
                 to_state: MorphState::NounCopula,
@@ -414,12 +410,16 @@ impl TurkishMorphotactics {
                 suffix_type: SuffixType::TensePast,
                 surface_templates: &["di", "dı", "du", "dü"],
             },
-            // Passive and Causative recursive verb derivation
+            // Passive and Causative recursive verb derivation. Each voice edge is listed once: a
+            // second copy doubled the search below it for every voice suffix of a word.
             SuffixTransition {
                 from_state: MorphState::VerbRoot,
                 to_state: MorphState::VerbRoot,
                 suffix_type: SuffixType::DerivPassive,
-                surface_templates: &["il", "ıl", "ul", "ül", "in", "ın", "un", "ün", "nil", "nıl"],
+                // No bare -l: Turkish (and Zemberek) has none; the analyzer rejected it anyway.
+                surface_templates: &[
+                    "il", "ıl", "ul", "ül", "in", "ın", "un", "ün", "nil", "nıl", "n",
+                ],
             },
             SuffixTransition {
                 from_state: MorphState::VerbRoot,
@@ -743,23 +743,6 @@ impl TurkishMorphotactics {
                 to_state: MorphState::VerbPerson,
                 suffix_type: SuffixType::Verb1Pl,
                 surface_templates: &["k"],
-            },
-            // Voice Derivations (Passive & Causative on Verb)
-            SuffixTransition {
-                from_state: MorphState::VerbRoot,
-                to_state: MorphState::VerbRoot,
-                suffix_type: SuffixType::DerivPassive,
-                // No bare -l: Turkish (and Zemberek) has none; the analyzer rejected it anyway.
-                surface_templates: &["ıl", "il", "ul", "ül", "ın", "in", "un", "ün", "n"],
-            },
-            SuffixTransition {
-                from_state: MorphState::VerbRoot,
-                to_state: MorphState::VerbRoot,
-                suffix_type: SuffixType::DerivCausative,
-                surface_templates: &[
-                    "dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür", "t", "ıt", "it", "ut",
-                    "üt",
-                ],
             },
             // Adverbials (Verb -> Adv)
             SuffixTransition {

@@ -101,6 +101,28 @@ fn sections_cover_long_texts_only() {
     );
 }
 
+#[test]
+fn label_colons_are_linear_in_a_line() {
+    // Each colon looked through every sentence start of its line: colons × sentences. Four
+    // times the line may take at most 9× as long (linear 4×, the old loop 16×); best of three.
+    let time = |text: &str| {
+        (0..3)
+            .map(|_| {
+                let t = std::time::Instant::now();
+                assert!(super::morph::label_colon_counts(text).0 > 0);
+                t.elapsed().as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min)
+    };
+    let (small, large) = ("a: b. ".repeat(4_000), "a: b. ".repeat(16_000));
+    time(&small);
+    let (t_small, t_large) = (time(&small), time(&large));
+    assert!(
+        t_large <= 9.0 * t_small.max(1e-6),
+        "{t_small:.4} s → {t_large:.4} s"
+    );
+}
+
 /// One row of a reference file: a text and the training code's inputs and probability.
 #[derive(Deserialize)]
 struct Reference {
