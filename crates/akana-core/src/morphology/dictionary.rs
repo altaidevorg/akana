@@ -34,6 +34,7 @@ impl DictionaryItem {
     }
 }
 
+#[derive(Clone)]
 pub struct RootLexicon {
     items_by_root: HashMap<String, Vec<DictionaryItem>>,
     /// Length in characters of the longest root, which bounds the stems worth looking up.

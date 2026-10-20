@@ -5,6 +5,7 @@ use super::graph::{MorphState, SuffixTransition, TurkishMorphotactics};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::suffixes::SuffixType;
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, LazyLock};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MorphemeData {
@@ -124,9 +125,21 @@ enum StemChange {
     DeYeNarrowing,
 }
 
+/// The built-in lexicon, parsed once per process (about 80 ms and 30 MB) and shared by every
+/// analyzer that has not added its own items.
+static BUILTIN_LEXICON: LazyLock<Arc<RootLexicon>> = LazyLock::new(|| Arc::new(RootLexicon::new()));
+
+/// The suffix transitions, built once per process and shared by every analyzer.
+static TRANSITIONS: LazyLock<Arc<[SuffixTransition]>> =
+    LazyLock::new(|| TurkishMorphotactics::transitions().into());
+
+/// The morphological analyzer. Analyzers share the built-in lexicon, so creating or cloning
+/// one is cheap; adding items or loading a dictionary gives that analyzer a private copy of
+/// the lexicon (copy-on-write) and leaves the others unchanged.
+#[derive(Clone)]
 pub struct TurkishMorphology {
-    lexicon: RootLexicon,
-    transitions: Vec<SuffixTransition>,
+    lexicon: Arc<RootLexicon>,
+    transitions: Arc<[SuffixTransition]>,
 }
 
 impl Default for TurkishMorphology {
@@ -138,16 +151,21 @@ impl Default for TurkishMorphology {
 impl TurkishMorphology {
     pub fn new() -> Self {
         Self {
-            lexicon: RootLexicon::new(),
-            transitions: TurkishMorphotactics::transitions(),
+            lexicon: Arc::clone(&BUILTIN_LEXICON),
+            transitions: Arc::clone(&TRANSITIONS),
         }
     }
 
     pub fn with_lexicon(lexicon: RootLexicon) -> Self {
         Self {
-            lexicon,
-            transitions: TurkishMorphotactics::transitions(),
+            lexicon: Arc::new(lexicon),
+            transitions: Arc::clone(&TRANSITIONS),
         }
+    }
+
+    /// The built-in lexicon that [`TurkishMorphology::new`] analyzers share.
+    pub fn builtin_lexicon() -> Arc<RootLexicon> {
+        Arc::clone(&BUILTIN_LEXICON)
     }
 
     /// Length in characters of the longest root in the lexicon.
@@ -162,7 +180,7 @@ impl TurkishMorphology {
 
     /// Adds a dictionary item to the morphological analyzer at runtime.
     pub fn add_item(&mut self, item: DictionaryItem) {
-        self.lexicon.add_item(item);
+        Arc::make_mut(&mut self.lexicon).add_item(item);
     }
 
     /// Loads custom dictionary definitions from a file at runtime.
@@ -170,12 +188,15 @@ impl TurkishMorphology {
         &mut self,
         path: P,
     ) -> std::io::Result<()> {
-        self.lexicon.load_from_file(path)
+        // Read the file before copying the shared lexicon, so a missing file costs nothing.
+        let text = std::fs::read_to_string(path)?;
+        self.load_dictionary_str(&text);
+        Ok(())
     }
 
     /// Loads custom dictionary definitions from a multiline string.
     pub fn load_dictionary_str(&mut self, text: &str) {
-        self.lexicon.load_from_str(text);
+        Arc::make_mut(&mut self.lexicon).load_from_str(text);
     }
 
     /// Analyzes a surface word and returns all valid morphological parses.
@@ -665,7 +686,7 @@ impl TurkishMorphology {
             return;
         }
 
-        for tr in &self.transitions {
+        for tr in self.transitions.iter() {
             if tr.from_state == state {
                 // -CA is the adverbial Ly after an adjective (açık-ça) and the equative case
                 // otherwise (aile-ce, sen-ce), as in Zemberek.

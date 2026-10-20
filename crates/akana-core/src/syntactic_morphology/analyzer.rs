@@ -4,9 +4,13 @@ use super::lexicon::{SyntacticLexicon, SyntacticPOS};
 use super::types::{InflectionalGroup, SyntacticParse};
 use crate::morphology::{PrimaryPos, TurkishMorphology};
 use crate::phonology::to_turkish_lower;
+use std::sync::LazyLock;
+
+/// The bundled syntactic lexicon, parsed once per process and shared by every analyzer.
+static LEXICON: LazyLock<SyntacticLexicon> = LazyLock::new(SyntacticLexicon::new);
 
 pub struct TurkishSyntacticMorphology {
-    lexicon: SyntacticLexicon,
+    lexicon: &'static SyntacticLexicon,
     fallback_morphology: TurkishMorphology,
 }
 
@@ -19,7 +23,7 @@ impl Default for TurkishSyntacticMorphology {
 impl TurkishSyntacticMorphology {
     pub fn new() -> Self {
         Self {
-            lexicon: SyntacticLexicon::new(),
+            lexicon: &LEXICON,
             fallback_morphology: TurkishMorphology::new(),
         }
     }
