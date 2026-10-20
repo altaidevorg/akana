@@ -378,11 +378,16 @@ impl TurkishPiiEngine {
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 
-        // Placeholder-shaped text already in the input ({{IBAN_1}} in a web page an agent
-        // read) is masked too, as a placeholder of its own that restores to that literal text.
-        // Left as it was, restore would replace it with the real value it names.
-        // In tag and anonymize modes a tag in the input ([AD] in a template) is masked the same
-        // way: every [AD] restores to the one original, so it would have become the person.
+        // the placeholder- and surrogate-shaped strings of the text, collected once
+        let taken = vault::issued_shapes_in(text);
+
+        // Text already in the input that restore would turn into a real value is masked too,
+        // as a placeholder of its own that restores to that literal text:
+        // - placeholder-shaped text ({{IBAN_1}} in a web page an agent read), in every mode;
+        // - any key the vault issued in an earlier turn, in every mode: an [EMAIL_1] or a
+        //   surrogate date of a surrogate-mode turn, an [AD] of a tag-mode turn;
+        // - in tag and anonymize modes, a tag in the input ([AD] in a template): every [AD]
+        //   restores to the one original, so it would have become the person.
         let tag_literals = matches!(mode, PiiMode::Tag | PiiMode::Anonymize)
             .then(|| TAG_LITERAL_REGEX.find_iter(text))
             .into_iter()
@@ -396,16 +401,16 @@ impl TurkishPiiEngine {
         let literals = PLACEHOLDER_LITERAL_REGEX
             .find_iter(text)
             .chain(tag_literals)
-            .filter(|m| !overlaps_entity(m.start(), m.end()))
-            .map(|m| (m.start(), m.end()));
+            .map(|m| (m.start(), m.end()))
+            .chain(vault.restorable_spans(text, &taken))
+            .filter(|&(s, e)| !overlaps_entity(s, e));
         let mut spans: Vec<(usize, usize, Option<&PiiEntity>)> = entities
             .iter()
             .map(|e| (e.start, e.end, Some(e)))
             .chain(literals.map(|(s, e)| (s, e, None)))
             .collect();
-        spans.sort_by_key(|&(start, _, _)| start);
-        // the placeholder- and surrogate-shaped strings of the text, collected once
-        let taken = vault::issued_shapes_in(text);
+        // by start, the longest first: of overlapping literals the loop below keeps the first
+        spans.sort_by_key(|&(start, end, _)| (start, std::cmp::Reverse(end)));
 
         for (start, end, entity) in spans {
             if start < last_end {
