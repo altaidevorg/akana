@@ -16,8 +16,24 @@ use super::{ErrorCategory, GrammarFinding};
 use crate::morphology::pos::PrimaryPos;
 use crate::morphology::TurkishMorphology;
 use crate::phonology::{
-    harmony_i_type, is_front_vowel, last_vowel, to_turkish_lower, to_turkish_title,
+    harmony_i_type, is_front_vowel, last_vowel, origin_offset, to_turkish_lower,
+    to_turkish_lower_with_origin, to_turkish_title,
 };
+
+/// `tok` split before the characters that make up the last `suffix_len` bytes of
+/// `to_turkish_lower(tok)`. Lower-casing changes byte lengths (MI is 2 bytes and mı 3, Mİ 3
+/// and mi 2), so a suffix length measured on the lower-cased token cannot cut the token
+/// itself: KARIŞMI was cut inside the Ş, and GELDİNMİ became "GELDİNM" + "İ".
+fn split_lower_suffix(tok: &str, suffix_len: usize) -> (&str, &str) {
+    let (lower, origin) = to_turkish_lower_with_origin(tok);
+    let at = origin_offset(&origin, tok.len(), lower.len().saturating_sub(suffix_len));
+    tok.split_at(at)
+}
+
+/// Longest root and suffix, in bytes, the apostrophe rule looks at. Words are far shorter; a
+/// longer run (base64, minified data) is not a word, and looking at all of it for every
+/// apostrophe in it made the rule quadratic.
+const MAX_APOSTROPHE_WORD: usize = 128;
 
 lazy_static! {
     /// Exception list for `ki` conjunctions written attached (SOMBAHÇEMİ rule):
@@ -175,8 +191,10 @@ impl OrthographyRuleEngine {
                                 || stem.ends_with('ş')
                                 || stem.ends_with('l'))
                         {
-                            let original_stem = &trimmed_tok[..trimmed_tok.len() - p.len()];
-                            let replacement = format!("{original_stem} {expected_p}{punct}");
+                            // the particle as written (Mİ in GELDİNMİ), which is `expected_p`
+                            let (original_stem, original_p) =
+                                split_lower_suffix(trimmed_tok, p.len());
+                            let replacement = format!("{original_stem} {original_p}{punct}");
                             findings.push(GrammarFinding {
                                 category: ErrorCategory::ParticleMi,
                                 start_offset: start,
@@ -196,8 +214,8 @@ impl OrthographyRuleEngine {
             // Case A2: Merged question particle with person suffix (e.g. "biliyormusun", "gelirmisiniz?")
             for &suf in &mi_suffixes {
                 if lower.ends_with(suf) && lower.len() > suf.len() + 2 {
-                    let original_stem = &trimmed_tok[..trimmed_tok.len() - suf.len()];
-                    let replacement = format!("{original_stem} {suf}{punct}");
+                    let (original_stem, original_suf) = split_lower_suffix(trimmed_tok, suf.len());
+                    let replacement = format!("{original_stem} {original_suf}{punct}");
                     findings.push(GrammarFinding {
                         category: ErrorCategory::ParticleMi,
                         start_offset: start,
@@ -411,7 +429,7 @@ impl OrthographyRuleEngine {
                     });
 
                 if is_finite_verb {
-                    let original_stem = &tok[..tok.len() - 2];
+                    let (original_stem, _) = split_lower_suffix(tok, 2);
                     let correct_clitic = if let Some(v) = last_vowel(stem) {
                         if is_front_vowel(v) {
                             "de"
@@ -521,8 +539,9 @@ impl OrthographyRuleEngine {
                 let is_verb = parses.iter().any(|p| p.primary_pos == PrimaryPos::Verb);
 
                 if is_verb {
-                    let original_stem = &tok[..tok.len() - 2];
-                    let replacement = format!("{original_stem} ki");
+                    // DUYDUMKİ: the İ is two bytes, "ki" in the lower-cased token one each
+                    let (original_stem, original_ki) = split_lower_suffix(tok, 2);
+                    let replacement = format!("{original_stem} {original_ki}");
                     findings.push(GrammarFinding {
                         category: ErrorCategory::CliticKi,
                         start_offset: start,
@@ -553,10 +572,9 @@ impl OrthographyRuleEngine {
         for &pat in &ordinal_double_patterns {
             if let Some(offset) = text.sz_find(pat) {
                 let prefix = &text[..offset];
-                let digit_start = prefix
-                    .rfind(|c: char| !c.is_ascii_digit())
-                    .map(|i| i + 1)
-                    .unwrap_or(0);
+                // where the digits before the pattern start (the character before them can be
+                // more than one byte: "ş2.'nci")
+                let digit_start = prefix.trim_end_matches(|c: char| c.is_ascii_digit()).len();
                 let num_str = &prefix[digit_start..];
                 if !num_str.is_empty() {
                     let end = offset + pat.len();
@@ -577,28 +595,40 @@ impl OrthographyRuleEngine {
             }
         }
 
-        // Full-text StringZilla scan for all apostrophes
-        let mut search_idx = 0;
-        while let Some(apos_rel) = text[search_idx..].sz_find("'") {
-            let apos_pos = search_idx + apos_rel;
-            let prefix = &text[..apos_pos];
+        // Every apostrophe, with the root before it back to the last word break and the
+        // letters after it, in one pass over the text. The word break is tracked as the scan
+        // goes: searching back from each apostrophe was quadratic in a run without breaks
+        // ("x'x'x'..."), and it assumed one-byte breaks, so a no-break or thin space before
+        // the apostrophe left the root starting inside that space.
+        let is_word_break = |c: char| c.is_whitespace() || matches!(c, '.' | ',' | '(' | '"' | '!');
+        let mut word_start = 0;
+        for (apos_pos, c) in text.char_indices() {
+            if is_word_break(c) {
+                word_start = apos_pos + c.len_utf8();
+                continue;
+            }
+            if c != '\'' {
+                continue;
+            }
+            let start = word_start;
+            let root = &text[start..apos_pos];
+            if root.is_empty() || root.len() > MAX_APOSTROPHE_WORD {
+                continue;
+            }
+
+            // the letters after it: this stops at the next apostrophe, so the scans together
+            // read the text once
             let suffix = &text[apos_pos + 1..];
-
-            let start = prefix
-                .rfind(|c: char| {
-                    c.is_whitespace() || c == '.' || c == ',' || c == '(' || c == '"' || c == '!'
-                })
-                .map(|i| i + 1)
-                .unwrap_or(0);
-            let root = &prefix[start..];
-
             let suf_len = suffix
                 .find(|c: char| !c.is_alphabetic())
                 .unwrap_or(suffix.len());
+            if suf_len > MAX_APOSTROPHE_WORD {
+                continue;
+            }
             let suf = &suffix[..suf_len];
             let end = apos_pos + 1 + suf_len;
 
-            if !root.is_empty() && !suf.is_empty() {
+            if !suf.is_empty() {
                 // A. Number apostrophe assimilation (e.g. 1923'de -> 1923'te)
                 if root.chars().all(|c| c.is_ascii_digit()) {
                     let last_digit = root.chars().last().unwrap();
@@ -677,8 +707,6 @@ impl OrthographyRuleEngine {
                     }
                 }
             }
-
-            search_idx = apos_pos + 1;
         }
     }
 
