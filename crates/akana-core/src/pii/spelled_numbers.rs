@@ -55,8 +55,10 @@ lazy_static! {
 
 /// Detects spelled-out Turkish numbers preceded by financial/identity context triggers.
 pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
-    // Fast SIMD pre-filter: A spelled number sequence is ONLY emitted if preceded by a context trigger
-    let lower = text.to_lowercase();
+    // Fast SIMD pre-filter: A spelled number sequence is ONLY emitted if preceded by a context trigger.
+    // Both lower-cased forms: Rust's alone turns İBAN and KİMLİK into "i\u{307}ban" and
+    // "ki\u{307}mli\u{307}k", which never passed.
+    let lower = super::normalize::Lowered::of(text);
     const SPELLED_TRIGGERS: &[&str] = &[
         "tc",
         "kimlik",
@@ -83,9 +85,7 @@ pub fn detect_spelled_numbers(text: &str, out: &mut Vec<PiiEntity>) {
         "mükellef",
         "mukellef",
     ];
-    let has_trigger = SPELLED_TRIGGERS
-        .iter()
-        .any(|&trig| lower.sz_find(trig).is_some());
+    let has_trigger = SPELLED_TRIGGERS.iter().any(|&trig| lower.has(trig));
     if !has_trigger {
         return;
     }

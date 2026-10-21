@@ -192,9 +192,16 @@ impl TurkishGrammarChecker {
         // Pass 4: Lexicon & Compound Verb Rules Engine
         lexicon_rules::LexiconRuleEngine::check(text, &tokens, &token_spans, &mut findings);
 
-        // Deduplicate and sort findings by starting offset
-        findings.sort_by_key(|f| f.start_offset);
-        findings.dedup_by(|a, b| a.start_offset == b.start_offset && a.end_offset == b.end_offset);
+        // Sort findings by span, and drop a second finding of the same category on the same
+        // span. Findings of different categories on one span are all reported (a sentence-
+        // initial "duydumki" needs both its capital and its "ki"); which of them are applied
+        // is decided by `apply_corrections`.
+        findings.sort_by_key(|f| (f.start_offset, f.end_offset));
+        findings.dedup_by(|a, b| {
+            a.start_offset == b.start_offset
+                && a.end_offset == b.end_offset
+                && a.category == b.category
+        });
 
         // Pass 5: Synthesize corrected sentence
         let corrected = Self::apply_corrections(text, &findings);
@@ -212,31 +219,77 @@ impl TurkishGrammarChecker {
         self.check(text).corrected
     }
 
-    /// Applies non-overlapping edits in reverse character index order.
+    /// Applies the findings' edits to `original`.
+    ///
+    /// Findings can overlap: a split of "Ulaştığınıda" and a merge of "Ulaştığınıda biliyoruz"
+    /// both rewrite the first word. Replaying them one after the other, each on the text the
+    /// previous one changed, corrupted it ("Ulaştığınıdabiliyoruzz."). So the edits are chosen
+    /// first: the most confident one wins a conflict (then the narrower one, then the earlier),
+    /// and an edit that overlaps an edit already chosen is dropped. A capitalisation finding
+    /// is not an edit of its own when another edit starts at the same word: that edit's
+    /// replacement is capitalised instead, so "duydumki" gets both its capital and its "ki".
+    /// The chosen edits are then applied in one pass against the original offsets.
     fn apply_corrections(original: &str, findings: &[GrammarFinding]) -> String {
-        if findings.is_empty() {
-            return original.to_string();
+        let applicable = |f: &&GrammarFinding| {
+            f.start_offset <= f.end_offset
+                && f.end_offset <= original.len()
+                && original.is_char_boundary(f.start_offset)
+                && original.is_char_boundary(f.end_offset)
+                && original[f.start_offset..f.end_offset] != f.replacement
+        };
+        let (capitals, mut candidates): (Vec<&GrammarFinding>, Vec<&GrammarFinding>) = findings
+            .iter()
+            .filter(applicable)
+            .partition(|f| f.category == ErrorCategory::Capitalization);
+        candidates.sort_by(|a, b| {
+            b.confidence
+                .total_cmp(&a.confidence)
+                .then_with(|| (a.end_offset - a.start_offset).cmp(&(b.end_offset - b.start_offset)))
+                .then_with(|| a.start_offset.cmp(&b.start_offset))
+        });
+
+        // Two edits conflict when their spans share a byte, or when they insert at, or
+        // replace, the same position.
+        let overlaps =
+            |a: (usize, usize), b: (usize, usize)| (a.0 < b.1 && b.0 < a.1) || a.0 == b.0;
+        let mut edits: Vec<(usize, usize, String)> = Vec::new();
+        for f in candidates {
+            let span = (f.start_offset, f.end_offset);
+            if !edits.iter().any(|&(s, e, _)| overlaps((s, e), span)) {
+                edits.push((span.0, span.1, f.replacement.clone()));
+            }
         }
-
-        let mut result = original.to_string();
-        let mut sorted_findings = findings.to_vec();
-        // Sort descending by start_offset so earlier offsets remain valid after string replacements
-        sorted_findings.sort_by_key(|a| std::cmp::Reverse(a.start_offset));
-
-        for finding in sorted_findings {
-            if finding.start_offset <= finding.end_offset && finding.end_offset <= result.len() {
-                // Ensure character boundaries are respected
-                if result.is_char_boundary(finding.start_offset)
-                    && result.is_char_boundary(finding.end_offset)
-                {
-                    result.replace_range(
-                        finding.start_offset..finding.end_offset,
-                        &finding.replacement,
-                    );
-                }
+        for f in capitals {
+            let span = (f.start_offset, f.end_offset);
+            if let Some(edit) = edits.iter_mut().find(|(s, _, _)| *s == span.0) {
+                edit.2 = capitalize_first(&edit.2);
+            } else if !edits.iter().any(|&(s, e, _)| overlaps((s, e), span)) {
+                edits.push((span.0, span.1, f.replacement.clone()));
             }
         }
 
+        edits.sort_by_key(|&(s, _, _)| s);
+        let mut result = String::with_capacity(original.len());
+        let mut last = 0;
+        for (start, end, replacement) in &edits {
+            result.push_str(&original[last..*start]);
+            result.push_str(replacement);
+            last = *end;
+        }
+        result.push_str(&original[last..]);
         result
+    }
+}
+
+/// `s` with its first character in Turkish upper case (i -> İ, ı -> I).
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c.is_lowercase() => {
+            let mut out = crate::phonology::to_turkish_upper(&c.to_string());
+            out.push_str(chars.as_str());
+            out
+        }
+        _ => s.to_string(),
     }
 }

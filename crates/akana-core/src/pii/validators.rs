@@ -29,7 +29,16 @@ pub enum CardBrand {
 /// 3. 10th digit: `((d1 + d3 + d5 + d7 + d9) * 7 - (d2 + d4 + d6 + d8)) mod 10`.
 /// 4. 11th digit: `(d1 + d2 + ... + d10) mod 10`.
 /// 5. Rejects known dummy/trivial series (e.g. `11111111110`, `22222222220`).
+///
+/// Spaces, hyphens and dots may group the digits (`100 000 001 46`); any other character
+/// makes the string not a TCKN, rather than being dropped (`1a0000000146` is not one).
 pub fn validate_tckn(s: &str) -> bool {
+    if !s
+        .chars()
+        .all(|c| c.is_ascii_digit() || matches!(c, ' ' | '-' | '.'))
+    {
+        return false;
+    }
     let clean: String = s.chars().filter(|c| c.is_ascii_digit()).collect();
     if clean.len() != 11 {
         return false;
@@ -387,7 +396,9 @@ pub fn validate_plate(s: &str) -> bool {
         .replace('Ş', "S")
         .replace('Ü', "U");
 
-    if plate_str.len() < 7 || plate_str.len() > 9 {
+    // Plates are ASCII once the Turkish letters are mapped; any other letter (中, É) is not a
+    // plate, and the byte slices below would split it.
+    if !plate_str.is_ascii() || plate_str.len() < 7 || plate_str.len() > 9 {
         return false;
     }
 

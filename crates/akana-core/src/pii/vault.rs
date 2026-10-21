@@ -175,20 +175,8 @@ impl PiiVault {
     /// placeholder's text (or a surrogate's) cannot pull a second value in. Placeholders with an
     /// empty key are ignored.
     pub fn restore(&self, llm_response: &str) -> String {
-        // Which keys occur in the response: a key of a placeholder or surrogate shape by one
-        // scan of the response (searching it once per key was quadratic in long sessions),
-        // any other key (tags, keys from `from_mapping`) by searching for it.
         let shapes = issued_shapes_in(llm_response);
-        let mut keys: Vec<&str> = self
-            .placeholder_to_entry
-            .keys()
-            .map(String::as_str)
-            .filter(|k| {
-                !k.is_empty()
-                    && (shapes.contains(*k)
-                        || (!issued_shapes_in(k).contains(*k) && llm_response.contains(*k)))
-            })
-            .collect();
+        let mut keys = self.keys_in(llm_response, &shapes);
         if keys.is_empty() {
             return llm_response.to_string();
         }
@@ -249,6 +237,39 @@ impl PiiVault {
                 }
             })
             .into_owned()
+    }
+
+    /// The keys of this vault that occur in `text`, `shapes` being `issued_shapes_in(text)`: a
+    /// key of a placeholder or surrogate shape by one scan of the text (searching it once per
+    /// key was quadratic in long sessions), any other key (tags, keys from `from_mapping`) by
+    /// searching for it.
+    fn keys_in<'a>(&'a self, text: &str, shapes: &HashSet<String>) -> Vec<&'a str> {
+        self.placeholder_to_entry
+            .keys()
+            .map(String::as_str)
+            .filter(|k| {
+                !k.is_empty()
+                    && (shapes.contains(*k)
+                        || (!issued_shapes_in(k).contains(*k) && text.contains(*k)))
+            })
+            .collect()
+    }
+
+    /// Byte spans of every occurrence in `text` of a key this vault restores (`shapes` being
+    /// `issued_shapes_in(text)`), so that masking can keep such text as it is: an `[EMAIL_1]`
+    /// or a surrogate date issued in an earlier turn, if left in a later turn's masked text,
+    /// would come back from `restore` as the real e-mail or date. Occurrences of different
+    /// keys can overlap.
+    pub(crate) fn restorable_spans(
+        &self,
+        text: &str,
+        shapes: &HashSet<String>,
+    ) -> Vec<(usize, usize)> {
+        let mut spans = Vec::new();
+        for key in self.keys_in(text, shapes) {
+            spans.extend(text.match_indices(key).map(|(i, k)| (i, i + k.len())));
+        }
+        spans
     }
 
     /// Returns a direct key-value mapping from placeholder/surrogate to the original sensitive text.

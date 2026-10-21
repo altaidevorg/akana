@@ -171,13 +171,13 @@ pub struct PiiResult {
 lazy_static::lazy_static! {
     static ref TCKN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b\d{11}\b").unwrap();
     static ref GROUPED_TCKN_REGEX: regex::Regex = regex::Regex::new(r"\b(?:\d{3}[- ]\d{3}[- ]\d{3}[- ]\d{2}|\d{4}[- ]\d{4}[- ]\d{3})\b").unwrap();
-    static ref TCKN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:tc|tckn|tc\s*no|tc\s*kimlik|kimlik\s*no|tc\s*si)[:\s]*([0-9- ]{11,16})\b").unwrap();
+    static ref TCKN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(&turkish_i_insensitive(r"(?i)\b(?:tc|tckn|tc\s*no|tc\s*kimlik|kimlik\s*no|tc\s*si)[:\s]*([0-9- ]{11,16})\b")).unwrap();
     static ref VKN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b\d{10}\b").unwrap();
     static ref IBAN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b[A-Z]{2}\d{2}(?:[0-9A-Z]{11,30}|(?:\s+[0-9A-Z]{1,4}){3,8})\b").unwrap();
-    static ref IBAN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:iban|iban\s*no)[:\s]*([A-Z]{2}\d{2}(?:[0-9A-Z]{11,30}|(?:\s+[0-9A-Z]{1,4}){3,8}))\b").unwrap();
+    static ref IBAN_TRIGGER_REGEX: regex::Regex = regex::Regex::new(&turkish_i_insensitive(r"(?i)\b(?:iban|iban\s*no)[:\s]*([A-Z]{2}\d{2}(?:[0-9A-Z]{11,30}|(?:\s+[0-9A-Z]{1,4}){3,8}))\b")).unwrap();
     static ref SSN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b\d{3}-\d{2}-\d{4}\b").unwrap();
     static ref CARD_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b(?:\d[ -]?){13,19}\b").unwrap();
-    static ref CARD_TRIGGER_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b(?:kart\s*no|kredi\s*kart[ıi]|kart)[:\s]*((?:\d[ -]?){13,19})\b").unwrap();
+    static ref CARD_TRIGGER_REGEX: regex::Regex = regex::Regex::new(&turkish_i_insensitive(r"(?i)\b(?:kart\s*no|kredi\s*kart[ıi]|kart)[:\s]*((?:\d[ -]?){13,19})\b")).unwrap();
     static ref PLATE_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"(?i)\b\d{2}\s*[A-ZÇĞİÖŞÜ]{1,3}\s*\d{2,5}\b").unwrap();
     static ref VIN_CANDIDATE_REGEX: regex::Regex = regex::Regex::new(r"\b[A-HJ-NPR-Z0-9]{17}\b").unwrap();
     /// Text in the input that has the shape of a vault placeholder ({{AD_1}}, {{IBAN_1}}).
@@ -378,11 +378,16 @@ impl TurkishPiiEngine {
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 
-        // Placeholder-shaped text already in the input ({{IBAN_1}} in a web page an agent
-        // read) is masked too, as a placeholder of its own that restores to that literal text.
-        // Left as it was, restore would replace it with the real value it names.
-        // In tag and anonymize modes a tag in the input ([AD] in a template) is masked the same
-        // way: every [AD] restores to the one original, so it would have become the person.
+        // the placeholder- and surrogate-shaped strings of the text, collected once
+        let taken = vault::issued_shapes_in(text);
+
+        // Text already in the input that restore would turn into a real value is masked too,
+        // as a placeholder of its own that restores to that literal text:
+        // - placeholder-shaped text ({{IBAN_1}} in a web page an agent read), in every mode;
+        // - any key the vault issued in an earlier turn, in every mode: an [EMAIL_1] or a
+        //   surrogate date of a surrogate-mode turn, an [AD] of a tag-mode turn;
+        // - in tag and anonymize modes, a tag in the input ([AD] in a template): every [AD]
+        //   restores to the one original, so it would have become the person.
         let tag_literals = matches!(mode, PiiMode::Tag | PiiMode::Anonymize)
             .then(|| TAG_LITERAL_REGEX.find_iter(text))
             .into_iter()
@@ -396,16 +401,16 @@ impl TurkishPiiEngine {
         let literals = PLACEHOLDER_LITERAL_REGEX
             .find_iter(text)
             .chain(tag_literals)
-            .filter(|m| !overlaps_entity(m.start(), m.end()))
-            .map(|m| (m.start(), m.end()));
+            .map(|m| (m.start(), m.end()))
+            .chain(vault.restorable_spans(text, &taken))
+            .filter(|&(s, e)| !overlaps_entity(s, e));
         let mut spans: Vec<(usize, usize, Option<&PiiEntity>)> = entities
             .iter()
             .map(|e| (e.start, e.end, Some(e)))
             .chain(literals.map(|(s, e)| (s, e, None)))
             .collect();
-        spans.sort_by_key(|&(start, _, _)| start);
-        // the placeholder- and surrogate-shaped strings of the text, collected once
-        let taken = vault::issued_shapes_in(text);
+        // by start, the longest first: of overlapping literals the loop below keeps the first
+        spans.sort_by_key(|&(start, end, _)| (start, std::cmp::Reverse(end)));
 
         for (start, end, entity) in spans {
             if start < last_end {
@@ -514,8 +519,8 @@ impl TurkishPiiEngine {
         }
 
         // Trigger-preceded TCKN (e.g. TC Sİ 645-175-336-66, tc 12345678901)
-        let lower = to_turkish_lower(text);
-        if lower.sz_find("tc").is_some() || lower.sz_find("kimlik").is_some() {
+        let lower = normalize::Lowered::of(text);
+        if lower.has("tc") || lower.has("kimlik") {
             for cap in TCKN_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
                     let (val_start, val_end, span_str) = trimmed_match(val);
@@ -591,7 +596,7 @@ impl TurkishPiiEngine {
         }
 
         // Trigger-preceded IBAN
-        if lower.sz_find("iban").is_some() {
+        if lower.has("iban") {
             for cap in IBAN_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
                     let mut curr = val.as_str().trim();
@@ -625,7 +630,7 @@ impl TurkishPiiEngine {
         }
 
         // Trigger-preceded Vehicle Plates
-        if lower.sz_find("plaka").is_some() {
+        if lower.has("plaka") {
             for cap in PLATE_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
                     let (val_start, val_end, span_str) = trimmed_match(val);
@@ -673,7 +678,7 @@ impl TurkishPiiEngine {
         }
 
         // Trigger-preceded Card numbers (e.g. kart no 4147462686590570, kart 4500591135632828)
-        if lower.sz_find("kart").is_some() {
+        if lower.has("kart") {
             for cap in CARD_TRIGGER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
                     let (val_start, val_end, span_str) = trimmed_match(val);
@@ -739,7 +744,7 @@ impl TurkishPiiEngine {
 
     fn detect_pattern_entities(&self, text: &str, out: &mut Vec<PiiEntity>) {
         let has_digits = text.bytes().any(|b| b.is_ascii_digit());
-        let lower = to_turkish_lower(text);
+        let lower = normalize::Lowered::of(text);
 
         // Phone numbers: the layout regex, then any grouping by numbering plan (phones.rs)
         if has_digits {
@@ -791,10 +796,7 @@ impl TurkishPiiEngine {
         }
 
         // Email addresses (standard + obfuscated, preserving corporate support emails when configured)
-        if text.sz_find("@").is_some()
-            || lower.sz_find("[at]").is_some()
-            || lower.sz_find("(at)").is_some()
-        {
+        if text.sz_find("@").is_some() || lower.has("[at]") || lower.has("(at)") {
             for mat in EMAIL_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
                 if self.preserve_corporate_emails && is_corporate_email(span_str) {
@@ -853,7 +855,7 @@ impl TurkishPiiEngine {
         }
 
         // Port numbers
-        if has_digits && (lower.sz_find("port").is_some() || text.sz_find(":").is_some()) {
+        if has_digits && (lower.has("port") || text.sz_find(":").is_some()) {
             for cap in PORT_REGEX.captures_iter(text) {
                 let full = cap.get(0).unwrap();
                 let Some(port) = (1..=3).find_map(|g| cap.get(g)) else {
@@ -889,7 +891,7 @@ impl TurkishPiiEngine {
 
         // Passport numbers
         if has_digits
-            && (lower.sz_find("pasaport").is_some()
+            && (lower.has("pasaport")
                 || text.sz_find("U").is_some()
                 || text.sz_find("u").is_some()
                 || text.sz_find("A").is_some()
@@ -915,7 +917,7 @@ impl TurkishPiiEngine {
         }
 
         // Age & Age range
-        if has_digits && (lower.sz_find("yaş").is_some() || lower.sz_find("yas").is_some()) {
+        if has_digits && (lower.has("yaş") || lower.has("yas")) {
             for cap in AGE_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -945,10 +947,10 @@ impl TurkishPiiEngine {
 
         // CVV / CVC
         if has_digits
-            && (lower.sz_find("cvv").is_some()
-                || lower.sz_find("cvc").is_some()
-                || lower.sz_find("güvenlik").is_some()
-                || lower.sz_find("guvenlik").is_some())
+            && (lower.has("cvv")
+                || lower.has("cvc")
+                || lower.has("güvenlik")
+                || lower.has("guvenlik"))
         {
             for cap in CVV_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
@@ -966,11 +968,7 @@ impl TurkishPiiEngine {
         }
 
         // Card Expiry (SKT)
-        if has_digits
-            && (lower.sz_find("skt").is_some()
-                || lower.sz_find("son kullanma").is_some()
-                || lower.sz_find("exp").is_some())
-        {
+        if has_digits && (lower.has("skt") || lower.has("son kullanma") || lower.has("exp")) {
             for cap in CARD_EXPIRY_REGEX.captures_iter(text) {
                 let full = cap.get(0).unwrap();
                 out.push(PiiEntity {
@@ -987,11 +985,11 @@ impl TurkishPiiEngine {
         }
 
         // Account / Customer No
-        if lower.sz_find("müşteri").is_some()
-            || lower.sz_find("musteri").is_some()
-            || lower.sz_find("hesap").is_some()
-            || lower.sz_find("ödeme").is_some()
-            || lower.sz_find("odeme").is_some()
+        if lower.has("müşteri")
+            || lower.has("musteri")
+            || lower.has("hesap")
+            || lower.has("ödeme")
+            || lower.has("odeme")
         {
             for cap in ACCOUNT_NO_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1) {
@@ -1057,7 +1055,7 @@ impl TurkishPiiEngine {
         }
 
         // Tax ID (VKN / Vergi No)
-        if has_digits && (lower.sz_find("vergi").is_some() || lower.sz_find("vkn").is_some()) {
+        if has_digits && (lower.has("vergi") || lower.has("vkn")) {
             for cap in VERGI_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1074,10 +1072,7 @@ impl TurkishPiiEngine {
         }
 
         // Disability Status (KVKK Article 6)
-        if lower.sz_find("engel").is_some()
-            || lower.sz_find("özür").is_some()
-            || lower.sz_find("ozur").is_some()
-        {
+        if lower.has("engel") || lower.has("özür") || lower.has("ozur") {
             for cap in DISABILITY_REGEX.captures_iter(text) {
                 let Some(val) = cap.get(1).or_else(|| cap.get(2)) else {
                     continue;
@@ -1102,11 +1097,11 @@ impl TurkishPiiEngine {
 
         // Salary / Income
         if has_digits
-            && (lower.sz_find("maaş").is_some()
-                || lower.sz_find("maas").is_some()
-                || lower.sz_find("gelir").is_some()
-                || lower.sz_find("ücret").is_some()
-                || lower.sz_find("ucret").is_some())
+            && (lower.has("maaş")
+                || lower.has("maas")
+                || lower.has("gelir")
+                || lower.has("ücret")
+                || lower.has("ucret"))
         {
             for cap in SALARY_REGEX.captures_iter(text) {
                 let full = cap.get(0).unwrap();
@@ -1124,11 +1119,11 @@ impl TurkishPiiEngine {
         }
 
         // Driver's License
-        if lower.sz_find("ehliyet").is_some()
-            || lower.sz_find("sürücü").is_some()
-            || lower.sz_find("surucu").is_some()
-            || lower.sz_find("şoför").is_some()
-            || lower.sz_find("sofor").is_some()
+        if lower.has("ehliyet")
+            || lower.has("sürücü")
+            || lower.has("surucu")
+            || lower.has("şoför")
+            || lower.has("sofor")
         {
             for cap in DRIVER_LICENSE_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
@@ -1147,10 +1142,7 @@ impl TurkishPiiEngine {
 
         // SGK No
         if has_digits
-            && (lower.sz_find("sgk").is_some()
-                || lower.sz_find("ssk").is_some()
-                || lower.sz_find("bağkur").is_some()
-                || lower.sz_find("bagkur").is_some())
+            && (lower.has("sgk") || lower.has("ssk") || lower.has("bağkur") || lower.has("bagkur"))
         {
             for cap in SGK_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
@@ -1171,7 +1163,7 @@ impl TurkishPiiEngine {
         if has_digits
             && ["doğ", "dog", "d.t.", "d. t.", "birth", "dob", "born"]
                 .iter()
-                .any(|t| lower.sz_find(t).is_some())
+                .any(|t| lower.has(t))
         {
             // on the Turkish lower-cased text, whose offsets are mapped back: the regex is
             // case-insensitive only in ASCII, and missed every İ (DOĞUM TARİHİ)
@@ -1260,11 +1252,7 @@ impl TurkishPiiEngine {
             "yatış",
             "yatis",
         ];
-        if has_digits
-            && DATE_TRIGGERS
-                .iter()
-                .any(|&trig| lower.sz_find(trig).is_some())
-        {
+        if has_digits && DATE_TRIGGERS.iter().any(|&trig| lower.has(trig)) {
             let (low, origin) = normalize::turkish_lower_with_origin(text);
             let orig = |i: usize| origin.get(i).copied().unwrap_or(text.len());
             let push_private = |m: regex::Match<'_>, out: &mut Vec<PiiEntity>| {
@@ -1290,7 +1278,7 @@ impl TurkishPiiEngine {
                     push_private(mat, out);
                 }
             }
-            if lower.sz_find("olan").is_some() {
+            if lower.has("olan") {
                 for cap in PRIVATE_DATE_POST_TRIGGER_REGEX.captures_iter(&low) {
                     if let Some(mat) = cap.get(1) {
                         push_private(mat, out);
@@ -1305,7 +1293,7 @@ impl TurkishPiiEngine {
         // 1,461 dates in court decisions and 62 of 1,012 in Wikipedia as dates of birth.
 
         // IMEI device numbers
-        if has_digits && (lower.sz_find("imei").is_some() || text.len() >= 15) {
+        if has_digits && (lower.has("imei") || text.len() >= 15) {
             for cap in IMEI_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 let span_str = val.as_str();
@@ -1361,7 +1349,7 @@ impl TurkishPiiEngine {
         }
 
         // Vehicle Registration (Ruhsat No)
-        if lower.sz_find("ruhsat").is_some() {
+        if lower.has("ruhsat") {
             for cap in RUHSAT_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1378,7 +1366,7 @@ impl TurkishPiiEngine {
         }
 
         // Contract No
-        if lower.sz_find("sözleşme").is_some() || lower.sz_find("sozlesme").is_some() {
+        if lower.has("sözleşme") || lower.has("sozlesme") {
             for cap in CONTRACT_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1395,7 +1383,7 @@ impl TurkishPiiEngine {
         }
 
         // Policy No
-        if lower.sz_find("poliçe").is_some() || lower.sz_find("police").is_some() {
+        if lower.has("poliçe") || lower.has("police") {
             for cap in POLICY_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1412,10 +1400,7 @@ impl TurkishPiiEngine {
         }
 
         // Reference No
-        if lower.sz_find("referans").is_some()
-            || text.sz_find("REF-").is_some()
-            || text.sz_find("RF").is_some()
-        {
+        if lower.has("referans") || text.sz_find("REF-").is_some() || text.sz_find("RF").is_some() {
             for cap in REFERENCE_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1432,10 +1417,7 @@ impl TurkishPiiEngine {
         }
 
         // Vehicle Chassis / VIN No in context
-        if lower.sz_find("şasi").is_some()
-            || lower.sz_find("sasi").is_some()
-            || lower.sz_find("vin").is_some()
-        {
+        if lower.has("şasi") || lower.has("sasi") || lower.has("vin") {
             for cap in CHASSIS_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1452,7 +1434,7 @@ impl TurkishPiiEngine {
         }
 
         // Engine / Motor No in context
-        if lower.sz_find("motor").is_some() {
+        if lower.has("motor") {
             for cap in MOTOR_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1469,7 +1451,7 @@ impl TurkishPiiEngine {
         }
 
         // PIN in context
-        if has_digits && lower.sz_find("pin").is_some() {
+        if has_digits && lower.has("pin") {
             for cap in PIN_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1486,7 +1468,7 @@ impl TurkishPiiEngine {
         }
 
         // Credit rating / Findeks score
-        if has_digits && (lower.sz_find("kredi").is_some() || lower.sz_find("findeks").is_some()) {
+        if has_digits && (lower.has("kredi") || lower.has("findeks")) {
             for cap in CREDIT_SCORE_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1503,7 +1485,7 @@ impl TurkishPiiEngine {
         }
 
         // Mother's maiden name
-        if lower.sz_find("kızlık").is_some() || lower.sz_find("kizlik").is_some() {
+        if lower.has("kızlık") || lower.has("kizlik") {
             for cap in MOTHER_MAIDEN_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1520,13 +1502,13 @@ impl TurkishPiiEngine {
         }
 
         // Gender
-        if lower.sz_find("cinsiyet").is_some()
-            || lower.sz_find("kadın").is_some()
-            || lower.sz_find("kadin").is_some()
-            || lower.sz_find("erkek").is_some()
-            || lower.sz_find("bayan").is_some()
-            || lower.sz_find("dişi").is_some()
-            || lower.sz_find("disi").is_some()
+        if lower.has("cinsiyet")
+            || lower.has("kadın")
+            || lower.has("kadin")
+            || lower.has("erkek")
+            || lower.has("bayan")
+            || lower.has("dişi")
+            || lower.has("disi")
         {
             for cap in GENDER_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1).or_else(|| cap.get(2)) {
@@ -1545,7 +1527,7 @@ impl TurkishPiiEngine {
         }
 
         // Device ID
-        if lower.sz_find("cihaz").is_some() || lower.sz_find("device").is_some() {
+        if lower.has("cihaz") || lower.has("device") {
             for cap in DEVICE_ID_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1562,7 +1544,7 @@ impl TurkishPiiEngine {
         }
 
         // Sicil No
-        if lower.sz_find("sicil").is_some() {
+        if lower.has("sicil") {
             for cap in SICIL_NO_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1579,7 +1561,7 @@ impl TurkishPiiEngine {
         }
 
         // Digital Signature / E-Signature
-        if lower.sz_find("imza").is_some() {
+        if lower.has("imza") {
             for mat in SIGNATURE_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
                 out.push(PiiEntity {
@@ -1596,13 +1578,13 @@ impl TurkishPiiEngine {
         }
 
         // Criminal / Judicial record
-        if lower.sz_find("ceza").is_some()
-            || lower.sz_find("kabahat").is_some()
-            || lower.sz_find("serbestlik").is_some()
-            || lower.sz_find("icra").is_some()
-            || lower.sz_find("sicil").is_some()
-            || lower.sz_find("sabıka").is_some()
-            || lower.sz_find("sabika").is_some()
+        if lower.has("ceza")
+            || lower.has("kabahat")
+            || lower.has("serbestlik")
+            || lower.has("icra")
+            || lower.has("sicil")
+            || lower.has("sabıka")
+            || lower.has("sabika")
         {
             for mat in CRIMINAL_RECORD_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
@@ -1620,11 +1602,11 @@ impl TurkishPiiEngine {
         }
 
         // Nationality
-        if lower.sz_find("uyruk").is_some()
-            || lower.sz_find("uyruğu").is_some()
-            || lower.sz_find("uyrugu").is_some()
-            || lower.sz_find("vatandaş").is_some()
-            || lower.sz_find("vatandas").is_some()
+        if lower.has("uyruk")
+            || lower.has("uyruğu")
+            || lower.has("uyrugu")
+            || lower.has("vatandaş")
+            || lower.has("vatandas")
         {
             for cap in NATIONALITY_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
@@ -1676,7 +1658,7 @@ impl TurkishPiiEngine {
             "engel",
         ]
         .iter()
-        .any(|k| lower.sz_find(k).is_some())
+        .any(|k| lower.has(k))
         {
             for cap in HEALTH_RECORD_REGEX.captures_iter(text) {
                 let Some(val) = cap.get(1).or_else(|| cap.get(2)) else {
@@ -1699,13 +1681,13 @@ impl TurkishPiiEngine {
         }
 
         // Trade union membership
-        if lower.sz_find("sendika").is_some()
-            || lower.sz_find("sendikası").is_some()
-            || lower.sz_find("sendikasi").is_some()
-            || lower.sz_find("-iş").is_some()
-            || lower.sz_find("-is").is_some()
-            || lower.sz_find("sen ").is_some()
-            || lower.sz_find("sen\n").is_some()
+        if lower.has("sendika")
+            || lower.has("sendikası")
+            || lower.has("sendikasi")
+            || lower.has("-iş")
+            || lower.has("-is")
+            || lower.has("sen ")
+            || lower.has("sen\n")
         {
             for cap in TRADE_UNION_REGEX.captures_iter(text) {
                 // the union, not "sendika bilgisi" before it
@@ -1727,10 +1709,10 @@ impl TurkishPiiEngine {
         }
 
         // Username
-        if lower.sz_find("kullanıcı").is_some()
-            || lower.sz_find("kullanici").is_some()
-            || lower.sz_find("username").is_some()
-            || lower.sz_find("oturum").is_some()
+        if lower.has("kullanıcı")
+            || lower.has("kullanici")
+            || lower.has("username")
+            || lower.has("oturum")
         {
             for cap in USERNAME_REGEX.captures_iter(text) {
                 if let Some(val) = cap.get(1).or_else(|| cap.get(2)) {
@@ -1749,13 +1731,13 @@ impl TurkishPiiEngine {
         }
 
         // Biometric data
-        if lower.sz_find("damar").is_some()
-            || lower.sz_find("parmak").is_some()
-            || lower.sz_find("yüz").is_some()
-            || lower.sz_find("yuz").is_some()
-            || lower.sz_find("iris").is_some()
-            || lower.sz_find("retina").is_some()
-            || lower.sz_find("biyometrik").is_some()
+        if lower.has("damar")
+            || lower.has("parmak")
+            || lower.has("yüz")
+            || lower.has("yuz")
+            || lower.has("iris")
+            || lower.has("retina")
+            || lower.has("biyometrik")
         {
             for mat in BIOMETRIC_REGEX.find_iter(text) {
                 let span_str = mat.as_str();
@@ -1773,7 +1755,7 @@ impl TurkishPiiEngine {
         }
 
         // Birthplace
-        if lower.sz_find("doğum").is_some() || lower.sz_find("dogum").is_some() {
+        if lower.has("doğum") || lower.has("dogum") {
             for cap in BIRTHPLACE_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1790,7 +1772,7 @@ impl TurkishPiiEngine {
         }
 
         // Family status
-        if lower.sz_find("aile").is_some() || lower.sz_find("medeni").is_some() {
+        if lower.has("aile") || lower.has("medeni") {
             for cap in FAMILY_STATUS_REGEX.captures_iter(text) {
                 let (val_start, val_end, span_str) = trimmed_match(cap.get(1).unwrap());
                 if !span_str.is_empty() {
@@ -1809,7 +1791,7 @@ impl TurkishPiiEngine {
         }
 
         // Ethnic origin
-        if lower.sz_find("etnik").is_some() {
+        if lower.has("etnik") {
             for cap in ETHNIC_ORIGIN_REGEX.captures_iter(text) {
                 let val = cap.get(1).unwrap();
                 out.push(PiiEntity {
@@ -1851,10 +1833,7 @@ impl TurkishPiiEngine {
             "universite",
             "holding",
         ];
-        if WORKPLACE_TRIGGERS
-            .iter()
-            .any(|&trig| lower.sz_find(trig).is_some())
-        {
+        if WORKPLACE_TRIGGERS.iter().any(|&trig| lower.has(trig)) {
             for cap in WORKPLACE_REGEX.captures_iter(text) {
                 // the name, not the "İşyeri:" before it or "bünyesinde" after it
                 let Some(mat) = cap.get(1).or_else(|| cap.get(2)) else {
@@ -1875,7 +1854,7 @@ impl TurkishPiiEngine {
         }
 
         // Mother / Father given names
-        if lower.sz_find("anne").is_some() || lower.sz_find("baba").is_some() {
+        if lower.has("anne") || lower.has("baba") {
             for cap in PARENT_NAMES_REGEX.captures_iter(text) {
                 let full_match = cap.get(0).unwrap().as_str().to_lowercase();
                 let val = cap.get(1).unwrap();
