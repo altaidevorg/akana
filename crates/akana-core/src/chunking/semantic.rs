@@ -3,7 +3,7 @@
 //! Segments text at semantic topic transitions while respecting size and coherence constraints.
 
 use super::similarity::{calculate_threshold, moving_average_filter, savitzky_golay_filter};
-use super::types::{Chunk, SentenceSpan, ThresholdMode};
+use super::types::{CharOffsets, Chunk, SentenceSpan, ThresholdMode};
 use crate::embeddings::{cosine_similarity, TurkishEmbeddings};
 use crate::tokenization::SentenceSegmenter;
 use std::sync::Arc;
@@ -114,13 +114,14 @@ impl SemanticChunker {
         }
 
         // 1. Compute spans, token counts, and embeddings for all sentences
+        let mut offsets = CharOffsets::new(text);
         let spans: Vec<SentenceSpan> = raw_sentences
             .into_iter()
             .map(|s| {
                 let token_count = self.embeddings.tokenize(s.text).len().max(1);
                 let emb = self.embeddings.embed(s.text);
-                let char_start = text[..s.start].chars().count();
-                let char_end = text[..s.end].chars().count();
+                let char_start = offsets.at(s.start);
+                let char_end = offsets.at(s.end);
                 SentenceSpan::new(
                     s.text.to_string(),
                     s.start,

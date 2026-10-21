@@ -402,6 +402,32 @@ pub(super) fn has_think_tag(s: &str) -> bool {
     find_ci(s, "<think>").is_some() || find_ci(s, "</think>").is_some()
 }
 
+/// Memo of a forward search: the first match at or after `from` was `at` (`None`: there was
+/// none). That answer holds for every later start up to `at`, so a scan whose start only moves
+/// forward looks at each byte once instead of searching the rest of the text again per query.
+#[derive(Debug, Default, Clone, Copy)]
+pub(super) struct NextMatch {
+    memo: Option<(usize, Option<usize>)>,
+}
+
+impl NextMatch {
+    /// The first match at or after `from`; `search(from)` finds it (as an absolute offset).
+    pub(super) fn find(
+        &mut self,
+        from: usize,
+        search: impl FnOnce(usize) -> Option<usize>,
+    ) -> Option<usize> {
+        if let Some((f, at)) = self.memo {
+            if f <= from && at.is_none_or(|a| from <= a) {
+                return at;
+            }
+        }
+        let at = search(from);
+        self.memo = Some((from, at));
+        at
+    }
+}
+
 /// Removes `<think>…</think>` reasoning blocks (case-insensitive). An orphan `</think>`
 /// (template stripped the opener) drops everything before it; an unclosed `<think>` drops
 /// everything after it.
@@ -411,26 +437,31 @@ pub(super) fn remove_think_blocks(s: &str) -> Cow<'_, str> {
     }
     const OPEN: &str = "<think>";
     const CLOSE: &str = "</think>";
+    // Each tag is found from a forward cursor: searching the rest of the text for `<think>`
+    // again after every `</think>` made 200 KB of closing tags take 5 s.
+    let (mut opens, mut closes) = (NextMatch::default(), NextMatch::default());
+    let next = |memo: &mut NextMatch, from: usize, tag: &str| {
+        memo.find(from, |f| find_ci(&s[f..], tag).map(|k| f + k))
+    };
     let mut out = String::with_capacity(s.len());
-    let mut rest = s;
+    let mut rest = 0;
     loop {
-        let open = find_ci(rest, OPEN);
-        let close = find_ci(rest, CLOSE);
+        let open = next(&mut opens, rest, OPEN);
+        let close = next(&mut closes, rest, CLOSE);
         match (open, close) {
             (None, None) => {
-                out.push_str(rest);
+                out.push_str(&s[rest..]);
                 break;
             }
             (o, Some(c)) if o.is_none_or(|o| c < o) => {
-                rest = &rest[c + CLOSE.len()..];
+                rest = c + CLOSE.len();
                 out.push_str("\n\n");
             }
             (Some(o), _) => {
-                out.push_str(&rest[..o]);
+                out.push_str(&s[rest..o]);
                 out.push_str("\n\n");
-                let after = &rest[o + OPEN.len()..];
-                match find_ci(after, CLOSE) {
-                    Some(c) => rest = &after[c + CLOSE.len()..],
+                match next(&mut closes, o + OPEN.len(), CLOSE) {
+                    Some(c) => rest = c + CLOSE.len(),
                     None => break,
                 }
             }
@@ -463,20 +494,32 @@ pub(super) fn strip_latex(s: &str) -> (Cow<'_, str>, usize) {
         out.push(' ');
         *last = end;
     };
+    // Closing delimiters are found from forward cursors: searching to the end of the text again
+    // for every unclosed `\[` or `\(` made 200 KB of them take 2 s.
+    let (mut dollars, mut brackets, mut parens) = Default::default();
+    let close = |memo: &mut NextMatch, from: usize, delim: &str| {
+        memo.find(from, |f| s[f..].find(delim).map(|k| f + k))
+            .map(|k| k + delim.len())
+    };
     while i < b.len() {
         let next = b.get(i + 1).copied();
         let skip_to = match (b[i], next) {
-            (b'$', Some(b'$')) => s[i + 2..].find("$$").map(|e| i + 2 + e + 2),
+            (b'$', Some(b'$')) => close(&mut dollars, i + 2, "$$"),
             (b'$', _) => {
-                let rest = &s[i + 1..];
-                let line = &rest[..rest.find('\n').unwrap_or(rest.len())];
-                line.find('$')
-                    .filter(|&e| e > 0 && e <= MAX_INLINE_DOLLAR)
-                    .filter(|&e| line[..e].contains(['\\', '^', '_', '{', '=']))
+                // The closing `$` must come within MAX_INLINE_DOLLAR bytes on the same line, so
+                // only that far is looked at (looking for the line end made a line of `$5`
+                // quadratic).
+                let rest = &b[i + 1..];
+                let window = &rest[..rest.len().min(MAX_INLINE_DOLLAR + 1)];
+                window
+                    .iter()
+                    .position(|&c| c == b'$' || c == b'\n')
+                    .filter(|&e| rest[e] == b'$' && e > 0)
+                    .filter(|&e| s[i + 1..i + 1 + e].contains(['\\', '^', '_', '{', '=']))
                     .map(|e| i + 1 + e + 1)
             }
-            (b'\\', Some(b'[')) => s[i + 2..].find("\\]").map(|e| i + 2 + e + 2),
-            (b'\\', Some(b'(')) => s[i + 2..].find("\\)").map(|e| i + 2 + e + 2),
+            (b'\\', Some(b'[')) => close(&mut brackets, i + 2, "\\]"),
+            (b'\\', Some(b'(')) => close(&mut parens, i + 2, "\\)"),
             (b'\\', Some(b'\\')) => Some(i + 2),
             (b'\\', Some(c)) if c.is_ascii_alphabetic() => {
                 let mut j = i + 1;

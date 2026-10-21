@@ -3,7 +3,7 @@
 //! Accelerated with single-pass zero-copy token stream matching.
 
 use crate::phonology::to_turkish_lower;
-use crate::tokenization::{TokenType, TurkishTokenizer};
+use crate::tokenization::{Token, TokenType, TurkishTokenizer};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -156,12 +156,33 @@ lazy_static! {
 
 pub struct TurkishNER;
 
+/// Where the organisation scan from token `i` stops: the first token at or after `i` that is
+/// an ORG suffix (`true`), or that is neither capitalised nor `ve`/`ile` (`false`; also when
+/// the tokens run out, with `tokens.len()`).
+fn org_scan_stop(tokens: &[Token], i: usize) -> (usize, bool) {
+    for (j, tok) in tokens.iter().enumerate().skip(i) {
+        let cur_clean = tok.text.trim_matches(|c: char| !c.is_alphanumeric());
+        if ORG_SUFFIXES.contains(to_turkish_lower(cur_clean).as_str()) {
+            return (j, true);
+        }
+        if !cur_clean.chars().next().is_some_and(|c| c.is_uppercase())
+            && cur_clean != "ve"
+            && cur_clean != "ile"
+        {
+            return (j, false);
+        }
+    }
+    (tokens.len(), false)
+}
+
 impl TurkishNER {
     /// Extracts named entities from a Turkish text string.
     pub fn extract_entities(text: &str) -> Vec<NamedEntity> {
         let mut entities = Vec::new();
         let tokens = TurkishTokenizer::tokenize(text);
         let n = tokens.len();
+        // Last result of `org_scan_stop`: (start, stop token, whether it is an ORG suffix).
+        let mut org_stop: Option<(usize, usize, bool)> = None;
 
         let mut i = 0;
         while i < n {
@@ -290,33 +311,26 @@ impl TurkishNER {
 
             // 4. Multi-token Organization Pattern (Capitalized sequence ending with ORG suffix)
             if clean_tok.chars().next().is_some_and(|c| c.is_uppercase()) {
-                let mut j = i;
-                let mut org_matched = false;
-                while j < n {
-                    let cur_clean = tokens[j].text.trim_matches(|c: char| !c.is_alphanumeric());
-                    let cur_lower = to_turkish_lower(cur_clean);
-                    if ORG_SUFFIXES.contains(cur_lower.as_str()) {
-                        let matched_tokens: Vec<&str> =
-                            tokens[i..=j].iter().map(|t| t.text).collect();
-                        entities.push(NamedEntity {
-                            text: matched_tokens.join(" "),
-                            label: "ORG".to_string(),
-                            start: tokens[i].start,
-                            end: tokens[j].end,
-                        });
-                        i = j + 1;
-                        org_matched = true;
-                        break;
+                // The scan from `i` stops at the same token for every start before it, so that
+                // token is looked up once per run: walking to the end of the capitalised run
+                // from each of its tokens made 8,000 capitalised words take 2.5 s.
+                let (j, is_suffix) = match org_stop {
+                    Some((from, j, is_suffix)) if from <= i && i <= j => (j, is_suffix),
+                    _ => {
+                        let (j, is_suffix) = org_scan_stop(&tokens, i);
+                        org_stop = Some((i, j, is_suffix));
+                        (j, is_suffix)
                     }
-                    if !cur_clean.chars().next().is_some_and(|c| c.is_uppercase())
-                        && cur_clean != "ve"
-                        && cur_clean != "ile"
-                    {
-                        break;
-                    }
-                    j += 1;
-                }
-                if org_matched {
+                };
+                if is_suffix {
+                    let matched_tokens: Vec<&str> = tokens[i..=j].iter().map(|t| t.text).collect();
+                    entities.push(NamedEntity {
+                        text: matched_tokens.join(" "),
+                        label: "ORG".to_string(),
+                        start: tokens[i].start,
+                        end: tokens[j].end,
+                    });
+                    i = j + 1;
                     continue;
                 }
 

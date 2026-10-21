@@ -3,7 +3,7 @@
 use crate::morphology::{TurkishStemmer, TurkishStopwords};
 use crate::phonology::to_turkish_lower;
 use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub struct TurkishSummarizer {
     stemmer: TurkishStemmer,
@@ -57,46 +57,73 @@ impl TurkishSummarizer {
         }
 
         let n = raw_sentences.len();
-        // 2. Build Sentence Similarity Adjacency Matrix
-        let mut weights = vec![vec![0.0f32; n]; n];
-        for i in 0..n {
-            for j in (i + 1)..n {
-                let bag_i = &sentence_bags[i];
-                let bag_j = &sentence_bags[j];
-                if bag_i.is_empty() || bag_j.is_empty() {
-                    continue;
+        // 2. Build the sentence similarity graph as adjacency lists: weights[i] holds (j, w_ij)
+        // for every j that shares a stem with i, in increasing j. Pairs are found through an
+        // inverted index on stems, so memory follows the number of edges instead of n².
+        let mut stem_ids: HashMap<&str, usize> = HashMap::new();
+        let mut postings: Vec<Vec<usize>> = Vec::new(); // sentences of each stem, in order
+        for (i, bag) in sentence_bags.iter().enumerate() {
+            for stem in bag {
+                let next_id = postings.len();
+                let id = *stem_ids.entry(stem.as_str()).or_insert(next_id);
+                if id == next_id {
+                    postings.push(Vec::new());
                 }
-
-                let intersection = bag_i.intersection(bag_j).count();
-                if intersection > 0 {
-                    // Normalizer: log(len(i)) + log(len(j))
-                    let norm = (bag_i.len() as f32).ln() + (bag_j.len() as f32).ln();
-                    let sim = if norm > 0.0 {
-                        intersection as f32 / norm
-                    } else {
-                        intersection as f32
-                    };
-                    weights[i][j] = sim;
-                    weights[j][i] = sim;
-                }
+                postings[id].push(i);
             }
         }
+        let mut weights: Vec<Vec<(usize, f32)>> = vec![Vec::new(); n];
+        let mut shared = vec![0usize; n];
+        let mut later: Vec<usize> = Vec::new(); // the j > i sharing a stem with i
+        for (i, bag_i) in sentence_bags.iter().enumerate() {
+            for stem in bag_i {
+                let list = &postings[stem_ids[stem.as_str()]];
+                for &j in &list[list.partition_point(|&j| j <= i)..] {
+                    if shared[j] == 0 {
+                        later.push(j);
+                    }
+                    shared[j] += 1;
+                }
+            }
+            later.sort_unstable();
+            for &j in &later {
+                let intersection = std::mem::take(&mut shared[j]);
+                let bag_j = &sentence_bags[j];
+                // Normalizer: log(len(i)) + log(len(j))
+                let norm = (bag_i.len() as f32).ln() + (bag_j.len() as f32).ln();
+                let sim = if norm > 0.0 {
+                    intersection as f32 / norm
+                } else {
+                    intersection as f32
+                };
+                weights[i].push((j, sim));
+                weights[j].push((i, sim));
+            }
+            later.clear();
+        }
 
-        // 3. Run PageRank / TextRank (20 iterations, damping factor d = 0.85)
+        // 3. Run PageRank / TextRank (25 iterations, damping factor d = 0.85)
+        // The out-weight sums are computed once: recomputing them inside the i × j loop made
+        // this O(25·n³), and 1,000 sentences took 20 s. Adding a row's non-zero weights in order
+        // gives the same f32 as adding the whole dense row, so the scores are unchanged.
+        let sum_out: Vec<f32> = weights
+            .iter()
+            .map(|row| row.iter().map(|&(_, w)| w).sum())
+            .collect();
         let d = 0.85f32;
         let mut scores = vec![1.0f32; n];
         for _ in 0..25 {
             let mut next_scores = vec![1.0 - d; n];
-            for (i, next_score) in next_scores.iter_mut().enumerate().take(n) {
-                for j in 0..n {
-                    if i == j || weights[j][i] == 0.0 {
-                        continue;
-                    }
-                    let sum_out: f32 = weights[j].iter().sum();
-                    if sum_out > 0.0 {
-                        *next_score += d * (weights[j][i] / sum_out) * scores[j];
+            for (next_score, row) in next_scores.iter_mut().zip(&weights) {
+                for &(j, w) in row {
+                    if sum_out[j] > 0.0 {
+                        *next_score += d * (w / sum_out[j]) * scores[j];
                     }
                 }
+            }
+            // A fixed point: every further iteration would return the same scores.
+            if next_scores == scores {
+                break;
             }
             scores = next_scores;
         }

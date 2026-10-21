@@ -2,7 +2,7 @@
 //!
 //! Groups sentences up to a maximum token count (`chunk_size`) with optional token overlap.
 
-use super::types::Chunk;
+use super::types::{CharOffsets, Chunk};
 use crate::embeddings::tokenizer::UnigramTokenizer;
 use crate::embeddings::{TurkishEmbeddings, TOKENIZER};
 use crate::tokenization::SentenceSegmenter;
@@ -74,12 +74,13 @@ impl SentenceChunker {
             token_count: usize,
         }
 
+        let mut offsets = CharOffsets::new(text);
         let spans: Vec<Span> = raw_sentences
             .into_iter()
             .map(|s| {
                 let token_count = self.tokenizer.encode(s.text).len();
-                let char_start = text[..s.start].chars().count();
-                let char_end = text[..s.end].chars().count();
+                let char_start = offsets.at(s.start);
+                let char_end = offsets.at(s.end);
                 Span {
                     text: s.text.to_string(),
                     byte_start: s.start,
