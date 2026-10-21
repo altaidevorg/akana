@@ -52,12 +52,12 @@ pub struct TurkishSentenceDoc {
     pub dependency_tree: parser::DependencyTree,
 }
 
+/// The end-to-end pipeline: sentence segmentation, tokenization, morphological
+/// disambiguation and dependency parsing. Its components share one morphology.
 pub struct AkanaEngine {
     pub morphology: morphology::TurkishMorphology,
     pub disambiguator: morphology::MorphologicalDisambiguator,
     pub parser: parser::TurkishDependencyParser,
-    pub spell_checker: normalization::TurkishSpellChecker,
-    pub grammar_checker: grammar::TurkishGrammarChecker,
 }
 
 impl Default for AkanaEngine {
@@ -69,17 +69,14 @@ impl Default for AkanaEngine {
 impl AkanaEngine {
     pub fn new() -> Self {
         let morphology = morphology::TurkishMorphology::new();
-        let disambiguator = morphology::MorphologicalDisambiguator::new();
-        let parser = parser::TurkishDependencyParser::new();
-        let spell_checker = normalization::TurkishSpellChecker::new();
-        let grammar_checker = grammar::TurkishGrammarChecker::new();
+        let disambiguator =
+            morphology::MorphologicalDisambiguator::with_morphology(morphology.clone());
+        let parser = parser::TurkishDependencyParser::with_morphology(morphology.clone());
 
         Self {
             morphology,
             disambiguator,
             parser,
-            spell_checker,
-            grammar_checker,
         }
     }
 
@@ -92,7 +89,7 @@ impl AkanaEngine {
             let tokens: Vec<&str> = tokenization::TurkishTokenizer::tokenize_words(sent.text);
             let token_strings: Vec<String> = tokens.iter().map(|&s| s.to_string()).collect();
             let disambiguated = self.disambiguator.disambiguate(&tokens);
-            let dep_tree = self.parser.parse(&tokens);
+            let dep_tree = self.parser.parse_disambiguated(&tokens, &disambiguated);
 
             sentence_docs.push(TurkishSentenceDoc {
                 text: sent.text.to_string(),

@@ -93,6 +93,8 @@ def evaluate_split(pylist, split_name="In-Domain Test Set", limit=None):
         else:
             tn_sents += 1
 
+        # Token and finding spans are both character offsets. The bindings used to return
+        # findings in UTF-8 bytes, so a finding after a non-ASCII letter hit the wrong token.
         token_has_finding = [False] * len(tokens)
         curr_char = 0
         for t_idx, tok in enumerate(tokens):

@@ -80,8 +80,26 @@ impl TurkishDependencyParser {
         if tokens.is_empty() {
             return DependencyTree::new(Vec::new());
         }
-
         let disambiguated = self.disambiguator.disambiguate(tokens);
+        self.parse_disambiguated(tokens, &disambiguated)
+    }
+
+    /// [`parse`](Self::parse) with the tokens' parses already chosen (one per token, as
+    /// `MorphologicalDisambiguator::disambiguate` returns them), so a caller that has them
+    /// does not disambiguate the sentence twice.
+    pub fn parse_disambiguated(
+        &self,
+        tokens: &[&str],
+        disambiguated: &[MorphParse],
+    ) -> DependencyTree {
+        assert_eq!(
+            tokens.len(),
+            disambiguated.len(),
+            "one parse per token is required"
+        );
+        if tokens.is_empty() {
+            return DependencyTree::new(Vec::new());
+        }
         let n = tokens.len();
 
         // 1. Locate the primary root of the sentence (typically the sentence-final verb or copular predicate)

@@ -1,10 +1,14 @@
 //! Morphological generator for Turkish words given root/lemma and inflectional tags.
 
+use super::analyzer::TurkishMorphology;
 use super::dictionary::RootLexicon;
 use super::pos::RootAttr;
+use std::sync::Arc;
 
+/// Generates surface forms from the built-in lexicon, which it shares with the analyzers, so
+/// creating one is cheap.
 pub struct TurkishGenerator {
-    lexicon: RootLexicon,
+    lexicon: Arc<RootLexicon>,
 }
 
 impl Default for TurkishGenerator {
@@ -16,7 +20,7 @@ impl Default for TurkishGenerator {
 impl TurkishGenerator {
     pub fn new() -> Self {
         Self {
-            lexicon: RootLexicon::new(),
+            lexicon: TurkishMorphology::builtin_lexicon(),
         }
     }
 

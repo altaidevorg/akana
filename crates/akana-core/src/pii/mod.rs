@@ -187,6 +187,7 @@ lazy_static::lazy_static! {
 }
 
 /// High-performance Turkish PII Detection and Pseudonymization Engine.
+#[derive(Clone)]
 pub struct TurkishPiiEngine {
     embedding_scorer: Option<PiiEmbeddingScorer>,
     preserve_corporate_emails: bool,

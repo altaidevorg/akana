@@ -1,7 +1,12 @@
 """
 Akana: Modern and blazingly fast Turkish NLP toolkit in Rust & Python (PyO3).
+
+Spans (``start``/``end`` of entities and findings, chunk indices) are character offsets:
+``text[start:end]`` is the span. Native calls release the GIL, so threads run them in
+parallel, and an internal error in the native code raises ``RuntimeError``.
 """
 
+import functools
 import json
 from typing import Any
 
@@ -85,11 +90,23 @@ try:
         validate_vkn,
         words_to_number,
     )
-except ImportError:
-    pass
+except ImportError as e:
+    raise ImportError(
+        f"akana's native extension (akana._core) failed to load: {e}. "
+        "Reinstall akana, or rebuild it with `maturin develop`."
+    ) from e
+
+
+@functools.cache
+def _shared(cls: type) -> Any:
+    """One instance of a stateless engine class, reused by the module-level functions. The
+    engines are thread-safe."""
+    return cls()
 
 
 class DiagnosticFinding:
+    """A style finding; ``start``/``end`` are character offsets into the audited text."""
+
     def __init__(self, raw: dict[str, Any]):
         self.category: str = raw.get("category", "")
         self.severity: str = raw.get("severity", "")
@@ -129,6 +146,8 @@ class StyleAuditReport:
 
 
 class NamedEntity:
+    """A named entity; ``text[start:end]`` is the entity (character offsets)."""
+
     def __init__(self, raw: dict[str, Any]):
         self.text: str = raw.get("text", "")
         self.label: str = raw.get("label", "")
@@ -235,8 +254,7 @@ def analyze_readability(text: str) -> ReadabilityReport:
 
 def decompose_compound(word: str) -> list[dict[str, Any]]:
     """Decomposes a Turkish compound word into its constituents."""
-    decomposer = CompoundDecomposer()
-    return decomposer.decompose(word)
+    return _shared(CompoundDecomposer).decompose(word)
 
 
 def extract_entities(text: str) -> list[NamedEntity]:
@@ -301,12 +319,14 @@ class SyntacticParse:
 
 def syntactic_analyze(word: str) -> list[SyntacticParse]:
     """Performs two-level Google-style syntactic morphological analysis (FSMNLP 2019) with Inflectional Groups."""
-    analyzer = SyntacticMorphology()
-    raw_parses = analyzer.analyze(word)
+    raw_parses = _shared(SyntacticMorphology).analyze(word)
     return [SyntacticParse(p) for p in raw_parses]
 
 
 class GrammarFinding:
+    """A grammar finding; ``start_offset``/``end_offset`` are character offsets into the
+    checked text."""
+
     def __init__(self, raw: dict[str, Any]):
         self.category: str = raw.get("category", "")
         self.start_offset: int = raw.get("start_offset", 0)
@@ -501,5 +521,4 @@ def pii_restore(llm_response: str, mapping_or_vault: Any) -> str:
     Returns:
         De-pseudonymized text with original sensitive values and restored Turkish vowel harmony.
     """
-    engine = TurkishPiiEngine()
-    return engine.restore(llm_response, mapping_or_vault)
+    return _shared(TurkishPiiEngine).restore(llm_response, mapping_or_vault)

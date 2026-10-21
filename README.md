@@ -173,7 +173,7 @@ Latency is per query and end to end (query embedding + search) in a single Pytho
 2. **Morphological BM25 is the strongest single retriever on both sets** (RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF gives the best RagTurk Recall@10 (96.8%) at about the same MRR@10.
 3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.02 (RagTurk) and +0.03 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 79 morphological terms) and carries no IDF.
 4. **Hybrid vectors depend on the morphology build.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search); 0.8.0's analyzer, compound and vowel-harmony fixes change it again (the table is measured with them), with retrieval unchanged within noise. Build an index and embed its queries with the same Akana build, and check a fingerprint of `embed_hybrid` on fixed texts when opening an index.
-5. **Embedding cost:** the 128-byte hybrid embeds about 330 court-decision chunks of 256 tokens per second per CPU core (the dense half alone about 4,300); `embed_batch_hybrid` is single-threaded, so large builds should run one process per core.
+5. **Embedding cost:** the 128-byte hybrid embeds about 330 court-decision chunks of 256 tokens per second per CPU core (the dense half alone about 4,300); `embed_batch_hybrid` splits a batch of 512 or more texts across the CPU cores.
 
 #### Comparison with RAGTurk (`arXiv:2602.03652`) & Heavy Neural Pipelines
 
@@ -443,6 +443,13 @@ engine = akana.TurkishPiiEngine(preserve_public_figures=True)
 print(engine.mask("Nazım Hikmet'i en çok Ahmet Yılmaz okurdu.")["masked_text"])
 # -> "Nazım Hikmet'i en çok {{AD_1}} okurdu."
 ```
+
+### Offsets, threads and errors
+
+- **Offsets are character offsets.** `text[start:end]` is the span for named entities (`start`/`end`), grammar findings (`start_offset`/`end_offset`), style findings (`start`/`end`), PII entities and chunks (`start_index`/`end_index`).
+- **Calls release the GIL**, so a thread pool (a FastAPI server, a `ThreadPoolExecutor` ingestion job) runs them in parallel. `embed_batch`, `embed_batch_hybrid` and the packed batch functions also split a batch of 512 or more texts across the CPU cores themselves.
+- **Engines are built once per process.** The lexicon and the embedding weights are loaded on first use and shared by every object, so the module-level functions (`analyze`, `stem`, `audit_ai_style`, `chunk_*`, `pii_mask`, ...) and constructors are cheap to call repeatedly.
+- **An internal error raises `RuntimeError`** (not PyO3's `PanicException`, which `except Exception` does not catch).
 
 ---
 

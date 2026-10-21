@@ -74,9 +74,10 @@ impl TurkishHybridEmbeddings {
         pack_hybrid_vector(&dense_vec, &sparse_vec)
     }
 
-    /// Embed multiple texts into 128-byte hybrid vectors (batch processing).
+    /// Embed multiple texts into 128-byte hybrid vectors (batch processing; large batches run
+    /// on several threads).
     pub fn embed_hybrid_batch(&self, texts: &[&str]) -> Vec<[u8; HYBRID_VECTOR_BYTES]> {
-        texts.iter().map(|t| self.embed_hybrid(t)).collect()
+        super::map_batch(texts, |t| self.embed_hybrid(t))
     }
 
     /// Compute fused hybrid distance between two 128-byte vectors.

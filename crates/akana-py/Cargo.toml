@@ -18,4 +18,3 @@ akana-core = { path = "../akana-core", version = "0.8.0" }
 pyo3 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-lazy_static = { workspace = true }

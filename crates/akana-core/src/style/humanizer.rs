@@ -173,8 +173,9 @@ impl TurkishHumanizer {
     /// Generates a structured, actionable prompt instructing an LLM (or human editor)
     /// to humanize the text according to its detected AI signatures and register.
     pub fn generate_prompt(text: &str, register: &str) -> String {
-        let auditor = TurkishStyleAuditor::new();
-        let report = auditor.audit(text);
+        static AUDITOR: std::sync::LazyLock<TurkishStyleAuditor> =
+            std::sync::LazyLock::new(TurkishStyleAuditor::new);
+        let report = AUDITOR.audit(text);
 
         Self::format_prompt(text, register, &report)
     }
