@@ -1,4 +1,4 @@
-use akana_core::grammar::{ErrorCategory, TurkishGrammarChecker};
+use akana_core::grammar::{ErrorCategory, GrammarRule, RuleSet, TurkishGrammarChecker};
 
 #[test]
 fn test_grammar_checker_initialization() {
@@ -104,13 +104,23 @@ fn test_consonant_assimilation() {
 fn test_vowel_drop() {
     let checker = TurkishGrammarChecker::new();
 
-    // akılı -> aklı
-    let res = checker.check("Onun akılı çok karışık.");
+    // oğulu -> oğlu
+    let res = checker.check("Onun oğulu okula gitti.");
     assert!(res
         .findings
         .iter()
         .any(|f| f.category == ErrorCategory::VowelDropping));
-    assert_eq!(res.corrected, "Onun aklı çok karışık.");
+    assert_eq!(res.corrected, "Onun oğlu okula gitti.");
+
+    // akılı also reads as akı-lı, burunu as bur-un-u, alınan as a verb, hükümet has its own
+    // root: left alone
+    for text in [
+        "Onun akılı çok karışık.",
+        "Alınan karar.",
+        "Hükümet toplandı.",
+    ] {
+        assert_eq!(checker.correct(text), text);
+    }
 
     // şehire -> şehre
     let res2 = checker.check("Yarın şehire gideceğiz.");
@@ -138,8 +148,10 @@ fn test_consonant_softening() {
 fn test_apostrophe_proper_nouns_and_numbers() {
     let checker = TurkishGrammarChecker::new();
 
-    // Ahmetler'in -> Ahmetlerin (plural suffix on proper noun must not have apostrophe)
-    let res = checker.check("Ahmetler'in evi buraya çok yakın.");
+    // Ahmetler'in -> Ahmetlerin (plural suffix on proper noun must not have apostrophe); the
+    // rule is experimental, as names ending in -ler keep it (Silahlı Kuvvetler'in)
+    let experimental = TurkishGrammarChecker::with_rules(RuleSet::default().with_experimental());
+    let res = experimental.check("Ahmetler'in evi buraya çok yakın.");
     assert!(res
         .findings
         .iter()
@@ -186,7 +198,12 @@ fn test_reduplications() {
 
 #[test]
 fn test_quantity_plural_agreement() {
-    let checker = TurkishGrammarChecker::new();
+    // experimental: it has no animacy or idiom knowledge, so it is off by default
+    let checker = TurkishGrammarChecker::with_rules(RuleSet::default().with_experimental());
+    assert_eq!(
+        TurkishGrammarChecker::new().correct("Pazardan üç elmalar aldım."),
+        "Pazardan üç elmalar aldım."
+    );
 
     // üç elmalar -> üç elma
     let res = checker.check("Pazardan üç elmalar aldım.");
@@ -245,4 +262,168 @@ fn test_tautology_redundancy() {
         .iter()
         .any(|f| f.category == ErrorCategory::TautologyRedundancy));
     assert_eq!(res2.corrected, "Onlar birlikte çalışıyorlar.");
+}
+
+/// Correct sentences the rules used to rewrite (the 2026-10-20 review, GN-01 to GN-19): the
+/// default checker leaves them alone.
+#[test]
+fn default_rules_leave_correct_text_alone() {
+    let checker = TurkishGrammarChecker::new();
+    for text in [
+        "Mahkeme önceki kararda direnmiştir.",
+        "Davacı tahliye tehdidi altında bulunmaktadır.",
+        "Toplantıda karar alındığında tutanak düzenlenir.",
+        "Mahkemenin hükmü kesinleşti.",
+        "Filmi yirmi kişi izledi.",
+        "Cumhuriyet 1923'te kuruldu.",
+        "Saat 5'te buluşalım.",
+        "Hükümet yeni bir karar aldı.",
+        "Bu karar alınan önlemlere dayanır.",
+        "Yetki ve tepki arasında bir ilişki var.",
+        "Sözleşmedeki hükümler geçerlidir.",
+        "Ona bile söylemedim.",
+        "Durum mahkemeye bildirdi.",
+        "Dosyada bilirkişi raporu var.",
+        "Türkçe bilen kişiler başvurabilir.",
+        "Ali'nin evi Bolu'da.",
+        "Hitler'in ve Kepler'in adı geçti.",
+        "Kılıçdaroğlu'nun konuşması uzundu.",
+        "STK'lar ve CHP'li vekiller toplandı.",
+        "Maç 2-1'lik skorla bitti.",
+        "Takdir hakkı mahkemeye aittir.",
+        "Bunun için de çalıştık.",
+        "Kitap bende kaldı.",
+        "Saat birde buluşalım.",
+        "Bir şeyler oldu.",
+        "Beş dolar verdi.",
+        "Benim için önemli.",
+        "Kendi özel hayatına karışma.",
+        "Kalabalık bir takım halinde yürüdü.",
+        "Davacı tarafın da kabulünde olduğu üzere süre geçmiştir.",
+        "1.000'de bir görülen bir durum.",
+    ] {
+        let res = checker.check(text);
+        assert!(
+            res.findings.is_empty(),
+            "{text:?}: {:?}",
+            res.findings
+                .iter()
+                .map(|f| (f.rule.id(), &f.original_text, &f.replacement))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(res.corrected, text);
+    }
+}
+
+#[test]
+fn number_suffix_follows_how_the_number_is_read() {
+    let checker = TurkishGrammarChecker::new();
+    for (text, fixed) in [
+        ("Cumhuriyet 1923'de kuruldu.", "Cumhuriyet 1923'te kuruldu."),
+        ("Cumhuriyet 1923'da kuruldu.", "Cumhuriyet 1923'te kuruldu."),
+        ("Savaş 1940'da başladı.", "Savaş 1940'ta başladı."),
+        ("Darbe 1960'da oldu.", "Darbe 1960'ta oldu."),
+        ("Bu 1990'ta oldu.", "Bu 1990'da oldu."),
+        ("Saat 5'den sonra gel.", "Saat 5'ten sonra gel."),
+        (
+            "Karar 15.03.1993'de verildi.",
+            "Karar 15.03.1993'te verildi.",
+        ),
+        ("Sayfa 100'te bitiyor.", "Sayfa 100'de bitiyor."),
+    ] {
+        assert_eq!(checker.correct(text), fixed, "{text}");
+    }
+}
+
+#[test]
+fn corrections_keep_the_case() {
+    let checker = TurkishGrammarChecker::new();
+    assert_eq!(checker.correct("Yada gelme."), "Ya da gelme.");
+    assert_eq!(checker.correct("KİTAPDA YAZIYOR."), "KİTAPTA YAZIYOR.");
+    assert_eq!(checker.correct("Sağol kardeşim."), "Sağ ol kardeşim.");
+    assert_eq!(
+        checker.correct("iPhone satışları arttı."),
+        "iPhone satışları arttı."
+    );
+    assert_eq!(checker.correct("Elele verdiler."), "El ele verdiler.");
+}
+
+#[test]
+fn question_particle_harmony_reads_the_lexicon() {
+    // saat, gol and kalp take front-vowel suffixes (InverseHarmony): "Saat mi", not "Saat mı"
+    let checker = TurkishGrammarChecker::new();
+    for text in ["Saat mi geldi?", "Gol mü attı?", "Kalp mi ağrıyor?"] {
+        assert_eq!(checker.correct(text), text);
+    }
+    assert_eq!(checker.correct("Gitti mı?"), "Gitti mi?");
+}
+
+#[test]
+fn proper_noun_suffix_apostrophe() {
+    let checker = TurkishGrammarChecker::new();
+    assert_eq!(
+        checker.correct("Ankara'lı bir öğrenci."),
+        "Ankaralı bir öğrenci."
+    );
+    assert_eq!(checker.correct("Türk'ler geldi."), "Türkler geldi.");
+    // the plural of a name before the apostrophe is experimental (Silahlı Kuvvetler'in, a
+    // name ending in -ler, keeps it)
+    assert_eq!(checker.correct("Ahmetler'in evi."), "Ahmetler'in evi.");
+    let all = RuleSet::empty().with(GrammarRule::ApostrophePluralName);
+    assert_eq!(
+        checker.correct_with_rules("Ahmetler'in evi.", all),
+        "Ahmetlerin evi."
+    );
+}
+
+#[test]
+fn rules_can_be_chosen() {
+    let mut checker = TurkishGrammarChecker::new();
+    let text = "Ali de geldi, Veli te geldi.";
+    checker.disable_rule(GrammarRule::DeDaHardened);
+    assert_eq!(checker.correct(text), text);
+    checker.enable_rule(GrammarRule::DeDaHardened);
+    assert_eq!(checker.correct(text), "Ali de geldi, Veli de geldi.");
+
+    let only = RuleSet::from_ids(["de-da-hardened"]).unwrap();
+    let res = checker.check_with_rules("veli te geldi.", only);
+    assert_eq!(
+        res.findings.iter().map(|f| f.rule).collect::<Vec<_>>(),
+        [GrammarRule::DeDaHardened]
+    );
+    assert_eq!(
+        res.findings[0].confidence,
+        GrammarRule::DeDaHardened.confidence()
+    );
+    assert_eq!(
+        serde_json::to_value(&res.findings[0]).unwrap()["rule"],
+        "de-da-hardened"
+    );
+    assert!(checker
+        .check_with_rules(text, RuleSet::empty())
+        .findings
+        .is_empty());
+}
+
+#[test]
+fn sentence_level_rules_stay_in_their_sentence() {
+    let checker = TurkishGrammarChecker::with_rules(RuleSet::all());
+    // the two "ne" are in different sentences, and the first is a question word
+    let text = "Ne yapacağımı bilmiyorum. Ne düşündüğünü sor.";
+    assert!(
+        !checker
+            .check(text)
+            .findings
+            .iter()
+            .any(|f| f.rule == GrammarRule::NeNePolarity),
+        "{:?}",
+        checker.check(text).findings
+    );
+    // the verb after kimse is negative; a later clause may be positive
+    let text = "Kimse gelmedi ama sonra herkes geldi.";
+    assert!(!checker
+        .check(text)
+        .findings
+        .iter()
+        .any(|f| f.rule == GrammarRule::NegationConcord));
 }

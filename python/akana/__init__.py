@@ -37,6 +37,7 @@ try:
         chunk_semantic,
         chunk_sentences,
         correct_grammar,
+        grammar_rules_json,
         count_syllables,
         currency_to_words,
         deasciify,
@@ -328,6 +329,7 @@ class GrammarFinding:
     checked text."""
 
     def __init__(self, raw: dict[str, Any]):
+        self.rule: str = raw.get("rule", "")
         self.category: str = raw.get("category", "")
         self.start_offset: int = raw.get("start_offset", 0)
         self.end_offset: int = raw.get("end_offset", 0)
@@ -338,7 +340,7 @@ class GrammarFinding:
         self.confidence: float = raw.get("confidence", 1.0)
 
     def __repr__(self) -> str:
-        return f"<GrammarFinding [{self.category}]: '{self.original_text}' -> '{self.replacement}' ({self.message_tr})>"
+        return f"<GrammarFinding [{self.rule}]: '{self.original_text}' -> '{self.replacement}' ({self.message_tr})>"
 
 
 class GrammarCheckResult:
@@ -354,10 +356,29 @@ class GrammarCheckResult:
         return f"<GrammarCheckResult: {len(self.findings)} findings, time={self.processing_time_us}µs>"
 
 
-def check_grammar(text: str) -> GrammarCheckResult:
-    """Performs full grammatical error detection and correction on Turkish text with detailed explanations."""
-    raw_json = check_grammar_json(text)
+def check_grammar(
+    text: str,
+    rules: list[str] | None = None,
+    enable: list[str] | None = None,
+    disable: list[str] | None = None,
+    experimental: bool = False,
+) -> GrammarCheckResult:
+    """Grammar error detection and correction with explanations.
+
+    Runs the default rules, the ones measured precise on correct text. ``rules`` replaces
+    them with a list of rule ids, ``experimental=True`` adds every experimental rule, and
+    ``enable``/``disable`` add or remove ids; ``grammar_rules()`` lists them all. An unknown
+    id raises ``ValueError``. ``correct_grammar`` and ``GrammarChecker`` take the same
+    arguments.
+    """
+    raw_json = check_grammar_json(text, rules, enable, disable, experimental)
     return GrammarCheckResult(json.loads(raw_json))
+
+
+def grammar_rules() -> list[dict[str, Any]]:
+    """Every grammar rule: ``id``, ``category``, ``default`` (on by default), ``confidence``
+    (its measured precision) and ``summary``."""
+    return json.loads(grammar_rules_json())
 
 
 __version__ = "0.8.0"
@@ -399,6 +420,7 @@ __all__ = [
     "chunk_semantic",
     "chunk_sentences",
     "correct_grammar",
+    "grammar_rules",
     "count_syllables",
     "currency_to_words",
     "deasciify",

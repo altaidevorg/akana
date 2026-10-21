@@ -90,12 +90,13 @@ fn entity_char_offsets(text: &str, entities: &[akana_core::pii::PiiEntity]) -> V
         .collect()
 }
 
-/// A grammar check with its findings' offsets in characters.
+/// A grammar check of `text` with `rules`, its findings' offsets in characters.
 fn grammar_check_json(
     checker: &akana_core::grammar::TurkishGrammarChecker,
     text: &str,
+    rules: akana_core::grammar::RuleSet,
 ) -> Result<String, serde_json::Error> {
-    let mut res = checker.check(text);
+    let mut res = checker.check_with_rules(text, rules);
     spans_to_chars(
         text,
         res.findings
@@ -569,41 +570,144 @@ fn generate_humanizer_prompt(
     })
 }
 
+fn grammar_rule(id: &str) -> PyResult<akana_core::grammar::GrammarRule> {
+    id.parse()
+        .map_err(|e: akana_core::grammar::UnknownRule| PyValueError::new_err(e.to_string()))
+}
+
+/// The grammar rules to run: `rules` (ids) or else the default set, plus every experimental
+/// rule with `experimental`, then `enable` added and `disable` removed. An unknown id raises
+/// `ValueError`.
+fn grammar_rule_set(
+    rules: Option<Vec<String>>,
+    enable: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
+    experimental: bool,
+) -> PyResult<akana_core::grammar::RuleSet> {
+    let mut set = match rules {
+        Some(ids) => ids
+            .iter()
+            .map(|id| grammar_rule(id))
+            .collect::<PyResult<_>>()?,
+        None => akana_core::grammar::RuleSet::default(),
+    };
+    if experimental {
+        set = set.with_experimental();
+    }
+    for id in enable.iter().flatten() {
+        set.enable(grammar_rule(id)?);
+    }
+    for id in disable.iter().flatten() {
+        set.disable(grammar_rule(id)?);
+    }
+    Ok(set)
+}
+
+/// A grammar checker with its own rule selection; checks run on the process's shared engine.
+/// `GrammarChecker()` runs the default rules. `rules` replaces them with a list of rule ids,
+/// `experimental=True` adds every experimental rule, and `enable`/`disable` add or remove ids.
 #[pyclass(name = "GrammarChecker")]
 struct PyGrammarChecker {
-    inner: akana_core::grammar::TurkishGrammarChecker,
+    rules: akana_core::grammar::RuleSet,
 }
 
 #[pymethods]
 impl PyGrammarChecker {
     #[new]
-    fn new(py: Python<'_>) -> PyResult<Self> {
-        release(py, || Self {
-            inner: akana_core::grammar::TurkishGrammarChecker::new(),
+    #[pyo3(signature = (rules=None, enable=None, disable=None, experimental=false))]
+    fn new(
+        rules: Option<Vec<String>>,
+        enable: Option<Vec<String>>,
+        disable: Option<Vec<String>>,
+        experimental: bool,
+    ) -> PyResult<Self> {
+        Ok(Self {
+            rules: grammar_rule_set(rules, enable, disable, experimental)?,
         })
     }
 
     /// The check as JSON; findings' `start_offset`/`end_offset` are character offsets into
     /// `text`.
     fn check_json(&self, py: Python<'_>, text: &str) -> PyResult<String> {
-        release(py, || grammar_check_json(&self.inner, text))?.map_err(json_error)
+        let rules = self.rules;
+        release(py, || grammar_check_json(&GRAMMAR_CHECKER, text, rules))?.map_err(json_error)
     }
 
     fn correct(&self, py: Python<'_>, text: &str) -> PyResult<String> {
-        release(py, || self.inner.correct(text))
+        let rules = self.rules;
+        release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
+    }
+
+    fn enable_rule(&mut self, rule: &str) -> PyResult<()> {
+        self.rules.enable(grammar_rule(rule)?);
+        Ok(())
+    }
+
+    fn disable_rule(&mut self, rule: &str) -> PyResult<()> {
+        self.rules.disable(grammar_rule(rule)?);
+        Ok(())
+    }
+
+    /// Also runs every experimental rule.
+    fn enable_experimental(&mut self) {
+        self.rules = self.rules.with_experimental();
+    }
+
+    /// The ids of the rules this checker runs.
+    fn enabled_rules(&self) -> Vec<&'static str> {
+        self.rules.iter().map(|r| r.id()).collect()
     }
 }
 
 /// The grammar check as JSON; findings' `start_offset`/`end_offset` are character offsets
-/// into `text`.
+/// into `text`. The rule arguments are those of `GrammarChecker`.
 #[pyfunction]
-fn check_grammar_json(py: Python<'_>, text: &str) -> PyResult<String> {
-    release(py, || grammar_check_json(&GRAMMAR_CHECKER, text))?.map_err(json_error)
+#[pyo3(signature = (text, rules=None, enable=None, disable=None, experimental=false))]
+fn check_grammar_json(
+    py: Python<'_>,
+    text: &str,
+    rules: Option<Vec<String>>,
+    enable: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
+    experimental: bool,
+) -> PyResult<String> {
+    let rules = grammar_rule_set(rules, enable, disable, experimental)?;
+    release(py, || grammar_check_json(&GRAMMAR_CHECKER, text, rules))?.map_err(json_error)
 }
 
+/// `text` with the grammar corrections applied. The rule arguments are those of
+/// `GrammarChecker`.
 #[pyfunction]
-fn correct_grammar(py: Python<'_>, text: &str) -> PyResult<String> {
-    release(py, || GRAMMAR_CHECKER.correct(text))
+#[pyo3(signature = (text, rules=None, enable=None, disable=None, experimental=false))]
+fn correct_grammar(
+    py: Python<'_>,
+    text: &str,
+    rules: Option<Vec<String>>,
+    enable: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
+    experimental: bool,
+) -> PyResult<String> {
+    let rules = grammar_rule_set(rules, enable, disable, experimental)?;
+    release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
+}
+
+/// Every grammar rule as JSON: `id`, `category`, `default` (in the default set),
+/// `confidence` (its measured precision) and `summary`.
+#[pyfunction]
+fn grammar_rules_json() -> PyResult<String> {
+    let rules: Vec<serde_json::Value> = akana_core::grammar::GrammarRule::ALL
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.id(),
+                "category": r.category().as_str(),
+                "default": r.is_default(),
+                "confidence": r.confidence(),
+                "summary": r.summary(),
+            })
+        })
+        .collect();
+    serde_json::to_string(&rules).map_err(json_error)
 }
 
 fn packed_2bit<'a>(v: &'a [u8], what: &str) -> PyResult<&'a [u8; 64]> {
@@ -1728,6 +1832,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(generate_humanizer_prompt, m)?)?;
     m.add_function(wrap_pyfunction!(check_grammar_json, m)?)?;
     m.add_function(wrap_pyfunction!(correct_grammar, m)?)?;
+    m.add_function(wrap_pyfunction!(grammar_rules_json, m)?)?;
     m.add_function(wrap_pyfunction!(embed, m)?)?;
     m.add_function(wrap_pyfunction!(embed_packed_2bit, m)?)?;
     m.add_function(wrap_pyfunction!(embed_packed_1bit, m)?)?;
