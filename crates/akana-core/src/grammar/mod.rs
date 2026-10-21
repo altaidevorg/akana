@@ -1,21 +1,27 @@
 //! Turkish Grammatical Error Correction (GEC) and Detection (GED) Module.
 //!
-//! Provides a high-speed, SIMD-accelerated, rule-and-morphology-driven grammar checker.
-//! Covers 25 core Turkish grammatical, phonological, orthographic, and morphosyntactic error categories.
+//! A rule-and-morphology-driven grammar checker: 32 rules ([`GrammarRule`]) in 17 error
+//! categories. A check runs a [`RuleSet`]; the default one holds only the rules that measured
+//! precise enough on correct text, and the rest are experimental (see [`rules`]).
 
 pub mod agreement;
 pub mod lexicon_rules;
 pub mod orthography;
 pub mod phonological_rules;
+pub mod rules;
+
+pub use rules::{GrammarRule, RuleSet, UnknownRule};
 
 use serde::{Deserialize, Serialize};
+use std::ops::Range;
 use std::time::Instant;
 
 use crate::morphology::{MorphologicalDisambiguator, TurkishMorphology};
 use crate::parser::TurkishDependencyParser;
 use crate::tokenization::TurkishTokenizer;
 
-/// 25 Turkish Grammatical & Orthographic Error Categories.
+/// Turkish grammatical and orthographic error categories; a category can hold several rules.
+/// `SpellingTypo` has none yet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ErrorCategory {
     /// Separate vs Attached `de/da` clitic or invalid `te/ta` hardening
@@ -84,6 +90,8 @@ impl ErrorCategory {
 /// A specific grammatical/orthographical error finding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GrammarFinding {
+    /// The rule that found it.
+    pub rule: GrammarRule,
     pub category: ErrorCategory,
     pub start_offset: usize,
     pub end_offset: usize,
@@ -91,7 +99,32 @@ pub struct GrammarFinding {
     pub replacement: String,
     pub message_tr: String,
     pub message_en: String,
+    /// The rule's measured precision ([`GrammarRule::confidence`]).
     pub confidence: f32,
+}
+
+impl GrammarFinding {
+    /// A finding of `rule` on the bytes `span`, with the rule's category and confidence.
+    pub fn new(
+        rule: GrammarRule,
+        span: (usize, usize),
+        original_text: impl Into<String>,
+        replacement: impl Into<String>,
+        message_tr: impl Into<String>,
+        message_en: impl Into<String>,
+    ) -> Self {
+        Self {
+            rule,
+            category: rule.category(),
+            start_offset: span.0,
+            end_offset: span.1,
+            original_text: original_text.into(),
+            replacement: replacement.into(),
+            message_tr: message_tr.into(),
+            message_en: message_en.into(),
+            confidence: rule.confidence(),
+        }
+    }
 }
 
 /// Result of checking and correcting a text.
@@ -104,10 +137,16 @@ pub struct GrammarCheckResult {
 }
 
 /// High-Performance Turkish Grammar Checker Engine.
+///
+/// [`TurkishGrammarChecker::new`] runs the default rules. [`with_rules`](Self::with_rules),
+/// [`enable_rule`](Self::enable_rule), [`disable_rule`](Self::disable_rule) and
+/// [`enable_experimental`](Self::enable_experimental) change them, and
+/// [`check_with_rules`](Self::check_with_rules) runs other rules for one call.
 pub struct TurkishGrammarChecker {
     morphology: TurkishMorphology,
     disambiguator: MorphologicalDisambiguator,
     parser: TurkishDependencyParser,
+    rules: RuleSet,
 }
 
 impl Default for TurkishGrammarChecker {
@@ -126,11 +165,47 @@ impl TurkishGrammarChecker {
             morphology,
             disambiguator,
             parser,
+            rules: RuleSet::default(),
         }
+    }
+
+    /// A checker that runs `rules`.
+    pub fn with_rules(rules: RuleSet) -> Self {
+        Self {
+            rules,
+            ..Self::new()
+        }
+    }
+
+    /// The rules [`check`](Self::check) runs.
+    pub fn rules(&self) -> RuleSet {
+        self.rules
+    }
+
+    pub fn set_rules(&mut self, rules: RuleSet) {
+        self.rules = rules;
+    }
+
+    pub fn enable_rule(&mut self, rule: GrammarRule) {
+        self.rules.enable(rule);
+    }
+
+    pub fn disable_rule(&mut self, rule: GrammarRule) {
+        self.rules.disable(rule);
+    }
+
+    /// Also runs every experimental rule.
+    pub fn enable_experimental(&mut self) {
+        self.rules = self.rules.with_experimental();
     }
 
     /// Performs full grammatical error detection (GED) and returns all findings with explanations.
     pub fn check(&self, text: &str) -> GrammarCheckResult {
+        self.check_with_rules(text, self.rules)
+    }
+
+    /// [`check`](Self::check) with `rules` instead of the checker's own.
+    pub fn check_with_rules(&self, text: &str, rules: RuleSet) -> GrammarCheckResult {
         let start_time = Instant::now();
 
         if text.trim().is_empty() {
@@ -166,6 +241,7 @@ impl TurkishGrammarChecker {
             &tokens,
             &token_spans,
             &self.morphology,
+            rules,
             &mut findings,
         );
 
@@ -175,22 +251,28 @@ impl TurkishGrammarChecker {
             &tokens,
             &token_spans,
             &self.morphology,
+            rules,
             &mut findings,
         );
 
-        // Pass 3: Morphosyntactic Agreement & Concord Engine
+        // Pass 3: Morphosyntactic Agreement & Concord Engine, one sentence at a time
         agreement::AgreementRuleEngine::check(
             text,
             &tokens,
             &token_spans,
+            &sentence_ranges(&tokens),
             &self.morphology,
             &self.disambiguator,
             &self.parser,
+            rules,
             &mut findings,
         );
 
         // Pass 4: Lexicon & Compound Verb Rules Engine
-        lexicon_rules::LexiconRuleEngine::check(text, &tokens, &token_spans, &mut findings);
+        lexicon_rules::LexiconRuleEngine::check(text, &tokens, &token_spans, rules, &mut findings);
+
+        // The engines skip the rules that are off; this keeps a finding of one from slipping out.
+        findings.retain(|f| rules.contains(f.rule));
 
         // Sort findings by span, and drop a second finding of the same category on the same
         // span. Findings of different categories on one span are all reported (a sentence-
@@ -217,6 +299,11 @@ impl TurkishGrammarChecker {
     /// Automatically corrects grammatical errors in the text.
     pub fn correct(&self, text: &str) -> String {
         self.check(text).corrected
+    }
+
+    /// [`correct`](Self::correct) with `rules` instead of the checker's own.
+    pub fn correct_with_rules(&self, text: &str, rules: RuleSet) -> String {
+        self.check_with_rules(text, rules).corrected
     }
 
     /// Applies the findings' edits to `original`.
@@ -281,8 +368,42 @@ impl TurkishGrammarChecker {
     }
 }
 
+/// The token ranges of the sentences of `tokens`: a sentence ends after a run of `.`, `!`,
+/// `?` or `…` tokens. The tokenizer keeps abbreviations such as "Dr." in one token.
+fn sentence_ranges(tokens: &[&str]) -> Vec<Range<usize>> {
+    let is_end = |t: &str| matches!(t, "." | "!" | "?" | "…");
+    let mut ranges = Vec::new();
+    let mut start = 0;
+    for i in 0..tokens.len() {
+        if is_end(tokens[i]) && !tokens.get(i + 1).is_some_and(|t| is_end(t)) {
+            ranges.push(start..i + 1);
+            start = i + 1;
+        }
+    }
+    if start < tokens.len() {
+        ranges.push(start..tokens.len());
+    }
+    ranges
+}
+
+/// `fixed`, a lower-case correction of `original`, in `original`'s case: all capitals for
+/// "KİTAPDA", a capital first letter for "Kitapda", as it is otherwise. Only the first letter
+/// of a multi-word correction is capitalised ("Yada" -> "Ya da", not "Ya Da").
+pub(crate) fn match_case(original: &str, fixed: &str) -> String {
+    let mut letters = original.chars().filter(|c| c.is_alphabetic());
+    let first_upper = letters.next().is_some_and(char::is_uppercase);
+    let rest: Vec<char> = letters.collect();
+    if first_upper && !rest.is_empty() && rest.iter().all(|c| c.is_uppercase()) {
+        crate::phonology::to_turkish_upper(fixed)
+    } else if first_upper {
+        capitalize_first(fixed)
+    } else {
+        fixed.to_string()
+    }
+}
+
 /// `s` with its first character in Turkish upper case (i -> İ, ı -> I).
-fn capitalize_first(s: &str) -> String {
+pub(crate) fn capitalize_first(s: &str) -> String {
     let mut chars = s.chars();
     match chars.next() {
         Some(c) if c.is_lowercase() => {

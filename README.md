@@ -64,10 +64,10 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - **256-dimensional** vector embeddings with **92.19%** STSb-TR benchmark accuracy.
   - **High Throughput**: **>20,000 sentences/sec** on CPU with zero deep learning runtime or PyTorch dependencies.
   - Built-in cosine similarity and batch embedding support.
-- **Grammatical Error Correction & Detection (GEC/GED) Engine**:
-  - **Full GECTurk 25-Category Coverage**: High-precision rule-based grammar and orthography checker covering clitic separations (`de/da`, `ki`, `mi`), consonant assimilation (*kitapda* $\rightarrow$ *kitapta*), vowel syncope (*akılı* $\rightarrow$ *aklı*), consonant softening (*kitapı* $\rightarrow$ *kitabı*), over-narrowing (*başlıyan* $\rightarrow$ *başlayan*), proper noun / numeric apostrophes (*Ahmetler'in* $\rightarrow$ *Ahmetlerin*, *1923'de* $\rightarrow$ *1923'te*), compound modal verbs (*ola bilir* $\rightarrow$ *olabilir*), indefinite determiners (*bir çok* $\rightarrow$ *birçok*), reduplications (*elele* $\rightarrow$ *el ele*), and tautologies.
-  - **Hardware SIMD Acceleration**: Accelerated with **StringZilla** for zero-regex, full-text substring and edit-distance scanning reaching **>1,470 sentences/sec** (>16,000 tokens/sec) on a single CPU core.
-  - **Linguistic Diagnostics**: Detailed Turkish and English explanations with character-level finding offsets and confidence scores.
+- **Grammatical Error Detection & Correction (GED/GEC)**:
+  - **Rule-based and precision first**: 33 rules in 17 error categories: clitics (`de/da`, `ki`, `mi`), consonant assimilation (*kitapda* $\rightarrow$ *kitapta*), vowel drop (*şehire* $\rightarrow$ *şehre*), over-narrowing (*başlıyan* $\rightarrow$ *başlayan*), number and proper-noun apostrophes (*1923'de* $\rightarrow$ *1923'te*, *Ankara'lı* $\rightarrow$ *Ankaralı*), split *-ebil* (*ola bilir* $\rightarrow$ *olabilir*), indefinite determiners (*bir çok* $\rightarrow$ *birçok*), reduplications (*elele* $\rightarrow$ *el ele*) and more. 26 rules are on by default: the ones that leave correct, edited Turkish alone. The other 7 are experimental and run only when asked for. It does not cover all 25 GECTurk error types (see the [benchmark](#grammar-checker-precision-and-recall-gecturk-court-decisions-wikipedia)).
+  - **Selectable rules**: every rule has a stable id (`de-da-after-verb`, `mi-merged`, ...); choose them per checker or per call (`rules=`, `enable=`, `disable=`, `experimental=True` in Python; `RuleSet` in Rust; `--rules/--enable/--disable/--experimental` in the CLI). `akana.grammar_rules()` and `akana grammar --list-rules` list them.
+  - **Diagnostics**: Turkish and English explanations, character offsets, the rule id, and the rule's measured precision as `confidence`.
 - **Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)**:
   - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum; IBAN, TCKN and VKN shapes after their trigger words are masked even when the checksum fails), Credit Card (Luhn check), Turkish and international person names and surnames (curated lists plus 4,592 given names from Zemberek; names that are also words, such as *Deniz* or *Metin*, need a title, a role, a surname or a capital in mid-sentence), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
   - **Positive Private Date & URL Detection**: Accurately isolates private personal dates (birth dates, appointment schedules, billing due dates) without false positives on calendar holidays or campaign end dates. Recognizes private URLs containing sensitive authentication and session tokens.
@@ -101,7 +101,7 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 | **Informal Normalization** | N/A | **`36,222 words/sec`** | **High Throughput** (Zero-Regex Suffix Matching) |
 | **AI Writing Style Audit** | N/A | **`54,700 words/sec`** | **StringZilla SIMD** rules + trained AI-text detector (10.2k words in 187 ms with `benchmarks/benchmark_stringzilla_optimizations.py`; the rules alone run at ~120k words/sec in the same script on the same machine) |
 | **Named Entity Recognition (NER)** | N/A | **`1.14 MB/sec`** | **Linear Token Stream** (1,500 entities in 37 ms) |
-| **Grammar Correction (GEC)** | ~22–55 sent/s (Neural) | **`1,471 sent/s`** | **~27x–67x faster** (20.7k sentences in 14.1s) |
+| **Grammar Checking (GED/GEC)** | ~22–55 sent/s (Neural) | **`12,252 sent/s`** | default rules; 20.7k GECTurk sentences in 1.7 s from Python (`tests/benchmark_real_data.py`). With the experimental agreement rules, which run the disambiguator: 630 sent/s |
 | **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
 | **Sentence Chunking** | N/A | **`1,120,000 words/sec`** | **Zero-Allocation Slicing** (<3 ms / doc) |
 | **Semantic Chunking (TurboQuant)** | ~80 words/sec (Neural) | **`62,500 words/sec`** | **~780x faster** (~40 ms for 200 sents) |
@@ -121,19 +121,74 @@ Evaluated on realistic multi-domain Turkish documents (50 paragraphs, ~200 sente
 * 🚀 **High Throughput on CPU**: `SemanticChunker` processes **>62,000 words per second** on a single CPU core without PyTorch, CUDA, or heavy ONNX dependencies.
 * 📦 **Zero External Infrastructure**: Built-in 2.5 MB TurboQuant embeddings execute entirely in-process with minimal memory footprint.
 
-### Grammatical Error Correction Benchmark (GECTurk - arXiv:2309.11346)
+### Grammar Checker Precision and Recall (GECTurk, court decisions, Wikipedia)
 
-Evaluated across the full 25-category **HuggingFace `GGLab/GECTurk`** benchmark test sets:
+A grammar checker that rewrites correct text does more harm than good, so each rule is measured on **correct, edited Turkish** as well as on errors:
 
-| Model Architecture | Execution Device | Throughput | Latency (ms) | Out-of-Domain $F_{0.5}$ (Human Movie Reviews) | Full In-Domain $F_{0.5}$ (20,769 Sents) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **mT5-base (NMT)** | GPU (NVIDIA T4) | ~22 sent/s | 45.0 ms | 42.1% | 70.4% |
-| **mGPT (Prefix-Tuning)** | GPU (NVIDIA T4) | ~15 sent/s | 65.0 ms | 41.8% | 66.5% |
-| **SeqTag (BERTurk)** | CPU (8-core) | ~55 sent/s | 18.0 ms | 52.8% | 86.2% |
-| **Akana (Rust Engine)** | **CPU (1-core)** | **`1,471 sent/s`** | **`0.68 ms`** | **`75.3%`** | **`77.8%`** |
+- **Clean text**: 7,500 sentences from Turkish court decisions (CC0; 1,500 of them are committed as `crates/akana-core/tests/data/grammar_clean_court.txt`) and 4,452 Wikipedia sentences from the RagTurk articles (measured locally, not redistributed).
+- **Errors**: the GGLab/GECTurk test set (20,769 sentences, 25 synthetic error types) and its 300 human-written movie-review sentences. A finding counts as right when it overlaps a token GECTurk labels as an error.
 
-* 🚀 **Throughput Speedup:** **26.7x faster** than BERTurk on CPU and **66.8x faster** than mT5 on GPU.
-* 🎯 **Out-of-Domain Superiority:** Akana achieves **75.3% $F_{0.5}$** on real-world human movie reviews (outperforming BERTurk at 52.8% and mT5 at 42.1%) with zero neural generative hallucinations.
+A rule is **on by default** only if it raises a false alarm on at most 1 in 1,000 clean sentences and, where GECTurk has its error type, at least 80 % of its GECTurk findings are on a labelled error. GECTurk labels only the errors it injected. For a rule whose errors it does not inject, such as proper-noun apostrophes or *peşpeşe*, every finding in the measured text was read and judged. The other rules are **experimental**: off unless asked for. `cargo test -p akana-core` runs the default rules over the committed clean sentences (`tests/grammar_precision_gate.rs`) and fails if any rule fires on more than 1 in 1,000 of them, or if `correct` changes more than 3.
+
+**Correct text changed by `correct()`** (default rules; before = every rule as it was before the rule ids):
+
+| Text | Sentences | Before | After |
+| :--- | ---: | ---: | ---: |
+| Court decisions, committed gate corpus | 1,500 | 16.5 % | **0.0 %** |
+| Court decisions, local | 6,000 | 18.0 % | **0.8 %**, all real errors in the source (*yada*, *her hangi*, *İstekde*, *2003'de*) |
+| Wikipedia (RagTurk) | 4,452 | 13.0 % | **0.2 %**, all but one real errors (*Milano'lu*, *senaristdir*, *6.600'dan*) |
+
+**GECTurk** (token-level error detection, `python tests/benchmark_real_data.py`):
+
+| Split | Rules | Precision | Recall | F0.5 | Error-free sentences flagged |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| Test set (20,769) | before | 79.5 % | 38.1 % | 65.3 % | 8.0 % |
+| Test set (20,769) | default | **97.5 %** | 32.6 % | **69.8 %** | **0.8 %** |
+| Test set (20,769) | all (`--experimental`) | 96.0 % | 32.6 % | 69.1 % | 1.3 % |
+| Movie reviews (300) | before | 63.8 % | 53.8 % | 61.5 % | 21.3 % |
+| Movie reviews (300) | default | **98.6 %** | 51.6 % | **83.4 %** | **0.7 %** |
+
+Recall by GECTurk error type (default rules): the checker catches most *yada* (69/69), *te/ta* (16/16), lexicalised *ki* (344/344), indefinite determiners (1,176/1,224), *-ebil* (1,878/2,376), capitalisation (362/372) and colloquial forms (114/123), and fewer of the split locatives (1,270/11,120), merged *de/da* (587/1,934), merged *mi* (238/871) and over-narrowing (952/1,928). Earlier versions of this README claimed all 25 GECTurk categories; the checker has 18 error categories of its own (17 with a rule), and they do not map onto GECTurk's one to one. Nine GECTurk types have no rule and no recall: *de/da* harmony (0/13), loan-cluster epenthesis (0/59), merged reduplication such as *zamanzaman* (0/63), wrong softening (0/61), merged compound verbs (0/62), *-hane/-name* (0/16), circumflex (0/135), abbreviations (0/47) and one unidentified type (0/2); split compound verbs get 10/146. The GECTurk paper's neural models are scored with its own correction metric, not comparable to these numbers.
+
+**Every rule** (clean text: findings per 1,000 sentences, before → after; \* = every finding after the change was read and is a real error in the source; GECTurk precision by its labels, before → after, with the number of findings):
+
+| Rule | Default | Court (7,500) | Wikipedia (4,452) | GECTurk precision | Confidence |
+| :--- | :---: | ---: | ---: | ---: | ---: |
+| `capitalization` | on | 0 → 0 | 0 → 0 | 89 % (419) → 89 % (409) | 0.90 |
+| `mi-merged` | on | 13.1 → **0** | 7.4 → **0** | 88 % (504) → 100 % (196) | 0.99 |
+| `mi-merged-person` | on | 0 → 0 | 0 → 0 | 97 % (63) → 98 % (42) | 0.95 |
+| `mi-harmony` | on | 0 → 0 | 0.2 → **0** | 0 % (1) → 0 % (1); judged 1/1 right | 0.67 |
+| `de-da-hardened` | on | 0.1 → 0.1\* | 25.8 → **0** | 22 % (73) → 89 % (18) | 0.88 |
+| `de-da-merged-fixed` | on | 0.7 → 0.7\* | 0 → 0 | 99 % (664) → 100 % (537) | 0.99 |
+| `de-da-after-verb` | on | 96.8 → **0.3**\* | 50.3 → **0.4** (one typo split wrongly) | 36 % (619) → 99.7 % (369) | 0.99 |
+| `locative-split` | on | 1.9 → **0** | 0.9 → **0** | 99 % (913) → 100 % (635) | 0.99 |
+| `ki-lexicalized-split` | on | 0.1 → 0.1\* | 0 → 0 | 98 % (175) → 98 % (175) | 0.98 |
+| `ki-merged-fixed` | on | 0.5 → 0.5\* | 0 → 0 | 100 % (84) → 100 % (84) | 0.99 |
+| `ki-after-verb` | on | 17.1 → **0** | 7.2 → **0** | 36 % (311) → 100 % (78) | 0.99 |
+| `ordinal-dot-apostrophe` | on | 0 → 0 | 0 → 0 | no findings | 0.5 |
+| `number-suffix` | on | 0.1 → 0.1\* | 0 → 0.2\* | 0 % (5) → 0 % (5); judged 8/8 right | 0.90 |
+| `apostrophe-derivational` | on | 4.0 → **0.1**\* | 34.6 → **1.3**\* | 21 % (604) → 4 % (53); judged 62/62 right | 0.98 |
+| `apostrophe-plural-name` | experimental | (in the above) → 0 | (in the above) → 1.6 | 10 % (21); judged 19/28 right | 0.67 |
+| `reduplication` | on | 0 → 0 | 0 → 0 | 0 % (8) → 0 % (8); judged 8/8 right | 0.90 |
+| `ebil-split` | on | 10.8 → **0** | 1.6 → **0** | 89 % (1,125) → 100 % (939) | 0.99 |
+| `indefinite-compound` | on | 3.1 → 2.9\* | 0.7 → **0** | 94 % (631) → 96 % (612) | 0.96 |
+| `compound-verb-merged` | on | 0 → 0 | 0 → 0 | 0 % (4) → 0 % (4); judged 4/4 right | 0.83 |
+| `compound-verb-split` | on | 0 → 0 | 0 → 0 | 100 % (5) → 100 % (5) | 0.86 |
+| `consonant-assimilation` | on | 8.5 → **0.7**\* | 0.4 → 0.2\* | 86 % (143) → 96 % (49) | 0.94 |
+| `consonant-softening` | on | 0 → 0 | 0 → 0 | 90 % (20) → 100 % (15) | 0.94 |
+| `vowel-drop` | on | 31.6 → **0** | 4.9 → **0** | 35 % (456) → 97 % (78) | 0.96 |
+| `yor-narrowing` | on | 0 → 0 | 0 → 0 | no findings | 0.5 |
+| `over-narrowing` | on | 1.3 → **0.9**\* | 0.7 → **0** | 99 % (1,057) → 100 % (953) | 0.99 |
+| `colloquial-form` | on | 0.4 → 0.1\* | 0 → 0 | 91 % (150) → 91 % (147) | 0.91 |
+| `tautology` | on | 0.3 → **0** | 0 → 0 | 0 % (4) → no findings | 0.5 |
+| `plural-harmony` | experimental | 0.1 → 0.1 | 1.1 → 0 | 0 % (3) → 0 % (2); judged 1/2 right | 0.5 |
+| `quantity-plural` | experimental | 0.3 → 0.3 | 1.8 → 0.4 | 4 % (97) → 0 % (5) | 0.18 |
+| `genitive-possessive` | experimental | 0 → 0 | 0 → 0 | 6 % (70) → 0 % (2) | 0.25 |
+| `ne-ne-polarity` | experimental | 0.3 → 0 | 0.7 → 0.2 | 25 % (12) → 0 % (1) | 0.2 |
+| `negation-concord` | experimental | 1.7 → 1.2 | 0.7 → 0.2 | 5 % (66) → 3 % (36) | 0.05 |
+| `inanimate-plural-verb` | experimental | 1.2 → 1.5 | 1.1 → 1.3 | 5 % (62) → 3 % (65) | 0.04 |
+
+Before, all rules ran together; after, each rule is measured alone. `confidence` is (right + 1) / (findings + 2) over a rule's GECTurk findings (by the labels where GECTurk has the error type, judged otherwise), or 0.5 for a rule that never fired. To reproduce: `scripts/build_grammar_clean_corpus.py --local DIR` writes the measurement sets, and `cargo run --release -p akana-core --example grammar_rule_report -- --clean court=... --clean ragturk=... --gec gecturk=...` prints the per-rule numbers (`--context RULE` prints each finding in its sentence).
 
 ### Turkish Sentence Embedding Benchmark (Model2Vec TurboQuant 2-Bit)
 
@@ -235,10 +290,20 @@ corrected = akana.correct_grammar(text)
 print("Corrected:", corrected)
 # -> "Ali de geldi, Veli de geldi. Evi terk etmek zorunda kaldı ve 1923'te kurulan cumhuriyeti andık."
 
-# Detailed diagnostic findings
+# Detailed diagnostic findings (offsets are characters; confidence is the rule's measured precision)
 res = akana.check_grammar(text)
 for f in res.findings:
-    print(f"[{f.category}] '{f.original_text}' -> '{f.replacement}' | {f.message_tr}")
+    print(f"[{f.rule}] '{f.original_text}' -> '{f.replacement}' ({f.confidence:.2f}) | {f.message_tr}")
+
+# Rule selection: the default rules are the ones measured precise on correct text; the
+# experimental ones run only when asked for. Every call and GrammarChecker take the same arguments.
+for r in akana.grammar_rules():
+    print(r["id"], r["default"], r["confidence"], r["summary"])
+akana.correct_grammar("Pazardan üç elmalar aldım.")                      # unchanged: quantity-plural is experimental
+akana.correct_grammar("Pazardan üç elmalar aldım.", experimental=True)   # -> "Pazardan üç elma aldım."
+akana.check_grammar(text, disable=["capitalization"], enable=["quantity-plural"])
+checker = akana.GrammarChecker(rules=["de-da-hardened", "number-suffix"])
+checker.enable_rule("mi-merged")
 
 # 2. Standard Morphological Analysis (Zemberek-Compatible Format)
 morph = akana.Morphology()
@@ -464,6 +529,12 @@ akana pii-mask "Ali Kaya Kadıköy şubesine geldi." --mode surrogate
 akana pii-mask -f confidential.txt --mode placeholder --json
 akana pii-restore "Ödeme {{AD_1}}'a yapıldı." --mapping mapping.json
 
+# Grammar checking (default rules; --experimental, --rules, --enable, --disable to choose)
+akana grammar "Ali de geldi, Veli te geldi."
+akana grammar --correct -f article.txt
+akana grammar --experimental --disable capitalization --json "Pazardan üç elmalar aldım."
+akana grammar --list-rules
+
 # AI style auditing
 akana ai-audit "Bu bağlamda kritik bir rol oynamaktadır."
 akana ai-audit -f article.txt
@@ -513,7 +584,7 @@ akana-core = { version = "0.5", default-features = true }
 
 ```rust
 use akana_core::chunking::{SemanticChunker, SentenceChunker, SDPMChunker, ThresholdMode};
-use akana_core::grammar::TurkishGrammarChecker;
+use akana_core::grammar::{GrammarRule, RuleSet, TurkishGrammarChecker};
 use akana_core::morphology::TurkishMorphology;
 use akana_core::syntactic_morphology::TurkishSyntacticMorphology;
 use akana_core::embeddings::TurkishEmbeddings;
@@ -538,13 +609,18 @@ fn main() {
     let sim = embeddings.similarity("ev", "evler");
     println!("Similarity: {:.4}", sim); // 0.9130
 
-    // 3. Grammatical Error Correction & Diagnostics
+    // 3. Grammatical Error Correction & Diagnostics (the default rules)
     let grammar_checker = TurkishGrammarChecker::new();
-    let res = grammar_checker.check("Ali de geldi, Veli te geldi. Pazardan üç elmalar aldık.");
+    let res = grammar_checker.check("Ali de geldi, Veli te geldi. Cumhuriyet 1923'de kuruldu.");
     println!("Corrected: {}", res.corrected);
     for f in &res.findings {
-        println!("[{:?}] '{}' -> '{}'", f.category, f.original_text, f.replacement);
+        println!("[{}] '{}' -> '{}' ({:.2})", f.rule, f.original_text, f.replacement, f.confidence);
     }
+    // experimental rules on request, by id or all of them
+    let all = RuleSet::default().with_experimental();
+    println!("{}", grammar_checker.correct_with_rules("Pazardan üç elmalar aldık.", all));
+    let mut only_clitics = TurkishGrammarChecker::with_rules(RuleSet::empty());
+    only_clitics.enable_rule(GrammarRule::DeDaHardened);
 
     // 4. Standard Morphology
     let morph = TurkishMorphology::new();

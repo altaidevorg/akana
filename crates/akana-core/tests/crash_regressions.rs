@@ -124,8 +124,12 @@ fn apostrophe_rules_still_apply() {
         checker.correct("Cumhuriyet 1923'de kuruldu."),
         "Cumhuriyet 1923'te kuruldu."
     );
+    // the plural-name apostrophe rule is experimental (Silahlı Kuvvetler'in keeps it)
     assert_eq!(
-        checker.correct("Ahmetler'in evi buraya çok yakın."),
+        checker.correct_with_rules(
+            "Ahmetler'in evi buraya çok yakın.",
+            akana_core::grammar::RuleSet::default().with_experimental()
+        ),
         "Ahmetlerin evi buraya çok yakın."
     );
     assert_eq!(
