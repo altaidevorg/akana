@@ -88,10 +88,13 @@ def test_compound_decomposer():
     assert analyses[0]["part1"] == "deniz"
     assert analyses[0]["part2"] == "altı"
 
-    analyses2 = akana.decompose_compound("akbaba")
+    analyses2 = akana.decompose_compound("başbakanlar")
     assert len(analyses2) > 0
-    assert analyses2[0]["part1"] == "ak"
-    assert analyses2[0]["part2"] == "baba"
+    assert analyses2[0]["part1"] == "baş"
+    assert analyses2[0]["part2"] == "bakanlar"
+
+    # Two words that merely happen to make a third are no compound (mah + keme).
+    assert akana.decompose_compound("mahkeme") == []
 
 
 def test_dynamic_dictionary_loading():

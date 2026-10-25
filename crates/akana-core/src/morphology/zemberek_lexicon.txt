@@ -13214,7 +13214,7 @@ denisov denisov Noun ProperNoun ProperNoun
 deniz deniz Noun None
 denizalası denizalası Noun None CompoundP3sg roots=deniz-ala
 denizalp denizalp Noun ProperNoun ProperNoun
-denizaltı denizaltı Noun None
+denizaltı denizaltı Noun None CompoundP3sg roots=deniz-alt
 denizaltısavar denizaltısavar Noun None
 denizanası denizanası Noun None CompoundP3sg roots=deniz-ana
 denizaslanı denizaslanı Noun None CompoundP3sg roots=deniz-aslan

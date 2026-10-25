@@ -111,8 +111,6 @@ static STEMMER: LazyLock<akana_core::morphology::TurkishStemmer> =
     LazyLock::new(akana_core::morphology::TurkishStemmer::new);
 static STOPWORDS: LazyLock<akana_core::morphology::TurkishStopwords> =
     LazyLock::new(akana_core::morphology::TurkishStopwords::new);
-static GENERATOR: LazyLock<akana_core::morphology::TurkishGenerator> =
-    LazyLock::new(akana_core::morphology::TurkishGenerator::new);
 static KEYWORD_EXTRACTOR: LazyLock<akana_core::analysis::TurkishKeywordExtractor> =
     LazyLock::new(akana_core::analysis::TurkishKeywordExtractor::new);
 static SUMMARIZER: LazyLock<akana_core::analysis::TurkishSummarizer> =
@@ -271,10 +269,11 @@ impl PyMorphology {
         Ok(list)
     }
 
+    /// Generates from this analyzer's lexicon, with any dictionary it has loaded.
     fn generate(&self, py: Python<'_>, lemma: &str, tags: Vec<String>) -> PyResult<Option<String>> {
         release(py, || {
             let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
-            GENERATOR.generate(lemma, &tag_refs)
+            self.inner.generate(lemma, &tag_refs)
         })
     }
 

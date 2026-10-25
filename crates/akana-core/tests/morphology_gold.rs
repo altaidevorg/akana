@@ -3,7 +3,9 @@
 //! `data/morphology/paradigms.tsv` lists forms that must have an analysis with a given root and
 //! exact tag sequence, `data/morphology/reject.txt` forms that must have none, and
 //! `data/morphology/disambiguation.tsv` the reading the disambiguator should pick for each word
-//! of a sentence. The analyzer does not meet all of them yet:
+//! of a sentence. Every analysis of a dictionary word in `paradigms.tsv` and
+//! `frequent_types.tsv` must also generate back from its root (or lemma) and tags. The analyzer
+//! does not meet all of them yet:
 //! `data/morphology/known_failures.txt` lists the ones it gets wrong, and this test fails when
 //! that list is not exactly the current failures, so it shrinks as fixes land and grows only on
 //! purpose. `AKANA_GOLD_WRITE=1` rewrites the list.
@@ -14,6 +16,7 @@ use std::collections::BTreeSet;
 const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
 const REJECT: &str = include_str!("data/morphology/reject.txt");
 const DISAMBIGUATION: &str = include_str!("data/morphology/disambiguation.tsv");
+const FREQUENT_TYPES: &str = include_str!("data/morphology/frequent_types.tsv");
 const KNOWN_FAILURES: &str = include_str!("data/morphology/known_failures.txt");
 
 fn data_lines(text: &str) -> impl Iterator<Item = &str> {
@@ -22,11 +25,30 @@ fn data_lines(text: &str) -> impl Iterator<Item = &str> {
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
 }
 
+/// Whether a gold word is a dictionary word written as the generator writes it: its root (or
+/// infinitive) is in the lexicon (not a number or Roman numeral), and it has no apostrophe
+/// (Ankara'ya).
+fn generable(morphology: &TurkishMorphology, word: &str, root: &str) -> bool {
+    let in_lexicon = |r: &str| !morphology.root_items(r).is_empty();
+    !word.contains(['\'', '’', '`'])
+        && (in_lexicon(root)
+            || root
+                .strip_suffix("mek")
+                .or_else(|| root.strip_suffix("mak"))
+                .is_some_and(in_lexicon))
+}
+
 /// Every gold item the analyzer currently gets wrong, as `accept<TAB>word<TAB>root<TAB>tags`,
-/// `reject<TAB>word` or `disamb<TAB>word<TAB>sentence`.
+/// `reject<TAB>word`, `disamb<TAB>word<TAB>sentence` or `generate<TAB>word<TAB>root<TAB>tags`.
 fn current_failures() -> BTreeSet<String> {
     let morphology = TurkishMorphology::new();
     let mut failures = BTreeSet::new();
+    // The generator returns a word the analyzer reads back with the same item and tags; another
+    // spelling of the reading (gelin and geliniz) counts as a round trip.
+    let generates = |root: &str, tags: &str| {
+        let tags: Vec<&str> = tags.split('+').collect();
+        morphology.generate(root, &tags).is_some()
+    };
     for line in data_lines(PARADIGMS) {
         let fields: Vec<&str> = line.split('\t').collect();
         let [word, root, tags] = fields[..] else {
@@ -38,6 +60,17 @@ fn current_failures() -> BTreeSet<String> {
             .any(|p| p.root == root && p.morpheme_tags.join("+") == tags);
         if !found {
             failures.insert(format!("accept\t{word}\t{root}\t{tags}"));
+        } else if generable(&morphology, word, root) && !generates(root, tags) {
+            failures.insert(format!("generate\t{word}\t{root}\t{tags}"));
+        }
+    }
+    for line in data_lines(FREQUENT_TYPES) {
+        let fields: Vec<&str> = line.split('\t').collect();
+        let [word, lemma, _, tags] = fields[..] else {
+            panic!("malformed frequent_types.tsv line: {line:?}");
+        };
+        if generable(&morphology, word, lemma) && !generates(lemma, tags) {
+            failures.insert(format!("generate\t{word}\t{lemma}\t{tags}"));
         }
     }
     for word in data_lines(REJECT) {
@@ -103,7 +136,10 @@ fn gold_failures_match_known_list() {
     let disambiguator = MorphologicalDisambiguator::new();
     for f in &broken {
         let fields: Vec<&str> = f.split('\t').collect();
-        let got: Vec<String> = if fields[0] == "disamb" {
+        let got: Vec<String> = if fields[0] == "generate" {
+            let tags: Vec<&str> = fields[3].split('+').collect();
+            vec![format!("{:?}", morphology.generate(fields[2], &tags))]
+        } else if fields[0] == "disamb" {
             let tokens: Vec<&str> = fields[2].split(' ').collect();
             let chosen = disambiguator.disambiguate(&tokens);
             tokens

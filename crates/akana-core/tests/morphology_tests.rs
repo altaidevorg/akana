@@ -82,10 +82,50 @@ fn test_compound_decomposition() {
     assert_eq!(decomp_denizalti[0].part1, "deniz");
     assert_eq!(decomp_denizalti[0].part2, "altı");
 
-    let decomp_akbaba = decomposer.decompose("akbaba");
-    assert!(!decomp_akbaba.is_empty());
-    assert_eq!(decomp_akbaba[0].part1, "ak");
-    assert_eq!(decomp_akbaba[0].part2, "baba");
+    // A productive pattern on lexicon roots, through the word's inflection.
+    let decomp_basbakan = decomposer.decompose("başbakanlar");
+    assert!(!decomp_basbakan.is_empty());
+    assert_eq!(decomp_basbakan[0].part1, "baş");
+    assert_eq!(decomp_basbakan[0].part2, "bakanlar");
+
+    // Words whose halves merely happen to be words are not compounds (mah + keme, hare + ket).
+    let morphology = TurkishMorphology::new();
+    for word in [
+        "mahkeme",
+        "yüksek",
+        "sistem",
+        "kültür",
+        "matematik",
+        "kapsam",
+        "toplam",
+        "hareket",
+        "dikkat",
+        "temmuz",
+        "kaybet",
+        "başkan",
+    ] {
+        assert!(decomposer.decompose(word).is_empty(), "{word} decomposed");
+        assert_eq!(
+            CompoundDecomposer::split_lexical_compound(&morphology, word),
+            None,
+            "{word} split"
+        );
+    }
+    for (word, first, head) in [
+        ("cumhurbaşkanı", "cumhur", "başkan"),
+        ("zeytinyağı", "zeytin", "yağ"),
+        ("denizaltı", "deniz", "alt"),
+        ("başsavcı", "baş", "savcı"),
+        ("anayasa", "ana", "yasa"),
+        ("tebliğname", "tebliğ", "name"),
+        ("huzurevi", "huzur", "ev"),
+    ] {
+        assert_eq!(
+            CompoundDecomposer::split_lexical_compound(&morphology, word),
+            Some((first.to_string(), head.to_string())),
+            "{word}"
+        );
+    }
 }
 
 #[test]

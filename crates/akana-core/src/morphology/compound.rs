@@ -1,6 +1,13 @@
 //! Turkish Compound Word Analysis and Decomposition (Bileşik Sözcük Ayrıştırıcı).
+//!
+//! A word splits into two roots only when the lexicon says it is a compound (Zemberek's
+//! CompoundP3sg roots: cumhur+başkan-ı, zeytin+yağ-ı, deniz+alt-ı) or when it is a productive
+//! compound pattern (baş+bakan, ana+yasa, tebliğ+name, huzur+ev-i) on an open-class root.
+//! Splitting wherever both halves happen to be words split mahkeme into mah + keme and
+//! hareket into hare + ket.
 
 use super::analyzer::{is_derivational_tag, MorphParse, TurkishMorphology};
+use super::dictionary::DictionaryItem;
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +19,32 @@ pub struct CompoundAnalysis {
     pub parse1: MorphParse,
     pub parse2: MorphParse,
 }
+
+/// First parts that make compounds with a following noun (başbakan, anayasa, kuzeybatı,
+/// ortaokul, ilköğretim, tümgeneral, altyapı, büyükelçi, yüksekokul). The rest must be an
+/// open-class root of at least four letters: başkan is not baş + kan.
+const PRODUCTIVE_FIRST: &[&str] = &[
+    "baş", "ana", "kuzey", "güney", "doğu", "batı", "orta", "ilk", "tüm", "alt", "üst", "büyük",
+    "yüksek",
+];
+
+/// Heads that make compounds after an open-class root of at least three letters, with the
+/// head's root (tebliğname, tımarhane, huzurevi, karayolu, ustabaşı, vatansever, dilbilim,
+/// olağanüstü, yasadışı, yeryüzü, yüzyıl).
+const PRODUCTIVE_HEADS: &[(&str, &str)] = &[
+    ("name", "name"),
+    ("hane", "hane"),
+    ("evi", "ev"),
+    ("yolu", "yol"),
+    ("kurulu", "kurul"),
+    ("başı", "baş"),
+    ("sever", "sever"),
+    ("bilim", "bilim"),
+    ("üstü", "üst"),
+    ("dışı", "dış"),
+    ("yüzü", "yüz"),
+    ("yıl", "yıl"),
+];
 
 pub struct CompoundDecomposer {
     morphology: TurkishMorphology,
@@ -34,144 +67,116 @@ impl CompoundDecomposer {
         Self { morphology }
     }
 
-    /// Attempts to decompose a candidate word into two valid Turkish linguistic roots/words.
-    /// Example: `decompose("denizaltı") -> ("deniz", "altı")`
-    /// Example: `decompose("gecekondu") -> ("gece", "kondu")`
-    /// Example: `decompose("akbaba") -> ("ak", "baba")`
+    /// Decomposes a (possibly inflected) word whose root is a compound into its first part and
+    /// the rest of the word, each with its best analysis.
+    /// Example: `decompose("denizaltında") -> ("deniz", "altında")`
+    /// Example: `decompose("başbakanlar") -> ("baş", "bakanlar")`
     pub fn decompose(&self, word: &str) -> Vec<CompoundAnalysis> {
         let clean = word.trim();
         let lower = crate::phonology::to_turkish_lower(clean);
-        let chars: Vec<char> = lower.chars().collect();
-        let n = chars.len();
-
-        // No real word is this long, even with a long suffix chain; each split analyses both
-        // halves, so a long token (a base64 blob) was quadratic or worse.
-        if !(4..=128).contains(&n) {
+        // No real word is this long, even with a long suffix chain; a long token (a base64
+        // blob) would only cost a scan.
+        if !(4..=128).contains(&lower.chars().count()) {
             return Vec::new();
         }
-
-        let mut results = Vec::new();
-
-        // Try all split points (minimum 2 chars per subword)
-        for split in 2..=(n - 2) {
-            let left_part: String = chars[..split].iter().collect();
-            let right_part: String = chars[split..].iter().collect();
-
-            let left_parses = self.morphology.analyze(&left_part);
-            if left_parses.is_empty() {
+        let mut roots: Vec<String> = self
+            .morphology
+            .analyze(&lower)
+            .iter()
+            .take(3)
+            .map(|p| p.root.clone())
+            .collect();
+        roots.dedup();
+        let mut results: Vec<CompoundAnalysis> = Vec::new();
+        for root in roots {
+            let Some((first, _)) = Self::split_lexical_compound(&self.morphology, &root) else {
+                continue;
+            };
+            let Some(rest) = lower.strip_prefix(first.as_str()) else {
+                continue;
+            };
+            let (Some(parse1), Some(parse2)) = (
+                self.morphology.analyze(&first).into_iter().next(),
+                self.morphology.analyze(rest).into_iter().next(),
+            ) else {
+                continue;
+            };
+            if results.iter().any(|r| r.part1 == first) {
                 continue;
             }
-
-            let right_parses = self.morphology.analyze(&right_part);
-            if right_parses.is_empty() {
-                continue;
-            }
-
-            // Valid decomposition found!
             results.push(CompoundAnalysis {
                 surface: clean.to_string(),
-                part1: left_part,
-                part2: right_part,
-                parse1: left_parses[0].clone(),
-                parse2: right_parses[0].clone(),
+                part1: first,
+                part2: rest.to_string(),
+                parse1,
+                parse2,
             });
         }
-
         results
     }
 
-    /// Splits a lexicon root into the two roots of a noun compound, from the lexicon alone: a
-    /// noun, adjective or numeral, then a noun or adjective either bare (baş+bakan, yüz+yıl,
-    /// büyük+şehir) or with the compound's 3rd-person possessive (deniz+alt-ı, zeytin+yağ-ı,
-    /// cumhur+başkan-ı, ayak+kab-ı). Returns the two roots (deniz, alt).
-    ///
-    /// Unlike `decompose`, which accepts any split whose halves have any analysis, neither part
-    /// may carry other suffixes, verbs, proper nouns and abbreviations do not count, parts have
-    /// at least three letters (two for the possessive stem of a word the lexicon marks
-    /// CompoundP3sg: hanım+el-i), and a word that is a shorter root plus a derivation is not a
-    /// compound (dava-cı, not dav+acı; yetki-li). Splitting inflected surfaces instead turned
-    /// davacıya into dav + acıya and görevlisi into gör + evlisi.
+    /// Splits a lexicon root into the roots of its two parts: from the lexicon's compound
+    /// data (cumhurbaşkanı: cumhur, başkan; zeytinyağı: zeytin, yağ; denizaltı: deniz, alt),
+    /// else from a productive pattern on open-class lexicon roots (başbakan: baş, bakan;
+    /// anayasa: ana, yasa; tebliğname: tebliğ, name; huzurevi: huzur, ev). Names,
+    /// abbreviations and words the analyzer reads as a shorter root plus a derivation are not
+    /// split.
     pub fn split_lexical_compound(
         morphology: &TurkishMorphology,
         word: &str,
     ) -> Option<(String, String)> {
         let lower = crate::phonology::to_turkish_lower(word.trim());
-        let chars: Vec<char> = lower.chars().collect();
-        let n = chars.len();
-        // Two roots are at most twice the longest root; longer tokens (a base64 blob) would
-        // only cost a quadratic scan.
-        if n < 6 || n > 2 * morphology.max_root_chars() {
-            return None;
-        }
-        let marked = morphology
-            .root_items(&lower)
+        let items = morphology.root_items(&lower);
+        if let Some((first, head)) = items
             .iter()
-            .any(|i| i.attributes.contains(RootAttr::COMPOUND_P3SG));
-        let derived = morphology
-            .analyze(&lower)
-            .iter()
-            .any(|p| p.root != lower && p.morpheme_tags.iter().any(|t| is_derivational_tag(t)));
-        if derived {
-            return None;
+            .filter(|i| i.attributes.contains(RootAttr::COMPOUND_P3SG))
+            .find_map(|i| i.compound_roots.clone())
+        {
+            return Some((first, head));
         }
-
-        let is_root = |s: &str, second: bool| {
-            morphology.root_items(s).iter().any(|i| {
-                !matches!(
-                    i.secondary_pos,
-                    SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-                ) && match i.primary_pos {
-                    PrimaryPos::Noun | PrimaryPos::Adj => true,
-                    PrimaryPos::Num => !second,
-                    _ => false,
-                }
-            })
-        };
-        let possessive_stem = |s: &str| -> Option<String> {
-            let min = if marked { 2 } else { 3 };
-            ["sı", "si", "su", "sü", "ı", "i", "u", "ü"]
+        // A shorter root plus a derivation is not a compound (dava-cı, not dav + acı).
+        let derived = || {
+            morphology
+                .analyze(&lower)
                 .iter()
-                .filter_map(|p| s.strip_suffix(p))
-                .filter(|stem| stem.chars().count() >= min)
-                .flat_map(|stem| [stem.to_string(), unvoice(stem)])
-                .find(|stem| is_root(stem, true))
+                .any(|p| p.root != lower && p.morpheme_tags.iter().any(|t| is_derivational_tag(t)))
         };
-
-        for split in 3..=(n - 3) {
-            let left: String = chars[..split].iter().collect();
-            if !is_root(&left, false) {
-                continue;
-            }
-            let right: String = chars[split..].iter().collect();
-            // A word marked CompoundP3sg ends in the possessive: zeytin+yağ-ı, not the
-            // archaic root yağı.
-            if marked {
-                if let Some(stem) = possessive_stem(&right) {
-                    return Some((left, stem));
+        if !items.iter().any(open_class) || derived() {
+            return None;
+        }
+        let is_root = |s: &str| morphology.root_items(s).iter().any(open_class);
+        // A longer root across the split makes the word its derivation: başvur-u (from the
+        // verb), not baş + vuru.
+        let spanned = |first: &str| {
+            lower
+                .char_indices()
+                .map(|(i, _)| i)
+                .filter(|&i| i > first.len())
+                .any(|i| !morphology.root_items(&lower[..i]).is_empty())
+        };
+        for first in PRODUCTIVE_FIRST {
+            if let Some(rest) = lower.strip_prefix(first) {
+                if rest.chars().count() >= 4 && is_root(rest) && !spanned(first) {
+                    return Some((first.to_string(), rest.to_string()));
                 }
             }
-            if is_root(&right, true) {
-                return Some((left, right));
-            }
-            if let Some(stem) = possessive_stem(&right) {
-                return Some((left, stem));
+        }
+        for (head, head_root) in PRODUCTIVE_HEADS {
+            if let Some(first) = lower.strip_suffix(head) {
+                if first.chars().count() >= 3 && is_root(first) && !spanned(first) {
+                    return Some((first.to_string(), head_root.to_string()));
+                }
             }
         }
         None
     }
 }
 
-/// kab -> kap, reng -> renk, ağac -> ağaç (the stem before a possessive may be voiced).
-fn unvoice(stem: &str) -> String {
-    let mut chars: Vec<char> = stem.chars().collect();
-    if let Some(last) = chars.last_mut() {
-        *last = match *last {
-            'b' => 'p',
-            'c' => 'ç',
-            'd' => 't',
-            'ğ' | 'g' => 'k',
-            c => c,
-        };
-    }
-    chars.into_iter().collect()
+/// A common noun or adjective (not a name or abbreviation).
+fn open_class(item: &DictionaryItem) -> bool {
+    matches!(item.primary_pos, PrimaryPos::Noun | PrimaryPos::Adj)
+        && !matches!(
+            item.secondary_pos,
+            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+        )
 }

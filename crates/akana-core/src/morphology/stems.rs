@@ -61,13 +61,7 @@ impl StemIndex {
         }
         if let Some((surface, dummy)) = compound {
             let idx = self.items.len() as u32;
-            let mut stems = generate(&dummy, idx, roots);
-            for s in &mut stems {
-                // The stem is spelled as the compound's root without its possessive ending.
-                if s.surface.as_ref() == dummy.root.as_str() {
-                    s.surface = surface.clone().into_boxed_str();
-                }
-            }
+            let stems = compound_stems(&surface, &dummy, idx, roots);
             self.items.push(dummy);
             for s in stems {
                 self.insert(s);
@@ -98,6 +92,42 @@ impl StemIndex {
     pub fn item(&self, s: &StemTransition) -> &DictionaryItem {
         &self.items[s.item as usize]
     }
+}
+
+/// An item's stems, each with the item its analyses render: the item's own, and for a
+/// CompoundP3sg noun the possessive-less stem of its dummy item (cumhurbaşkan-ı-na).
+pub fn item_stems(
+    item: &DictionaryItem,
+    lexicon: &RootLexicon,
+    roots: &RootStates,
+) -> Vec<(StemTransition, DictionaryItem)> {
+    let mut out: Vec<(StemTransition, DictionaryItem)> = generate(item, 0, roots)
+        .into_iter()
+        .map(|s| (s, item.clone()))
+        .collect();
+    if let Some((surface, dummy)) = compound_root_item(item, lexicon) {
+        for s in compound_stems(&surface, &dummy, 0, roots) {
+            out.push((s, dummy.clone()));
+        }
+    }
+    out
+}
+
+/// The stems of a compound's dummy item, spelled as the compound's root without its
+/// possessive ending.
+fn compound_stems(
+    surface: &str,
+    dummy: &DictionaryItem,
+    idx: u32,
+    roots: &RootStates,
+) -> Vec<StemTransition> {
+    let mut stems = generate(dummy, idx, roots);
+    for s in &mut stems {
+        if s.surface.as_ref() == dummy.root.as_str() {
+            s.surface = surface.into();
+        }
+    }
+    stems
 }
 
 /// The possessive-less stem of a CompoundP3sg noun (cumhurbaşkanı -> cumhurbaşkan), as an

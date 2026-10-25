@@ -87,11 +87,12 @@ const MAX_WORK: usize = 100_000;
 /// fewer, and hashing every step would cost more than the memo saves.
 const MEMO_AFTER: usize = 512;
 /// How often one state may recur on a path (verbRoot_S recurs once per voice suffix).
-const MAX_STATE_REPEAT: usize = 8;
+pub(super) const MAX_STATE_REPEAT: usize = 8;
 
 /// The corpus frequency prior, written by `examples/morph_prior.rs`: how often each dictionary
 /// item and each analysis shape was the right reading in a sample of court decisions.
-static PRIOR: LazyLock<Prior> = LazyLock::new(|| Prior::parse(include_bytes!("prior.tsv.gz")));
+pub(super) static PRIOR: LazyLock<Prior> =
+    LazyLock::new(|| Prior::parse(include_bytes!("prior.tsv.gz")));
 
 /// The second-person tags, which the prior scales by its register factor (see
 /// `examples/morph_prior.rs`).
@@ -103,7 +104,7 @@ const PRIOR_STEP: f32 = 1.02;
 /// Log probabilities of items ([`prior_item_key`]) and of shapes ([`prior_shape_key`]) given
 /// their POS (the shape's first tag): P(item) * P(shape | POS) is how likely a reading is.
 /// The keys are hashed ([`KeyHash`]), so looking a reading up builds no string.
-struct Prior {
+pub(super) struct Prior {
     items: KeyMap,
     shapes: KeyMap,
     unseen_item: f32,
@@ -195,6 +196,27 @@ impl Prior {
             capitalised_name: capitalised_name as f32,
             capitalised_other: capitalised_other as f32,
         }
+    }
+
+    /// Log P(item) of a dictionary item, for choosing among homographs (hak the noun).
+    pub(super) fn item_log_p(&self, item: &DictionaryItem) -> f32 {
+        let secondary = match item.secondary_pos.as_str() {
+            "" => "-",
+            s => s,
+        };
+        let parts = [
+            item.lemma.as_str(),
+            " ",
+            item.root.as_str(),
+            " ",
+            item.primary_pos.as_str(),
+            " ",
+            secondary,
+        ];
+        self.items
+            .get(&KeyHash::of_parts(parts))
+            .copied()
+            .unwrap_or(self.unseen_item)
     }
 
     /// `capitalised`: the word as written starts with a capital.
@@ -431,7 +453,7 @@ impl TurkishMorphology {
         parses
     }
 
-    fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
+    pub(super) fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
         let clean = word.trim();
         if clean.is_empty() {
             return Vec::new();
@@ -823,10 +845,10 @@ fn suffixes_without_apostrophe(graph: &Graph, item: &DictionaryItem, steps: &[St
 
 /// One suffix taken on a path: the transition and the byte range of its surface.
 #[derive(Clone, Copy)]
-struct Step {
-    transition: u32,
-    start: usize,
-    end: usize,
+pub(super) struct Step {
+    pub transition: u32,
+    pub start: usize,
+    pub end: usize,
 }
 
 struct Search<'a> {
@@ -941,7 +963,7 @@ impl Search<'_> {
 
 /// Akana's tag for a morpheme in its context, or `None` for one that is not shown (the
 /// default A3sg, Pnon and Nom, zero derivations, POS markers).
-fn tag_of(m: M) -> Option<&'static str> {
+pub(super) fn tag_of(m: M) -> Option<&'static str> {
     Some(match m {
         M::Dat => "Dat",
         M::Acc => "Acc",
@@ -1019,7 +1041,7 @@ const PERSONS: &[&str] = &[
 /// Renders a path as akana's tags: the root's POS, then the morphemes that are shown. A
 /// nominal predicate shows its persons and tenses as the copula (evde-yim CopPres1sg,
 /// güzel-di CopPast), as does a tense after a tense (geliyor-du CopPast).
-fn render(
+pub(super) fn render(
     engine: &Engine,
     item: &DictionaryItem,
     stem: &StemTransition,
