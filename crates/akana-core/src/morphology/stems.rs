@@ -13,7 +13,7 @@ use super::morphotactics::StateId;
 use super::phonetics::{attributes_of, is_vowel, voice, PhoneticAttrs as P};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::turkish_morphotactics::RootStates;
-use std::collections::HashMap;
+use ahash::AHashMap;
 
 /// A stem: its surface, the item it belongs to (an index into [`StemIndex::items`]), its
 /// phonetic attributes and the state the analysis starts in.
@@ -29,7 +29,7 @@ pub struct StemTransition {
 #[derive(Clone)]
 pub struct StemIndex {
     pub items: Vec<DictionaryItem>,
-    by_surface: HashMap<Box<str>, Vec<StemTransition>>,
+    by_surface: AHashMap<Box<str>, Vec<StemTransition>>,
     max_chars: usize,
 }
 
@@ -37,14 +37,12 @@ impl StemIndex {
     pub fn new(lexicon: &RootLexicon, roots: &RootStates) -> Self {
         let mut index = StemIndex {
             items: Vec::with_capacity(lexicon.count()),
-            by_surface: HashMap::with_capacity(lexicon.count() * 5 / 4),
+            by_surface: AHashMap::with_capacity(lexicon.count() * 5 / 4),
             max_chars: 0,
         };
-        // Grouped by root, keeping each root's items in lexicon order (Zemberek's homograph
-        // order), so item indices and the order of equal analyses do not depend on hash order.
-        let mut items: Vec<&DictionaryItem> = lexicon.items().collect();
-        items.sort_by(|a, b| a.root.cmp(&b.root));
-        for item in items {
+        // In lexicon order (homographs in Zemberek's order), so item indices and the order of
+        // equal analyses do not depend on hash order.
+        for item in lexicon.items() {
             index.add(item.clone(), lexicon, roots);
         }
         index
@@ -71,9 +69,15 @@ impl StemIndex {
 
     fn insert(&mut self, s: StemTransition) {
         self.max_chars = self.max_chars.max(s.surface.chars().count());
-        let bucket = self.by_surface.entry(s.surface.clone()).or_default();
-        if !bucket.contains(&s) {
-            bucket.push(s);
+        match self.by_surface.get_mut(&s.surface) {
+            Some(bucket) => {
+                if !bucket.contains(&s) {
+                    bucket.push(s);
+                }
+            }
+            None => {
+                self.by_surface.insert(s.surface.clone(), vec![s]);
+            }
         }
     }
 
@@ -365,7 +369,9 @@ fn special_roots(
         attrs,
         to,
     };
-    let original_attrs = calculate(item.pronunciation());
+    // Only the special roots need the attributes; computing them for every item cost
+    // a sizeable share of the stem index's build.
+    let original_attrs = || calculate(item.pronunciation());
     let lemma = item.lemma.as_str();
     let pos = item.primary_pos;
     let sec = item.secondary_pos;
@@ -379,8 +385,8 @@ fn special_roots(
             // içer-de, bur-da, or-dan.
             let original = stem(
                 &item.root,
-                original_attrs,
-                root_state(item, original_attrs, roots),
+                original_attrs(),
+                root_state(item, original_attrs(), roots),
             );
             let target = if pos == PrimaryPos::Noun {
                 roots.noun_last_vowel_drop
@@ -396,7 +402,7 @@ fn special_roots(
         ("ben" | "sen", PrimaryPos::Pron) if sec == SecondaryPos::Personal => {
             let original = stem(
                 &item.root,
-                original_attrs | P::UNMODIFIED_PRONOUN,
+                original_attrs() | P::UNMODIFIED_PRONOUN,
                 roots.pron_pers,
             );
             let m = if lemma == "ben" { "ban" } else { "san" };
@@ -408,11 +414,11 @@ fn special_roots(
         ("demek" | "yemek", PrimaryPos::Verb) => {
             let m = if lemma == "demek" { "di" } else { "yi" };
             Some(vec![
-                stem(&item.root, original_attrs, roots.verb_de_ye),
+                stem(&item.root, original_attrs(), roots.verb_de_ye),
                 stem(m, calculate(m), roots.verb_de_ye),
             ])
         }
-        ("imek", PrimaryPos::Verb) => Some(vec![stem(&item.root, original_attrs, roots.imek)]),
+        ("imek", PrimaryPos::Verb) => Some(vec![stem(&item.root, original_attrs(), roots.imek)]),
         ("birbiri" | "çoğu" | "öbürü" | "birçoğu", PrimaryPos::Pron)
             if sec == SecondaryPos::Quantitive =>
         {
@@ -425,7 +431,7 @@ fn special_roots(
             Some(vec![
                 stem(
                     &item.root,
-                    original_attrs | P::UNMODIFIED_PRONOUN,
+                    original_attrs() | P::UNMODIFIED_PRONOUN,
                     roots.pron_quant,
                 ),
                 stem(

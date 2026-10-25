@@ -1716,13 +1716,16 @@ pub fn build() -> (Graph, RootStates) {
     g.add(vImplicitReflexRoot_S, vReflex_S, "", T);
     g.add(vReflex_S, verbRoot_S, "", T);
     let no_pass = || cm(&[M::Pass]).not();
-    g.add(verbRoot_S, vPass_S, "In", has(R::PASSIVE_IN).and(no_pass()));
-    g.add(
-        verbRoot_S,
-        vPass_S,
-        "InIl",
-        has(R::PASSIVE_IN).and(no_pass()),
-    );
+    // Passive_In describes the root's last letter, so -In and -InIl follow the root, not a
+    // causative ending in r or t: kal-dır-ıl, oku-t-ul, not kal-dır-ın, oku-t-un. Zemberek
+    // allows them there (deviation).
+    let after_root = || {
+        has(R::PASSIVE_IN)
+            .and(no_pass())
+            .and_not(ps(&[vCausT_S, vCausTir_S]))
+    };
+    g.add(verbRoot_S, vPass_S, "In", after_root());
+    g.add(verbRoot_S, vPass_S, "InIl", after_root());
     g.add(
         verbRoot_S,
         vPass_S,

@@ -111,6 +111,13 @@ pub(super) struct Prior {
     /// A shape not in the file, per POS; [`Prior::unseen_shape`] for a POS not in it either.
     unseen_shapes: HashMap<String, f32>,
     unseen_shape: f32,
+    /// Per-morpheme backoff for a shape not in the file: log P(tag | POS) over the overt
+    /// morphemes of the POS's shapes, `POS+tag` -> log probability. An unseen shape scores the
+    /// smoothing count times the probabilities of its morphemes, so one of fewer and more
+    /// common morphemes outranks one of more or rarer morphemes.
+    tag_penalties: HashMap<String, f32>,
+    /// The penalty of a tag a POS's shapes never show.
+    unseen_tag_penalty: f32,
     /// Log of the factor for second-person readings.
     second_person: f32,
     /// P(capitalised | name) and P(capitalised | other word).
@@ -130,8 +137,9 @@ impl Prior {
         {
             text.clear();
         }
-        let mut items: HashMap<String, f64> = HashMap::new();
-        let mut shapes: HashMap<String, f64> = HashMap::new();
+        // Borrowed from the decompressed text: no key is copied before it is hashed.
+        let mut items: Vec<(&str, f64)> = Vec::new();
+        let mut shapes: Vec<(&str, f64)> = Vec::new();
         let mut second_person = 0.0;
         // Without the file's estimates the word's case says nothing.
         let mut capitalised_name = 0.5f64;
@@ -147,51 +155,68 @@ impl Prior {
                 continue;
             };
             match kind {
-                "I" => items.insert(key.to_string(), count),
-                "S" => shapes.insert(key.to_string(), count),
-                "R" if key == "second-person" && count > 0.0 => {
-                    second_person = count.ln() as f32;
-                    None
-                }
+                "I" => items.push((key, count)),
+                "S" => shapes.push((key, count)),
+                "R" if key == "second-person" && count > 0.0 => second_person = count.ln() as f32,
                 "R" if key == "capitalised-name" && count > 0.0 && count < 1.0 => {
-                    capitalised_name = count;
-                    None
+                    capitalised_name = count
                 }
                 "R" if key == "capitalised-other" && count > 0.0 && count < 1.0 => {
-                    capitalised_other = count;
-                    None
+                    capitalised_other = count
                 }
-                _ => None,
-            };
+                _ => {}
+            }
         }
-        let total = items.values().map(|c| c + 0.5).sum::<f64>() + 0.5;
+        let total = items.iter().map(|(_, c)| c + 0.5).sum::<f64>() + 0.5;
         let unseen_item = (0.5 / total).ln() as f32;
         let items = items
-            .into_iter()
-            .map(|(k, c)| (KeyHash::of(&k), ((c + 0.5) / total).ln() as f32))
+            .iter()
+            .map(|&(k, c)| (KeyHash::of(k), ((c + 0.5) / total).ln() as f32))
             .collect();
-        let pos_of = |shape: &str| shape.split('+').next().unwrap_or_default().to_string();
-        let mut totals: HashMap<String, f64> = HashMap::new();
-        for (k, c) in &shapes {
+        fn pos_of(shape: &str) -> &str {
+            shape.split('+').next().unwrap_or_default()
+        }
+        let mut totals: HashMap<&str, f64> = HashMap::new();
+        // P(tag | POS) over the overt morphemes of the POS's shapes.
+        let mut tag_counts: HashMap<(&str, &str), f64> = HashMap::new();
+        let mut tag_totals: HashMap<&str, f64> = HashMap::new();
+        for &(k, c) in &shapes {
             *totals.entry(pos_of(k)).or_insert(0.5) += c + 0.5;
+            let mut tags = k.split('+');
+            let pos = tags.next().unwrap_or_default();
+            for tag in tags.filter(|t| !matches!(*t, "A3sg" | "Pnon" | "Nom")) {
+                *tag_counts.entry((pos, tag)).or_insert(0.0) += c;
+                *tag_totals.entry(pos).or_insert(0.5) += c;
+            }
         }
         let shapes = shapes
-            .into_iter()
-            .map(|(k, c)| {
-                let total = totals[&pos_of(&k)];
-                (KeyHash::of(&k), ((c + 0.5) / total).ln() as f32)
+            .iter()
+            .map(|&(k, c)| {
+                let total = totals[pos_of(k)];
+                (KeyHash::of(k), ((c + 0.5) / total).ln() as f32)
             })
             .collect();
         let unseen_shapes = totals
-            .into_iter()
-            .map(|(pos, total)| (pos, (0.5 / total).ln() as f32))
+            .iter()
+            .map(|(pos, total)| (pos.to_string(), (0.5 / total).ln() as f32))
             .collect();
+        let tag_penalties = tag_counts
+            .iter()
+            .map(|(&(pos, tag), c)| {
+                let total = tag_totals[pos];
+                (format!("{pos}+{tag}"), ((c + 0.5) / total).ln() as f32)
+            })
+            .collect();
+        let unseen_tag_penalty =
+            (0.5 / tag_totals.values().copied().fold(0.5, f64::max)).ln() as f32;
         Prior {
             items,
             shapes,
             unseen_item,
             unseen_shapes,
             unseen_shape: 0.5f32.ln(),
+            tag_penalties,
+            unseen_tag_penalty,
             second_person,
             capitalised_name: capitalised_name as f32,
             capitalised_other: capitalised_other as f32,
@@ -228,10 +253,21 @@ impl Prior {
         let shape_key = shape_key_parts(p).fold(KeyHash::new(), KeyHash::feed).0;
         let shape = self.shapes.get(&shape_key).copied().unwrap_or_else(|| {
             let pos = p.morpheme_tags.first().map_or("", String::as_str);
+            let morphemes: f32 = p.morpheme_tags[1..]
+                .iter()
+                .filter(|t| !matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"))
+                .map(|t| {
+                    self.tag_penalties
+                        .get(&format!("{pos}+{t}"))
+                        .copied()
+                        .unwrap_or(self.unseen_tag_penalty)
+                })
+                .sum();
             self.unseen_shapes
                 .get(pos)
                 .copied()
                 .unwrap_or(self.unseen_shape)
+                + morphemes
         });
         let register = if p
             .morpheme_tags

@@ -86,20 +86,23 @@ impl TurkishMorphology {
                 surface: String::new(),
                 steps: Vec::new(),
                 work: 0,
+                special: false,
                 candidates: Vec::new(),
             };
             for (stem, owner) in stems::item_stems(item, self.lexicon(), &ENGINE.roots) {
                 let root_morpheme = ENGINE.graph.states[stem.to.0 as usize].morpheme;
                 search.surface = stem.surface.to_string();
+                search.special = stem.surface.as_ref() != owner.root;
                 let ctx = Context::at_root(stem.to, root_morpheme);
                 search.walk(&owner, &stem, ctx, stem.attrs, 1);
             }
             // The analyzer must read the word back with the same item and tags. Of several
-            // spellings of the reading the shortest is the unmarked one (okuyor, not okumakta;
-            // gidin, not gitsenize; halinde, not hallinde).
+            // spellings of the reading, one on the root as spelt comes before one on a special
+            // stem (yukarıda, not yukarda), then the shortest is the unmarked one (okuyor, not
+            // okumakta; gidin, not gitsenize).
             let mut candidates = search.candidates;
-            candidates.sort_by_key(|s| s.chars().count());
-            let found = candidates.into_iter().find(|surface| {
+            candidates.sort_by_key(|(s, special)| (*special, s.chars().count()));
+            let found = candidates.into_iter().map(|(s, _)| s).find(|surface| {
                 self.analyze_unranked(surface).iter().any(|p| {
                     p.lemma == item.lemma
                         && p.root == item.root
@@ -131,7 +134,10 @@ struct Generation<'a> {
     surface: String,
     steps: Vec<Step>,
     work: usize,
-    candidates: Vec<String>,
+    /// The current stem is not the root as spelt (yukar- of yukarı, kitab- of kitap).
+    special: bool,
+    /// Words found, with whether they come from a special stem.
+    candidates: Vec<(String, bool)>,
 }
 
 impl Generation<'_> {
@@ -166,9 +172,10 @@ impl Generation<'_> {
                 .iter()
                 .map(String::as_str)
                 .filter(|t| !DEFAULT_TAGS.contains(t));
-            if rendered.eq(self.wanted.iter().copied()) && !self.candidates.contains(&self.surface)
+            if rendered.eq(self.wanted.iter().copied())
+                && !self.candidates.iter().any(|(s, _)| *s == self.surface)
             {
-                self.candidates.push(self.surface.clone());
+                self.candidates.push((self.surface.clone(), self.special));
             }
         }
         // Silent steps (zero derivations, defaults) come at most a few per requested tag.

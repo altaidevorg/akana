@@ -1,10 +1,10 @@
 //! Turkish lexicon: dictionary items and the root index the analyzer looks stems up in.
 
-use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
+use super::pos::{ascii_lower, PrimaryPos, RootAttr, SecondaryPos, NAME_BUF};
 use super::pronunciation::{guess_abbreviation, letter_pronunciation};
 use crate::phonology::{is_turkish_vowel, to_turkish_lower};
+use ahash::AHashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -61,12 +61,13 @@ impl DictionaryItem {
 /// voicing. The lexicon file already carries the result; user dictionaries get it here.
 /// Applying it twice changes nothing.
 pub fn infer_attributes(item: &mut DictionaryItem) {
-    let pron = item.pronunciation().to_string();
+    let pron = item.pronunciation();
     let Some(last) = pron.chars().last() else {
         return;
     };
     let vowels = pron.chars().filter(|&c| is_turkish_vowel(c)).count();
     let last_vowel = is_turkish_vowel(last);
+    let nk_or_og = pron.ends_with("nk") || pron.ends_with("og");
     let a = &mut item.attributes;
     match item.primary_pos {
         PrimaryPos::Verb => {
@@ -98,7 +99,7 @@ pub fn infer_attributes(item: &mut DictionaryItem) {
             {
                 *a |= RootAttr::VOICING;
             }
-            if pron.ends_with("nk") || pron.ends_with("og") {
+            if nk_or_og {
                 if !a.contains(RootAttr::NO_VOICING)
                     && item.secondary_pos != SecondaryPos::ProperNoun
                 {
@@ -115,6 +116,13 @@ pub fn infer_attributes(item: &mut DictionaryItem) {
 /// Lower-case without circumflexes, apostrophes or dashes, as Zemberek normalises dictionary
 /// words (Nikâh -> nikah, Kur'an -> kuran).
 fn normalize_word(word: &str) -> String {
+    // The built-in lexicon is already normal; checking is cheaper than rebuilding the string.
+    if !word
+        .chars()
+        .any(|c| c.is_uppercase() || matches!(c, 'â' | 'î' | 'û' | '\'' | '’' | '-'))
+    {
+        return word.to_string();
+    }
     to_turkish_lower(word)
         .chars()
         .filter(|&c| c != '\'' && c != '’' && c != '-')
@@ -129,7 +137,8 @@ fn normalize_word(word: &str) -> String {
 
 /// A root attribute by its akana or Zemberek name (case-insensitive).
 fn attribute_by_name(name: &str) -> Option<RootAttr> {
-    Some(match name.to_lowercase().as_str() {
+    let mut buf = [0u8; NAME_BUF];
+    Some(match ascii_lower(name, &mut buf)? {
         "voicing" => RootAttr::VOICING,
         "novoicing" => RootAttr::NO_VOICING,
         "voweldrop" | "lastvoweldrop" => RootAttr::VOWEL_DROP,
@@ -156,9 +165,13 @@ fn attribute_by_name(name: &str) -> Option<RootAttr> {
     })
 }
 
+/// The lexicon's items by root, in the order they were added (the file's order for the
+/// built-in lexicon), so that everything built from it is deterministic without sorting.
 #[derive(Clone)]
 pub struct RootLexicon {
-    items_by_root: HashMap<String, Vec<DictionaryItem>>,
+    /// Root -> position of its items in `buckets`.
+    index: AHashMap<String, usize>,
+    buckets: Vec<Vec<DictionaryItem>>,
     /// Length in characters of the longest root, which bounds the stems worth looking up.
     max_root_chars: usize,
 }
@@ -179,7 +192,8 @@ impl RootLexicon {
 
     pub fn empty() -> Self {
         Self {
-            items_by_root: HashMap::new(),
+            index: AHashMap::new(),
+            buckets: Vec::new(),
             max_root_chars: 0,
         }
     }
@@ -187,19 +201,27 @@ impl RootLexicon {
     /// Adds an item; an item equal to one already stored is ignored.
     pub fn add_item(&mut self, item: DictionaryItem) {
         self.max_root_chars = self.max_root_chars.max(item.root.chars().count());
-        let bucket = self.items_by_root.entry(item.root.clone()).or_default();
-        if !bucket.contains(&item) {
-            bucket.push(item);
+        match self.index.get(&item.root) {
+            Some(&i) => {
+                let bucket = &mut self.buckets[i];
+                if !bucket.contains(&item) {
+                    bucket.push(item);
+                }
+            }
+            None => {
+                self.index.insert(item.root.clone(), self.buckets.len());
+                self.buckets.push(vec![item]);
+            }
         }
     }
 
     pub fn get_items(&self, root: &str) -> Option<&Vec<DictionaryItem>> {
-        self.items_by_root.get(root)
+        self.index.get(root).map(|&i| &self.buckets[i])
     }
 
-    /// Every item, in no particular order.
+    /// Every item, grouped by root, in the order the roots were first added.
     pub fn items(&self) -> impl Iterator<Item = &DictionaryItem> {
-        self.items_by_root.values().flatten()
+        self.buckets.iter().flatten()
     }
 
     /// Length in characters of the longest root in the lexicon.
@@ -208,11 +230,11 @@ impl RootLexicon {
     }
 
     pub fn contains_root(&self, root: &str) -> bool {
-        self.items_by_root.contains_key(root)
+        self.index.contains_key(root)
     }
 
     pub fn count(&self) -> usize {
-        self.items_by_root.values().map(|v| v.len()).sum()
+        self.buckets.iter().map(Vec::len).sum()
     }
 
     /// Loads dictionary lines of the form
@@ -228,23 +250,27 @@ impl RootLexicon {
     /// attributes Zemberek infers (aorist class, voicing) are added when missing, and an
     /// abbreviation without a pronunciation gets a guessed one (TBK -> tebeka).
     pub fn load_from_str(&mut self, text: &str) {
+        // About one item per 40 bytes of the built-in lexicon.
+        self.index.reserve(text.len() / 40);
+        self.buckets.reserve(text.len() / 40);
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() < 3 {
+            let mut parts = line.split_whitespace();
+            let (Some(lemma), Some(root), Some(pos)) = (parts.next(), parts.next(), parts.next())
+            else {
                 continue;
-            }
+            };
 
-            let lemma = normalize_word(parts[0]);
-            let root = normalize_word(parts[1]);
-            let primary_pos = PrimaryPos::from_name(parts[2]).unwrap_or(PrimaryPos::Noun);
+            let lemma = normalize_word(lemma);
+            let root = normalize_word(root);
+            let primary_pos = PrimaryPos::from_name(pos).unwrap_or(PrimaryPos::Noun);
             let mut item =
                 DictionaryItem::new(lemma, root, primary_pos, SecondaryPos::None, RootAttr::NONE);
 
-            for &p in &parts[3..] {
+            for p in parts {
                 if let Some((key, value)) = p.split_once('=') {
                     match key {
                         "pr" => item.pronunciation = Some(normalize_word(value)),

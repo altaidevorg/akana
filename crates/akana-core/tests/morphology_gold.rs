@@ -4,8 +4,9 @@
 //! exact tag sequence, `data/morphology/reject.txt` forms that must have none, and
 //! `data/morphology/disambiguation.tsv` the reading the disambiguator should pick for each word
 //! of a sentence. Every analysis of a dictionary word in `paradigms.tsv` and
-//! `frequent_types.tsv` must also generate back from its root (or lemma) and tags. The analyzer
-//! does not meet all of them yet:
+//! `frequent_types.tsv`, and every analysis of the 800 frequent court words of
+//! `roundtrip_words.txt`, must also generate back from its root (or lemma) and tags. The
+//! analyzer does not meet all of them yet:
 //! `data/morphology/known_failures.txt` lists the ones it gets wrong, and this test fails when
 //! that list is not exactly the current failures, so it shrinks as fixes land and grows only on
 //! purpose. `AKANA_GOLD_WRITE=1` rewrites the list.
@@ -17,6 +18,7 @@ const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
 const REJECT: &str = include_str!("data/morphology/reject.txt");
 const DISAMBIGUATION: &str = include_str!("data/morphology/disambiguation.tsv");
 const FREQUENT_TYPES: &str = include_str!("data/morphology/frequent_types.tsv");
+const ROUNDTRIP_WORDS: &str = include_str!("data/morphology/roundtrip_words.txt");
 const KNOWN_FAILURES: &str = include_str!("data/morphology/known_failures.txt");
 
 fn data_lines(text: &str) -> impl Iterator<Item = &str> {
@@ -39,7 +41,8 @@ fn generable(morphology: &TurkishMorphology, word: &str, root: &str) -> bool {
 }
 
 /// Every gold item the analyzer currently gets wrong, as `accept<TAB>word<TAB>root<TAB>tags`,
-/// `reject<TAB>word`, `disamb<TAB>word<TAB>sentence` or `generate<TAB>word<TAB>root<TAB>tags`.
+/// `reject<TAB>word`, `disamb<TAB>word<TAB>sentence` or `generate<TAB>word<TAB>root<TAB>tags`
+/// (a gold or round-trip reading the generator cannot produce).
 fn current_failures() -> BTreeSet<String> {
     let morphology = TurkishMorphology::new();
     let mut failures = BTreeSet::new();
@@ -71,6 +74,14 @@ fn current_failures() -> BTreeSet<String> {
         };
         if generable(&morphology, word, lemma) && !generates(lemma, tags) {
             failures.insert(format!("generate\t{word}\t{lemma}\t{tags}"));
+        }
+    }
+    for word in data_lines(ROUNDTRIP_WORDS) {
+        for p in morphology.analyze(word) {
+            let tags = p.morpheme_tags.join("+");
+            if generable(&morphology, word, &p.root) && !generates(&p.root, &tags) {
+                failures.insert(format!("generate\t{word}\t{}\t{tags}", p.root));
+            }
         }
     }
     for word in data_lines(REJECT) {

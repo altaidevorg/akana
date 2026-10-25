@@ -42,7 +42,8 @@ impl PrimaryPos {
 
     /// Parses a lexicon POS column (case-insensitive). Accepts Zemberek's `Ques` for `Q`.
     pub fn from_name(name: &str) -> Option<Self> {
-        Some(match name.to_lowercase().as_str() {
+        let mut buf = [0u8; NAME_BUF];
+        Some(match ascii_lower(name, &mut buf)? {
             "noun" => PrimaryPos::Noun,
             "verb" => PrimaryPos::Verb,
             "adj" => PrimaryPos::Adj,
@@ -104,7 +105,8 @@ impl SecondaryPos {
     /// Parses a lexicon secondary-POS token (case-insensitive): the short names of
     /// [`SecondaryPos::as_str`] plus the long forms the lexicon files use (`ProperNoun`).
     pub fn from_name(name: &str) -> Option<Self> {
-        Some(match name.to_lowercase().as_str() {
+        let mut buf = [0u8; NAME_BUF];
+        Some(match ascii_lower(name, &mut buf)? {
             "prop" | "proper" | "propernoun" => SecondaryPos::ProperNoun,
             "time" => SecondaryPos::Time,
             "ord" | "ordinal" => SecondaryPos::Ordinal,
@@ -122,6 +124,22 @@ impl SecondaryPos {
             _ => return None,
         })
     }
+}
+
+/// Room for the longest name the lexicon parsers know (progressivevoweldrop).
+pub(crate) const NAME_BUF: usize = 24;
+
+/// `name` lower-cased into `buf`, without allocating: the names the lexicon parsers know are
+/// short ASCII, and anything else is no name of theirs (`None`). The lexicon has several such
+/// names on each of its 66k lines.
+pub(crate) fn ascii_lower<'a>(name: &str, buf: &'a mut [u8; NAME_BUF]) -> Option<&'a str> {
+    if name.len() > NAME_BUF || !name.is_ascii() {
+        return None;
+    }
+    let lower = &mut buf[..name.len()];
+    lower.copy_from_slice(name.as_bytes());
+    lower.make_ascii_lowercase();
+    std::str::from_utf8(lower).ok()
 }
 
 bitflags::bitflags! {
