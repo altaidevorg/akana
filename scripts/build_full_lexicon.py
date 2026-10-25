@@ -6,7 +6,9 @@ Usage:
 Sources (all in `scripts/lexicon/`):
 - `zemberek/*.dict`: the six default dictionaries of Zemberek's TurkishDictionaryLoader
   (`DEFAULT_DICTIONARY_RESOURCES`), as shipped in Zeyrek 0.1.3 (a copy of zemberek-nlp's
-  `morphology/src/main/resources/tr`; Apache License 2.0, see `zemberek/NOTICE.md`).
+  `morphology/src/main/resources/tr`; Apache License 2.0, see `zemberek/NOTICE.md`). The build
+  first checks them against the SHA-256 pinned there (`scripts/fetch_zemberek_dicts.py`, which
+  can also re-create them from the pinned wheel).
 - `akana-legal.dict`, `akana-extra.dict`: akana's own entries in the same syntax. An entry here
   replaces Zemberek's entry with the same word, POS and secondary POS.
 - `akana-remove.dict`: Zemberek entries to drop (same syntax; matched on word, POS and
@@ -39,6 +41,8 @@ NoVoicing are explicit.
 import argparse
 import os
 import re
+
+from fetch_zemberek_dicts import check as check_zemberek_sources
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LEXICON_DIR = os.path.join(HERE, "lexicon")
@@ -447,6 +451,7 @@ def main():
     parser.add_argument("--output", default="crates/akana-core/src/morphology/zemberek_lexicon.txt")
     parser.add_argument("--report", help="write the dropped and merged entries here")
     args = parser.parse_args()
+    check_zemberek_sources()
 
     report = []
     items = {}  # key -> list of entries (homographs of one file)

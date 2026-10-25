@@ -12,6 +12,11 @@ from zemberek-nlp commit 037202c7e18b977c95181a76db05cb1e95846554; with the old 
 these copies produce the same lexicon except for 4 lines (ağlaşmak missing; içişleri,
 yapıştırıcı and mö added).
 
+`scripts/fetch_zemberek_dicts.py` checks the files against the SHA-256 below (the lexicon
+build runs the check first) and with `--fetch` re-creates them from the pinned wheel,
+`zeyrek-0.1.3-py2.py3-none-any.whl` (SHA-256
+23649bb49322a52d1e94959029b047fa4037bc540762819feb1096aa976b25b5).
+
 SHA-256:
 
 | File | SHA-256 |
