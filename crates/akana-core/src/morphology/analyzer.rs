@@ -12,6 +12,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, LazyLock};
+use unicode_normalization::UnicodeNormalization;
+
+/// The marks written for an apostrophe (Ankara’ya, Ankara`ya); input folds them to `'`.
+const APOSTROPHES: [char; 7] = ['\'', '’', '‘', 'ʼ', '`', '´', '′'];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MorphemeData {
@@ -168,28 +172,206 @@ impl TurkishMorphology {
             return Vec::new();
         }
 
+        // Decomposed input (I + U+0307, o + U+0308) is composed first, so İstanbul and göz
+        // written that way are the same words.
+        let composed: std::borrow::Cow<str> =
+            match unicode_normalization::is_nfc_quick(clean.chars()) {
+                unicode_normalization::IsNormalized::Yes => std::borrow::Cow::Borrowed(clean),
+                _ => std::borrow::Cow::Owned(clean.nfc().collect()),
+            };
+        let clean: &str = &composed;
         // Lexicon roots carry no circumflex (nikâh -> nikah), as in Zemberek's
-        // normalizeForAnalysis.
+        // normalizeForAnalysis; every apostrophe-like mark is an apostrophe.
         let lower: String = super::super::phonology::to_turkish_lower(clean)
             .chars()
             .map(|c| match c {
                 'â' => 'a',
                 'î' => 'i',
                 'û' => 'u',
-                '’' => '\'',
+                c if APOSTROPHES.contains(&c) => '\'',
                 _ => c,
             })
             .collect();
 
+        if lower.starts_with(|c: char| c.is_ascii_digit() || c == '%') {
+            return self.analyze_number(clean, &lower, None);
+        }
+        if let Some(parses) = self.analyze_hyphenated(clean, &lower) {
+            return parses;
+        }
+
         // The suffixes follow the last apostrophe; an earlier one belongs to the word
         // (Kur'an'ı).
-        match lower.rsplit_once('\'') {
+        let (stem, mut parses) = match lower.rsplit_once('\'') {
             Some((stem, ending)) if !stem.is_empty() && !ending.is_empty() => {
                 let stem = stem.replace('\'', "");
-                self.analyze_with_apostrophe(clean, &stem, ending)
+                let parses = self.analyze_with_apostrophe(clean, &stem, ending);
+                (stem, parses)
             }
-            _ => self.analyze_normalized(clean, &lower.replace('\'', ""), false),
+            _ => {
+                let word = lower.replace('\'', "");
+                let parses = self.analyze_normalized(clean, &word, false);
+                (word, parses)
+            }
+        };
+        if let Some(roman) = self.analyze_roman(clean) {
+            // A word the lexicon knows keeps its own readings first (MI, the question particle
+            // in capitals; CD); otherwise the numeral replaces a guessed abbreviation (II,
+            // XIX., IV'üncü), so II'nın is no word.
+            let stem = stem.strip_suffix('.').unwrap_or(&stem);
+            if self.root_items(stem).is_empty() {
+                parses.retain(|p| p.secondary_pos != SecondaryPos::Abbreviation);
+                parses.splice(0..0, roman);
+            } else {
+                parses.extend(roman);
+            }
         }
+        parses
+    }
+
+    /// A Roman numeral in capitals (II, XIX., IV'üncü), read as its number; the numeral as
+    /// written is its root and lemma. `None` when the word is no Roman numeral.
+    fn analyze_roman(&self, clean: &str) -> Option<Vec<MorphParse>> {
+        let (numeral, ending) = clean.split_once(APOSTROPHES).unwrap_or((clean, ""));
+        let body = numeral.strip_suffix('.').unwrap_or(numeral);
+        let value = super::pronunciation::roman_value(body)?;
+        let dot = if body.len() < numeral.len() { "." } else { "" };
+        let ending = super::super::phonology::to_turkish_lower(ending);
+        let number = if ending.is_empty() {
+            format!("{value}{dot}")
+        } else {
+            format!("{value}{dot}'{ending}")
+        };
+        Some(self.analyze_number(clean, &number, Some(numeral)))
+    }
+
+    /// A number, read through its last word (Zemberek's numeral analysis): 1923 is üç to
+    /// its suffixes (1923'te, not 1923'de), 15. is beşinci, %50'si is elli-si, 3,5'e is beş-e.
+    /// The analyses are those of the word, with the number (or `written`, for a Roman
+    /// numeral) as root and lemma.
+    fn analyze_number(&self, clean: &str, lower: &str, written: Option<&str>) -> Vec<MorphParse> {
+        let (number, ending) = match lower.split_once('\'') {
+            Some((n, e)) => (n, e),
+            None => (lower, ""),
+        };
+        let (percent, digits_part) = match number.strip_prefix('%') {
+            Some(rest) => (true, rest),
+            None => (false, number),
+        };
+        let (ordinal, digits_part) = match digits_part.strip_suffix('.') {
+            Some(rest) if !rest.is_empty() => (true, rest),
+            _ => (false, digits_part),
+        };
+        if digits_part.is_empty()
+            || !digits_part.starts_with(|c: char| c.is_ascii_digit())
+            || !digits_part
+                .chars()
+                .all(|c| c.is_ascii_digit() || matches!(c, '.' | ',' | ':' | '/' | '-'))
+            || digits_part.ends_with(|c: char| !c.is_ascii_digit())
+        {
+            return Vec::new();
+        }
+        // 1.000.000 is one number; in 3,5, 21.10.2026, 10:30 or 1990-1995 the last part is
+        // read last.
+        let thousands = {
+            let groups: Vec<&str> = digits_part.split('.').collect();
+            groups.len() > 1
+                && groups[0].len() <= 3
+                && groups[1..].iter().all(|g| g.len() == 3)
+                && !digits_part.contains([',', ':', '/', '-'])
+        };
+        let digits: String = if thousands {
+            digits_part.replace('.', "")
+        } else {
+            digits_part
+                .rsplit(['.', ',', ':', '/', '-'])
+                .next()
+                .unwrap_or(digits_part)
+                .to_string()
+        };
+        let last = super::pronunciation::last_number_word(&digits);
+        let word = if ordinal {
+            super::pronunciation::ordinal_word(last)
+        } else {
+            last
+        };
+        // dört voices before a vowel, which the digits do not show (4'e is dörde).
+        let stem = if word == "dört" && ending.starts_with(super::phonetics::is_vowel) {
+            "dörd"
+        } else {
+            word
+        };
+        let secondary = if percent {
+            SecondaryPos::Percentage
+        } else if ordinal || word != last {
+            SecondaryPos::Ordinal
+        } else {
+            SecondaryPos::Cardinal
+        };
+        let joined = format!("{stem}{ending}");
+        let root = written.unwrap_or(number).to_string();
+        self.analyze_normalized(clean, &joined, true)
+            .into_iter()
+            .filter(|p| {
+                p.primary_pos == PrimaryPos::Num
+                    && (p.root == word || p.root == super::pronunciation::ordinal_word(word))
+            })
+            .map(|mut p| {
+                let ordinal_reading = p.root != word || ordinal;
+                p.formatted = format!("[{root}:Num] {root}:{}", p.morpheme_tags.join("+"));
+                p.lemma = root.clone();
+                p.root = root.clone();
+                p.secondary_pos = if ordinal_reading && !percent {
+                    SecondaryPos::Ordinal
+                } else {
+                    secondary
+                };
+                p
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .fold(Vec::new(), |mut out: Vec<MorphParse>, p| {
+                if !out.iter().any(|q| q.formatted == p.formatted) {
+                    out.push(p);
+                }
+                out
+            })
+    }
+
+    /// A hyphenated word: the lexicon's own spelling first (e-posta is eposta), else its last
+    /// part (Türk-İslam, anti-demokratik), whose analyses stand for the whole word.
+    fn analyze_hyphenated(&self, clean: &str, lower: &str) -> Option<Vec<MorphParse>> {
+        let (head, last) = lower.rsplit_once('-')?;
+        // COVID-19 and A-4 are codes, not a word and its number.
+        if head.is_empty() || last.is_empty() || last.starts_with(|c: char| c.is_ascii_digit()) {
+            return None;
+        }
+        let first = lower.split('-').next().unwrap_or(head);
+        let joined = lower.replace('-', "");
+        let spanning: Vec<MorphParse> = self
+            .analyze(&joined)
+            .into_iter()
+            .filter(|p| {
+                p.root.chars().count() > first.chars().count() && joined.starts_with(&p.root)
+            })
+            .map(|mut p| {
+                p.surface = clean.to_string();
+                p
+            })
+            .collect();
+        if !spanning.is_empty() {
+            return Some(spanning);
+        }
+        let original_last = clean.rsplit('-').next().unwrap_or(last);
+        Some(
+            self.analyze(original_last)
+                .into_iter()
+                .map(|mut p| {
+                    p.surface = clean.to_string();
+                    p
+                })
+                .collect(),
+        )
     }
 
     /// Zemberek's analyzeWordsWithApostrophe: analyse the word without the quote and keep the
@@ -228,7 +410,7 @@ impl TurkishMorphology {
         }
         // An upper-case stem is an abbreviation, read letter by letter unless it reads as a
         // word (TCDD'nin "tecedede", NATO'nun).
-        let original_stem = clean.rfind(['\'', '’']).map_or(clean, |i| &clean[..i]);
+        let original_stem = clean.rfind(APOSTROPHES).map_or(clean, |i| &clean[..i]);
         let abbreviation =
             original_stem.chars().count() > 1 && original_stem.chars().all(|c| !c.is_lowercase());
         let mut guessed = if abbreviation {
@@ -689,7 +871,7 @@ fn render(
         SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
     );
     let is_upper = original.chars().next().is_some_and(|c| c.is_uppercase());
-    let has_apostrophe = original.contains(['\'', '’']);
+    let has_apostrophe = original.contains(APOSTROPHES);
     // Turkish spelling separates the suffixes of a proper noun or abbreviation with an
     // apostrophe (Ayşe'nin, TBMM'de), so an inflected reading of one written without it
     // (k-ı "ki", Anne-m "Annem") is unlikely; so is a proper noun written lower-case.

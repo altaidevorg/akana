@@ -153,23 +153,25 @@ pub fn is_soft_consonant(c: char) -> bool {
     )
 }
 
-/// Converts a single character to lower case following Turkish casing rules.
+/// Converts a single character to lower case following Turkish casing rules (ÇAĞ -> çağ). A
+/// character whose lower case is several characters keeps its first.
 #[inline]
 pub fn to_turkish_lower_char(c: char) -> char {
     match c {
         'I' => 'ı',
         'İ' => 'i',
-        _ => c.to_ascii_lowercase(),
+        _ => c.to_lowercase().next().unwrap_or(c),
     }
 }
 
-/// Converts a single character to upper case following Turkish casing rules.
+/// Converts a single character to upper case following Turkish casing rules (Türkçe ->
+/// TÜRKÇE). A character whose upper case is several characters keeps its first.
 #[inline]
 pub fn to_turkish_upper_char(c: char) -> char {
     match c {
         'ı' => 'I',
         'i' => 'İ',
-        _ => c.to_ascii_uppercase(),
+        _ => c.to_uppercase().next().unwrap_or(c),
     }
 }
 
@@ -286,4 +288,17 @@ pub fn first_vowel(s: &str) -> Option<char> {
 /// Returns the number of syllables (vowels) in a Turkish word.
 pub fn syllable_count(s: &str) -> usize {
     s.chars().filter(|&c| is_turkish_vowel(c)).count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_the_case_of_every_turkish_letter() {
+        let lower: String = "ÇAĞ İŞÖÜI".chars().map(to_turkish_lower_char).collect();
+        assert_eq!(lower, "çağ işöüı");
+        let upper: String = "çağ işöüı".chars().map(to_turkish_upper_char).collect();
+        assert_eq!(upper, "ÇAĞ İŞÖÜI");
+    }
 }

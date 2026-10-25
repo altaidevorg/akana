@@ -1,6 +1,1 @@
 # Gold items the analyzer gets wrong today (see tests/morphology_gold.rs).
-accept	1923	1923	Num
-accept	1923'te	1923	Num+Loc
-accept	3'ü	3	Num+Acc
-accept	5'ten	5	Num+Abl
-accept	5'tir	5	Num+CopPres3sg

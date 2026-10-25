@@ -142,6 +142,9 @@ yapldı
 3'u
 5'tır
 1923'de
+4'de
+%50'sı
+II'nın
 ABD'nın
 
 # a name's case, possessive and copula, and any suffix of an abbreviation, need an apostrophe

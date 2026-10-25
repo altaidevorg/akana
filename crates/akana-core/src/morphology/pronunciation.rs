@@ -192,6 +192,90 @@ pub fn guess_abbreviation(root: &str) -> String {
     }
 }
 
+/// The last word of a number read out (1923 -> üç, 1990 -> doksan, 2000 -> bin, 0 -> sıfır):
+/// what its suffixes harmonise with (1923'te, 1990'da, 2000'de), as Zemberek's
+/// TurkishNumeralEndingMachine finds it.
+pub fn last_number_word(digits: &str) -> &'static str {
+    let Some(p) = digits.bytes().rev().position(|b| b != b'0') else {
+        return "sıfır";
+    };
+    let d = (digits.as_bytes()[digits.len() - 1 - p] - b'0') as usize;
+    match p {
+        0 => ONES[d],
+        1 => TENS[d],
+        2 => "yüz",
+        _ => POWERS[(p / 3).min(POWERS.len() - 1)],
+    }
+}
+
+/// The ordinal of a number word (üç -> üçüncü), for 15. and 3'üncü.
+pub fn ordinal_word(word: &str) -> &'static str {
+    match word {
+        "bir" => "birinci",
+        "iki" => "ikinci",
+        "üç" => "üçüncü",
+        "dört" => "dördüncü",
+        "beş" => "beşinci",
+        "altı" => "altıncı",
+        "yedi" => "yedinci",
+        "sekiz" => "sekizinci",
+        "dokuz" => "dokuzuncu",
+        "on" => "onuncu",
+        "yirmi" => "yirminci",
+        "otuz" => "otuzuncu",
+        "kırk" => "kırkıncı",
+        "elli" => "ellinci",
+        "altmış" => "altmışıncı",
+        "yetmiş" => "yetmişinci",
+        "seksen" => "sekseninci",
+        "doksan" => "doksanıncı",
+        "yüz" => "yüzüncü",
+        "bin" => "bininci",
+        "milyon" => "milyonuncu",
+        "milyar" => "milyarıncı",
+        "trilyon" => "trilyonuncu",
+        "katrilyon" => "katrilyonuncu",
+        _ => "sıfırıncı",
+    }
+}
+
+/// The value of a Roman numeral written in capitals and in its canonical form (XIX -> 19), as
+/// Zemberek reads Roman numerals; IIII and VX are no numerals.
+pub fn roman_value(numeral: &str) -> Option<u32> {
+    const TABLE: [(u32, &str); 13] = [
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
+    ];
+    let mut rest = numeral;
+    let mut value = 0;
+    for (v, s) in TABLE {
+        while let Some(r) = rest.strip_prefix(s) {
+            value += v;
+            rest = r;
+        }
+    }
+    let mut canonical = String::new();
+    let mut n = value;
+    for (v, s) in TABLE {
+        while n >= v {
+            canonical.push_str(s);
+            n -= v;
+        }
+    }
+    (value > 0 && value < 4000 && canonical == numeral).then_some(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -206,6 +290,28 @@ mod tests {
         assert_eq!(number_to_words("2026"), "ikibinyirmialtı");
         assert_eq!(number_to_words("1000000"), "birmilyon");
         assert_eq!(number_to_words("007"), "sıfırsıfıryedi");
+    }
+
+    #[test]
+    fn finds_the_last_number_word() {
+        assert_eq!(last_number_word("1923"), "üç");
+        assert_eq!(last_number_word("1990"), "doksan");
+        assert_eq!(last_number_word("2000"), "bin");
+        assert_eq!(last_number_word("1000000"), "milyon");
+        assert_eq!(last_number_word("100"), "yüz");
+        assert_eq!(last_number_word("0"), "sıfır");
+        assert_eq!(ordinal_word(last_number_word("15")), "beşinci");
+    }
+
+    #[test]
+    fn reads_roman_numerals() {
+        assert_eq!(roman_value("XIX"), Some(19));
+        assert_eq!(roman_value("IV"), Some(4));
+        assert_eq!(roman_value("MCMXXIII"), Some(1923));
+        assert_eq!(roman_value("IIII"), None);
+        assert_eq!(roman_value("VX"), None);
+        assert_eq!(roman_value("ii"), None);
+        assert_eq!(roman_value(""), None);
     }
 
     #[test]
