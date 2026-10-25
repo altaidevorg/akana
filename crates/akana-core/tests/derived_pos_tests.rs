@@ -50,7 +50,7 @@ fn converbs_are_verbs_heading_adverbial_clauses() {
     let nodes = parse("Yağmur yağmaya başlayınca herkes en yakın kafeye koştu");
     let conv = node(&nodes, "başlayınca");
     assert_eq!(conv.upos, "VERB");
-    assert_eq!(conv.lemma, "başla");
+    assert_eq!(conv.lemma, "başlamak");
     assert_eq!(conv.deprel, "advcl");
     assert_eq!(node(&nodes, "koştu").deprel, "root");
 }

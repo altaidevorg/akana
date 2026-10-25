@@ -1,0 +1,81 @@
+## Legal-domain entries for akana, in Zemberek's dictionary syntax. An entry here replaces a
+## Zemberek entry with the same word, POS and secondary POS. Ref: gives the canonical lemma
+## of a variant spelling (the root keeps the variant).
+
+## Adjectives that akana-remove.dict drops as nouns.
+idarî [P:Adj]
+kanunî [P:Adj]
+ihtiyatî [P:Adj]
+tıbbî [P:Adj]
+fizikî [P:Adj]
+vicdanî [P:Adj]
+hususî [P:Adj]
+ziraî [P:Adj]
+içtimaî [P:Adj]
+hakikî [P:Adj]
+ihtiyarî [P:Adj]
+ulusal [P:Adj]
+sulh [A:InverseHarmony, NoVoicing]
+senil [P:Adj]
+
+## Terms missing from Zemberek.
+tebliğname
+oyçokluğu [A:CompoundP3sg; Roots:oy-çokluk]
+kötüniyet [A:NoVoicing]
+iyiniyet [A:NoVoicing]
+royalti
+rödovans
+repesaj
+bila [P:Adv]
+## Variant spellings common in court decisions.
+red [A:NoVoicing; Ref:ret]
+tesbit [A:NoVoicing; Ref:tespit]
+irad [A:NoVoicing; Ref:irat]
+
+## Names missing from the person-name list.
+Salih [P:Noun,Prop]
+Ali [P:Noun,Prop]
+
+## Abbreviations of statutes and courts, with the pronunciation that decides their suffixes
+## (HMK'nın, AİHM'nin, İYUK'un).
+HMK [P:Abbrv; Pr:hemeka]
+TBK [P:Abbrv; Pr:tebeka]
+CBK [P:Abbrv; Pr:cebeka]
+CMK [P:Abbrv; Pr:cemeka]
+TCK [P:Abbrv; Pr:teceka]
+TMK [P:Abbrv; Pr:temeka]
+BK [P:Abbrv; Pr:beka]
+İİK [P:Abbrv; Pr:iika]
+İYUK [P:Abbrv; Pr:iyuk]
+HUMK [P:Abbrv; Pr:humk]
+CMUK [P:Abbrv; Pr:cemeuka]
+AİHM [P:Abbrv; Pr:aiheme]
+AİHS [P:Abbrv; Pr:aihese]
+AYM [P:Abbrv; Pr:ayeme]
+GK [P:Abbrv; Pr:geka]
+HGK [P:Abbrv; Pr:hegeka]
+CGK [P:Abbrv; Pr:cegeka]
+İBK [P:Abbrv; Pr:ibeka]
+PDY [P:Abbrv; Pr:pedeye]
+AAÜT [P:Abbrv; Pr:aaüte]
+HSK [P:Abbrv; Pr:heseka]
+SMK [P:Abbrv; Pr:semeka]
+KTK [P:Abbrv; Pr:kateka]
+YİDK [P:Abbrv; Pr:yeideka]
+ZMMS [P:Abbrv; Pr:zememese]
+KVKK [P:Abbrv; Pr:kavekaka]
+DMK [P:Abbrv; Pr:demeka]
+AŞ [P:Abbrv; Pr:aşe]
+AAMÜT [P:Abbrv; Pr:aamüte]
+
+## The same word as a circumflexed entry with the right attributes; Zemberek's bare copy
+## without them accepted şahısı, mahlukadı.
+şahıs [A:LastVowelDrop]
+mahlukat [A:NoVoicing, ImplicitPlural]
+mahlut [A:NoVoicing]
+taallukat [A:NoVoicing]
+serbesti [A:NoVoicing]
+medlul [A:InverseHarmony]
+nükul [A:InverseHarmony]
+hulul [A:InverseHarmony]
+mahlul [A:InverseHarmony]

@@ -84,7 +84,8 @@ impl TurkishSyntacticMorphology {
         // 2. Multi-tier Inflectional Group synthesis from underlying morphotactic engine
         let base_parses = self.fallback_morphology.analyze(word);
         for bp in base_parses {
-            let root_lemma = bp.lemma.clone();
+            // The stem (gel), not the lemma, which is the infinitive for verbs (gelmek).
+            let root_lemma = bp.root.clone();
             let root_pos = bp.primary_pos;
             let root_pos_str = match root_pos {
                 PrimaryPos::Verb => "VB",

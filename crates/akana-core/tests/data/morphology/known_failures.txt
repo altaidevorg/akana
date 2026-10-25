@@ -64,7 +64,6 @@ accept	seni	sen	Pron+A2sg+Acc
 accept	senin	sen	Pron+A2sg+Gen
 accept	siz	siz	Pron+A2pl+Nom
 accept	size	siz	Pron+A2pl+Dat
-accept	sulhe	sulh	Noun+Dat
 accept	suyu	su	Noun+P3sg
 accept	suyum	su	Noun+P1sg
 accept	suyun	su	Noun+Gen
@@ -106,7 +105,6 @@ reject	cumhurbaşkanıya
 reject	deyecek
 reject	deyen
 reject	deyerek
-reject	emlağı
 reject	etiyor
 reject	evide
 reject	evki
@@ -114,7 +112,6 @@ reject	evkü
 reject	evlerler
 reject	evm
 reject	evnin
-reject	evrağı
 reject	evsi
 reject	evte
 reject	evydi
@@ -147,7 +144,6 @@ reject	gitecek
 reject	gitiyor
 reject	görer
 reject	hakı
-reject	istirahadı
 reject	kalar
 reject	kalbı
 reject	kanaatı
@@ -165,7 +161,6 @@ reject	kitapki
 reject	kitaplarıda
 reject	kitapı
 reject	kitapım
-reject	mahkumiyedi
 reject	mühürü
 reject	okuar
 reject	renki

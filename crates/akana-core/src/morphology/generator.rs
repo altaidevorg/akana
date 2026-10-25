@@ -2,7 +2,7 @@
 
 use super::analyzer::TurkishMorphology;
 use super::dictionary::RootLexicon;
-use super::pos::RootAttr;
+use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use std::sync::Arc;
 
 /// Generates surface forms from the built-in lexicon, which it shares with the analyzers, so
@@ -28,7 +28,14 @@ impl TurkishGenerator {
     /// Example: `generate("kitap", &["Noun", "A3sg", "P1sg", "Dat"]) -> "kitabıma"`
     pub fn generate(&self, lemma: &str, tags: &[&str]) -> Option<String> {
         let items = self.lexicon.get_items(lemma)?;
-        let item = items.first()?;
+        // The item of the requested POS (a common word before a name of the same spelling):
+        // hak the noun takes hakkım, hak the adjective does not double.
+        let wanted = tags.first().and_then(|t| PrimaryPos::from_name(t));
+        let item = items
+            .iter()
+            .filter(|i| wanted.is_none_or(|p| i.primary_pos == p))
+            .min_by_key(|i| i.secondary_pos != SecondaryPos::None)
+            .or_else(|| items.first())?;
 
         let mut surface = item.root.clone();
         let is_voicing = item.attributes.contains(RootAttr::VOICING);

@@ -1,0 +1,42 @@
+## Zemberek entries akana drops (matched on word, POS and secondary POS). Each one has a
+## replacement in akana-legal.dict or is a POS error with no replacement needed.
+## Nisba adjectives Zemberek lists without a POS, so they were read as nouns.
+idarî
+kanunî
+ihtiyatî
+tıbbî
+fizikî
+vicdanî
+hususî
+ziraî
+içtimaî
+hakikî
+ihtiyarî
+ulusal
+## sulh takes front-vowel suffixes (sulhe, sulhü); replaced with InverseHarmony.
+sulh
+## Inflected common words and misspelled stems in proper-from-corpus.dict that the build's
+## junk filter does not catch (the 2026-10-20 review's examples).
+Kitab
+Kalb
+Arac
+Genc
+Grub
+Grubu
+Kurulu
+Nehri
+Ligi
+Klübü
+Fiyatı
+Geçiti
+Kasedi
+Meclisini
+Mamülleri
+Tevdiine
+Umumiye
+Sonucta
+Örnegin
+Mitingte
+Muvafakatı
+Tevkifatı
+Teleskopu

@@ -14,6 +14,7 @@ pub mod disambiguator;
 pub mod generator;
 pub mod graph;
 pub mod pos;
+pub mod pronunciation;
 pub mod stemmer;
 pub mod stopwords;
 pub mod suffixes;

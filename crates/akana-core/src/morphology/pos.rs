@@ -143,7 +143,38 @@ bitflags::bitflags! {
         const VOWEL_MUTATION = 1 << 5;
         /// Compound noun with 3rd person possessive ending in base form (e.g. atkuyruğu, zeytinyağı)
         const COMPOUND_P3SG = 1 << 6;
-        /// Plural form by default
+        /// Plural form by default (Zemberek's ImplicitPlural: hayvanat, annemler)
         const PLURAL = 1 << 7;
+        /// A root ending in a stop consonant that keeps it before a vowel (saat-i, hukuk-u)
+        const NO_VOICING = 1 << 8;
+        /// A verb whose aorist is -Ar (yap-ar, et-er); most monosyllables
+        const AORIST_A = 1 << 9;
+        /// A verb whose aorist is -Ir (gel-ir, oku-r); polysyllables and 13 monosyllables
+        const AORIST_I = 1 << 10;
+        /// A vowel-final verb that loses its vowel before -Iyor (bekle -> bekl-iyor)
+        const PROGRESSIVE_VOWEL_DROP = 1 << 11;
+        /// A verb whose passive is -In / -InIl (oku-n, bil-in) rather than -Il
+        const PASSIVE_IN = 1 << 12;
+        /// A verb whose causative is -t (oku-t, getir-t) rather than -DIr
+        const CAUSATIVE_T = 1 << 13;
+        /// A verb that is reflexive in itself (kaşınmak)
+        const REFLEXIVE = 1 << 14;
+        /// A verb that is reciprocal in itself (boğuşmak)
+        const RECIPROCAL = 1 << 15;
+        /// A verb that ends like a reciprocal but is not one
+        const NON_RECIPROCAL = 1 << 16;
+        /// A plural that carries a 1st-person possessive (annemler)
+        const IMPLICIT_P1SG = 1 << 17;
+        /// A plural that carries a 2nd-person possessive (annenler)
+        const IMPLICIT_P2SG = 1 << 18;
+        /// A noun that is dative in itself (içeri, dışarı)
+        const IMPLICIT_DATIVE = 1 << 19;
+        /// A family noun that takes no possessive (Zemberek's FamilyMember)
+        const FAMILY_MEMBER = 1 << 20;
+        /// A word that takes no suffixes
+        const NO_SUFFIX = 1 << 21;
+        /// The stem of a CompoundP3sg noun without its possessive (cumhurbaşkan- of
+        /// cumhurbaşkanı), generated at load time; it cannot stand alone
+        const COMPOUND_P3SG_ROOT = 1 << 22;
     }
 }

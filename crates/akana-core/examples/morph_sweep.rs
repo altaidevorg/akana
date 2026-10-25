@@ -28,6 +28,9 @@ const TIMED_PER_CORPUS: usize = 100_000;
 /// Types saved in the JSON for `--diff`: those seen at least this often.
 const SAVED_MIN_COUNT: u64 = 3;
 
+/// An accepted best analysis of a gold word: lemma, root POS, tags.
+type Answer = (String, String, String);
+
 struct Args {
     sample: PathBuf,
     gold: Option<PathBuf>,
@@ -231,7 +234,7 @@ fn main() {
     if let Some(gold) = &args.gold {
         let text = std::fs::read_to_string(gold).expect("gold file");
         // A word may have several accepted (lemma, POS, tags) lines; any of them counts.
-        let mut expected: Vec<(String, Vec<(String, String, String)>)> = Vec::new();
+        let mut expected: Vec<(String, Vec<Answer>)> = Vec::new();
         for line in text
             .lines()
             .filter(|l| !l.is_empty() && !l.starts_with('#'))
