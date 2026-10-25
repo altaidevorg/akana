@@ -1,0 +1,456 @@
+# Forms the analyzer must accept: word, root, and the exact tag sequence of one of its analyses
+# (morpheme_tags joined with +). Tags follow akana's convention: the root's POS, then the overt
+# or meaningful morphemes; a bare noun is Noun+A3sg+Nom and a bare verb Verb+Imp+A2sg.
+# Lines starting with # are comments. Grouped by root and alternation class.
+
+# --- ev: consonant-final, front unrounded
+ev	ev	Noun+A3sg+Nom
+evler	ev	Noun+A3pl
+evim	ev	Noun+P1sg
+evin	ev	Noun+P2sg
+evin	ev	Noun+Gen
+evi	ev	Noun+P3sg
+evi	ev	Noun+Acc
+evimiz	ev	Noun+P1pl
+eviniz	ev	Noun+P2pl
+evleri	ev	Noun+P3pl
+evleri	ev	Noun+A3pl+Acc
+evleri	ev	Noun+A3pl+P3sg
+evlerim	ev	Noun+A3pl+P1sg
+evde	ev	Noun+Loc
+evden	ev	Noun+Abl
+eve	ev	Noun+Dat
+evle	ev	Noun+Ins
+evimde	ev	Noun+P1sg+Loc
+evinde	ev	Noun+P3sg+Loc
+evinde	ev	Noun+P2sg+Loc
+evine	ev	Noun+P3sg+Dat
+evini	ev	Noun+P3sg+Acc
+evinin	ev	Noun+P3sg+Gen
+evinden	ev	Noun+P3sg+Abl
+eviyle	ev	Noun+P3sg+Ins
+evlerimizden	ev	Noun+A3pl+P1pl+Abl
+evlerinde	ev	Noun+A3pl+P3sg+Loc
+evdeyim	ev	Noun+Loc+CopPres1sg
+evdeyiz	ev	Noun+Loc+CopPres1pl
+evdesin	ev	Noun+Loc+CopPres2sg
+evdeydik	ev	Noun+Loc+CopPast+A1pl
+evdedir	ev	Noun+Loc+CopPres3sg
+evdeyken	ev	Noun+Loc+While
+evdeki	ev	Noun+Loc+RelClitic
+evdekiler	ev	Noun+Loc+RelClitic+A3pl
+evsiz	ev	Noun+Without
+evli	ev	Noun+With
+evcik	ev	Noun+Dim
+evce	ev	Noun+Equ
+
+# --- araba: vowel-final, back unrounded (buffer y/s/n)
+araba	araba	Noun+A3sg+Nom
+arabalar	araba	Noun+A3pl
+arabam	araba	Noun+P1sg
+araban	araba	Noun+P2sg
+arabası	araba	Noun+P3sg
+arabamız	araba	Noun+P1pl
+arabanız	araba	Noun+P2pl
+arabaları	araba	Noun+P3pl
+arabada	araba	Noun+Loc
+arabadan	araba	Noun+Abl
+arabaya	araba	Noun+Dat
+arabayı	araba	Noun+Acc
+arabanın	araba	Noun+Gen
+arabayla	araba	Noun+Ins
+arabasında	araba	Noun+P3sg+Loc
+arabasına	araba	Noun+P3sg+Dat
+arabasını	araba	Noun+P3sg+Acc
+arabasının	araba	Noun+P3sg+Gen
+arabacı	araba	Noun+Agt
+arabasız	araba	Noun+Without
+arabalı	araba	Noun+With
+arabayım	araba	Noun+CopPres1sg
+arabaydı	araba	Noun+CopPast
+arabadır	araba	Noun+CopPres3sg
+
+# --- kitap: Voicing p/b
+kitap	kitap	Noun+A3sg+Nom
+kitaplar	kitap	Noun+A3pl
+kitabım	kitap	Noun+P1sg
+kitabın	kitap	Noun+P2sg
+kitabın	kitap	Noun+Gen
+kitabı	kitap	Noun+P3sg
+kitabı	kitap	Noun+Acc
+kitapta	kitap	Noun+Loc
+kitaptan	kitap	Noun+Abl
+kitaba	kitap	Noun+Dat
+kitapla	kitap	Noun+Ins
+kitabımız	kitap	Noun+P1pl
+kitapları	kitap	Noun+P3pl
+kitabında	kitap	Noun+P3sg+Loc
+kitabına	kitap	Noun+P3sg+Dat
+kitabını	kitap	Noun+P3sg+Acc
+kitabının	kitap	Noun+P3sg+Gen
+kitaplarımızda	kitap	Noun+A3pl+P1pl+Loc
+kitapçı	kitap	Noun+Agt
+kitapsız	kitap	Noun+Without
+kitapçık	kitap	Noun+Dim
+kitaplık	kitap	Noun+Ness
+kitaplığı	kitap	Noun+Ness+P3sg
+kitaptır	kitap	Noun+CopPres3sg
+kitaptı	kitap	Noun+CopPast
+
+# --- ağaç (ç/c), kanat (t/d), köpek (k/ğ), renk (nk/ng)
+ağaç	ağaç	Noun+A3sg+Nom
+ağacı	ağaç	Noun+P3sg
+ağaca	ağaç	Noun+Dat
+ağaçta	ağaç	Noun+Loc
+ağaçtan	ağaç	Noun+Abl
+ağaçlar	ağaç	Noun+A3pl
+kanadı	kanat	Noun+P3sg
+kanada	kanat	Noun+Dat
+kanatta	kanat	Noun+Loc
+kanatlar	kanat	Noun+A3pl
+köpeği	köpek	Noun+P3sg
+köpeğe	köpek	Noun+Dat
+köpekte	köpek	Noun+Loc
+köpekler	köpek	Noun+A3pl
+köpeğim	köpek	Noun+P1sg
+rengi	renk	Noun+P3sg
+renge	renk	Noun+Dat
+renkte	renk	Noun+Loc
+renkler	renk	Noun+A3pl
+
+# --- burun, akıl, oğul, kayıp, akit: LastVowelDrop (with and without voicing)
+burun	burun	Noun+A3sg+Nom
+burnu	burun	Noun+P3sg
+burnum	burun	Noun+P1sg
+burna	burun	Noun+Dat
+burunda	burun	Noun+Loc
+burunlar	burun	Noun+A3pl
+aklı	akıl	Noun+P3sg
+akla	akıl	Noun+Dat
+akılda	akıl	Noun+Loc
+akıllı	akıl	Noun+With
+akılsız	akıl	Noun+Without
+oğlu	oğul	Noun+P3sg
+oğlum	oğul	Noun+P1sg
+kaybı	kayıp	Noun+P3sg
+kaybına	kayıp	Noun+P3sg+Dat
+akdi	akit	Noun+P3sg
+
+# --- hak, his: Doubling; ret, tıp: Doubling + Voicing
+hak	hak	Noun+A3sg+Nom
+hakkı	hak	Noun+P3sg
+hakka	hak	Noun+Dat
+haklar	hak	Noun+A3pl
+hakkım	hak	Noun+P1sg
+hakkında	hak	Noun+P3sg+Loc
+hissi	his	Noun+P3sg
+hisler	his	Noun+A3pl
+reddi	ret	Noun+P3sg
+reddi	ret	Noun+Acc
+redde	ret	Noun+Dat
+reddine	ret	Noun+P3sg+Dat
+tıbbı	tıp	Noun+P3sg
+tıpta	tıp	Noun+Loc
+
+# --- saat, alkol, kalp, sulh: InverseHarmony
+saati	saat	Noun+P3sg
+saate	saat	Noun+Dat
+saatte	saat	Noun+Loc
+saatler	saat	Noun+A3pl
+alkolü	alkol	Noun+P3sg
+alkole	alkol	Noun+Dat
+alkoller	alkol	Noun+A3pl
+kalbi	kalp	Noun+P3sg
+kalbe	kalp	Noun+Dat
+kalpte	kalp	Noun+Loc
+kalpler	kalp	Noun+A3pl
+sulhe	sulh	Noun+Dat
+
+# --- CompoundP3sg: the possessive is part of the root
+zeytinyağı	zeytinyağı	Noun+A3sg+Nom
+zeytinyağları	zeytinyağı	Noun+A3pl
+zeytinyağını	zeytinyağı	Noun+Acc
+zeytinyağına	zeytinyağı	Noun+Dat
+zeytinyağında	zeytinyağı	Noun+Loc
+zeytinyağının	zeytinyağı	Noun+Gen
+zeytinyağlı	zeytinyağı	Noun+With
+cumhurbaşkanı	cumhurbaşkanı	Noun+A3sg+Nom
+cumhurbaşkanına	cumhurbaşkanı	Noun+Dat
+cumhurbaşkanları	cumhurbaşkanı	Noun+A3pl
+karayolları	karayolu	Noun+A3pl
+milletvekillerinin	milletvekili	Noun+A3pl+P3sg+Gen
+
+# --- su: suy- before vowels
+su	su	Noun+A3sg+Nom
+suyu	su	Noun+P3sg
+suyu	su	Noun+Acc
+suyun	su	Noun+Gen
+suyunu	su	Noun+P3sg+Acc
+suya	su	Noun+Dat
+sular	su	Noun+A3pl
+suyum	su	Noun+P1sg
+
+# --- equative -CA after plural and possessive
+mahkemelerce	mahkeme	Noun+A3pl+Equ
+taraflarca	taraf	Noun+A3pl+Equ
+dairesince	daire	Noun+P3sg+Equ
+süresince	süre	Noun+P3sg+Equ
+
+# --- personal and demonstrative pronouns
+ben	ben	Pron+A1sg+Nom
+bana	ben	Pron+A1sg+Dat
+beni	ben	Pron+A1sg+Acc
+benim	ben	Pron+A1sg+Gen
+bende	ben	Pron+A1sg+Loc
+benden	ben	Pron+A1sg+Abl
+sen	sen	Pron+A2sg+Nom
+sana	sen	Pron+A2sg+Dat
+seni	sen	Pron+A2sg+Acc
+senin	sen	Pron+A2sg+Gen
+o	o	Pron+A3sg+Nom
+onu	o	Pron+Acc
+ona	o	Pron+Dat
+onda	o	Pron+Loc
+ondan	o	Pron+Abl
+onun	o	Pron+Gen
+onlar	o	Pron+A3pl
+onları	o	Pron+A3pl+Acc
+onlara	o	Pron+A3pl+Dat
+biz	biz	Pron+A1pl+Nom
+bize	biz	Pron+A1pl+Dat
+bizim	biz	Pron+A1pl+Gen
+siz	siz	Pron+A2pl+Nom
+size	siz	Pron+A2pl+Dat
+bu	bu	Pron+A3sg+Nom
+bunu	bu	Pron+Acc
+bunun	bu	Pron+Gen
+bunda	bu	Pron+Loc
+bunlar	bu	Pron+A3pl
+bunlara	bu	Pron+A3pl+Dat
+şunlar	şu	Pron+A3pl
+şunu	şu	Pron+Acc
+şunda	şu	Pron+Loc
+şunlardır	şu	Pron+A3pl+CopPres3sg
+neyi	ne	Pron+Acc
+neyin	ne	Pron+Gen
+neye	ne	Pron+Dat
+kimin	kim	Pron+Gen
+kime	kim	Pron+Dat
+
+# --- gel: Aorist_I monosyllable
+gel	gel	Verb+Imp+A2sg
+geldi	gel	Verb+Past
+geldim	gel	Verb+Past+A1sg
+geldin	gel	Verb+Past+A2sg
+geldik	gel	Verb+Past+A1pl
+geldiniz	gel	Verb+Past+A2pl
+geldiler	gel	Verb+Past+A3pl
+geliyor	gel	Verb+Prog
+geliyorum	gel	Verb+Prog+A1sg
+geliyorsun	gel	Verb+Prog+A2sg
+geliyoruz	gel	Verb+Prog+A1pl
+geliyorsunuz	gel	Verb+Prog+A2pl
+geliyorlar	gel	Verb+Prog+A3pl
+gelir	gel	Verb+Aor
+gelirim	gel	Verb+Aor+A1sg
+gelirsin	gel	Verb+Aor+A2sg
+geliriz	gel	Verb+Aor+A1pl
+gelirsiniz	gel	Verb+Aor+A2pl
+gelirler	gel	Verb+Aor+A3pl
+gelecek	gel	Verb+Fut
+geleceğim	gel	Verb+Fut+A1sg
+gelecekler	gel	Verb+Fut+A3pl
+gelmiş	gel	Verb+Evid
+gelmişim	gel	Verb+Evid+A1sg
+gelmişiz	gel	Verb+Evid+A1pl
+gelse	gel	Verb+Cond
+gelsem	gel	Verb+Cond+A1sg
+gelmeli	gel	Verb+Nec
+gelmeliyim	gel	Verb+Nec+A1sg
+geleyim	gel	Verb+Opt+A1sg
+gelelim	gel	Verb+Opt+A1pl
+gelsin	gel	Verb+Imp
+gelsinler	gel	Verb+Imp+A3pl
+gelin	gel	Verb+Imp+A2pl
+geliniz	gel	Verb+Imp+A2pl
+gelmeyin	gel	Verb+Neg+Imp+A2pl
+gelmedi	gel	Verb+Neg+Past
+gelmez	gel	Verb+Neg+Aor
+gelmem	gel	Verb+Neg+Aor+A1sg
+gelmeyiz	gel	Verb+Neg+Aor+A1pl
+gelmezsin	gel	Verb+Neg+Aor+A2sg
+gelmiyor	gel	Verb+Neg+Prog
+gelmiyorum	gel	Verb+Neg+Prog+A1sg
+gelmeyecek	gel	Verb+Neg+Fut
+gelmemiş	gel	Verb+Neg+Evid
+gelemem	gel	Verb+NegAbil+Aor+A1sg
+gelemez	gel	Verb+NegAbil+Aor
+gelemedi	gel	Verb+NegAbil+Past
+gelemiyor	gel	Verb+NegAbil+Prog
+gelebilir	gel	Verb+Abil+Aor
+gelebildi	gel	Verb+Abil+Past
+gelmeyebilir	gel	Verb+Neg+Abil+Aor
+geliverdi	gel	Verb+Hastily+Past
+gelmek	gel	Verb+Inf
+gelmemek	gel	Verb+Neg+Inf
+geliş	gel	Verb+Manner
+gelen	gel	Verb+PresPart
+gelene	gel	Verb+PresPart+Dat
+geldiği	gel	Verb+PastPart+P3sg
+geldiğimizde	gel	Verb+PastPart+P1pl+Loc
+geleceği	gel	Verb+FutPart+P3sg
+gelerek	gel	Verb+AdvErek
+gelince	gel	Verb+AdvInce
+gelinceye	gel	Verb+AdvInce+Dat
+gelip	gel	Verb+AdvIp
+gelirken	gel	Verb+Aor+While
+gelmeden	gel	Verb+WithoutHavingDoneSo
+geldikçe	gel	Verb+AsLongAs
+gelircesine	gel	Verb+Aor+AsIf
+geliyordu	gel	Verb+Prog+CopPast
+gelmişti	gel	Verb+Evid+CopPast
+gelecekti	gel	Verb+Fut+CopPast
+gelirse	gel	Verb+Aor+CopCond
+geldiyse	gel	Verb+Past+CopCond
+gelmiştir	gel	Verb+Evid+CopPres3sg
+gelmişlerdir	gel	Verb+Evid+A3pl+Cop
+gelmezken	gel	Verb+Neg+Aor+While
+
+# --- yap: Aorist_A monosyllable, voiceless final
+yapar	yap	Verb+Aor
+yaparım	yap	Verb+Aor+A1sg
+yapmam	yap	Verb+Neg+Aor+A1sg
+yapmayız	yap	Verb+Neg+Aor+A1pl
+yapın	yap	Verb+Imp+A2pl
+yapınız	yap	Verb+Imp+A2pl
+yapıyor	yap	Verb+Prog
+yaptı	yap	Verb+Past
+yaptım	yap	Verb+Past+A1sg
+yapacak	yap	Verb+Fut
+yapacağım	yap	Verb+Fut+A1sg
+yapmış	yap	Verb+Evid
+yapılır	yap	Verb+Pass+Aor
+yapıldı	yap	Verb+Pass+Past
+yaptırdı	yap	Verb+Caus+Past
+yapabilir	yap	Verb+Abil+Aor
+yapamaz	yap	Verb+NegAbil+Aor
+yapmaktadır	yap	Verb+Prog+CopPres3sg
+
+# --- al, ol: monosyllables with Aorist_I; passive -In after l
+alır	al	Verb+Aor
+alırım	al	Verb+Aor+A1sg
+alındı	al	Verb+Pass+Past
+alınır	al	Verb+Pass+Aor
+olur	ol	Verb+Aor
+olmuş	ol	Verb+Evid
+olan	ol	Verb+PresPart
+olduğu	ol	Verb+PastPart+P3sg
+olacak	ol	Verb+Fut
+oluncaya	ol	Verb+AdvInce+Dat
+olmaz	ol	Verb+Neg+Aor
+olsun	ol	Verb+Imp
+olabilir	ol	Verb+Abil+Aor
+
+# --- oku, bekle, başla: vowel-final verbs
+okur	oku	Verb+Aor
+okuyor	oku	Verb+Prog
+okuyorum	oku	Verb+Prog+A1sg
+okudu	oku	Verb+Past
+okuyacak	oku	Verb+Fut
+okuyan	oku	Verb+PresPart
+okunur	oku	Verb+Pass+Aor
+okundu	oku	Verb+Pass+Past
+okuttu	oku	Verb+Caus+Past
+okuyun	oku	Verb+Imp+A2pl
+okuyalım	oku	Verb+Opt+A1pl
+okumuyor	oku	Verb+Neg+Prog
+okuyamaz	oku	Verb+NegAbil+Aor
+okuyabilir	oku	Verb+Abil+Aor
+bekliyor	bekle	Verb+Prog
+bekler	bekle	Verb+Aor
+beklemiyor	bekle	Verb+Neg+Prog
+bekleyecek	bekle	Verb+Fut
+bekledi	bekle	Verb+Past
+beklerken	bekle	Verb+Aor+While
+başlıyor	başla	Verb+Prog
+başladı	başla	Verb+Past
+başlar	başla	Verb+Aor
+başlayınca	başla	Verb+AdvInce
+başlayalı	başla	Verb+SinceDoingSo
+özlüyoruz	özle	Verb+Prog+A1pl
+
+# --- git, et: Voicing verbs
+gidiyor	git	Verb+Prog
+gitti	git	Verb+Past
+gider	git	Verb+Aor
+gideceğim	git	Verb+Fut+A1sg
+gitmek	git	Verb+Inf
+gidip	git	Verb+AdvIp
+gidin	git	Verb+Imp+A2pl
+giden	git	Verb+PresPart
+eder	et	Verb+Aor
+ediyor	et	Verb+Prog
+etti	et	Verb+Past
+edildi	et	Verb+Pass+Past
+edilen	et	Verb+Pass+PresPart
+edilebilir	et	Verb+Pass+Abil+Aor
+edilebilirlik	et	Verb+Pass+Abil+AorPart+Ness
+
+# --- de, ye: narrowing to di/yi
+diyor	de	Verb+Prog
+der	de	Verb+Aor
+dedi	de	Verb+Past
+diyecek	de	Verb+Fut
+diyen	de	Verb+PresPart
+diyerek	de	Verb+AdvErek
+demiş	de	Verb+Evid
+yiyor	ye	Verb+Prog
+yiyecek	ye	Verb+Fut
+yiyen	ye	Verb+PresPart
+yedi	ye	Verb+Past
+yer	ye	Verb+Aor
+
+# --- kork, kavur (LastVowelDrop verb), değil
+korkuyor	kork	Verb+Prog
+korktu	kork	Verb+Past
+korkar	kork	Verb+Aor
+korkmuyor	kork	Verb+Neg+Prog
+kavurdu	kavur	Verb+Past
+kavruldu	kavur	Verb+Pass+Past
+değilim	değil	Verb+CopPres1sg
+değildi	değil	Verb+CopPast
+
+# --- nominal predicates after a consonant, question particle
+hazırız	hazır	Adj+CopPres1pl
+eminim	emin	Adj+CopPres1sg
+yorgunum	yorgun	Adj+CopPres1sg
+mutluyduk	mutlu	Adj+CopPast+A1pl
+miyiz	mi	Q+CopPres1pl
+misin	mi	Q+CopPres2sg
+miydim	mi	Q+CopPast+A1sg
+
+# --- derivations
+görevlisi	görev	Noun+With+P3sg
+haksızlık	hak	Noun+Without+Ness
+duygusal	duygu	Noun+Related
+açıkça	açık	Adj+Ly
+ailece	aile	Noun+Equ
+izleyici	izle	Verb+Agt
+bilmezlik	bil	Verb+Neg+AorPart+Ness
+güzelleşti	güzel	Adj+BecomeVerb+Past
+
+# --- long words (more than ten suffixes)
+kurumsallaştırılamadıklarımızdanmışsınız	kurum	Noun+Related+BecomeVerb+Caus+Pass+NegAbil+PastPart+A3pl+P1pl+Abl+CopEvid+A2pl
+
+# --- numbers and abbreviations: harmony from the spoken form
+1923	1923	Num
+1923'te	1923	Num+Loc
+3'ü	3	Num+Acc
+5'tir	5	Num+CopPres3sg
+5'ten	5	Num+Abl
+ABD'nin	abd	Noun+Gen
+ABD'ye	abd	Noun+Dat
+AB'de	ab	Noun+Loc
+TBMM'de	tbmm	Noun+Loc
+Ankara'ya	ankara	Noun+Dat
+İstanbul'un	istanbul	Noun+Gen

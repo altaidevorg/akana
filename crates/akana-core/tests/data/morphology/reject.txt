@@ -1,0 +1,151 @@
+# Misspelled or impossible forms the analyzer must reject (no analysis at all).
+# Lines starting with # are comments; the comment above each group says what is wrong.
+
+# d/t and c/ç assimilation after a voiceless consonant (or its absence after a voiced one)
+kitapda
+kitapdan
+evte
+ağaçdan
+gelti
+yapdı
+gitdi
+kitapcı
+sütcü
+sokakdan
+
+# buffer letters: y/s/n only after a vowel, a vowel-initial allomorph only after a consonant
+evm
+evsi
+evye
+evnin
+evyle
+evydi
+evyim
+arabaım
+arabaı
+arabaa
+
+# the pronominal n after the 3rd-person possessive before a case
+kitabıda
+evide
+kitabıa
+kitabıı
+kitaplarıda
+arabasıya
+
+# aorist class: -Ar on most monosyllables, -Ir on polysyllables and the 13 exceptions, -r after vowels
+yapır
+geler
+alar
+görer
+verer
+gidir
+gelr
+kalar
+biler
+çalışar
+okuar
+
+# person endings belong to their tense's paradigm
+gelirn
+gelirm
+gelirk
+gelmişn
+gelmişk
+geldiyim
+geliyoryum
+gelecekn
+
+# narrowed negation -mI- only before -yor; -yor after a vowel only through the vowel drop
+gelmidi
+gelmimiş
+yapmıdı
+gelmeyor
+gelmemiyor
+bekleyor
+başlayor
+
+# root alternations are obligatory: the plain stem before a vowel is wrong
+kitapı
+kitapım
+renki
+renkim
+burunu
+hakı
+gitiyor
+gitecek
+etiyor
+tatıyor
+tıpı
+retti
+zehiri
+mühürü
+şahısı
+
+# and the altered stem before a consonant is wrong
+kitabda
+kitabdan
+kitabdır
+ağacda
+kanadlar
+ayağda
+kitbı
+
+# NoVoicing and InverseHarmony roots (the lexicon's conflicting duplicates accepted these)
+beraadı
+mahkumiyedi
+evrağı
+taksidi
+kalbı
+şannı
+emlağı
+stoğu
+istirahadı
+kanaatı
+
+# bare -ki only on time nouns; no plural on a plural; no productive causative -t on these stems
+evki
+evkü
+kitapki
+gelenlerler
+gelenlerlik
+evlerler
+yapt
+gelt
+
+# compounds that already end in the 3rd-person possessive
+zeytinyağıyı
+zeytinyağıya
+zeytinyağılar
+cumhurbaşkanıya
+
+# de/ye narrow to di/yi before -y-; su takes suy- before vowels
+deyecek
+deyen
+deyerek
+yeyen
+yeyecek
+susu
+sunun
+
+# optative persons
+gelem
+gelek
+
+# vowel harmony and copula order (existing regression lists)
+kitaplerde
+evlarda
+geldilar
+okulde
+geldilerdi
+geldilerdir
+evdeyimdi
+gelmişimdi
+yapldı
+
+# numbers and abbreviations take their harmony from the spoken form (üç, beş, iika)
+3'u
+5'tır
+1923'de
+İİK'nin
+ABD'nın
