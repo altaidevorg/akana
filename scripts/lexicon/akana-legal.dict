@@ -37,20 +37,36 @@ Salih [P:Noun,Prop]
 Ali [P:Noun,Prop]
 
 ## Abbreviations of statutes and courts, with the pronunciation that decides their suffixes
-## (HMK'nın, AİHM'nin, İYUK'un).
+## (HMK'nın, AİHM'nin, İYUK'un). A statute is also read as its last word, Kanunu (HMK'nun,
+## İİK'na), and AİHM/AİHS as written (AİHM'e, AİHS'in): Index:1 entries add that reading.
 HMK [P:Abbrv; Pr:hemeka]
+HMK [P:Abbrv; Pr:kanunu; Index:1]
 TBK [P:Abbrv; Pr:tebeka]
+TBK [P:Abbrv; Pr:kanunu; Index:1]
 CBK [P:Abbrv; Pr:cebeka]
+CBK [P:Abbrv; Pr:kanunu; Index:1]
 CMK [P:Abbrv; Pr:cemeka]
+CMK [P:Abbrv; Pr:kanunu; Index:1]
 TCK [P:Abbrv; Pr:teceka]
+TTK [P:Abbrv; Pr:teteka]
+TTK [P:Abbrv; Pr:kanunu; Index:1]
+TCK [P:Abbrv; Pr:kanunu; Index:1]
 TMK [P:Abbrv; Pr:temeka]
+TMK [P:Abbrv; Pr:kanunu; Index:1]
 BK [P:Abbrv; Pr:beka]
+BK [P:Abbrv; Pr:kanunu; Index:1]
 İİK [P:Abbrv; Pr:iika]
+İİK [P:Abbrv; Pr:kanunu; Index:1]
 İYUK [P:Abbrv; Pr:iyuk]
+İYUK [P:Abbrv; Pr:kanunu; Index:1]
 HUMK [P:Abbrv; Pr:humk]
+HUMK [P:Abbrv; Pr:kanunu; Index:1]
 CMUK [P:Abbrv; Pr:cemeuka]
+CMUK [P:Abbrv; Pr:kanunu; Index:1]
 AİHM [P:Abbrv; Pr:aiheme]
+AİHM [P:Abbrv; Pr:aihm; Index:1]
 AİHS [P:Abbrv; Pr:aihese]
+AİHS [P:Abbrv; Pr:aihs; Index:1]
 AYM [P:Abbrv; Pr:ayeme]
 GK [P:Abbrv; Pr:geka]
 HGK [P:Abbrv; Pr:hegeka]
@@ -60,10 +76,13 @@ PDY [P:Abbrv; Pr:pedeye]
 AAÜT [P:Abbrv; Pr:aaüte]
 HSK [P:Abbrv; Pr:heseka]
 SMK [P:Abbrv; Pr:semeka]
+SMK [P:Abbrv; Pr:kanunu; Index:1]
 KTK [P:Abbrv; Pr:kateka]
+KTK [P:Abbrv; Pr:kanunu; Index:1]
 YİDK [P:Abbrv; Pr:yeideka]
 ZMMS [P:Abbrv; Pr:zememese]
 KVKK [P:Abbrv; Pr:kavekaka]
+KVKK [P:Abbrv; Pr:kanunu; Index:1]
 DMK [P:Abbrv; Pr:demeka]
 AŞ [P:Abbrv; Pr:aşe]
 AAMÜT [P:Abbrv; Pr:aamüte]
@@ -79,3 +98,30 @@ medlul [A:InverseHarmony]
 nükul [A:InverseHarmony]
 hulul [A:InverseHarmony]
 mahlul [A:InverseHarmony]
+
+## TDK: stok, -ku (Zemberek voices it: stoğu).
+stok [A:NoVoicing]
+
+## Institution names take their suffixes without an apostrophe (TDK: Danıştayın, Yargıtaya).
+danıştay
+yargıtay
+sayıştay
+karşıoy
+## Legal terms.
+nolu [P:Adj]
+mucibince [P:Adv]
+## Words that ended in the Arabic ayn take a vowel-initial suffix without a buffer
+## (mercii, merciine, müdafiinin, tevdii); the pronunciation ending in ğ gives them that
+## reading beside the buffered one.
+merci [Pr:merciğ; Index:1]
+mevki [Pr:mevkiğ; Index:1]
+tevdi [Pr:tevdiğ; Index:1]
+terfi [Pr:terfiğ; Index:1]
+müdafi [Pr:müdafiğ; Index:1]
+iştira [Pr:iştirağ; Index:1]
+ziya [Pr:ziyağ; Index:1]
+
+## Phonology Zemberek lacks or infers wrongly (TDK): rehin, -hni; halefiyet, -ti; internet, -ti.
+rehin [A:LastVowelDrop]
+halefiyet [A:NoVoicing]
+internet [A:NoVoicing]

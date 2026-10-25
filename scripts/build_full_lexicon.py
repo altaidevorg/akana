@@ -28,7 +28,7 @@ analyzer accepted wrongly:
 
 Output, one item per line, sorted:
     lemma root POS SECONDARY [ATTRIBUTES...] [pr=PRONUNCIATION] [roots=HEAD-TAIL] [pc=CASE]
-`pr=` is written when the pronunciation differs from the root (abbreviations, gram→gıram);
+`pr=` is written for abbreviations and wherever the pronunciation differs from the root (gram→gıram);
 `idx=` numbers a homograph after the first
 (kalp "heart", kalp idx=1 "counterfeit"), which comes first. `roots=` gives the parts of a compound that carries its own 3rd-person possessive
 (cumhurbaşkanı roots=cumhur-başkan); `pc=` is the case a postposition governs. The attributes
@@ -311,7 +311,7 @@ class Entry:
         if self.secondary == "ProperNoun":
             attrs.append("ProperNoun")
         fields = [self.lemma, self.root, self.pos, self.secondary, *attrs]
-        if self.pron != self.root:
+        if self.pron != self.root or self.secondary == "Abbrv":
             fields.append(f"pr={self.pron}")
         if self.roots:
             fields.append(f"roots={self.roots}")
@@ -372,11 +372,11 @@ PHONOLOGY = ("InverseHarmony", "Doubling", "LastVowelDrop", "NoVoicing")
 
 
 def read_entries(path, source, report=None):
-    """The file's entries. A bare line (no metadata) is Zemberek's noun sense of a word the file
-    may also list with an explicit POS (kamu [P:Adj] and kamu). The word's pronunciation does
-    not depend on its POS, so the bare entry takes the phonological attributes of the explicit
-    one (meçhul [P:Adj; A:InverseHarmony] makes the noun meçhul take meçhulü, not meçhulu). The
-    spelling is compared with its circumflex: âdet "custom" is another word than adet "count"."""
+    """The file's entries. A word's pronunciation does not depend on its POS, so an entry without
+    attributes or index takes the phonological attributes the file gives an unnumbered entry of
+    the same spelling (meçhul [P:Adj; A:InverseHarmony] makes the noun meçhul take meçhulü, not
+    meçhulu; hak [A:Doubling] makes the adjective hak double too). The spelling is compared
+    with its circumflex: âdet "custom" is another word than adet "count"."""
     with open(path, encoding="utf-8") as f:
         parsed = [p for p in map(parse_line, f) if p is not None]
     phonology = {}
@@ -387,8 +387,8 @@ def read_entries(path, source, report=None):
             phonology.setdefault(key, set()).update(attrs)
     for word, meta in parsed:
         key = turkish_lower(word.replace("-", "").replace("'", ""))
-        if not meta and key in phonology:
-            meta = {"A": ", ".join(sorted(phonology[key]))}
+        if "A" not in meta and "Index" not in meta and key in phonology:
+            meta = dict(meta, A=", ".join(sorted(phonology[key])))
             if report is not None:
                 report.append(f"bare copy: {source}: {word} takes {meta['A']}")
         entry = make_entry(word, meta, source)
@@ -510,6 +510,10 @@ def main():
             report.append(f"akana-remove: dropped {key}")
     for name in SUPPLEMENTS:
         for e in read_entries(os.path.join(LEXICON_DIR, name), "akana:" + name):
+            if e.indexed and items.get(e.key()):
+                # A second reading of an entry (HMK "hemeka" and "kanunu"; merci, merci-i).
+                items[e.key()].append(e)
+                continue
             if e.key() in items and items[e.key()]:
                 report.append(f"{name}: replaced {items[e.key()][0].line()} by {e.line()}")
             else:

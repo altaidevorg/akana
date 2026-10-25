@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use akana_core::chunking::{SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode};
 use akana_core::embeddings::TurkishEmbeddings;
-use akana_core::morphology::{TurkishMorphology, TurkishMorphotactics};
+use akana_core::morphology::{morphotactics_graph, TurkishMorphology};
 use akana_core::{TurkishNER, TurkishStyleAuditor, TurkishSummarizer};
 
 /// Most the time may grow when the input grows 4×.
@@ -218,18 +218,16 @@ fn ner_capitalised_runs() {
 fn morphotactics_list_each_edge_once() {
     // A transition listed twice doubles the search below it: every passive or causative
     // suffix of a word doubled the work, and the duplicates had to be deduplicated after.
-    let transitions = TurkishMorphotactics::transitions();
+    let graph = morphotactics_graph();
     let mut seen = std::collections::HashSet::new();
-    for t in &transitions {
-        for template in t.surface_templates {
-            assert!(
-                seen.insert((t.from_state, t.to_state, t.suffix_type, *template)),
-                "{:?} -> {:?} {:?} '{template}' is listed twice",
-                t.from_state,
-                t.to_state,
-                t.suffix_type
-            );
-        }
+    for t in &graph.transitions {
+        assert!(
+            seen.insert((t.from, t.to, t.template, format!("{:?}", t.condition))),
+            "{} -> {} '{}' is listed twice",
+            graph.states[t.from.0 as usize].name,
+            graph.states[t.to.0 as usize].name,
+            t.template
+        );
     }
 }
 

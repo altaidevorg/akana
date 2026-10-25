@@ -49,20 +49,22 @@ lazy_static! {
     };
 }
 
-/// Whether the analyser reads `lower` only through `root`: it has a reading with that root
-/// (and POS, when given) and none through another root or POS. The analyser accepts forms a
-/// sound change rules out (kitap-da, akıl-ı, omuz-undan) with the root as written, so such a
-/// form is a misspelling unless another reading explains the word: takdir and nakden are
-/// roots of their own, alınan is a verb, hükümet and boyunu (boy-u-nu) have other roots.
-fn only_reading_through(
+/// Whether `lower` is a misspelling of `fixed`: the analyser knows no word `lower` (it rejects
+/// the forms a sound change rules out: kitap-da, akıl-ı, kitap-ı) and reads `fixed` through
+/// `root` (with that POS, when given). A word with a reading of its own is left alone: takdir
+/// and nakden are roots, akılı is akı-lı, kalpak and hükümet have other roots.
+fn misspelling_of(
     morphology: &TurkishMorphology,
     lower: &str,
+    fixed: &str,
     root: &str,
     pos: Option<PrimaryPos>,
 ) -> bool {
-    let parses = morphology.analyze(lower);
-    let ours = |p: &MorphParse| p.root == root && pos.is_none_or(|pos| p.primary_pos == pos);
-    !parses.is_empty() && parses.iter().all(ours)
+    morphology.analyze(lower).is_empty()
+        && morphology
+            .analyze(fixed)
+            .iter()
+            .any(|p: &MorphParse| p.root == root && pos.is_none_or(|pos| p.primary_pos == pos))
 }
 
 pub struct PhonologicalRuleEngine;
@@ -159,13 +161,10 @@ impl PhonologicalRuleEngine {
                 let stem = &lower[..lower.len() - bad_suf.len()];
                 if let Some(stem_last_char) = stem.chars().last() {
                     if is_hard_consonant(stem_last_char) {
-                        // The word reads only as the stem plus the unhardened suffix, and the
-                        // hardened form is a word: not takdir, nakden or akdi, whose roots are
-                        // takdir, nakit and akit.
+                        // Not a word, and the hardened form is the stem plus the suffix: not
+                        // takdir, nakden or akdi, whose roots are takdir, nakit and akit.
                         let fixed_lower = format!("{stem}{good_suf}");
-                        if only_reading_through(morphology, lower, stem, None)
-                            && !morphology.analyze(&fixed_lower).is_empty()
-                        {
+                        if misspelling_of(morphology, lower, &fixed_lower, stem, None) {
                             let replacement = match_case(original, &fixed_lower);
 
                             findings.push(GrammarFinding::new(
@@ -201,8 +200,13 @@ impl PhonologicalRuleEngine {
                 let suf = &lower[root.len()..];
                 let fixed_lower = format!("{contracted}{suf}");
                 if suf.chars().next().is_some_and(is_turkish_vowel)
-                    && only_reading_through(morphology, lower, root, Some(PrimaryPos::Noun))
-                    && !morphology.analyze(&fixed_lower).is_empty()
+                    && misspelling_of(
+                        morphology,
+                        lower,
+                        &fixed_lower,
+                        root,
+                        Some(PrimaryPos::Noun),
+                    )
                 {
                     {
                         let replacement = match_case(original, &fixed_lower);
@@ -408,8 +412,7 @@ impl PhonologicalRuleEngine {
                 let fixed_lower = format!("{mutated}{suf}");
                 // not kalpak, ayaküstü: words with another root
                 if suf.chars().next().is_some_and(is_turkish_vowel)
-                    && only_reading_through(morphology, lower, unmutated, None)
-                    && !morphology.analyze(&fixed_lower).is_empty()
+                    && misspelling_of(morphology, lower, &fixed_lower, unmutated, None)
                 {
                     {
                         let replacement = match_case(original, &fixed_lower);

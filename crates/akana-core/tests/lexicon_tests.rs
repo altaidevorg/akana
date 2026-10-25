@@ -74,10 +74,13 @@ fn proper_nouns_from_the_lexicon_file_are_proper() {
     assert!(parses
         .iter()
         .all(|p| p.secondary_pos == SecondaryPos::ProperNoun));
-    let lower = morph.analyze("aachende");
+    // Written lower-case it is an unlikely reading; its case needs an apostrophe (aachen'de).
+    let lower = morph.analyze("aachen");
     assert!(lower
         .iter()
         .any(|p| p.secondary_pos == SecondaryPos::ProperNoun && p.score < 0.9));
+    assert!(morph.analyze("aachende").is_empty());
+    assert!(!morph.analyze("aachen'de").is_empty());
 }
 
 #[test]

@@ -879,8 +879,10 @@ impl OrthographyRuleEngine {
                 || lower.starts_with("bilmek"))
                 && (prev_lower.ends_with('a') || prev_lower.ends_with('e'))
                 && prev_lower.chars().all(char::is_alphabetic)
-                // "bile bile" (knowingly) is a reduplication
+                // "bile bile" (knowingly) is a reduplication, and bile alone is the adverb
+                // "even": ona-bile reads as ona-bil-e (onamak), a form nobody means
                 && prev_lower != "bile"
+                && lower != "bile"
                 && morphology
                     .analyze(&format!("{prev_lower}{lower}"))
                     .iter()

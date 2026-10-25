@@ -440,7 +440,7 @@ bilmezlik	bil	Verb+Neg+AorPart+Ness
 güzelleşti	güzel	Adj+BecomeVerb+Past
 
 # --- long words (more than ten suffixes)
-kurumsallaştırılamadıklarımızdanmışsınız	kurum	Noun+Related+BecomeVerb+Caus+Pass+NegAbil+PastPart+A3pl+P1pl+Abl+CopEvid+A2pl
+kurumsallaştırılamadıklarımızdanmışçasına	kurum	Noun+Related+BecomeVerb+Caus+Pass+NegAbil+PastPart+A3pl+P1pl+Abl+CopEvid+AsIf
 
 # --- numbers and abbreviations: harmony from the spoken form
 1923	1923	Num
@@ -454,3 +454,19 @@ AB'de	ab	Noun+Loc
 TBMM'de	tbmm	Noun+Loc
 Ankara'ya	ankara	Noun+Dat
 İstanbul'un	istanbul	Noun+Gen
+İİK'nın	iik	Noun+Gen
+İİK'nin	iik	Noun+Gen
+HMK'nun	hmk	Noun+Gen
+KHK'nin	khk	Noun+Gen
+AİHM'e	aihm	Noun+Dat
+TL'lik	tl	Noun+Ness
+TL'si	tl	Noun+P3sg
+ABD'li	abd	Noun+With
+Danıştayın	danıştay	Noun+Gen
+Kur'an'ı	kuran	Noun+Acc
+re'sen	resen	Adv
+mercii	merci	Noun+P3sg
+müdafiinin	müdafi	Noun+P3sg+Gen
+incelendikten	incele	Verb+Pass+PastPart+Abl
+Ahmetler	ahmet	Noun+A3pl
+Ankaralı	ankara	Noun+With

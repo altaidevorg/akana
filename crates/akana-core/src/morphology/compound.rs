@@ -1,8 +1,7 @@
 //! Turkish Compound Word Analysis and Decomposition (Bileşik Sözcük Ayrıştırıcı).
 
-use super::analyzer::{MorphParse, TurkishMorphology};
+use super::analyzer::{is_derivational_tag, MorphParse, TurkishMorphology};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
-use super::suffixes::SuffixType;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -108,12 +107,10 @@ impl CompoundDecomposer {
             .root_items(&lower)
             .iter()
             .any(|i| i.attributes.contains(RootAttr::COMPOUND_P3SG));
-        let derived = morphology.analyze(&lower).iter().any(|p| {
-            p.root != lower
-                && p.morpheme_tags
-                    .iter()
-                    .any(|t| DERIVATIONS.iter().any(|d| d.tag() == t))
-        });
+        let derived = morphology
+            .analyze(&lower)
+            .iter()
+            .any(|p| p.root != lower && p.morpheme_tags.iter().any(|t| is_derivational_tag(t)));
         if derived {
             return None;
         }
@@ -163,38 +160,6 @@ impl CompoundDecomposer {
         None
     }
 }
-
-/// Suffixes that open a new inflectional group; a word with one of these after a shorter root
-/// is derived, not compounded.
-const DERIVATIONS: &[SuffixType] = &[
-    SuffixType::DerivInfinitive,
-    SuffixType::DerivActNoun,
-    SuffixType::DerivManner,
-    SuffixType::DerivIm,
-    SuffixType::DerivGi,
-    SuffixType::DerivNess,
-    SuffixType::DerivAgent,
-    SuffixType::DiminutiveCik,
-    SuffixType::DerivWith,
-    SuffixType::DerivWithout,
-    SuffixType::DerivPresPart,
-    SuffixType::DerivPastPart,
-    SuffixType::DerivFutPart,
-    SuffixType::DerivAorPart,
-    SuffixType::DerivGin,
-    SuffixType::DerivGen,
-    SuffixType::DerivRelated,
-    SuffixType::DerivAdvErek,
-    SuffixType::DerivAdvInce,
-    SuffixType::DerivAdvIp,
-    SuffixType::DerivWhile,
-    SuffixType::DerivSinceDoingSo,
-    SuffixType::DerivWithoutHavingDoneSo,
-    SuffixType::DerivLy,
-    SuffixType::DerivLe,
-    SuffixType::DerivLes,
-    SuffixType::DerivLendir,
-];
 
 /// kab -> kap, reng -> renk, ağac -> ağaç (the stem before a possessive may be voiced).
 fn unvoice(stem: &str) -> String {

@@ -1,10 +1,16 @@
-//! Turkish Morphological Analyzer.
+//! Turkish morphological analyzer: a port of Zemberek's `RuleBasedAnalyzer` over the
+//! morphotactic graph of [`super::turkish_morphotactics`] and the stems of
+//! [`super::stems`].
 
 use super::dictionary::{DictionaryItem, RootLexicon};
-use super::graph::{MorphState, SuffixTransition, TurkishMorphotactics};
+use super::morphotactics::{Context, Graph, Morpheme as M, PathView};
+use super::phonetics::{attributes_of, PhoneticAttrs as P};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
-use super::suffixes::SuffixType;
+use super::stems::{self, StemIndex, StemTransition};
+use super::turkish_morphotactics::{self, RootStates};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::sync::{Arc, LazyLock};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,102 +42,44 @@ fn unknown_pos() -> PrimaryPos {
     PrimaryPos::Unknown
 }
 
-/// The passive allomorph after a stem ending in `prev`, as Zemberek's Passive_In / +nIl / Il
-/// conditions: -n after a vowel (oku-n), -In after l (bil-in), -Il after other consonants
-/// (yap-ıl), -nIl after a vowel (de-nil). A bare -l is never a passive.
-fn passive_allomorph_fits(template: &str, prev: char) -> bool {
-    let after_vowel = super::super::phonology::is_turkish_vowel(prev);
-    match template {
-        "n" | "nil" | "nıl" => after_vowel,
-        "in" | "ın" | "un" | "ün" => prev == 'l',
-        "il" | "ıl" | "ul" | "ül" => !after_vowel && prev != 'l',
-        _ => false,
-    }
+/// The morphotactic graph, built once per process.
+pub(crate) struct Engine {
+    pub graph: Graph,
+    pub roots: RootStates,
 }
 
-/// Whether a copula or -ken may follow a verbal person: only right after Prog, Evid, Fut, Aor
-/// or Nec and the person (Zemberek's a3plCopWhile / a3sgCopWhile), and except for -DIr only
-/// after A3pl. gelmiş-ler-di, gelmiş-im-dir, gelir-ler-ken; not gel-di-ler-di, ev-de-yim-di,
-/// gelmiş-im-di.
-fn copula_after_tense_person(tags: &[String], suffix: SuffixType) -> bool {
-    let [.., tense, person] = tags else {
-        return false;
-    };
-    let tense_ok = matches!(tense.as_str(), "Prog" | "Evid" | "Fut" | "Aor" | "Nec");
-    let person_ok = match suffix {
-        SuffixType::Copula => matches!(person.as_str(), "A1sg" | "A2sg" | "A1pl" | "A2pl" | "A3pl"),
-        _ => person == "A3pl",
-    };
-    tense_ok && person_ok
+pub(crate) static ENGINE: LazyLock<Engine> = LazyLock::new(|| {
+    let (graph, roots) = turkish_morphotactics::build();
+    Engine { graph, roots }
+});
+
+/// The morphotactic graph the analyzer walks (for inspection and tests).
+pub fn morphotactics_graph() -> &'static Graph {
+    &ENGINE.graph
 }
 
-/// Whether a suffix allomorph agrees in vowel harmony with the stem before it, whose last vowel
-/// (as harmony sees it) is `stem_vowel`: the allomorph's first vowel must be the two-way (a/e)
-/// or four-way (ı/i/u/ü) vowel that `stem_vowel` calls for (ev-ler, kitap-lar, göz-ü, kol-u).
-/// -Iyor's o, -ken and -ki keep their vowel; a stem without a vowel (TBMM'de, 2026'da) is not
-/// checked. The templates list every allomorph, so without this kitap-ler-de and ak-di
-/// analysed.
-fn harmony_fits(suffix: SuffixType, template: &str, stem_vowel: Option<char>) -> bool {
-    let Some(stem_vowel) = stem_vowel else {
-        return true;
-    };
-    if matches!(suffix, SuffixType::DerivWhile | SuffixType::CliticKi) || template == "yor" {
-        return true;
-    }
-    match template
-        .chars()
-        .find(|&c| super::super::phonology::is_turkish_vowel(c))
-    {
-        Some(v @ ('a' | 'e')) => v == super::super::phonology::harmony_a_type(stem_vowel),
-        Some(v @ ('ı' | 'i' | 'u' | 'ü')) => {
-            v == super::super::phonology::harmony_i_type(stem_vowel)
-        }
-        _ => true,
-    }
+/// Whether a tag of [`MorphParse::morpheme_tags`] is a derivation (it opens a new
+/// inflectional group: Ness, With, Inf, PastPart, AdvErek, Caus, ...).
+pub fn is_derivational_tag(tag: &str) -> bool {
+    DERIVATIONAL_TAGS.contains(&tag)
 }
 
-/// The vowel harmony starts from after `root`: its last vowel, made front for a root that
-/// takes front-vowel suffixes despite a back vowel (saat-ler, alkol-ü, kalb-i: InverseHarmony).
-fn root_harmony_vowel(root: &str, attributes: RootAttr) -> Option<char> {
-    let v = super::super::phonology::last_vowel(root)?;
-    Some(if attributes.contains(RootAttr::INVERSE_HARMONY) {
-        match v {
-            'a' => 'e',
-            'ı' => 'i',
-            'o' => 'ö',
-            'u' => 'ü',
-            v => v,
-        }
-    } else {
-        v
-    })
-}
+/// The built-in lexicon and its stems, built once per process and shared by every analyzer
+/// that has not added its own items.
+static BUILTIN: LazyLock<(Arc<RootLexicon>, Arc<StemIndex>)> = LazyLock::new(|| {
+    let lexicon = RootLexicon::new();
+    let stems = StemIndex::new(&lexicon, &ENGINE.roots);
+    (Arc::new(lexicon), Arc::new(stems))
+});
 
-/// How a candidate stem was recovered from the surface; the root must allow it.
-#[derive(Clone, Copy)]
-enum StemChange {
-    None,
-    /// kitab- from kitap (RootAttr::VOICING)
-    Voiced,
-    /// burn- from burun (RootAttr::VOWEL_DROP)
-    VowelDropped,
-    /// kayb- from kayıp, akd- from akit (RootAttr::VOWEL_DROP and RootAttr::VOICING)
-    VowelDroppedVoiced,
-    /// hakk- from hak (RootAttr::CONSONANT_DOUBLING)
-    Doubled,
-    /// bekl-iyor from bekle (any vowel-final verb)
-    ProgressiveVowelDrop,
-    /// di-yecek from de, yi-yen from ye
-    DeYeNarrowing,
-}
-
-/// The built-in lexicon, parsed once per process (about 80 ms and 30 MB) and shared by every
-/// analyzer that has not added its own items.
-static BUILTIN_LEXICON: LazyLock<Arc<RootLexicon>> = LazyLock::new(|| Arc::new(RootLexicon::new()));
-
-/// The suffix transitions, built once per process and shared by every analyzer.
-static TRANSITIONS: LazyLock<Arc<[SuffixTransition]>> =
-    LazyLock::new(|| TurkishMorphotactics::transitions().into());
+/// Total search steps one word may take; a word that needs more (a crafted chain of voice
+/// suffixes) keeps the analyses found so far.
+const MAX_WORK: usize = 100_000;
+/// Search steps after which a word's dead ends are remembered. An ordinary word takes far
+/// fewer, and hashing every step would cost more than the memo saves.
+const MEMO_AFTER: usize = 512;
+/// How often one state may recur on a path (verbRoot_S recurs once per voice suffix).
+const MAX_STATE_REPEAT: usize = 8;
 
 /// The morphological analyzer. Analyzers share the built-in lexicon, so creating or cloning
 /// one is cheap; adding items or loading a dictionary gives that analyzer a private copy of
@@ -139,7 +87,7 @@ static TRANSITIONS: LazyLock<Arc<[SuffixTransition]>> =
 #[derive(Clone)]
 pub struct TurkishMorphology {
     lexicon: Arc<RootLexicon>,
-    transitions: Arc<[SuffixTransition]>,
+    stems: Arc<StemIndex>,
 }
 
 impl Default for TurkishMorphology {
@@ -151,21 +99,27 @@ impl Default for TurkishMorphology {
 impl TurkishMorphology {
     pub fn new() -> Self {
         Self {
-            lexicon: Arc::clone(&BUILTIN_LEXICON),
-            transitions: Arc::clone(&TRANSITIONS),
+            lexicon: Arc::clone(&BUILTIN.0),
+            stems: Arc::clone(&BUILTIN.1),
         }
     }
 
     pub fn with_lexicon(lexicon: RootLexicon) -> Self {
+        let stems = StemIndex::new(&lexicon, &ENGINE.roots);
         Self {
             lexicon: Arc::new(lexicon),
-            transitions: Arc::clone(&TRANSITIONS),
+            stems: Arc::new(stems),
         }
     }
 
     /// The built-in lexicon that [`TurkishMorphology::new`] analyzers share.
     pub fn builtin_lexicon() -> Arc<RootLexicon> {
-        Arc::clone(&BUILTIN_LEXICON)
+        Arc::clone(&BUILTIN.0)
+    }
+
+    /// The lexicon this analyzer uses.
+    pub fn lexicon(&self) -> &RootLexicon {
+        &self.lexicon
     }
 
     /// Length in characters of the longest root in the lexicon.
@@ -180,7 +134,8 @@ impl TurkishMorphology {
 
     /// Adds a dictionary item to the morphological analyzer at runtime.
     pub fn add_item(&mut self, item: DictionaryItem) {
-        Arc::make_mut(&mut self.lexicon).add_item(item);
+        Arc::make_mut(&mut self.lexicon).add_item(item.clone());
+        Arc::make_mut(&mut self.stems).add(item, &self.lexicon, &ENGINE.roots);
     }
 
     /// Loads custom dictionary definitions from a file at runtime.
@@ -196,10 +151,17 @@ impl TurkishMorphology {
 
     /// Loads custom dictionary definitions from a multiline string.
     pub fn load_dictionary_str(&mut self, text: &str) {
-        Arc::make_mut(&mut self.lexicon).load_from_str(text);
+        let mut parsed = RootLexicon::empty();
+        parsed.load_from_str(text);
+        let mut items: Vec<DictionaryItem> = parsed.items().cloned().collect();
+        items.sort_by(|a, b| a.root.cmp(&b.root).then_with(|| a.lemma.cmp(&b.lemma)));
+        for item in items {
+            self.add_item(item);
+        }
     }
 
-    /// Analyzes a surface word and returns all valid morphological parses.
+    /// Analyzes a surface word and returns all valid morphological parses, the most likely
+    /// first.
     pub fn analyze(&self, word: &str) -> Vec<MorphParse> {
         let clean = word.trim();
         if clean.is_empty() {
@@ -219,552 +181,614 @@ impl TurkishMorphology {
             })
             .collect();
 
-        match lower.split_once('\'') {
+        // The suffixes follow the last apostrophe; an earlier one belongs to the word
+        // (Kur'an'ı).
+        match lower.rsplit_once('\'') {
             Some((stem, ending)) if !stem.is_empty() && !ending.is_empty() => {
-                self.analyze_with_apostrophe(clean, stem, ending)
+                let stem = stem.replace('\'', "");
+                self.analyze_with_apostrophe(clean, &stem, ending)
             }
-            _ => self.analyze_normalized(clean, &lower),
+            _ => self.analyze_normalized(clean, &lower.replace('\'', ""), false),
         }
     }
 
     /// Zemberek's analyzeWordsWithApostrophe: analyse the word without the quote and keep the
-    /// noun parses whose root is the part before it (İstanbul'un, Antalya'da). A name that is
-    /// not in the lexicon gets a proper-noun root, as Zemberek's unidentified-token analyzer
-    /// does for words with an apostrophe.
+    /// noun parses whose root is the part before it (İstanbul'un, Antalya'da). Failing that, a
+    /// lexicon root the apostrophe falls inside (Kur'an, re'sen, fer'i), as Zemberek's
+    /// dictionary spells them. A name the lexicon does not know gets a proper-noun root, as
+    /// Zemberek's unidentified-token analyzer does for words with an apostrophe.
     fn analyze_with_apostrophe(&self, clean: &str, stem: &str, ending: &str) -> Vec<MorphParse> {
         let joined = format!("{stem}{ending}");
-        let parses: Vec<MorphParse> = self
-            .analyze_normalized(clean, &joined)
+        let all = self.analyze_normalized(clean, &joined, true);
+        let stem_chars = stem.chars().count();
+        let (standard, spanning): (Vec<MorphParse>, Vec<MorphParse>) = all
             .into_iter()
-            .filter(|p| p.primary_pos == PrimaryPos::Noun && p.root == stem)
-            .collect();
-        if !parses.is_empty() {
-            return parses;
+            .filter(|p| {
+                (p.primary_pos == PrimaryPos::Noun && p.root == stem)
+                    || (p.root.chars().count() > stem_chars && joined.starts_with(&p.root))
+            })
+            .partition(|p| p.root == stem);
+        if !standard.is_empty() {
+            return standard;
         }
-        let guessed = DictionaryItem::new(
-            stem,
-            stem,
-            PrimaryPos::Noun,
-            SecondaryPos::ProperNoun,
-            RootAttr::PROPER_NOUN,
-        );
-        let mut results = Vec::new();
-        let mut tags = vec!["Noun".to_string()];
-        self.search_suffix_chain(
-            MorphState::NounRoot,
-            PrimaryPos::Noun,
-            stem.chars().last().unwrap_or(' '),
-            super::super::phonology::last_vowel(stem),
-            ending,
-            &guessed,
-            clean,
-            &mut tags,
-            &mut results,
-            0,
-        );
-        results
-    }
-
-    fn analyze_normalized(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
-        let mut results = Vec::new();
-
-        // 1. Direct match in dictionary (uninflected base form)
-        if let Some(items) = self.lexicon.get_items(lower) {
-            for item in items {
-                let tags = match item.primary_pos {
-                    PrimaryPos::Noun => {
-                        vec!["Noun".to_string(), "A3sg".to_string(), "Nom".to_string()]
-                    }
-                    // A bare verb stem is the 2nd-person imperative (gel!), as in Zemberek.
-                    PrimaryPos::Verb => {
-                        vec!["Verb".to_string(), "Imp".to_string(), "A2sg".to_string()]
-                    }
-                    PrimaryPos::Adj => vec!["Adj".to_string()],
-                    PrimaryPos::Adv => vec!["Adv".to_string()],
-                    PrimaryPos::Pron => {
-                        vec!["Pron".to_string(), "A3sg".to_string(), "Nom".to_string()]
-                    }
-                    PrimaryPos::Num => vec!["Num".to_string()],
-                    PrimaryPos::Conj => vec!["Conj".to_string()],
-                    PrimaryPos::Postp => vec!["Postp".to_string()],
-                    PrimaryPos::Interj => vec!["Interj".to_string()],
-                    PrimaryPos::Q => vec!["Q".to_string()],
-                    PrimaryPos::Punc => vec!["Punc".to_string()],
-                    PrimaryPos::Dup => vec!["Dup".to_string()],
-                    PrimaryPos::Unknown => vec!["Unk".to_string()],
-                    PrimaryPos::Det => vec!["Det".to_string()],
-                };
-
-                let formatted = format!(
-                    "[{}:{}] {}:{}",
-                    item.lemma,
-                    item.primary_pos.as_str(),
-                    item.root,
-                    tags.join("+")
-                );
-                // As for inflected readings below: a proper noun or abbreviation written
-                // lower-case (the corpus "proper noun" beklerken) is an unlikely reading.
-                let is_upper = clean.chars().next().is_some_and(|c| c.is_uppercase());
-                let lower_case_proper = !is_upper
-                    && matches!(
-                        item.secondary_pos,
-                        SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-                    );
-                results.push(MorphParse {
-                    surface: clean.to_string(),
-                    lemma: item.lemma.clone(),
-                    root: item.root.clone(),
-                    primary_pos: item.primary_pos,
-                    pos: item.primary_pos,
-                    secondary_pos: item.secondary_pos,
-                    morpheme_tags: tags,
-                    formatted,
-                    // The imperative is a (zero) suffix like any other, so it is scored as an
-                    // inflected reading: işe is iş-e before it is the imperative of işemek.
-                    score: if lower_case_proper {
-                        0.65
-                    } else if item.primary_pos == PrimaryPos::Verb {
-                        0.95
-                    } else {
-                        1.0
-                    },
-                });
-            }
+        if !spanning.is_empty() {
+            return spanning;
         }
-
-        // 2. Multi-affix morphological traversal. No root is longer than the lexicon's longest
-        // (+1 for a vowel or k a stem change restores): trying every prefix of the word, each
-        // one copied, was quadratic in its length, and a 1 MB token (a base64 blob) took hours.
-        let char_count = lower.chars().count();
-        let max_stem = char_count.min(self.lexicon.max_root_chars() + 1);
-        let boundaries: Vec<usize> = lower
-            .char_indices()
-            .map(|(i, _)| i)
-            .chain(std::iter::once(lower.len()))
-            .collect();
-        for stem_len in 1..=max_stem {
-            let candidate_stem = lower[..boundaries[stem_len]].to_string();
-            let suffix_part = lower[boundaries[stem_len]..].to_string();
-
-            if suffix_part.is_empty() {
-                continue;
-            }
-
-            // a) Direct match
-            self.match_and_traverse(
-                &candidate_stem,
-                &suffix_part,
-                clean,
-                &mut results,
-                StemChange::None,
-            );
-
-            // b) Consonant softening / mutation (e.g. "kitab" from "kitap", "ağac" from "ağaç", "kanad" from "kanat", "ayağ" from "ayak")
-            let hardened_stem = self.unsoften_stem(&candidate_stem);
-            if hardened_stem != candidate_stem {
-                self.match_and_traverse(
-                    &hardened_stem,
-                    &suffix_part,
-                    clean,
-                    &mut results,
-                    StemChange::Voiced,
-                );
-            }
-
-            // c) Vowel drop (e.g. "burn" from "burun", "akl" from "akıl", "şehr" from "şehir")
-            let restored_vowel_stems = self.unvoweldrop_stems(&candidate_stem);
-            for restored in restored_vowel_stems {
-                self.match_and_traverse(
-                    &restored,
-                    &suffix_part,
-                    clean,
-                    &mut results,
-                    StemChange::VowelDropped,
-                );
-                // Both at once (kayıp -> kayb-ı, akit -> akd-i, nakit -> nakd-i): each change
-                // alone finds no root.
-                let voiced = self.unsoften_stem(&restored);
-                if voiced != restored {
-                    self.match_and_traverse(
-                        &voiced,
-                        &suffix_part,
-                        clean,
-                        &mut results,
-                        StemChange::VowelDroppedVoiced,
-                    );
-                }
-            }
-
-            // d) Consonant doubling (e.g. "hakk" from "hak", "hiss" from "his")
-            let undoubled = self.undouble_stem(&candidate_stem);
-            if let Some(undoubled_root) = undoubled {
-                self.match_and_traverse(
-                    &undoubled_root,
-                    &suffix_part,
-                    clean,
-                    &mut results,
-                    StemChange::Doubled,
-                );
-            }
-
-            // e) Diminutive k-drop (e.g. "küçü" from "küçük", "sıca" from "sıcak"), only before
-            // the diminutive -cIk itself: anywhere else it invented roots (ben -> bek-n,
-            // diyor -> dik-yor, konuda -> konuk-da). Zemberek has no such rule at all.
-            if suffix_part.starts_with(['c', 'ç']) {
-                let with_k = format!("{candidate_stem}k");
-                self.match_and_traverse(
-                    &with_k,
-                    &suffix_part,
-                    clean,
-                    &mut results,
-                    StemChange::None,
-                );
-            }
-
-            // g) de/ye narrow to di/yi before a y-initial suffix (di-yecek, di-yerek, yi-yen),
-            // Zemberek's deYeCondition.
-            if matches!(candidate_stem.as_str(), "di" | "yi") && suffix_part.starts_with('y') {
-                let root = if candidate_stem == "di" { "de" } else { "ye" };
-                self.match_and_traverse(
-                    root,
-                    &suffix_part,
-                    clean,
-                    &mut results,
-                    StemChange::DeYeNarrowing,
-                );
-            }
-
-            // f) Progressive vowel drop: a vowel-final verb stem loses its vowel before -Iyor
-            // (bekle-iyor -> bekliyor, başla-ıyor -> başlıyor, de-iyor -> diyor), Zemberek's
-            // RootAttribute.ProgressiveVowelDrop.
-            if ["iyor", "ıyor", "uyor", "üyor"]
-                .iter()
-                .any(|p| suffix_part.starts_with(p))
-            {
-                for vowel in ['a', 'e'] {
-                    self.match_and_traverse(
-                        &format!("{candidate_stem}{vowel}"),
-                        &suffix_part,
-                        clean,
-                        &mut results,
-                        StemChange::ProgressiveVowelDrop,
-                    );
-                }
-            }
-        }
-
-        // Sort by score descending; among equal scores prefer fewer morphemes (ol-an over
-        // o-NounToVerb-Pass, takım-ı over tak-ım-ı, başla-dı over baş-la-dı), and only then the
-        // analysis string, which on its own preferred the shortest root. Then drop repeats of
-        // the same reading wherever they sit, keeping the best-scored one. A reading is its
-        // analysis string plus its secondary POS: the string does not show it, so
-        // deduplicating on the string alone (adjacent only) dropped Ekmek's proper-noun reading
-        // when it tied with the common noun and kept such pairs when they did not tie.
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| a.morpheme_tags.len().cmp(&b.morpheme_tags.len()))
-                .then_with(|| a.formatted.cmp(&b.formatted))
+        // A name or abbreviation the lexicon knows is not guessed again: ABD'nın is not a word
+        // because ABD is read "abede". A common word used as a name is (Başlangıç'ı, with no
+        // voicing).
+        let known = self.root_items(stem).iter().any(|i| {
+            matches!(
+                i.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            )
         });
-        let mut seen = std::collections::HashSet::new();
-        results.retain(|p| seen.insert((p.formatted.clone(), p.secondary_pos)));
-
-        results
-    }
-
-    fn unsoften_stem(&self, stem: &str) -> String {
-        if stem.is_empty() {
-            return String::new();
-        }
-        let mut chars: Vec<char> = stem.chars().collect();
-        let len = chars.len();
-        match chars[len - 1] {
-            'b' => chars[len - 1] = 'p',
-            'c' => chars[len - 1] = 'ç',
-            'd' => chars[len - 1] = 't',
-            'ğ' | 'g' => chars[len - 1] = 'k',
-            _ => {}
-        }
-        chars.into_iter().collect()
-    }
-
-    fn unvoweldrop_stems(&self, stem: &str) -> Vec<String> {
-        let chars: Vec<char> = stem.chars().collect();
-        let len = chars.len();
-        if len < 2 {
+        if known {
             return Vec::new();
         }
-        let mut candidates = Vec::new();
-        let last = chars[len - 1];
-        let prev = chars[len - 2];
-        if !super::super::phonology::is_turkish_vowel(last)
-            && !super::super::phonology::is_turkish_vowel(prev)
-        {
-            for &v in &['ı', 'i', 'u', 'ü'] {
-                let mut s: Vec<char> = chars[..len - 1].to_vec();
-                s.push(v);
-                s.push(last);
-                candidates.push(s.into_iter().collect());
-            }
-        }
-        candidates
-    }
-
-    fn undouble_stem(&self, stem: &str) -> Option<String> {
-        let chars: Vec<char> = stem.chars().collect();
-        let len = chars.len();
-        if len >= 3
-            && chars[len - 1] == chars[len - 2]
-            && !super::super::phonology::is_turkish_vowel(chars[len - 1])
-        {
-            let s: String = chars[..len - 1].iter().collect();
-            Some(s)
-        } else {
-            None
-        }
-    }
-
-    fn match_and_traverse(
-        &self,
-        root_cand: &str,
-        suffix_str: &str,
-        original_surface: &str,
-        results: &mut Vec<MorphParse>,
-        change: StemChange,
-    ) {
-        if let Some(items) = self.lexicon.get_items(root_cand) {
-            for item in items {
-                // Verify attributes
-                let allowed = match change {
-                    StemChange::None => true,
-                    StemChange::Voiced => item.attributes.contains(RootAttr::VOICING),
-                    StemChange::VowelDropped => item.attributes.contains(RootAttr::VOWEL_DROP),
-                    StemChange::VowelDroppedVoiced => {
-                        item.attributes.contains(RootAttr::VOWEL_DROP)
-                            && item.attributes.contains(RootAttr::VOICING)
-                    }
-                    StemChange::Doubled => item.attributes.contains(RootAttr::CONSONANT_DOUBLING),
-                    StemChange::ProgressiveVowelDrop | StemChange::DeYeNarrowing => {
-                        item.primary_pos == PrimaryPos::Verb
-                    }
-                };
-                if !allowed {
-                    continue;
-                }
-                // Postpositions, and the adverbs öyle/böyle/şöyle, take only the nominal
-                // copula and persons (Zemberek's postpZero_S and advForVerbDeriv_ST ->
-                // nVerb_S): ait-tir, gibi-yim, kadar-dı, şöyle-dir. NounCase is the state
-                // that offers just those (and -ki: bugüne kadar-ki).
-                let copula_only = item.primary_pos == PrimaryPos::Postp
-                    || (item.primary_pos == PrimaryPos::Adv
-                        && matches!(item.root.as_str(), "öyle" | "böyle" | "şöyle"));
-                // Other closed classes take no suffixes (Zemberek's terminal adverb,
-                // conjunction, interjection, determiner and duplicator root states); they used
-                // to inflect like nouns (yo-la, he-m, fır-ın-ın).
-                if !copula_only
-                    && matches!(
-                        item.primary_pos,
-                        PrimaryPos::Adv
-                            | PrimaryPos::Conj
-                            | PrimaryPos::Interj
-                            | PrimaryPos::Det
-                            | PrimaryPos::Dup
-                            | PrimaryPos::Postp
-                            | PrimaryPos::Punc
-                    )
-                {
-                    continue;
-                }
-
-                let start_state = match item.primary_pos {
-                    _ if copula_only => MorphState::NounCase,
-                    // "değil" carries the negation and behaves like a nominal predicate:
-                    // değil-im, değil-di, değil-se (Zemberek's nVerbDegil_S).
-                    PrimaryPos::Verb if item.root == "değil" => MorphState::NounCase,
-                    PrimaryPos::Noun => MorphState::NounRoot,
-                    PrimaryPos::Verb => MorphState::VerbRoot,
-                    PrimaryPos::Q => MorphState::QuesRoot,
-                    _ => MorphState::NounRoot,
-                };
-
-                let mut current_tags = match item.primary_pos {
-                    PrimaryPos::Noun => vec!["Noun".to_string()],
-                    PrimaryPos::Verb => vec!["Verb".to_string()],
-                    PrimaryPos::Adj => vec!["Adj".to_string()],
-                    PrimaryPos::Adv => vec!["Adv".to_string()],
-                    PrimaryPos::Pron => vec!["Pron".to_string()],
-                    _ => vec![item.primary_pos.as_str().to_string()],
-                };
-
-                // The lexicon root, not the surface stem: the dropped vowel still decides
-                // (akit -> akd-i, burun -> burn-u). With the progressive vowel drop -Iyor takes
-                // the place of the root's final vowel and agrees with the one before it
-                // (özle -> özl-üyor, başla -> başl-ıyor, oyna -> oyn-uyor; de -> d-iyor).
-                let harmony_vowel = match change {
-                    StemChange::ProgressiveVowelDrop => {
-                        let mut stem = root_cand.chars();
-                        stem.next_back();
-                        root_harmony_vowel(stem.as_str(), item.attributes)
-                            .or_else(|| root_harmony_vowel(root_cand, item.attributes))
-                    }
-                    _ => root_harmony_vowel(root_cand, item.attributes),
-                };
-                self.search_suffix_chain(
-                    start_state,
-                    item.primary_pos,
-                    root_cand.chars().last().unwrap_or(' '),
-                    harmony_vowel,
-                    suffix_str,
-                    item,
-                    original_surface,
-                    &mut current_tags,
-                    results,
-                    0,
-                );
-            }
-        }
-    }
-
-    /// `prev` is the last letter matched so far (root or previous suffix), which conditions
-    /// allomorphs such as the passive; `vowel` is the last vowel so far as vowel harmony sees
-    /// it, which the next suffix must agree with.
-    #[allow(clippy::too_many_arguments)]
-    fn search_suffix_chain(
-        &self,
-        state: MorphState,
-        pos: PrimaryPos,
-        prev: char,
-        vowel: Option<char>,
-        remaining_suffix: &str,
-        item: &DictionaryItem,
-        original_surface: &str,
-        tags: &mut Vec<String>,
-        results: &mut Vec<MorphParse>,
-        depth: usize,
-    ) {
-        if depth > 10 {
-            return;
-        }
-
-        if remaining_suffix.is_empty() {
-            let formatted = format!(
-                "[{}:{}] {}:{}",
-                item.lemma,
-                item.primary_pos.as_str(),
-                item.root,
-                tags.join("+")
+        // An upper-case stem is an abbreviation, read letter by letter unless it reads as a
+        // word (TCDD'nin "tecedede", NATO'nun).
+        let original_stem = clean.rfind(['\'', '’']).map_or(clean, |i| &clean[..i]);
+        let abbreviation =
+            original_stem.chars().count() > 1 && original_stem.chars().all(|c| !c.is_lowercase());
+        let mut guessed = if abbreviation {
+            let mut item = DictionaryItem::new(
+                stem,
+                stem,
+                PrimaryPos::Noun,
+                SecondaryPos::Abbreviation,
+                RootAttr::NONE,
             );
-            // Turkish spelling separates the suffixes of a proper noun or abbreviation with an
-            // apostrophe (Ayşe'nin, TBMM'de), so an inflected reading of one written without it
-            // (k-ı "ki", Anne-m "Annem") is unlikely.
-            let has_apostrophe = original_surface.contains(['\'', '’']);
-            let score = if matches!(
-                item.secondary_pos,
-                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-            ) {
-                if has_apostrophe {
-                    0.98
-                } else {
-                    0.6
-                }
-            } else {
-                0.95
-            };
-
-            results.push(MorphParse {
-                surface: original_surface.to_string(),
-                lemma: item.lemma.clone(),
-                root: item.root.clone(),
-                primary_pos: item.primary_pos,
-                pos,
-                secondary_pos: item.secondary_pos,
-                morpheme_tags: tags.clone(),
-                formatted,
-                score,
-            });
-            return;
+            item.pronunciation = Some(super::pronunciation::guess_abbreviation(stem));
+            item
+        } else {
+            DictionaryItem::new(
+                stem,
+                stem,
+                PrimaryPos::Noun,
+                SecondaryPos::ProperNoun,
+                RootAttr::PROPER_NOUN,
+            )
+        };
+        if guessed.pronunciation.is_none() && !stem.chars().any(super::phonetics::is_vowel) {
+            guessed.pronunciation = Some(super::pronunciation::letter_pronunciation(stem));
         }
+        let stems: Vec<StemTransition> = stems::generate(&guessed, 0, &ENGINE.roots)
+            .into_iter()
+            .filter(|s| joined.starts_with(s.surface.as_ref()))
+            .collect();
+        let candidates: Vec<(&StemTransition, &DictionaryItem)> =
+            stems.iter().map(|s| (s, &guessed)).collect();
+        let mut results = Vec::new();
+        self.search(&candidates, &joined, clean, true, &mut results);
+        finish(results)
+    }
 
-        for tr in self.transitions.iter() {
-            if tr.from_state == state {
-                // -CA is the adverbial Ly after an adjective (açık-ça) and the equative case
-                // otherwise (aile-ce, sen-ce), as in Zemberek.
-                let skip = match tr.suffix_type {
-                    SuffixType::DerivLy => pos != PrimaryPos::Adj,
-                    SuffixType::CaseEqu => pos == PrimaryPos::Adj,
-                    // Lexical deverbal nouns and adjectives (seç-im, sev-gi, yor-gun,
-                    // çalış-kan) attach to the bare root, not after voice or other suffixes
-                    // (kork-t-um, değ-il-im).
-                    SuffixType::DerivIm
-                    | SuffixType::DerivGi
-                    | SuffixType::DerivGin
-                    | SuffixType::DerivGen => tags.len() > 1,
-                    // -DIk and -AcAk participles take a possessive before any case
-                    // (ol-duğ-u, yap-acağ-ın-a), so a bare case would only duplicate them.
-                    SuffixType::CaseAcc
-                    | SuffixType::CaseDat
-                    | SuffixType::CaseGen
-                    | SuffixType::CaseInst
-                        if state == MorphState::DerivedAdj =>
-                    {
-                        matches!(
-                            tags.last().map(String::as_str),
-                            Some("PastPart" | "FutPart")
-                        )
-                    }
-                    _ if state == MorphState::VerbPerson => {
-                        !copula_after_tense_person(tags, tr.suffix_type)
-                    }
-                    _ => false,
-                };
-                if skip {
-                    continue;
-                }
-                // A derivation opens a new inflectional group; nominal inflection on an
-                // adjective is Zemberek's zero derivation to a noun.
-                let next_pos = match tr.suffix_type.derived_pos() {
-                    Some(derived) => derived,
-                    None if pos == PrimaryPos::Adj && tr.suffix_type.is_nominal_inflection() => {
-                        PrimaryPos::Noun
-                    }
-                    None => pos,
-                };
-                for &template in tr.surface_templates {
-                    if tr.suffix_type == SuffixType::DerivPassive
-                        && !passive_allomorph_fits(template, prev)
-                    {
-                        continue;
-                    }
-                    if let Some(next_remaining) = remaining_suffix.strip_prefix(template) {
-                        if !harmony_fits(tr.suffix_type, template, vowel) {
-                            continue;
-                        }
-                        let tag_str = tr.suffix_type.tag().to_string();
-                        tags.push(tag_str);
-                        let next_vowel = template
-                            .chars()
-                            .rev()
-                            .find(|&c| super::super::phonology::is_turkish_vowel(c))
-                            .or(vowel);
+    /// `apostrophe`: the word had one (Ankara'ya), so a name may take any suffix after it.
+    fn analyze_normalized(&self, clean: &str, lower: &str, apostrophe: bool) -> Vec<MorphParse> {
+        let candidates: Vec<(&StemTransition, &DictionaryItem)> = self
+            .stems
+            .prefix_matches(lower)
+            .map(|s| (s, self.stems.item(s)))
+            .collect();
+        let mut results = Vec::new();
+        self.search(&candidates, lower, clean, apostrophe, &mut results);
+        finish(results)
+    }
 
-                        self.search_suffix_chain(
-                            tr.to_state,
-                            next_pos,
-                            template.chars().last().unwrap_or(prev),
-                            next_vowel,
-                            next_remaining,
-                            item,
-                            original_surface,
-                            tags,
-                            results,
-                            depth + 1,
-                        );
-
-                        tags.pop();
-                    }
-                }
+    fn search(
+        &self,
+        candidates: &[(&StemTransition, &DictionaryItem)],
+        input: &str,
+        original: &str,
+        apostrophe: bool,
+        results: &mut Vec<MorphParse>,
+    ) {
+        let engine = &*ENGINE;
+        let mut search = Search {
+            graph: &engine.graph,
+            input,
+            steps: Vec::new(),
+            dead: HashSet::new(),
+            work: 0,
+            found: Vec::new(),
+        };
+        for (i, (stem, item)) in candidates.iter().enumerate() {
+            let root_morpheme = engine.graph.states[stem.to.0 as usize].morpheme;
+            let ctx = Context::at_root(stem.to, root_morpheme);
+            let start = stem.surface.len();
+            search.dfs(i, stem, item, start, ctx, stem.attrs);
+        }
+        let Search { found, .. } = search;
+        for (i, steps) in found {
+            let (stem, item) = &candidates[i];
+            if !apostrophe && !suffixes_without_apostrophe(&engine.graph, item, &steps) {
+                continue;
             }
+            results.push(render(engine, item, stem, &steps, input, original));
         }
     }
+}
+
+/// Whether a name's suffixes may be written without an apostrophe. Turkish spelling separates a
+/// proper noun's case, possessive and copula with one (Ankara'ya, Ayşe'nin, Ali'dir) but not its
+/// plural or derivations (Ahmetler, Ankaralı, Atatürkçü), and every suffix of an abbreviation
+/// (TBMM'de). Without the rule a misspelled common word read as a name plus a suffix: kitap-ı
+/// through the proper noun Kitap.
+fn suffixes_without_apostrophe(graph: &Graph, item: &DictionaryItem, steps: &[Step]) -> bool {
+    match item.secondary_pos {
+        SecondaryPos::Abbreviation => steps.iter().all(|s| s.end == s.start),
+        // Language names are -CA derivations, which take their suffixes without an
+        // apostrophe (Türkçenin, İngilizcede).
+        SecondaryPos::ProperNoun
+            if ["ca", "ce", "ça", "çe"]
+                .iter()
+                .any(|e| item.root.ends_with(e)) =>
+        {
+            true
+        }
+        SecondaryPos::ProperNoun => {
+            for s in steps {
+                let state = &graph.states[graph.transitions[s.transition as usize].to.0 as usize];
+                let has = s.end > s.start;
+                if (state.derivative && state.morpheme != M::Zero)
+                    || (has && state.morpheme == M::A3pl)
+                {
+                    return true;
+                }
+                if has {
+                    return false;
+                }
+            }
+            true
+        }
+        _ => true,
+    }
+}
+
+/// One suffix taken on a path: the transition and the byte range of its surface.
+#[derive(Clone, Copy)]
+struct Step {
+    transition: u32,
+    start: usize,
+    end: usize,
+}
+
+struct Search<'a> {
+    graph: &'a Graph,
+    input: &'a str,
+    steps: Vec<Step>,
+    /// Sub-searches known to find nothing: a hash of (candidate, position, phonetic attributes,
+    /// context). Conditions read nothing else, so an equal key has the same continuations.
+    dead: HashSet<u64>,
+    work: usize,
+    found: Vec<(usize, Vec<Step>)>,
+}
+
+impl Search<'_> {
+    fn key(candidate: usize, pos: usize, ctx: &Context, attrs: P) -> u64 {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        candidate.hash(&mut h);
+        pos.hash(&mut h);
+        ctx.hash(&mut h);
+        attrs.bits().hash(&mut h);
+        h.finish()
+    }
+
+    /// Searches on from `pos`; returns whether any analysis was found below.
+    fn dfs(
+        &mut self,
+        candidate: usize,
+        stem: &StemTransition,
+        item: &DictionaryItem,
+        pos: usize,
+        ctx: Context,
+        attrs: P,
+    ) -> bool {
+        self.work += 1;
+        if self.work > MAX_WORK {
+            return false;
+        }
+        let tail = &self.input[pos..];
+        let state = &self.graph.states[ctx.current.0 as usize];
+        if tail.is_empty() && state.terminal && !attrs.contains(P::CANNOT_TERMINATE) {
+            self.found.push((candidate, self.steps.clone()));
+            return true;
+        }
+        let key = (self.work > MEMO_AFTER).then(|| Self::key(candidate, pos, &ctx, attrs));
+        if key.is_some_and(|k| self.dead.contains(&k)) {
+            return false;
+        }
+        let graph = self.graph;
+        let mut found = false;
+        for (id, t) in graph.outgoing(ctx.current) {
+            if tail.is_empty() && t.has_surface() {
+                continue;
+            }
+            let Some(surface) = t.surface(attrs) else {
+                continue;
+            };
+            if !tail.starts_with(surface) {
+                continue;
+            }
+            let view = PathView {
+                ctx: &ctx,
+                item,
+                stem_surface: &stem.surface,
+                attrs,
+                tail_empty: tail.is_empty(),
+            };
+            if !t.condition.eval(graph, &view) {
+                continue;
+            }
+            let repeats = self
+                .steps
+                .iter()
+                .filter(|s| graph.transitions[s.transition as usize].to == t.to)
+                .count();
+            if repeats >= MAX_STATE_REPEAT {
+                continue;
+            }
+            let next_attrs = if t.has_surface() {
+                let mut a = attributes_of(surface, attrs);
+                a -= P::CANNOT_TERMINATE;
+                match t.ends_voiced() {
+                    Some(false) => a |= P::EXPECTS_CONSONANT,
+                    Some(true) => a |= P::EXPECTS_VOWEL | P::CANNOT_TERMINATE,
+                    None => {}
+                }
+                a
+            } else {
+                attrs
+            };
+            let next_ctx = ctx.step(graph, t.to, !surface.is_empty());
+            self.steps.push(Step {
+                transition: id,
+                start: pos,
+                end: pos + surface.len(),
+            });
+            found |= self.dfs(
+                candidate,
+                stem,
+                item,
+                pos + surface.len(),
+                next_ctx,
+                next_attrs,
+            );
+            self.steps.pop();
+        }
+        if let Some(key) = key.filter(|_| !found && self.work <= MAX_WORK) {
+            self.dead.insert(key);
+        }
+        found
+    }
+}
+
+/// Akana's tag for a morpheme in its context, or `None` for one that is not shown (the
+/// default A3sg, Pnon and Nom, zero derivations, POS markers).
+fn tag_of(m: M) -> Option<&'static str> {
+    Some(match m {
+        M::Dat => "Dat",
+        M::Acc => "Acc",
+        M::Abl => "Abl",
+        M::Loc => "Loc",
+        M::Ins => "Ins",
+        M::Gen => "Gen",
+        M::Equ => "Equ",
+        M::Dim => "Dim",
+        M::Ness => "Ness",
+        M::With => "With",
+        M::Without => "Without",
+        M::Related => "Related",
+        M::JustLike => "JustLike",
+        M::Rel => "RelClitic",
+        M::Agt => "Agt",
+        M::Become => "BecomeVerb",
+        M::Acquire => "Acquire",
+        M::Ly => "Ly",
+        M::Caus => "Caus",
+        M::Able => "Abil",
+        M::Pass => "Pass",
+        M::Inf1 => "Inf",
+        M::Inf2 => "ActN",
+        M::Inf3 => "Manner",
+        M::ActOf => "ActOf",
+        M::PastPart => "PastPart",
+        M::NarrPart => "NarrPart",
+        M::FutPart => "FutPart",
+        M::PresPart => "PresPart",
+        M::AorPart => "AorPart",
+        M::NotState => "NotState",
+        M::FeelLike => "FeelLike",
+        M::EverSince => "EverSince",
+        M::Repeat => "Repeat",
+        M::Almost => "Almost",
+        M::Hastily => "Hastily",
+        M::Stay => "Stay",
+        M::Start => "Start",
+        M::AsIf => "AsIf",
+        M::While => "While",
+        M::When => "AdvInce",
+        M::SinceDoingSo => "SinceDoingSo",
+        M::AsLongAs => "AsLongAs",
+        M::ByDoingSo => "AdvErek",
+        M::Adamantly => "Adamantly",
+        M::AfterDoingSo => "AdvIp",
+        M::WithoutHavingDoneSo => "WithoutHavingDoneSo",
+        M::WithoutBeingAbleToHaveDoneSo => "WithoutBeingAbleToHaveDoneSo",
+        M::Unable => "NegAbil",
+        M::Prog1 | M::Prog2 => "Prog",
+        M::Aor => "Aor",
+        M::Fut => "Fut",
+        M::Imp => "Imp",
+        M::Opt => "Opt",
+        M::Desr => "Cond",
+        M::Neces => "Nec",
+        _ => return None,
+    })
+}
+
+const PERSONS: &[&str] = &[
+    "A1sg",
+    "A2sg",
+    "A1pl",
+    "A2pl",
+    "A3pl",
+    "CopPres1sg",
+    "CopPres2sg",
+    "CopPres1pl",
+    "CopPres2pl",
+    "CopPres3pl",
+];
+
+/// Renders a path as akana's tags: the root's POS, then the morphemes that are shown. A
+/// nominal predicate shows its persons and tenses as the copula (evde-yim CopPres1sg,
+/// güzel-di CopPast), as does a tense after a tense (geliyor-du CopPast).
+fn render(
+    engine: &Engine,
+    item: &DictionaryItem,
+    stem: &StemTransition,
+    steps: &[Step],
+    input: &str,
+    original: &str,
+) -> MorphParse {
+    let graph = &engine.graph;
+    let roots = &engine.roots;
+    let mut tags: Vec<&'static str> = vec![item.primary_pos.as_str()];
+    let mut pos = item.primary_pos;
+    let mut copula = roots.nominal_verb.contains(stem.to);
+    // A tense seen in the current verbal group: a later past or evidential is the copula.
+    let mut tense = false;
+    let mut any_surface = false;
+    let mut agreement: Option<M> = None;
+    // A person shown in the current group: the copula after it is Cop, not CopPres3sg.
+    let mut person = false;
+    let pronoun = item.primary_pos == PrimaryPos::Pron;
+    let degil = item.lemma == "değil";
+    for step in steps {
+        let t = &graph.transitions[step.transition as usize];
+        let state = &graph.states[t.to.0 as usize];
+        let m = state.morpheme;
+        let has = step.end > step.start;
+        any_surface |= has;
+        if state.pos_root {
+            if roots.nominal_verb.contains(t.to) {
+                copula = true;
+            } else {
+                copula = false;
+                if let Some(p) = m.pos() {
+                    pos = p;
+                }
+            }
+            tense = false;
+            person = false;
+            continue;
+        }
+        if state.derivative && m != M::Zero {
+            copula = false;
+            tense = false;
+            person = false;
+        }
+        let tag: Option<&'static str> = match m {
+            M::A3sg => {
+                agreement.get_or_insert(M::A3sg);
+                None
+            }
+            M::A3pl if !has => {
+                agreement.get_or_insert(M::A3pl);
+                None
+            }
+            M::A1sg | M::A2sg | M::A1pl | M::A2pl | M::A3pl => {
+                agreement.get_or_insert(m);
+                let plain = match m {
+                    M::A1sg => "A1sg",
+                    M::A2sg => "A2sg",
+                    M::A1pl => "A1pl",
+                    M::A2pl => "A2pl",
+                    _ => "A3pl",
+                };
+                if copula && tags.last() == Some(&"Pres") {
+                    tags.pop();
+                    Some(match m {
+                        M::A1sg => "CopPres1sg",
+                        M::A2sg => "CopPres2sg",
+                        M::A1pl => "CopPres1pl",
+                        M::A2pl => "CopPres2pl",
+                        _ => "CopPres3pl",
+                    })
+                } else if pronoun || copula || tense || has || m == M::A2sg {
+                    Some(plain)
+                } else {
+                    None
+                }
+            }
+            M::P1sg | M::P2sg | M::P3sg | M::P1pl | M::P2pl | M::P3pl => {
+                let implicit = (m == M::P1sg && item.attributes.contains(RootAttr::IMPLICIT_P1SG))
+                    || (m == M::P2sg && item.attributes.contains(RootAttr::IMPLICIT_P2SG));
+                (has || implicit).then(|| m.id())
+            }
+            M::Pres => {
+                // Shown only through the person that follows (CopPres1sg); a placeholder
+                // until then.
+                copula.then_some("Pres")
+            }
+            M::Past => Some(if copula || tense { "CopPast" } else { "Past" }),
+            M::Narr => Some(if copula || tense { "CopEvid" } else { "Evid" }),
+            M::Cond => Some("CopCond"),
+            M::Cop => {
+                if tags.last() == Some(&"Pres") {
+                    tags.pop();
+                }
+                Some(if person { "Cop" } else { "CopPres3sg" })
+            }
+            M::Neg => (!degil).then_some("Neg"),
+            M::Recip | M::Reflex if !has => None,
+            M::Recip => Some("Recip"),
+            M::Reflex => Some("Reflex"),
+            m => tag_of(m),
+        };
+        if let Some(tag) = tag {
+            if PERSONS.contains(&tag) {
+                person = true;
+            }
+            tags.push(tag);
+        }
+        if matches!(
+            m,
+            M::Prog1 | M::Prog2 | M::Aor | M::Fut | M::Past | M::Narr | M::Opt | M::Desr | M::Neces
+        ) {
+            tense = true;
+        }
+    }
+    // A present-tense placeholder never followed by a person is the silent 3rd person.
+    tags.retain(|t| *t != "Pres");
+    // A bare noun or pronoun spells out its number and case, as before: ev is Noun+A3sg+Nom.
+    if !any_surface
+        && matches!(item.primary_pos, PrimaryPos::Noun | PrimaryPos::Pron)
+        && tags[1..].iter().all(|t| PERSONS.contains(t))
+    {
+        if tags.len() == 1 {
+            tags.push(match agreement {
+                Some(M::A3pl) => "A3pl",
+                _ => "A3sg",
+            });
+        }
+        tags.push("Nom");
+    }
+
+    let formatted = format!(
+        "[{}:{}] {}:{}",
+        item.lemma,
+        item.primary_pos.as_str(),
+        item.root,
+        tags.join("+")
+    );
+    let bare = !any_surface && input == stem.surface.as_ref();
+    let named = matches!(
+        item.secondary_pos,
+        SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+    );
+    let is_upper = original.chars().next().is_some_and(|c| c.is_uppercase());
+    let has_apostrophe = original.contains(['\'', '’']);
+    // Turkish spelling separates the suffixes of a proper noun or abbreviation with an
+    // apostrophe (Ayşe'nin, TBMM'de), so an inflected reading of one written without it
+    // (k-ı "ki", Anne-m "Annem") is unlikely; so is a proper noun written lower-case.
+    let score = if bare {
+        if named && !is_upper {
+            0.65
+        } else if item.primary_pos == PrimaryPos::Verb {
+            0.95
+        } else {
+            1.0
+        }
+    } else if named {
+        if has_apostrophe {
+            0.98
+        } else {
+            0.6
+        }
+    } else {
+        0.95
+    };
+    MorphParse {
+        surface: original.to_string(),
+        lemma: item.lemma.clone(),
+        root: item.root.clone(),
+        primary_pos: item.primary_pos,
+        pos,
+        secondary_pos: item.secondary_pos,
+        morpheme_tags: tags.into_iter().map(str::to_string).collect(),
+        formatted,
+        score,
+    }
+}
+
+/// Derivational tags: an analysis without them is preferred among equals.
+const DERIVATIONAL_TAGS: &[&str] = &[
+    "Dim",
+    "Ness",
+    "With",
+    "Without",
+    "Related",
+    "JustLike",
+    "RelClitic",
+    "Agt",
+    "BecomeVerb",
+    "Acquire",
+    "Ly",
+    "Caus",
+    "Abil",
+    "Pass",
+    "Inf",
+    "ActN",
+    "Manner",
+    "ActOf",
+    "PastPart",
+    "NarrPart",
+    "FutPart",
+    "PresPart",
+    "AorPart",
+    "NotState",
+    "FeelLike",
+    "EverSince",
+    "Repeat",
+    "Almost",
+    "Hastily",
+    "Stay",
+    "Start",
+    "AsIf",
+    "While",
+    "AdvInce",
+    "SinceDoingSo",
+    "AsLongAs",
+    "AdvErek",
+    "Adamantly",
+    "AdvIp",
+    "WithoutHavingDoneSo",
+    "WithoutBeingAbleToHaveDoneSo",
+    "Recip",
+    "Reflex",
+];
+
+/// Sorts by score, then fewer tags, then away from the 2nd-person possessive (much rarer than
+/// the 3rd in running text) and from a nominal predicate (kitab-ım "my book" before "I am a
+/// book"), then by the analysis string; and drops repeats of the same reading (the analysis
+/// string plus its secondary POS).
+fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
+    let p2sg = |p: &MorphParse| p.morpheme_tags.iter().any(|t| t == "P2sg");
+    let predicate = |p: &MorphParse| {
+        p.primary_pos != PrimaryPos::Verb && p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
+    };
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.morpheme_tags.len().cmp(&b.morpheme_tags.len()))
+            .then_with(|| p2sg(a).cmp(&p2sg(b)))
+            .then_with(|| predicate(a).cmp(&predicate(b)))
+            .then_with(|| a.formatted.cmp(&b.formatted))
+    });
+    let mut seen = HashSet::new();
+    results.retain(|p| seen.insert((p.formatted.clone(), p.secondary_pos)));
+    results
 }

@@ -14,8 +14,11 @@ fn pos_of(word: &str, root: &str, tag: &str) -> PrimaryPos {
 
 #[test]
 fn derivations_set_the_pos() {
-    // Noun root, verb derivation, converb: the word is an adverbial, not a noun.
-    assert_eq!(pos_of("başlayınca", "baş", "NounToVerb"), PrimaryPos::Adv);
+    // Adjective root, verb derivation, converb: the word is an adverbial.
+    assert_eq!(
+        pos_of("güzelleşince", "güzel", "BecomeVerb"),
+        PrimaryPos::Adv
+    );
     assert_eq!(pos_of("başlayınca", "başla", "AdvInce"), PrimaryPos::Adv);
     // Noun root + -lAş: a finite verb.
     assert_eq!(pos_of("anlaşıyorum", "an", "BecomeVerb"), PrimaryPos::Verb);
@@ -31,9 +34,9 @@ fn derivations_set_the_pos() {
 
 #[test]
 fn root_pos_is_kept() {
-    let parses = TurkishMorphology::new().analyze("başlayınca");
-    let noun_derived = parses.iter().find(|p| p.root == "baş").expect("baş");
-    assert_eq!(noun_derived.primary_pos, PrimaryPos::Noun);
+    let parses = TurkishMorphology::new().analyze("güzelleşince");
+    let derived = parses.iter().find(|p| p.root == "güzel").expect("güzel");
+    assert_eq!(derived.primary_pos, PrimaryPos::Adj);
 }
 
 fn parse(sentence: &str) -> Vec<DependencyNode> {

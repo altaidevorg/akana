@@ -139,15 +139,12 @@ fn test_derivational_morphology() {
     assert!(!parses_yolcu.is_empty());
     assert!(parses_yolcu.iter().any(|p| p.root == "yol"));
 
-    // Verb -> Noun (-gi): sevgi, bilgi
+    // -gI and -GAn are not productive (as in Zemberek): sevgi and çalışkan are lexicon words.
     let parses_sevgi = morph.analyze("sevgi");
-    assert!(!parses_sevgi.is_empty());
-    assert!(parses_sevgi.iter().any(|p| p.root == "sev"));
-
-    // Verb -> Adj (-gen): çalışkan
+    assert!(parses_sevgi.iter().any(|p| p.root == "sevgi"));
+    assert!(!parses_sevgi.iter().any(|p| p.root == "sev"));
     let parses_caliskan = morph.analyze("çalışkan");
-    assert!(!parses_caliskan.is_empty());
-    assert!(parses_caliskan.iter().any(|p| p.root == "çalış"));
+    assert!(parses_caliskan.iter().any(|p| p.root == "çalışkan"));
 }
 
 #[test]

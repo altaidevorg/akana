@@ -25,8 +25,9 @@ fn k_drop_only_before_the_diminutive() {
     assert!(!roots("ben").contains(&"bek".to_string()));
     assert!(!roots("diyor").contains(&"dik".to_string()));
     assert!(!roots("konuda").contains(&"konuk".to_string()));
-    // küçü-cük still has its diminutive analysis.
-    assert!(roots("küçücük").contains(&"küçük".to_string()));
+    // küçücük is a word of its own, and the diminutive attaches to the whole stem (ev-cik).
+    assert!(roots("küçücük").contains(&"küçücük".to_string()));
+    assert!(roots("evcik").contains(&"ev".to_string()));
 }
 
 #[test]
@@ -53,7 +54,8 @@ fn closed_classes_take_no_suffixes() {
 
 #[test]
 fn lexical_derivations_attach_to_the_bare_root() {
-    assert!(has_tags("sevgi", "sev", &["Verb", "DevGi"]));
+    // -gI is not productive: sevgi is a lexicon noun, not sev-gi.
+    assert!(!roots("sevgi").contains(&"sev".to_string()));
     // kork-t-um is not Caus + DevN; değ-il-im is not Pass + DevN.
     assert!(!has_tags("korktum", "kork", &["Verb", "Caus", "DevN"]));
     assert!(!roots("değilim").contains(&"değ".to_string()));

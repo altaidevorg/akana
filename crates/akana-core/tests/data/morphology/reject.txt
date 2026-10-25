@@ -10,13 +10,11 @@ gelti
 yapdı
 gitdi
 kitapcı
-sütcü
 sokakdan
 
 # buffer letters: y/s/n only after a vowel, a vowel-initial allomorph only after a consonant
 evm
 evsi
-evye
 evnin
 evyle
 evydi
@@ -35,14 +33,12 @@ arabasıya
 
 # aorist class: -Ar on most monosyllables, -Ir on polysyllables and the 13 exceptions, -r after vowels
 yapır
-geler
 alar
 görer
 verer
 gidir
 gelr
 kalar
-biler
 çalışar
 okuar
 
@@ -70,14 +66,12 @@ kitapı
 kitapım
 renki
 renkim
-burunu
 hakı
 gitiyor
 gitecek
 etiyor
 tatıyor
 tıpı
-retti
 zehiri
 mühürü
 şahısı
@@ -96,7 +90,6 @@ beraadı
 mahkumiyedi
 evrağı
 taksidi
-kalbı
 şannı
 emlağı
 stoğu
@@ -126,11 +119,13 @@ deyerek
 yeyen
 yeyecek
 susu
-sunun
 
 # optative persons
-gelem
 gelek
+
+# Not here because they are words: biler (bilemek "to sharpen"), evye "sink", kalbı (kalp
+# "counterfeit"), retti (ret + copula), sunun, burunu (buru), gelem (gele), geler (the letter
+# ge), sütcü (a surname), gelmişimdi (gelmiş-im-di, "it was my one who came").
 
 # vowel harmony and copula order (existing regression lists)
 kitaplerde
@@ -140,12 +135,15 @@ okulde
 geldilerdi
 geldilerdir
 evdeyimdi
-gelmişimdi
 yapldı
 
-# numbers and abbreviations take their harmony from the spoken form (üç, beş, iika)
+# numbers and abbreviations take their harmony from the spoken form (üç, beş, abede); İİK'nin
+# is not here: TDK reads K "ke" (TDK'nin), beside the colloquial "ka" (İİK'nın)
 3'u
 5'tır
 1923'de
-İİK'nin
 ABD'nın
+
+# a name's case, possessive and copula, and any suffix of an abbreviation, need an apostrophe
+Ankarada
+TBMMde

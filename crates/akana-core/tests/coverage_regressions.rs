@@ -120,9 +120,15 @@ fn persons_after_a_tense_take_the_copula() {
     // Not after the past tense, not after a nominal copula, and only -DIr after a non-A3pl
     // person.
     let morph = TurkishMorphology::new();
-    for word in ["geldilerdi", "geldilerdir", "evdeyimdi", "gelmişimdi"] {
+    for word in ["geldilerdi", "geldilerdir", "evdeyimdi"] {
         assert!(morph.analyze(word).is_empty(), "{word}: {}", best(word));
     }
+    // gelmiş-im-di only as the participle with a possessive ("it was my one who came").
+    assert!(!has_tags(
+        "gelmişimdi",
+        "gel",
+        &["Verb", "Evid", "A1sg", "CopPast"]
+    ));
 }
 
 #[test]

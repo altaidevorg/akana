@@ -174,8 +174,11 @@ fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
         if is_function_word(parses) {
             return false;
         }
+        // A predicate (mi-yiz "we are the note mi", evde-yim) is not a noun phrase head.
         let noun = parses.iter().any(|p| {
-            p.pos == PrimaryPos::Noun && p.secondary_pos != super::pos::SecondaryPos::ProperNoun
+            p.pos == PrimaryPos::Noun
+                && p.secondary_pos != super::pos::SecondaryPos::ProperNoun
+                && !p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
         });
         let adj = parses.iter().any(|p| p.pos == PrimaryPos::Adj);
         if noun && !adj {
@@ -188,16 +191,15 @@ fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
     false
 }
 
-/// Whether a token is read as a bare conjunction, question particle or postposition (hem, ki,
-/// mi, kadar). Such a word is not a noun phrase head even when a rare suffixed noun reading
-/// exists (he-m "my h"), so it neither attracts a pre-nominal modifier nor gets the
-/// noun-after-adjective bonus; "kalacak hem de" kept turning hem into a noun.
+/// Whether a token is read as a bare conjunction or postposition (hem, ki, kadar) or as the
+/// question particle with or without its person (mi, miyiz). Such a word is not a noun phrase
+/// head even when a rare suffixed noun reading exists (he-m "my h"), so it neither attracts a
+/// pre-nominal modifier nor gets the noun-after-adjective bonus; "kalacak hem de" kept
+/// turning hem into a noun.
 fn is_function_word(parses: &[MorphParse]) -> bool {
     parses.iter().any(|p| {
-        p.morpheme_tags.len() == 1
-            && matches!(
-                p.primary_pos,
-                PrimaryPos::Conj | PrimaryPos::Q | PrimaryPos::Postp
-            )
+        p.primary_pos == PrimaryPos::Q
+            || (p.morpheme_tags.len() == 1
+                && matches!(p.primary_pos, PrimaryPos::Conj | PrimaryPos::Postp))
     })
 }
