@@ -9,7 +9,7 @@ use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::stems::{self, StemIndex, StemTransition};
 use super::turkish_morphotactics::{self, RootStates};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, LazyLock};
 use unicode_normalization::UnicodeNormalization;
@@ -39,6 +39,10 @@ pub struct MorphParse {
     pub secondary_pos: SecondaryPos,
     pub morpheme_tags: Vec<String>,
     pub formatted: String,
+    /// How likely the reading is: a spelling factor (1 for a bare root, 0.95 for a suffixed
+    /// word, 0.6 for a name's suffixes written without an apostrophe) times the reading's corpus
+    /// prior relative to the word's most likely reading, so the best reading keeps its factor.
+    /// Analyses come sorted by it.
     pub score: f32,
 }
 
@@ -85,6 +89,238 @@ const MEMO_AFTER: usize = 512;
 /// How often one state may recur on a path (verbRoot_S recurs once per voice suffix).
 const MAX_STATE_REPEAT: usize = 8;
 
+/// The corpus frequency prior, written by `examples/morph_prior.rs`: how often each dictionary
+/// item and each analysis shape was the right reading in a sample of court decisions.
+static PRIOR: LazyLock<Prior> = LazyLock::new(|| Prior::parse(include_bytes!("prior.tsv.gz")));
+
+/// The second-person tags, which the prior scales by its register factor (see
+/// `examples/morph_prior.rs`).
+pub const SECOND_PERSON: [&str; 4] = ["P2sg", "P2pl", "A2sg", "A2pl"];
+
+/// The ratio between adjacent levels of a reading's prior relative to its word's best reading.
+const PRIOR_STEP: f32 = 1.02;
+
+/// Log probabilities of items ([`prior_item_key`]) and of shapes ([`prior_shape_key`]) given
+/// their POS (the shape's first tag): P(item) * P(shape | POS) is how likely a reading is.
+/// The keys are hashed ([`KeyHash`]), so looking a reading up builds no string.
+struct Prior {
+    items: KeyMap,
+    shapes: KeyMap,
+    unseen_item: f32,
+    /// A shape not in the file, per POS; [`Prior::unseen_shape`] for a POS not in it either.
+    unseen_shapes: HashMap<String, f32>,
+    unseen_shape: f32,
+    /// Log of the factor for second-person readings.
+    second_person: f32,
+    /// P(capitalised | name) and P(capitalised | other word).
+    capitalised_name: f32,
+    capitalised_other: f32,
+}
+
+impl Prior {
+    /// Reads `I<TAB>key<TAB>count` and `S<TAB>key<TAB>count` lines, smoothing every count by
+    /// one half as the estimator does. A damaged file only loses the ranking.
+    fn parse(gz: &[u8]) -> Self {
+        use std::io::Read;
+        let mut text = String::new();
+        if flate2::read::GzDecoder::new(gz)
+            .read_to_string(&mut text)
+            .is_err()
+        {
+            text.clear();
+        }
+        let mut items: HashMap<String, f64> = HashMap::new();
+        let mut shapes: HashMap<String, f64> = HashMap::new();
+        let mut second_person = 0.0;
+        // Without the file's estimates the word's case says nothing.
+        let mut capitalised_name = 0.5f64;
+        let mut capitalised_other = 0.5f64;
+        for line in text.lines() {
+            let mut fields = line.splitn(3, '\t');
+            let (Some(kind), Some(key), Some(count)) =
+                (fields.next(), fields.next(), fields.next())
+            else {
+                continue;
+            };
+            let Ok(count) = count.parse::<f64>() else {
+                continue;
+            };
+            match kind {
+                "I" => items.insert(key.to_string(), count),
+                "S" => shapes.insert(key.to_string(), count),
+                "R" if key == "second-person" && count > 0.0 => {
+                    second_person = count.ln() as f32;
+                    None
+                }
+                "R" if key == "capitalised-name" && count > 0.0 && count < 1.0 => {
+                    capitalised_name = count;
+                    None
+                }
+                "R" if key == "capitalised-other" && count > 0.0 && count < 1.0 => {
+                    capitalised_other = count;
+                    None
+                }
+                _ => None,
+            };
+        }
+        let total = items.values().map(|c| c + 0.5).sum::<f64>() + 0.5;
+        let unseen_item = (0.5 / total).ln() as f32;
+        let items = items
+            .into_iter()
+            .map(|(k, c)| (KeyHash::of(&k), ((c + 0.5) / total).ln() as f32))
+            .collect();
+        let pos_of = |shape: &str| shape.split('+').next().unwrap_or_default().to_string();
+        let mut totals: HashMap<String, f64> = HashMap::new();
+        for (k, c) in &shapes {
+            *totals.entry(pos_of(k)).or_insert(0.5) += c + 0.5;
+        }
+        let shapes = shapes
+            .into_iter()
+            .map(|(k, c)| {
+                let total = totals[&pos_of(&k)];
+                (KeyHash::of(&k), ((c + 0.5) / total).ln() as f32)
+            })
+            .collect();
+        let unseen_shapes = totals
+            .into_iter()
+            .map(|(pos, total)| (pos, (0.5 / total).ln() as f32))
+            .collect();
+        Prior {
+            items,
+            shapes,
+            unseen_item,
+            unseen_shapes,
+            unseen_shape: 0.5f32.ln(),
+            second_person,
+            capitalised_name: capitalised_name as f32,
+            capitalised_other: capitalised_other as f32,
+        }
+    }
+
+    /// `capitalised`: the word as written starts with a capital.
+    fn log_p(&self, p: &MorphParse, capitalised: bool) -> f32 {
+        let item = self
+            .items
+            .get(&KeyHash::of_parts(item_key_parts(p)))
+            .copied();
+        let shape_key = shape_key_parts(p).fold(KeyHash::new(), KeyHash::feed).0;
+        let shape = self.shapes.get(&shape_key).copied().unwrap_or_else(|| {
+            let pos = p.morpheme_tags.first().map_or("", String::as_str);
+            self.unseen_shapes
+                .get(pos)
+                .copied()
+                .unwrap_or(self.unseen_shape)
+        });
+        let register = if p
+            .morpheme_tags
+            .iter()
+            .any(|t| SECOND_PERSON.contains(&t.as_str()))
+        {
+            self.second_person
+        } else {
+            0.0
+        };
+        let p_capitalised = if prior_is_name(p) {
+            self.capitalised_name
+        } else {
+            self.capitalised_other
+        };
+        let case = if capitalised {
+            p_capitalised
+        } else {
+            1.0 - p_capitalised
+        };
+        item.unwrap_or(self.unseen_item) + shape + register + case.ln()
+    }
+}
+
+/// Whether the prior's case model counts a reading as a name (a proper noun or an
+/// abbreviation), which is written capitalised.
+pub fn prior_is_name(p: &MorphParse) -> bool {
+    matches!(
+        p.secondary_pos,
+        SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+    )
+}
+
+/// Whether the prior's case model counts a word as written capitalised (Ali, KARAR).
+pub fn prior_capitalised(word: &str) -> bool {
+    word.trim().chars().next().is_some_and(char::is_uppercase)
+}
+
+/// The prior's key for a reading's dictionary item: lemma, root, POS and secondary POS.
+pub fn prior_item_key(p: &MorphParse) -> String {
+    item_key_parts(p).concat()
+}
+
+/// The prior's key for a reading's shape: its tag sequence (Noun+P3sg+Loc).
+pub fn prior_shape_key(p: &MorphParse) -> String {
+    shape_key_parts(p).collect()
+}
+
+fn item_key_parts(p: &MorphParse) -> [&str; 7] {
+    let secondary = match p.secondary_pos.as_str() {
+        "" => "-",
+        s => s,
+    };
+    let pos = p.primary_pos.as_str();
+    [&p.lemma, " ", &p.root, " ", pos, " ", secondary]
+}
+
+fn shape_key_parts(p: &MorphParse) -> impl Iterator<Item = &str> {
+    p.morpheme_tags
+        .iter()
+        .enumerate()
+        .flat_map(|(i, t)| [if i == 0 { "" } else { "+" }, t.as_str()])
+}
+
+/// FNV-1a over the bytes of a prior key, fed in parts: the hash of a key's parts is the hash of
+/// the key.
+struct KeyHash(u64);
+
+impl KeyHash {
+    fn new() -> Self {
+        KeyHash(0xcbf2_9ce4_8422_2325)
+    }
+
+    fn feed(mut self, part: &str) -> Self {
+        for b in part.bytes() {
+            self.0 = (self.0 ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+        }
+        self
+    }
+
+    fn of(key: &str) -> u64 {
+        KeyHash::new().feed(key).0
+    }
+
+    fn of_parts(parts: [&str; 7]) -> u64 {
+        parts.into_iter().fold(KeyHash::new(), KeyHash::feed).0
+    }
+}
+
+/// A map keyed by [`KeyHash`] values, which need no hashing again.
+type KeyMap = HashMap<u64, f32, std::hash::BuildHasherDefault<IdentityHasher>>;
+
+#[derive(Default)]
+struct IdentityHasher(u64);
+
+impl std::hash::Hasher for IdentityHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.0 = (self.0 << 8) | u64::from(b);
+        }
+    }
+
+    fn write_u64(&mut self, n: u64) {
+        self.0 = n;
+    }
+}
+
 /// The morphological analyzer. Analyzers share the built-in lexicon, so creating or cloning
 /// one is cheap; adding items or loading a dictionary gives that analyzer a private copy of
 /// the lexicon (copy-on-write) and leaves the others unchanged.
@@ -92,6 +328,7 @@ const MAX_STATE_REPEAT: usize = 8;
 pub struct TurkishMorphology {
     lexicon: Arc<RootLexicon>,
     stems: Arc<StemIndex>,
+    prior: bool,
 }
 
 impl Default for TurkishMorphology {
@@ -105,7 +342,16 @@ impl TurkishMorphology {
         Self {
             lexicon: Arc::clone(&BUILTIN.0),
             stems: Arc::clone(&BUILTIN.1),
+            prior: true,
         }
+    }
+
+    /// Whether analyses are ranked by the corpus prior (the default). Without it they keep
+    /// the spelling factor alone and come in the analyzer's tie-break order; the prior's
+    /// estimator analyses that way.
+    pub fn with_prior(mut self, prior: bool) -> Self {
+        self.prior = prior;
+        self
     }
 
     pub fn with_lexicon(lexicon: RootLexicon) -> Self {
@@ -113,6 +359,7 @@ impl TurkishMorphology {
         Self {
             lexicon: Arc::new(lexicon),
             stems: Arc::new(stems),
+            prior: true,
         }
     }
 
@@ -167,6 +414,24 @@ impl TurkishMorphology {
     /// Analyzes a surface word and returns all valid morphological parses, the most likely
     /// first.
     pub fn analyze(&self, word: &str) -> Vec<MorphParse> {
+        let mut parses = self.analyze_unranked(word);
+        if self.prior && parses.len() > 1 {
+            let prior = &*PRIOR;
+            let capitalised = prior_capitalised(word);
+            let logs: Vec<f32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
+            let best = logs.iter().copied().fold(f32::MIN, f32::max);
+            for (p, log) in parses.iter_mut().zip(logs) {
+                // In steps of 2%: readings the corpus cannot tell apart (A3pl+Gen and
+                // A3pl+P2sg always compete in the same words) come out of the estimator equal
+                // up to rounding, and tie, so the analyzer's order decides between them.
+                p.score *= PRIOR_STEP.powf(((log - best) / PRIOR_STEP.ln()).round());
+            }
+            order(&mut parses);
+        }
+        parses
+    }
+
+    fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
         let clean = word.trim();
         if clean.is_empty() {
             return Vec::new();
@@ -349,7 +614,7 @@ impl TurkishMorphology {
         let first = lower.split('-').next().unwrap_or(head);
         let joined = lower.replace('-', "");
         let spanning: Vec<MorphParse> = self
-            .analyze(&joined)
+            .analyze_unranked(&joined)
             .into_iter()
             .filter(|p| {
                 p.root.chars().count() > first.chars().count() && joined.starts_with(&p.root)
@@ -364,7 +629,7 @@ impl TurkishMorphology {
         }
         let original_last = clean.rsplit('-').next().unwrap_or(last);
         Some(
-            self.analyze(original_last)
+            self.analyze_unranked(original_last)
                 .into_iter()
                 .map(|mut p| {
                     p.surface = clean.to_string();
@@ -377,24 +642,52 @@ impl TurkishMorphology {
     /// Zemberek's analyzeWordsWithApostrophe: analyse the word without the quote and keep the
     /// noun parses whose root is the part before it (İstanbul'un, Antalya'da). Failing that, a
     /// lexicon root the apostrophe falls inside (Kur'an, re'sen, fer'i), as Zemberek's
-    /// dictionary spells them. A name the lexicon does not know gets a proper-noun root, as
-    /// Zemberek's unidentified-token analyzer does for words with an apostrophe.
+    /// dictionary spells them. Then a name that ends in a possessive (Anayasa Mahkemesi'ne,
+    /// Türk Ceza Kanunu'nun), which Zemberek guesses as a name. A name the lexicon does not know
+    /// gets a proper-noun root, as Zemberek's unidentified-token analyzer does for words with an
+    /// apostrophe.
     fn analyze_with_apostrophe(&self, clean: &str, stem: &str, ending: &str) -> Vec<MorphParse> {
         let joined = format!("{stem}{ending}");
         let all = self.analyze_normalized(clean, &joined, true);
         let stem_chars = stem.chars().count();
         let (standard, spanning): (Vec<MorphParse>, Vec<MorphParse>) = all
-            .into_iter()
+            .iter()
             .filter(|p| {
                 (p.primary_pos == PrimaryPos::Noun && p.root == stem)
                     || (p.root.chars().count() > stem_chars && joined.starts_with(&p.root))
             })
+            .cloned()
             .partition(|p| p.root == stem);
         if !standard.is_empty() {
             return standard;
         }
         if !spanning.is_empty() {
             return spanning;
+        }
+        // The quote follows the possessive of a name's head noun, so the word reads on through
+        // it (mahkeme+P3sg+Dat, başkan+Ness+P3sg+Dat).
+        let heads: Vec<MorphParse> = self
+            .analyze_normalized(clean, stem, false)
+            .into_iter()
+            .filter(|s| {
+                s.primary_pos == PrimaryPos::Noun
+                    && s.morpheme_tags
+                        .last()
+                        .is_some_and(|t| t == "P3sg" || t == "P3pl")
+            })
+            .collect();
+        let through: Vec<MorphParse> = all
+            .into_iter()
+            .filter(|p| {
+                heads.iter().any(|s| {
+                    s.root == p.root
+                        && p.morpheme_tags.len() > s.morpheme_tags.len()
+                        && p.morpheme_tags.starts_with(&s.morpheme_tags)
+                })
+            })
+            .collect();
+        if !through.is_empty() {
+            return through;
         }
         // A name or abbreviation the lexicon knows is not guessed again: ABD'nın is not a word
         // because ABD is read "abede". A common word used as a name is (Başlangıç'ı, with no
@@ -957,6 +1250,15 @@ const DERIVATIONAL_TAGS: &[&str] = &[
 /// book"), then by the analysis string; and drops repeats of the same reading (the analysis
 /// string plus its secondary POS).
 fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
+    order(&mut results);
+    let mut seen = HashSet::new();
+    results.retain(|p| seen.insert((p.formatted.clone(), p.secondary_pos)));
+    results
+}
+
+/// Most likely first; ties go to fewer tags, then away from the 2nd-person possessive and the
+/// copula (much rarer than the 3rd person and the bare noun), then to the string.
+fn order(results: &mut [MorphParse]) {
     let p2sg = |p: &MorphParse| p.morpheme_tags.iter().any(|t| t == "P2sg");
     let predicate = |p: &MorphParse| {
         p.primary_pos != PrimaryPos::Verb && p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
@@ -970,7 +1272,4 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
             .then_with(|| predicate(a).cmp(&predicate(b)))
             .then_with(|| a.formatted.cmp(&b.formatted))
     });
-    let mut seen = HashSet::new();
-    results.retain(|p| seen.insert((p.formatted.clone(), p.secondary_pos)));
-    results
 }

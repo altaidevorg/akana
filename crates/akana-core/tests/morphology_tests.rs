@@ -201,3 +201,31 @@ fn test_morphology_disambiguation() {
     assert_eq!(disambiguated[2].primary_pos, pos::PrimaryPos::Noun);
     assert_eq!(disambiguated[3].primary_pos, pos::PrimaryPos::Verb);
 }
+
+#[test]
+fn test_frequency_prior_ranking() {
+    // The embedded corpus prior ranks each word's readings; without it these come out in the
+    // analyzer's tie order or worse.
+    let morphology = TurkishMorphology::new();
+    let best = |word: &str| morphology.analyze(word)[0].formatted.clone();
+    // Third person over the second, which court text almost never uses.
+    assert_eq!(best("kararının"), "[karar:Noun] karar:Noun+P3sg+Gen");
+    assert_eq!(best("kişilerin"), "[kişi:Noun] kişi:Noun+A3pl+Gen");
+    // The common item over its rare homograph (hak the noun, not the adjective).
+    assert_eq!(best("hakkı"), "[hak:Noun] hak:Noun+P3sg");
+    // A passive participle over a derived noun (düzenle-n-en, not düzen-len-en).
+    assert_eq!(
+        best("düzenlenen"),
+        "[düzenlemek:Verb] düzenle:Verb+Pass+PresPart"
+    );
+    // Case is evidence, weighed against how often each reading is meant: capitalised Ali is
+    // the name, but a capitalised Yani (the start of a sentence) is still the conjunction.
+    assert_eq!(
+        morphology.analyze("Ali")[0].secondary_pos,
+        SecondaryPos::ProperNoun
+    );
+    assert_eq!(best("Yani"), "[yani:Conj] yani:Conj");
+    // Without the prior, readings keep the spelling factor alone.
+    let flat = TurkishMorphology::new().with_prior(false);
+    assert!(flat.analyze("kişilerin").iter().all(|p| p.score >= 0.9));
+}

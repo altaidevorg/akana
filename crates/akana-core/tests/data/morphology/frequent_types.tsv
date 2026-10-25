@@ -30,6 +30,7 @@ yer	yer	Noun	Noun+A3sg+Nom
 yapılan	yapmak	Verb	Verb+Pass+PresPart
 göre	göre	Postp	Postp
 nedeniyle	neden	Noun	Noun+P3sg+Ins
+nedeniyle	nedeniyle	Adv	Adv
 ilgili	ilgili	Adj	Adj
 Anayasa	anayasa	Noun	Noun+A3sg+Nom
 Mahkemesi	mahkeme	Noun	Noun+P3sg
@@ -130,12 +131,14 @@ olmak	olmak	Verb	Verb+Inf
 Kanun	kanun	Noun	Noun+A3sg+Nom
 iptal	iptal	Noun	Noun+A3sg+Nom
 bakımından	bakım	Noun	Noun+P3sg+Abl
+bakımından	bakımından	Adv	Adv
 ait	ait	Postp	Postp
 hüküm	hüküm	Noun	Noun+A3sg+Nom
 bulunduğu	bulunmak	Verb	Verb+PastPart+P3sg
 şöyledir	şöyle	Adv	Adv+CopPres3sg
 idari	idari	Adj	Adj
 gereğince	gerek	Noun	Noun+P3sg+Equ
+gereğince	gereğince	Adv	Adv
 fıkrası	fıkra	Noun	Noun+P3sg
 etmiştir	etmek	Verb	Verb+Evid+CopPres3sg
 halinde	hal	Noun	Noun+P3sg+Loc
@@ -151,6 +154,7 @@ genel	genel	Adj	Adj
 iş	iş	Noun	Noun+A3sg+Nom
 ikinci	ikinci	Num	Num
 yerine	yer	Noun	Noun+P3sg+Dat
+yerine	yerine	Adv	Adv
 altına	alt	Noun	Noun+P3sg+Dat
 dair	dair	Postp	Postp
 maddi	maddi	Adj	Adj
@@ -211,6 +215,7 @@ yoksun	yoksun	Adj	Adj
 yapılması	yapmak	Verb	Verb+Pass+ActN+P3sg
 somut	somut	Adj	Adj
 adına	ad	Noun	Noun+P3sg+Dat
+adına	adına	Adv	Adv
 hakkına	hak	Noun	Noun+P3sg+Dat
 takip	takip	Noun	Noun+A3sg+Nom
 şirketin	şirket	Noun	Noun+Gen

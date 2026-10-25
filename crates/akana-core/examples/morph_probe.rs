@@ -46,7 +46,7 @@ fn main() {
         for p in parses {
             let secondary = p.secondary_pos.as_str();
             println!(
-                "{word}: {} pos={} {}{:.2}",
+                "{word}: {} pos={} {}{:.3e}",
                 p.formatted,
                 p.pos.as_str(),
                 if secondary.is_empty() {

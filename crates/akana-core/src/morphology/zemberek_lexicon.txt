@@ -22031,7 +22031,7 @@ göyük göyük Adj None Voicing
 göyük göyük Noun None Voicing
 göyünmek göyün Verb None AoristI
 göz göz Noun None NoVoicing
-gözaltı gözaltı Noun None
+gözaltı gözaltı Noun None CompoundP3sg roots=göz-alt
 gözalıcı gözalıcı Adj None
 gözardı gözardı Noun None CompoundP3sg roots=göz-art
 gözardı gözardı Noun ProperNoun ProperNoun

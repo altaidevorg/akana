@@ -1,0 +1,230 @@
+# The 49 hand-built sentences of the 2026-10 review (LEX-08: homographs yüz, gül, bin, dolu, yaşa,
+# ay, determiners, genitive-possessive pairs, light verbs) with the reading the disambiguator should
+# pick for each word. A sentence is `> tokens separated by spaces`; then one line per token that is
+# not punctuation: word, root, exact tags. Further root/tags pairs on a line are alternatives that
+# are also right. Read by tests/morphology_gold.rs.
+> Yüzünü soğuk suyla yıkadı .
+Yüzünü	yüz	Noun+P3sg+Acc
+soğuk	soğuk	Adj
+suyla	su	Noun+Ins
+yıkadı	yıka	Verb+Past
+> Çocuklar denizde yüz metre yüzdü .
+Çocuklar	çocuk	Noun+A3pl
+denizde	deniz	Noun+Loc
+yüz	yüz	Num
+metre	metre	Noun+A3sg+Nom
+yüzdü	yüz	Verb+Past
+> Yüz kişi toplantıya geldi .
+Yüz	yüz	Num
+kişi	kişi	Noun+A3sg+Nom
+toplantıya	toplantı	Noun+Dat
+geldi	gel	Verb+Past
+> Bahçede kırmızı bir gül açtı .
+Bahçede	bahçe	Noun+Loc
+kırmızı	kırmızı	Adj
+bir	bir	Det
+gül	gül	Noun+A3sg+Nom
+açtı	aç	Verb+Past
+> Bana bakıp gül .
+Bana	ben	Pron+A1sg+Dat
+bakıp	bak	Verb+AdvIp
+gül	gül	Verb+Imp+A2sg
+> Bin lira ödedi .
+Bin	bin	Num
+lira	lira	Noun+A3sg+Nom
+ödedi	öde	Verb+Past
+> Hemen ata bin .
+Hemen	hemen	Adv
+ata	at	Noun+Dat
+bin	bin	Verb+Imp+A2sg
+> Bir bardak çay içtik .
+Bir	bir	Det	bir	Num
+bardak	bardak	Noun+A3sg+Nom
+çay	çay	Noun+A3sg+Nom
+içtik	iç	Verb+Past+A1pl
+> Bardak su dolu .
+Bardak	bardak	Noun+A3sg+Nom
+su	su	Noun+A3sg+Nom
+dolu	dolu	Adj
+> Dün öğleden sonra dolu yağdı .
+Dün	dün	Adv	dün	Noun+A3sg+Nom
+öğleden	öğle	Noun+Abl
+sonra	sonra	Postp
+dolu	dolu	Noun+A3sg+Nom
+yağdı	yağ	Verb+Past
+> Kurt sürüye saldırdı .
+Kurt	kurt	Noun+A3sg+Nom
+sürüye	sürü	Noun+Dat
+saldırdı	saldır	Verb+Past
+> Toplantı ocak ayında yapıldı .
+Toplantı	toplantı	Noun+A3sg+Nom
+ocak	ocak	Noun+A3sg+Nom
+ayında	ay	Noun+P3sg+Loc
+yapıldı	yap	Verb+Pass+Past
+> Karar ekim ayında verildi .
+Karar	karar	Noun+A3sg+Nom
+ekim	ekim	Noun+A3sg+Nom
+ayında	ay	Noun+P3sg+Loc
+verildi	ver	Verb+Pass+Past
+> Bu yazı çok güzel .
+Bu	bu	Det
+yazı	yazı	Noun+A3sg+Nom
+çok	çok	Adv
+güzel	güzel	Adj
+> Uzun yaşa !
+Uzun	uzun	Adv	uzun	Adj
+yaşa	yaşa	Verb+Imp+A2sg
+> Bu yaşa kadar çalıştı .
+Bu	bu	Det
+yaşa	yaş	Noun+Dat
+kadar	kadar	Postp
+çalıştı	çalış	Verb+Past
+> Eski kararlar bozuldu .
+Eski	eski	Adj
+kararlar	karar	Noun+A3pl
+bozuldu	boz	Verb+Pass+Past	bozul	Verb+Past
+> İlgili kanun uygulanır .
+İlgili	ilgili	Adj	ilgi	Noun+With
+kanun	kanun	Noun+A3sg+Nom
+uygulanır	uygula	Verb+Pass+Aor
+> Dava açan kişi geldi .
+Dava	dava	Noun+A3sg+Nom
+açan	aç	Verb+PresPart
+kişi	kişi	Noun+A3sg+Nom
+geldi	gel	Verb+Past
+> Görevli olan memur geldi .
+Görevli	görev	Noun+With
+olan	ol	Verb+PresPart
+memur	memur	Noun+A3sg+Nom
+geldi	gel	Verb+Past
+> Mahkemenin kararı bozuldu .
+Mahkemenin	mahkeme	Noun+Gen
+kararı	karar	Noun+P3sg
+bozuldu	boz	Verb+Pass+Past	bozul	Verb+Past
+> Davacının vekili duruşmaya katıldı .
+Davacının	davacı	Noun+Gen
+vekili	vekil	Noun+P3sg
+duruşmaya	duruşma	Noun+Dat
+katıldı	katıl	Verb+Past
+> Karar tarihinde hazır bulundu .
+Karar	karar	Noun+A3sg+Nom
+tarihinde	tarih	Noun+P3sg+Loc
+hazır	hazır	Adj
+bulundu	bulun	Verb+Past
+> Bu nedenle davanın reddine karar verildi .
+Bu	bu	Det
+nedenle	neden	Noun+Ins
+davanın	dava	Noun+Gen
+reddine	ret	Noun+P3sg+Dat
+karar	karar	Noun+A3sg+Nom
+verildi	ver	Verb+Pass+Past
+> Ödeme yapılmadı .
+Ödeme	öde	Verb+ActN
+yapılmadı	yap	Verb+Pass+Neg+Past
+> Davaya devam edildi .
+Davaya	dava	Noun+Dat
+devam	devam	Noun+A3sg+Nom
+edildi	et	Verb+Pass+Past
+> Bu ay maaş ödenmedi .
+Bu	bu	Det
+ay	ay	Noun+A3sg+Nom
+maaş	maaş	Noun+A3sg+Nom
+ödenmedi	öde	Verb+Pass+Neg+Past
+> Kamu yararı gözetildi .
+Kamu	kamu	Noun+A3sg+Nom
+yararı	yarar	Noun+P3sg
+gözetildi	gözet	Verb+Pass+Past
+> Hak arama özgürlüğü ihlal edildi .
+Hak	hak	Noun+A3sg+Nom
+arama	ara	Verb+ActN
+özgürlüğü	özgürlük	Noun+P3sg	özgür	Adj+Ness+P3sg
+ihlal	ihlal	Noun+A3sg+Nom
+edildi	et	Verb+Pass+Past
+> Şikayet eden kişi dinlendi .
+Şikayet	şikayet	Noun+A3sg+Nom
+eden	et	Verb+PresPart
+kişi	kişi	Noun+A3sg+Nom
+dinlendi	dinle	Verb+Pass+Past	dinlen	Verb+Past
+> İhlal edilen hak tespit edildi .
+İhlal	ihlal	Noun+A3sg+Nom
+edilen	et	Verb+Pass+PresPart
+hak	hak	Noun+A3sg+Nom
+tespit	tespit	Noun+A3sg+Nom
+edildi	et	Verb+Pass+Past
+> Belirtilen gerekçeyle reddedildi .
+Belirtilen	belirt	Verb+Pass+PresPart
+gerekçeyle	gerekçe	Noun+Ins
+reddedildi	reddet	Verb+Pass+Past
+> Kazanç amacıyla hareket etti .
+Kazanç	kazanç	Noun+A3sg+Nom
+amacıyla	amaç	Noun+P3sg+Ins
+hareket	hareket	Noun+A3sg+Nom
+etti	et	Verb+Past
+> Bu bir kitap .
+Bu	bu	Pron+A3sg+Nom
+bir	bir	Det	bir	Num
+kitap	kitap	Noun+A3sg+Nom
+> O gelmedi .
+O	o	Pron+A3sg+Nom
+gelmedi	gel	Verb+Neg+Past
+> Bu doğru .
+Bu	bu	Pron+A3sg+Nom
+doğru	doğru	Adj
+> Gelir vergisi ödendi .
+Gelir	gelir	Noun+A3sg+Nom
+vergisi	vergi	Noun+P3sg
+ödendi	öde	Verb+Pass+Past
+> Yarın gelir .
+Yarın	yarın	Adv	yarın	Noun+A3sg+Nom
+gelir	gel	Verb+Aor
+> Kitabı masanın altına koydu .
+Kitabı	kitap	Noun+Acc
+masanın	masa	Noun+Gen
+altına	alt	Noun+P3sg+Dat
+koydu	koy	Verb+Past
+> Bunun dışında bir sorun yok .
+Bunun	bu	Pron+Gen
+dışında	dış	Noun+P3sg+Loc	dış	Adj+P3sg+Loc
+bir	bir	Det	bir	Num
+sorun	sorun	Noun+A3sg+Nom
+yok	yok	Adj
+> Kanun yolu açıktır .
+Kanun	kanun	Noun+A3sg+Nom
+yolu	yol	Noun+P3sg
+açıktır	açık	Adj+CopPres3sg
+> Anayasa Mahkemesi kararını verdi .
+Anayasa	anayasa	Noun+A3sg+Nom
+Mahkemesi	mahkeme	Noun+P3sg
+kararını	karar	Noun+P3sg+Acc
+verdi	ver	Verb+Past
+> Usul hükümlerine aykırıdır .
+Usul	usul	Noun+A3sg+Nom
+hükümlerine	hüküm	Noun+A3pl+P3sg+Dat	hüküm	Noun+P3pl+Dat	hüküm	Noun+A3pl+P3pl+Dat
+aykırıdır	aykırı	Adj+CopPres3sg
+> Bu yüzden geldi .
+Bu	bu	Det
+yüzden	yüz	Noun+Abl
+geldi	gel	Verb+Past
+> Yüzde on indirim yapıldı .
+Yüzde	yüzde	Noun+A3sg+Nom	yüz	Noun+Loc
+on	on	Num
+indirim	indirim	Noun+A3sg+Nom
+yapıldı	yap	Verb+Pass+Past
+> Ali eve geldi .
+Ali	ali	Noun+A3sg+Nom
+eve	ev	Noun+Dat
+geldi	gel	Verb+Past
+> Salih eve geldi .
+Salih	salih	Noun+A3sg+Nom
+eve	ev	Noun+Dat
+geldi	gel	Verb+Past
+> Kararın bozulmasına oyçokluğuyla karar verildi .
+Kararın	karar	Noun+Gen
+bozulmasına	boz	Verb+Pass+ActN+P3sg+Dat	bozul	Verb+ActN+P3sg+Dat
+oyçokluğuyla	oyçokluğu	Noun+Ins
+karar	karar	Noun+A3sg+Nom
+verildi	ver	Verb+Pass+Past
+> Her şey yolunda .
+Her	her	Det
+şey	şey	Noun+A3sg+Nom
+yolunda	yol	Noun+P3sg+Loc
