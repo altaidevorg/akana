@@ -1,4 +1,5 @@
-//! Prints every analysis of the words given on the command line (or one per stdin line).
+//! Prints every analysis of the words given on the command line (or one per stdin line): akana's
+//! format, then Zemberek's on the line below.
 //!
 //! ```text
 //! cargo run --release -p akana-core --example morph_probe -- kitabı gelmem bana
@@ -46,7 +47,7 @@ fn main() {
         for p in parses {
             let secondary = p.secondary_pos.as_str();
             println!(
-                "{word}: {} pos={} {}{:.3e}",
+                "{word}: {} pos={} {}{:.3e}\n    {}",
                 p.formatted,
                 p.pos.as_str(),
                 if secondary.is_empty() {
@@ -54,7 +55,8 @@ fn main() {
                 } else {
                     format!("{secondary} ")
                 },
-                p.score
+                p.score,
+                p.analysis
             );
         }
     }

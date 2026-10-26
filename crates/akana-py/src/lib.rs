@@ -263,6 +263,7 @@ impl PyMorphology {
             dict.set_item("secondary_pos", p.secondary_pos.as_str())?;
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;
+            dict.set_item("analysis", p.analysis)?;
             dict.set_item("score", p.score)?;
             list.append(dict)?;
         }
@@ -405,6 +406,7 @@ impl PyDisambiguator {
             dict.set_item("secondary_pos", p.secondary_pos.as_str())?;
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;
+            dict.set_item("analysis", p.analysis)?;
             list.append(dict)?;
         }
         Ok(list)
