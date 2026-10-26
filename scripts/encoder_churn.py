@@ -8,8 +8,9 @@ index that is not rebuilt: the bump class of `crates/akana-core/src/embeddings/s
     python scripts/encoder_churn.py compare a.dump.gz b.dump.gz
 
 `dump` encodes:
-- court chunks: SentenceChunker(256) over the corpus sample's eval text, the first 1,000
-  chunks of each subset;
+- court chunks: the corpus sample's eval text in sentences packed up to 256 words, the first
+  1,000 chunks of each subset. They are cut without akana, so that two builds encode the same
+  texts even when their tokenizers differ;
 - RagTurk: chunks and questions, as `benchmark_rag_real_data.py` builds them;
 - Turkuaz: texts and questions, cached in `.cache/rag_benchmarks/turkuaz.jsonl` after the
   first streaming download.
@@ -34,6 +35,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import re
 import struct
 import sys
 from pathlib import Path
@@ -44,13 +46,29 @@ sys.path.insert(0, str(HERE))
 
 COURT_SUBSETS = ["aym_bb", "aym_norm", "danistay", "emsal", "yargitay"]
 CHUNKS_PER_SUBSET = 1000
+CHUNK_WORDS = 256
+SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
 TURKUAZ_CACHE = Path(".cache/rag_benchmarks/turkuaz.jsonl")
 
 
-def court_chunks(sample_dir: Path) -> list[str]:
-    import akana
+def chunk(decision: str) -> list[str]:
+    """A decision's sentences packed into chunks of up to CHUNK_WORDS whitespace-separated
+    words; a longer sentence is a chunk of its own."""
+    chunks, current, words = [], [], 0
+    for sentence in SENTENCE_END.split(decision.strip()):
+        n = len(sentence.split())
+        if current and words + n > CHUNK_WORDS:
+            chunks.append(" ".join(current))
+            current, words = [], 0
+        if n:
+            current.append(sentence)
+            words += n
+    if current:
+        chunks.append(" ".join(current))
+    return chunks
 
-    chunker = akana.SentenceChunker(chunk_size=256)
+
+def court_chunks(sample_dir: Path) -> list[str]:
     texts = []
     for subset in COURT_SUBSETS:
         path = sample_dir / f"{subset}.txt"
@@ -59,13 +77,10 @@ def court_chunks(sample_dir: Path) -> list[str]:
         chunks = []
         # Documents are separated by a line holding only \x1e (scripts/morph_corpus_sample.py).
         for decision in path.read_text(encoding="utf-8").split("\n\x1e\n"):
-            for chunk in chunker.chunk(decision):
-                chunks.append(chunk.text)
-                if len(chunks) == CHUNKS_PER_SUBSET:
-                    break
-            if len(chunks) == CHUNKS_PER_SUBSET:
+            chunks.extend(chunk(decision))
+            if len(chunks) >= CHUNKS_PER_SUBSET:
                 break
-        texts.extend(chunks)
+        texts.extend(chunks[:CHUNKS_PER_SUBSET])
     return texts
 
 
