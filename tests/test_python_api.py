@@ -54,6 +54,8 @@ def test_morphology_analysis():
     top = parses[0]
     assert top["root"] == "kitap"
     assert "P1sg" in top["morphemes"]
+    # Zemberek's format, with every morpheme and its surface, next to akana's tags.
+    assert top["analysis"] == "[kitap:Noun] kitab:Noun+A3sg+ım:P1sg"
 
     # Noun with vowel drop
     parses_burnum = morph.analyze("burnum")
@@ -146,6 +148,7 @@ def test_disambiguation():
     assert parses[1]["primary_pos"] == "Adj"
     assert parses[2]["primary_pos"] == "Noun"
     assert parses[3]["primary_pos"] == "Verb"
+    assert parses[3]["analysis"] == "[okumak:Verb] oku:Verb+du:Past+A3sg"
 
 
 def test_dependency_parser():
@@ -167,6 +170,7 @@ def test_document_pipeline():
     assert "Ak" in doc.sentences[0].tokens
     assert "kitap" in doc.sentences[1].tokens
     assert len(doc.sentences[0].parses) > 0
+    assert all(p["analysis"].startswith("[") for p in doc.sentences[1].parses)
 
 
 def test_readability_analysis():

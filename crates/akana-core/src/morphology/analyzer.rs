@@ -39,6 +39,13 @@ pub struct MorphParse {
     pub secondary_pos: SecondaryPos,
     pub morpheme_tags: Vec<String>,
     pub formatted: String,
+    /// The analysis in Zemberek's format (`SingleAnalysis.formatLong`): every morpheme by its
+    /// Zemberek id, after its surface when it has one, `|` before a derivation and `→` before
+    /// the POS it derives: `[kitap:Noun] kitab:Noun+A3sg+ım:P1sg+a:Dat`, `[gelmek:Verb]
+    /// gel:Verb|diğ:PastPart→Noun+A3sg+imiz:P1pl+de:Loc`. The silent A3sg and Zero are shown;
+    /// Pnon and Nom are not, as in Zemberek. `morpheme_tags` and `formatted` stay akana's.
+    #[serde(default)]
+    pub analysis: String,
     /// How likely the reading is: a spelling factor (1 for a bare root, 0.95 for a suffixed
     /// word, 0.6 for a name's suffixes written without an apostrophe) times the reading's corpus
     /// prior relative to the word's most likely reading, so the best reading keeps its factor.
@@ -649,6 +656,8 @@ impl TurkishMorphology {
                 } else {
                     secondary
                 };
+                p.analysis =
+                    restem_analysis(&p.analysis, &root, PrimaryPos::Num, p.secondary_pos, &root);
                 p
             })
             .collect::<Vec<_>>()
@@ -1209,13 +1218,22 @@ pub(super) fn render(
         tags.push("Nom");
     }
 
-    let formatted = format!(
-        "[{}:{}] {}:{}",
-        item.lemma,
-        item.primary_pos.as_str(),
-        item.root,
-        tags.join("+")
-    );
+    // `[lemma:Pos] root:Tag+Tag`, written in place (format! with tags.join allocated twice).
+    let mut formatted =
+        String::with_capacity(item.lemma.len() + item.root.len() + 8 * tags.len() + 8);
+    formatted.push('[');
+    formatted.push_str(&item.lemma);
+    formatted.push(':');
+    formatted.push_str(item.primary_pos.as_str());
+    formatted.push_str("] ");
+    formatted.push_str(&item.root);
+    formatted.push(':');
+    for (i, tag) in tags.iter().enumerate() {
+        if i > 0 {
+            formatted.push('+');
+        }
+        formatted.push_str(tag);
+    }
     let bare = !any_surface && input == stem.surface.as_ref();
     let named = matches!(
         item.secondary_pos,
@@ -1252,8 +1270,87 @@ pub(super) fn render(
         secondary_pos: item.secondary_pos,
         morpheme_tags: tags.into_iter().map(str::to_string).collect(),
         formatted,
+        analysis: zemberek_analysis(graph, item, stem, steps, input),
         score,
     }
+}
+
+/// A path in Zemberek's default format (`AnalysisFormatters.DEFAULT`): the dictionary item,
+/// then the stem with its POS morpheme and each suffix morpheme, `surface:Id` or `Id`, joined
+/// by `+`, with `|` before a derivational morpheme and `→` after it. Pnon and Nom are left out,
+/// as Zemberek's `SingleAnalysis.fromSearchPath` leaves them out.
+fn zemberek_analysis(
+    graph: &Graph,
+    item: &DictionaryItem,
+    stem: &StemTransition,
+    steps: &[Step],
+    input: &str,
+) -> String {
+    let mut out = String::with_capacity(item.lemma.len() + 2 * input.len() + 6 * steps.len() + 16);
+    push_zemberek_item(&mut out, &item.lemma, item.primary_pos, item.secondary_pos);
+    out.push_str(&stem.surface);
+    out.push(':');
+    out.push_str(graph.states[stem.to.0 as usize].morpheme.id());
+    let mut derived = false;
+    for step in steps {
+        let m = graph.states[graph.transitions[step.transition as usize].to.0 as usize].morpheme;
+        if matches!(m, M::Pnon | M::Nom) {
+            continue;
+        }
+        let derivation = m.is_derivational();
+        if derivation {
+            out.push('|');
+        } else if !derived {
+            out.push('+');
+        }
+        if step.end > step.start {
+            out.push_str(&input[step.start..step.end]);
+            out.push(':');
+        }
+        out.push_str(m.id());
+        if derivation {
+            out.push('→');
+        }
+        derived = derivation;
+    }
+    out
+}
+
+/// Zemberek's dictionary item part, `[lemma:Pos] ` or `[lemma:Pos,Secondary] `; its POS short
+/// forms are akana's but `Ques` for the question particle.
+fn push_zemberek_item(out: &mut String, lemma: &str, pos: PrimaryPos, secondary: SecondaryPos) {
+    out.push('[');
+    out.push_str(lemma);
+    out.push(':');
+    out.push_str(match pos {
+        PrimaryPos::Q => "Ques",
+        pos => pos.as_str(),
+    });
+    if secondary != SecondaryPos::None {
+        out.push(',');
+        out.push_str(secondary.as_str());
+    }
+    out.push_str("] ");
+}
+
+/// A Zemberek analysis with its dictionary item and stem replaced, for a word read through
+/// another (1923'te through üç-te: `[1923:Num,Card] 1923:Num|Zero→Noun+A3sg+te:Loc`, as
+/// Zemberek's numeral analysis writes it).
+fn restem_analysis(
+    analysis: &str,
+    lemma: &str,
+    pos: PrimaryPos,
+    secondary: SecondaryPos,
+    stem: &str,
+) -> String {
+    // The stem is the item's root or a form of it, without a ':'.
+    let body = analysis.split_once("] ").map_or(analysis, |(_, body)| body);
+    let rest = body.find(':').map_or("", |i| &body[i..]);
+    let mut out = String::with_capacity(lemma.len() + stem.len() + rest.len() + 16);
+    push_zemberek_item(&mut out, lemma, pos, secondary);
+    out.push_str(stem);
+    out.push_str(rest);
+    out
 }
 
 /// Derivational tags: an analysis without them is preferred among equals.
@@ -1305,12 +1402,18 @@ const DERIVATIONAL_TAGS: &[&str] = &[
 
 /// Sorts by score, then fewer tags, then away from the 2nd-person possessive (much rarer than
 /// the 3rd in running text) and from a nominal predicate (kitab-ım "my book" before "I am a
-/// book"), then by the analysis string; and drops repeats of the same reading (the analysis
-/// string plus its secondary POS).
+/// book"), then by `formatted`; and drops repeats of the same reading (`formatted` plus its
+/// secondary POS), so two Zemberek readings that are one reading in akana's tags (an empty
+/// P3sg or Pnon after a CompoundP3sg noun) keep the first one's `analysis`.
 fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
     order(&mut results);
-    let mut seen = HashSet::new();
-    results.retain(|p| seen.insert((p.formatted.clone(), p.secondary_pos)));
+    let mut seen = HashSet::with_capacity(results.len());
+    let first: Vec<bool> = results
+        .iter()
+        .map(|p| seen.insert((p.formatted.as_str(), p.secondary_pos)))
+        .collect();
+    let mut first = first.into_iter();
+    results.retain(|_| first.next().unwrap_or(true));
     results
 }
 

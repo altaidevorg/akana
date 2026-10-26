@@ -312,7 +312,9 @@ morph = akana.Morphology()
 parses = morph.analyze("kitabıma")
 for parse in parses:
     print(parse["lemma"], parse["primary_pos"], parse["morphemes"])
+    print(parse["analysis"])
 # -> kitap Noun ['Noun', 'P1sg', 'Dat']
+# -> [kitap:Noun] kitab:Noun+A3sg+ım:P1sg+a:Dat    (Zemberek's format: every morpheme and its surface)
 
 # 3. Google-Style Syntactic Expressive Morphology (Inflectional Groups & UD)
 syn_parses = akana.syntactic_analyze("geldiğimizde")
