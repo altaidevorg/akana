@@ -57,7 +57,7 @@ lazy_static! {
             "tbmm.", "tc.", "tck.", "tel.", "ter.", "tes.", "tic.", "tl.", "tug.",
             "tüm.", "üniv.", "uzm.", "vb.", "vd.", "vol.", "vs.", "yy.", "yard.",
             "yön.", "yük.", "yur.", "zool.", "km.", "m.", "cm.", "mm.", "kg.", "gr.",
-            "mad.", "madde.", "vol.", "volüm.", "bk.", "sf.", "sy.", "krş."
+            "mad.", "madde.", "vol.", "volüm.", "bk.", "sf.", "sy.", "krş.", "şti.", "san."
         ];
         for a in abbrs {
             set.insert(a);
@@ -72,6 +72,21 @@ lazy_static! {
     static ref TIME_REGEX: Regex = Regex::new(r"^\d{1,2}[:.]\d{2}([:.]\d{2})?").unwrap();
     static ref DATE_REGEX: Regex = Regex::new(r"^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}").unwrap();
     static ref NUMBER_REGEX: Regex = Regex::new(r"^[-+]?(?:\d+(?:[.,]\d+)*)%?").unwrap();
+    /// The suffixes of a number, date or time after an apostrophe (1924'te, 17.00'ye,
+    /// 21.10.2026'da), which belong to its token as a name's do (İstanbul'da).
+    static ref NUMBER_SUFFIX_REGEX: Regex = Regex::new(r"^['’]\p{L}+").unwrap();
+    /// An abbreviation in capitals with its suffixes after a period, as court decisions write
+    /// it (TCK.nun, H.U.M.K.nun): one token, which the analyzer reads as TCK'nun.
+    static ref DOTTED_SUFFIX_REGEX: Regex =
+        Regex::new(r"^(?:\p{Lu}{2,}|(?:\p{Lu}\.)+\p{Lu})\.\p{Ll}+").unwrap();
+}
+
+/// The end of a number, date or time token whose digits end at `end`: after its suffixes, if
+/// an apostrophe joins them.
+fn with_number_suffix(text: &str, end: usize) -> usize {
+    end + NUMBER_SUFFIX_REGEX
+        .find(&text[end..])
+        .map_or(0, |m| m.end())
 }
 
 pub struct TurkishTokenizer;
@@ -160,23 +175,22 @@ impl<'a> Iterator for Tokens<'a> {
             // 4. Digits, Numbers, Dates, Times (+/- numbers)
             if first_char.is_ascii_digit() || first_char == '+' || first_char == '-' {
                 if let Some(mat) = DATE_REGEX.find(remaining) {
-                    let token_text = mat.as_str();
-                    self.idx = start_idx + token_text.len();
+                    self.idx = with_number_suffix(text, start_idx + mat.end());
+                    let token_text = &text[start_idx..self.idx];
                     return Some(Token::new(token_text, TokenType::Date, start_idx, self.idx));
                 }
 
                 if let Some(mat) = TIME_REGEX.find(remaining) {
-                    let token_text = mat.as_str();
-                    self.idx = start_idx + token_text.len();
+                    self.idx = with_number_suffix(text, start_idx + mat.end());
+                    let token_text = &text[start_idx..self.idx];
                     return Some(Token::new(token_text, TokenType::Time, start_idx, self.idx));
                 }
 
                 if let Some(mat) = NUMBER_REGEX.find(remaining) {
-                    let token_text = mat.as_str();
-                    if token_text.chars().any(|c| c.is_ascii_digit()) {
-                        self.idx = start_idx + token_text.len();
+                    if mat.as_str().chars().any(|c| c.is_ascii_digit()) {
+                        self.idx = with_number_suffix(text, start_idx + mat.end());
                         return Some(Token::new(
-                            token_text,
+                            &text[start_idx..self.idx],
                             TokenType::Number,
                             start_idx,
                             self.idx,
@@ -201,6 +215,18 @@ impl<'a> Iterator for Tokens<'a> {
                         return Some(Token::new(
                             token_text,
                             TokenType::Email,
+                            start_idx,
+                            self.idx,
+                        ));
+                    }
+                }
+
+                if first_char.is_uppercase() {
+                    if let Some(mat) = DOTTED_SUFFIX_REGEX.find(remaining) {
+                        self.idx = start_idx + mat.end();
+                        return Some(Token::new(
+                            mat.as_str(),
+                            TokenType::ProperNounWithApostrophe,
                             start_idx,
                             self.idx,
                         ));

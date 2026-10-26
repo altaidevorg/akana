@@ -879,6 +879,21 @@ impl TurkishMorphology {
         if let Some(parses) = self.analyze_hyphenated(clean, &lower) {
             return parses;
         }
+        // Court decisions write an abbreviation's suffixes after a period (TCK.nun,
+        // H.U.M.K.nun): read as after an apostrophe (TCK'nun).
+        if let Some((abbreviation, ending)) = dotted_suffix(clean) {
+            let quoted = format!("{abbreviation}'{ending}");
+            let stem = super::super::phonology::to_turkish_lower(&abbreviation);
+            let ending = super::super::phonology::to_turkish_lower(ending);
+            return self
+                .analyze_with_apostrophe(&quoted, &stem, &ending)
+                .into_iter()
+                .map(|mut p| {
+                    p.surface = clean.to_string();
+                    p
+                })
+                .collect();
+        }
 
         // The suffixes follow the last apostrophe; an earlier one belongs to the word
         // (Kur'an'ı).
@@ -893,6 +908,9 @@ impl TurkishMorphology {
                 let mut parses = self.analyze_normalized(clean, &word, false);
                 if parses.is_empty() {
                     parses = self.analyze_name_without_apostrophe(clean, &word);
+                }
+                if parses.is_empty() && word.ends_with('.') && self.analyze_roman(clean).is_none() {
+                    parses = self.analyze_dotted(clean, &word);
                 }
                 (word, parses)
             }
@@ -1159,6 +1177,37 @@ impl TurkishMorphology {
         finish(results)
     }
 
+    /// A word with the period of an abbreviation, which the tokenizer keeps (Dr., vb., No.,
+    /// Av., TCK.): the abbreviation's reading, one guessed for a word in capitals the lexicon
+    /// lacks, or else the word's own (madde., where the tokenizer took a sentence's period for
+    /// an abbreviation's).
+    fn analyze_dotted(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
+        let original = clean.strip_suffix('.').unwrap_or(clean);
+        let stem = lower.strip_suffix('.').unwrap_or(lower);
+        if original.is_empty() || original.contains(['.', '\'']) {
+            return Vec::new();
+        }
+        let own = self.analyze_unranked(original);
+        let mut parses: Vec<MorphParse> = own
+            .iter()
+            .filter(|p| p.secondary_pos == SecondaryPos::Abbreviation && p.root == stem)
+            .cloned()
+            .collect();
+        if parses.is_empty()
+            && original.chars().nth(1).is_some()
+            && original.chars().all(char::is_uppercase)
+        {
+            parses = self.analyze_with_apostrophe(original, stem, "");
+        }
+        if parses.is_empty() {
+            parses = own;
+        }
+        for p in &mut parses {
+            p.surface = clean.to_string();
+        }
+        parses
+    }
+
     /// A name written with its capital and a case or copula ending but without the apostrophe
     /// (Türkiyede, Avrupanın, Asyadaki, Ermeniyim, TBMMnin): the name's reading, at the factor
     /// of a name's suffixes without one, for a word that has no other. A left-out apostrophe is
@@ -1344,6 +1393,22 @@ fn derived_verb_stems<'s>(graph: &'s Graph, steps: &'s [Step]) -> impl Iterator<
                 )
         })
         .map(|(_, s)| s.end)
+}
+
+/// An abbreviation in capitals with its suffixes after a period (TCK.nun; H.U.M.K.nun, whose
+/// letters are dotted too): the abbreviation without its periods, and the suffixes.
+fn dotted_suffix(word: &str) -> Option<(String, &str)> {
+    let (abbreviation, ending) = word.rsplit_once('.')?;
+    if ending.is_empty() || !ending.chars().all(char::is_lowercase) {
+        return None;
+    }
+    let solid = !abbreviation.contains('.');
+    let initials = abbreviation.split('.').all(|l| l.chars().count() == 1);
+    let letters: String = abbreviation.chars().filter(|&c| c != '.').collect();
+    (letters.chars().nth(1).is_some()
+        && letters.chars().all(char::is_uppercase)
+        && (solid || initials))
+        .then_some((letters, ending))
 }
 
 /// Whether a name's suffixes may be written without an apostrophe. Turkish spelling separates a

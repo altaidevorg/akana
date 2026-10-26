@@ -156,6 +156,20 @@ lazy_static! {
 
 pub struct TurkishNER;
 
+/// A number, date or time token without the suffixes the tokenizer keeps with it after an
+/// apostrophe (2026'da, %50'si): an entity ends with the number.
+fn without_number_suffix(tok: Token<'_>) -> Token<'_> {
+    if matches!(
+        tok.token_type,
+        TokenType::Number | TokenType::Date | TokenType::Time
+    ) {
+        if let Some(i) = tok.text.find(['\'', '’']) {
+            return Token::new(&tok.text[..i], tok.token_type, tok.start, tok.start + i);
+        }
+    }
+    tok
+}
+
 /// Where the organisation scan from token `i` stops: the first token at or after `i` that is
 /// an ORG suffix (`true`), or that is neither capitalised nor `ve`/`ile` (`false`; also when
 /// the tokens run out, with `tokens.len()`).
@@ -179,7 +193,10 @@ impl TurkishNER {
     /// Extracts named entities from a Turkish text string.
     pub fn extract_entities(text: &str) -> Vec<NamedEntity> {
         let mut entities = Vec::new();
-        let tokens = TurkishTokenizer::tokenize(text);
+        let tokens: Vec<Token> = TurkishTokenizer::tokenize(text)
+            .into_iter()
+            .map(without_number_suffix)
+            .collect();
         let n = tokens.len();
         // Last result of `org_scan_stop`: (start, stop token, whether it is an ORG suffix).
         let mut org_stop: Option<(usize, usize, bool)> = None;

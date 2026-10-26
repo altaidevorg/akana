@@ -1,6 +1,6 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 710 of 735 checks pass (96.6 %)
-#   ACC 587/598
+# 716 of 735 checks pass (97.4 %)
+#   ACC 593/598
 #   REJ 72/85
 #   REJL 51/52
 nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	benimki	ben	*
@@ -15,12 +15,6 @@ pronouns	REJ	banı
 pronouns	REJ	bene
 pronouns	REJ	bizler'e
 pronouns	REJ	sene
-proper nouns and abbreviations	ACC	Av.	*	*
-proper nouns and abbreviations	ACC	Dr.	*	*
-proper nouns and abbreviations	ACC	Prof.	*	*
-proper nouns and abbreviations	ACC	md.	*	*
-proper nouns and abbreviations	ACC	vb.	*	*
-proper nouns and abbreviations	ACC	vs.	*	*
 proper nouns and abbreviations	REJ	Ahmed'e
 question particle, değil, imek	ACC	iken	imek	*
 question particle, değil, imek	REJ	değilsiniz'

@@ -521,3 +521,11 @@ Ankarayla	ankara	Noun+Ins
 Ermeniyim	ermeni	Noun+CopPres1sg
 TBMMde	tbmm	Noun+Loc
 TBMMnin	tbmm	Noun+Gen
+
+# --- an abbreviation's period and the suffixes court decisions write after it (plan step D2)
+Dr.	dr	Noun+A3sg+Nom
+vb.	vb	Noun+A3sg+Nom
+Şti.	şti	Noun+A3sg+Nom
+TCK.nun	tck	Noun+Gen
+H.U.M.K.nun	humk	Noun+Gen
+İİK.nın	iik	Noun+Gen

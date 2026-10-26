@@ -1,6 +1,6 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# tiny lexicons: 1230 of 1245 checks pass (98.8 %)
-# full lexicons: 1175 of 1238 checks pass (94.9 %)
+# tiny lexicons: 1231 of 1245 checks pass (98.9 %)
+# full lexicons: 1176 of 1238 checks pass (95.0 %)
 #   AdjectiveDerivationTest full 23/24
 #   AdjectiveDerivationTest tiny 23/24
 #   AdjectivesTest full 9/9
@@ -9,8 +9,8 @@
 #   AdverbsTest tiny 3/3
 #   ConjunctionTest full 1/1
 #   ConjunctionTest tiny 1/1
-#   FunctionalTests full 7/23
-#   FunctionalTests tiny 27/30
+#   FunctionalTests full 8/23
+#   FunctionalTests tiny 28/30
 #   NounCompoundsTest full 22/22
 #   NounCompoundsTest tiny 22/22
 #   NounDerivationTest full 183/185
@@ -45,7 +45,6 @@ full	FunctionalTests/testRomanNumeral3	COUNT	XXIV'ten	1
 full	FunctionalTests/testTime	COUNT	20:30'da	1
 full	FunctionalTests/testTime2	COUNT	10:24'te	1
 full	FunctionalTests/testTime2	TAILANY	10:24'te	A3sg + Loc
-full	FunctionalTests/testWordsWithDot	COUNT	Dr.	1
 full	NounDerivationTest/justlikeTest	ANY	zeytinyağsı	Noun + A3sg + JustLike + Adj
 full	NounDerivationTest/justlikeTest	SINGLE	odunsu	A3sg + JustLike + Adj
 full	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdknın	Noun + A3sg + Gen
@@ -95,7 +94,6 @@ full	VerbsTest/reciprocalTest_IGNORED	ANY	kaçıştık	Verb + Recip + Verb + Pas
 tiny	AdjectiveDerivationTest/justlikeAdjTest	SINGLE	siyahsı	Adj + JustLike + Adj
 tiny	FunctionalTests/defaultUrlEtc	COUNT	www.foo.com	1
 tiny	FunctionalTests/testAbbreviationVoicing_Issue_183	COUNT	Tübitaka	1
-tiny	FunctionalTests/testWordsWithDot	COUNT	Dr.	1
 tiny	NounDerivationTest/justlikeTest	ANY	zeytinyağsı	Noun + A3sg + JustLike + Adj
 tiny	NounDerivationTest/justlikeTest	SINGLE	odunsu	A3sg + JustLike + Adj
 tiny	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdknın	Noun + A3sg + Gen

@@ -9,10 +9,42 @@ fn test_turkish_tokenizer() {
     assert!(token_texts.contains(&"Prof."));
     assert!(token_texts.contains(&"Dr."));
     assert!(token_texts.contains(&"İstanbul'da"));
-    assert!(token_texts.contains(&"14:30"));
+    // A time or number keeps its suffixes after the apostrophe, as a name does.
+    assert!(token_texts.contains(&"14:30'da"));
     assert!(token_texts.contains(&"https://akana.org"));
     assert!(token_texts.contains(&"info@akana.org"));
     assert!(token_texts.contains(&"#türkçe"));
+}
+
+#[test]
+fn numbers_and_abbreviations_keep_their_suffixes() {
+    let words = |text| TurkishTokenizer::tokenize_words(text);
+    assert_eq!(words("1924'te kuruldu"), ["1924'te", "kuruldu"]);
+    assert_eq!(
+        words("21.10.2026'da ve 17.00'ye"),
+        ["21.10.2026'da", "ve", "17.00'ye"]
+    );
+    let numbers = TurkishTokenizer::tokenize("%50'si");
+    assert_eq!(numbers[1].text, "50'si");
+    assert_eq!(numbers[1].token_type, TokenType::Number);
+    // Court decisions write an abbreviation's suffixes after a period.
+    assert_eq!(
+        words("TCK.nun 53. maddesi, H.U.M.K.nun 427. maddesi"),
+        [
+            "TCK.nun",
+            "53",
+            ".",
+            "maddesi",
+            ",",
+            "H.U.M.K.nun",
+            "427",
+            ".",
+            "maddesi"
+        ]
+    );
+    assert_eq!(words("Ltd. Şti. ve San."), ["Ltd.", "Şti.", "ve", "San."]);
+    // With a space after the period, the abbreviation is a token of its own.
+    assert_eq!(words("TCK. Bu"), ["TCK.", "Bu"]);
 }
 
 #[test]

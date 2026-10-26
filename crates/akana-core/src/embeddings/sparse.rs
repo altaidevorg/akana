@@ -145,14 +145,18 @@ impl MorphologicalSparseEncoder {
         for sentence in SentenceSegmenter::segment(text) {
             let tokens = TurkishTokenizer::tokenize_words(sentence.text);
             let parses = self.disambiguator.disambiguate(&tokens);
-            for (token, parse) in tokens.iter().zip(&parses) {
+            for (i, (token, parse)) in tokens.iter().zip(&parses).enumerate() {
                 let surface = to_turkish_lower(token.trim());
-                if !self.is_term(&surface) {
+                if !self.is_term(&surface) || suffix_fragment(&tokens, i) {
                     continue;
                 }
                 if parse.primary_pos == PrimaryPos::Unknown {
-                    // A word the analyzer does not know is its own term.
-                    out.push((surface, pos_weight(parse)));
+                    // A word the analyzer does not know is its own term, without the period of
+                    // an abbreviation the tokenizer keeps (krş. and krş are one term).
+                    let term = surface.trim_end_matches('.');
+                    if self.is_term(term) {
+                        out.push((term.to_string(), pos_weight(parse)));
+                    }
                     continue;
                 }
                 let lemma = to_turkish_lower(&parse.lemma);
@@ -221,6 +225,29 @@ impl MorphologicalSparseEncoder {
             && word.chars().any(char::is_alphanumeric)
             && !self.stopwords.is_stopword(word)
     }
+}
+
+/// Suffixes that, written apart from their word, are no word of their own.
+const SUFFIX_FRAGMENTS: &[&str] = &[
+    "da", "de", "ta", "te", "dan", "den", "tan", "ten", "nda", "nde", "ndan", "nden", "ın", "in",
+    "un", "ün", "nın", "nin", "nun", "nün", "ya", "ye", "na", "ne", "yı", "yi", "yu", "yü", "nı",
+    "ni", "nu", "nü", "la", "le", "yla", "yle", "lı", "li", "lu", "lü", "lık", "lik", "luk", "lük",
+    "lar", "ler", "dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür", "ki", "daki", "deki",
+    "taki", "teki",
+];
+
+/// Whether the token at `i` is a suffix written apart after an apostrophe or the period of an
+/// abbreviation in capitals (X ' nin, TCK. nun), which is no term.
+fn suffix_fragment(tokens: &[&str], i: usize) -> bool {
+    let Some(previous) = i.checked_sub(1).and_then(|p| tokens.get(p)) else {
+        return false;
+    };
+    let after_apostrophe = matches!(*previous, "'" | "’");
+    let after_abbreviation = previous
+        .strip_suffix('.')
+        .is_some_and(|a| a.chars().nth(1).is_some() && a.chars().all(char::is_uppercase));
+    (after_apostrophe || after_abbreviation)
+        && SUFFIX_FRAGMENTS.contains(&to_turkish_lower(tokens[i]).as_str())
 }
 
 /// How much a word's reading counts: names and numbers most, function words least.
@@ -338,6 +365,10 @@ pub(crate) fn fingerprint_constants() -> String {
     s.push_str(" precedence");
     for pos in CLASS_PRECEDENCE {
         s.push_str(&format!(" {}", pos.as_str()));
+    }
+    s.push_str(" fragments");
+    for fragment in SUFFIX_FRAGMENTS {
+        s.push_str(&format!(" {fragment}"));
     }
     s
 }
@@ -496,5 +527,24 @@ mod tests {
         let terms = encoder.encode_sparse("Ve bu – xqzvbt , ( ) ...").terms;
         assert_eq!(terms, ["xqzvbt"]);
         assert!(encoder.encode_sparse("").indices.is_empty());
+    }
+
+    #[test]
+    fn abbreviations_have_one_term_and_suffix_fragments_none() {
+        let encoder = MorphologicalSparseEncoder::new();
+        let terms = |text| {
+            let mut t = encoder.encode_sparse(text).terms;
+            t.sort();
+            t
+        };
+        // An abbreviation with or without its period is one term; so is a number with its
+        // suffixes (1924'te) and an abbreviation with them after a period (TCK.nun).
+        assert_eq!(terms("Av. Av"), ["av"]);
+        assert_eq!(terms("1924'te 1924"), ["1924"]);
+        assert_eq!(terms("TCK.nun TCK'nun"), ["tck"]);
+        assert_eq!(terms("krş. krş"), ["krş"]);
+        // Suffixes written apart after an apostrophe or an abbreviation's period are no terms.
+        assert_eq!(terms("Ankara ' nın"), ["ankara"]);
+        assert_eq!(terms("TCK. nun"), ["tck"]);
     }
 }

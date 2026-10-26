@@ -95,6 +95,7 @@ const PROBE_TEXTS: &[&str] = &[
     "Dava 12.03.2019 tarihinde açılmış, 1.250.000,00 TL tazminat istenmiştir.",
     "TBMM'de kabul edilen kanun 1924'te Resmî Gazete'de yayımlandı.",
     "Av. Ahmet Yılmaz ile Tic. ve San. Ltd. Şti. arasındaki sözleşme feshedildi.",
+    "Sanık hakkında TCK.nun 53. maddesi ve H.U.M.K.nun 427. maddesi uygulandı.",
     "Ankara Büyükşehir Belediyesi, toplu taşıma ücretlerini yeniden düzenledi.",
     "İstanbul, Türkiye'nin en kalabalık şehridir ve Boğaziçi'nin iki yakasında kuruludur.",
     "Osmanlı İmparatorluğu 1299 yılında kurulmuş ve altı yüzyıl boyunca hüküm sürmüştür.",
