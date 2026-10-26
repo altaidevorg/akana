@@ -317,7 +317,12 @@ fn zemberek_tests_keep_their_known_failures() {
                                 !own.is_empty()
                             }
                         }
-                        "LEMMA" => !own.is_empty() && own.iter().all(|p| p.lemma == arg),
+                        "LEMMA" => {
+                            !own.is_empty()
+                                && own
+                                    .iter()
+                                    .all(|p| p.lemma == arg || p.display_lemma() == arg)
+                        }
                         "NOTCONTAINS" => {
                             !own.is_empty()
                                 && !own
@@ -354,7 +359,8 @@ fn zemberek_tests_keep_their_known_failures() {
     ratchet(&review("zemberek_failures.txt"), &summary, &failures);
 }
 
-/// Review 2's paradigm lists on the built-in lexicon. Failures are `section<TAB>line`.
+/// Review 2's paradigm lists on the built-in lexicon. A lemma matches `lemma` or, as Zemberek
+/// spells it, `display_lemma` (kâğıt). Failures are `section<TAB>line`.
 #[test]
 fn paradigm_lists_keep_their_known_failures() {
     let text =
@@ -376,7 +382,7 @@ fn paradigm_lists_keep_their_known_failures() {
         let parses = morphology.analyze(word);
         let has = |lemma: &str, tail: &str| {
             parses.iter().any(|p| {
-                (lemma == "*" || p.lemma == lemma)
+                (lemma == "*" || p.lemma == lemma || p.display_lemma() == lemma)
                     && (tail == "*" || lexical(&p.analysis).ends_with(tail))
             })
         };

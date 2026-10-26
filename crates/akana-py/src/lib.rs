@@ -256,10 +256,13 @@ impl PyMorphology {
 
         for p in parses {
             let dict = PyDict::new_bound(py);
+            let display_lemma = p.display_lemma().to_string();
             dict.set_item("surface", p.surface)?;
             dict.set_item("lemma", p.lemma)?;
+            dict.set_item("display_lemma", display_lemma)?;
             dict.set_item("root", p.root)?;
             dict.set_item("primary_pos", p.primary_pos.as_str())?;
+            dict.set_item("pos", p.pos.as_str())?;
             dict.set_item("secondary_pos", p.secondary_pos.as_str())?;
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;
@@ -399,10 +402,13 @@ impl PyDisambiguator {
 
         for p in parses {
             let dict = PyDict::new_bound(py);
+            let display_lemma = p.display_lemma().to_string();
             dict.set_item("surface", p.surface)?;
             dict.set_item("lemma", p.lemma)?;
+            dict.set_item("display_lemma", display_lemma)?;
             dict.set_item("root", p.root)?;
             dict.set_item("primary_pos", p.primary_pos.as_str())?;
+            dict.set_item("pos", p.pos.as_str())?;
             dict.set_item("secondary_pos", p.secondary_pos.as_str())?;
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;

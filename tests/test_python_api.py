@@ -56,6 +56,21 @@ def test_morphology_analysis():
     assert "P1sg" in top["morphemes"]
     # Zemberek's format, with every morpheme and its surface, next to akana's tags.
     assert top["analysis"] == "[kitap:Noun] kitab:Noun+A3sg+ım:P1sg"
+    assert top["pos"] == "Noun"
+
+    # The lemma as the dictionary spells it, beside the folded key sparse terms use.
+    name = morph.analyze("Ankara'dan")[0]
+    assert (name["lemma"], name["display_lemma"]) == ("ankara", "Ankara")
+    assert name["analysis"] == "[Ankara:Noun,Prop] ankara:Noun+A3sg+dan:Abl"
+    paper = morph.analyze("kâğıdı")[0]
+    assert (paper["lemma"], paper["display_lemma"]) == ("kağıt", "kâğıt")
+
+    # A participle reads as a noun ("that it is") and as an adjective ("which it is"): the
+    # same akana tags, told apart by pos and the Zemberek analysis.
+    olduğu = [p for p in morph.analyze("olduğu") if p["formatted"] == "[olmak:Verb] ol:Verb+PastPart+P3sg"]
+    assert [p["pos"] for p in olduğu] == ["Noun", "Adj"]
+    chosen = akana.Disambiguator().disambiguate(["Mahkemenin", "verdiği", "karar", "kesinleşti", "."])
+    assert chosen[1]["pos"] == "Adj"
 
     # Noun with vowel drop
     parses_burnum = morph.analyze("burnum")

@@ -1,12 +1,8 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 700 of 735 checks pass (95.2 %)
-#   ACC 579/598
+# 704 of 735 checks pass (95.8 %)
+#   ACC 583/598
 #   REJ 70/85
 #   REJL 51/52
-circumflex and loanwords	ACC	dükkânı	dükkân	*
-circumflex and loanwords	ACC	hikâyesi	hikâye	*
-circumflex and loanwords	ACC	kâğıdı	kâğıt	*
-circumflex and loanwords	ACC	rüzgârı	rüzgâr	*
 nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	benimki	ben	*
 nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	erkeksi	*	*
 nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	insansı	*	*

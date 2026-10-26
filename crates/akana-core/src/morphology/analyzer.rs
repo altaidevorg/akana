@@ -27,6 +27,8 @@ pub struct MorphemeData {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MorphParse {
     pub surface: String,
+    /// The lemma as a folded, lower-case key (ankara, kağıt, gelmek): what sparse terms and the
+    /// prior use. [`MorphParse::display_lemma`] spells it as the dictionary does.
     pub lemma: String,
     pub root: String,
     /// POS of the dictionary root (Zemberek's `DictionaryItem.primaryPos`).
@@ -65,6 +67,20 @@ pub struct MorphParse {
     /// The dictionary item's homograph index ([`DictionaryItem::homograph`]).
     #[serde(skip)]
     pub(crate) homograph: u8,
+}
+
+impl MorphParse {
+    /// The lemma as the dictionary spells it, as Zemberek prints it (Ankara, kâğıt, Hakkâri,
+    /// TBMM; see [`DictionaryItem::display_lemma`]), where `lemma` is the folded key. It is the
+    /// dictionary item of `analysis`; a reading without one (deserialized from an older
+    /// version) gives `lemma`.
+    pub fn display_lemma(&self) -> &str {
+        self.analysis
+            .strip_prefix('[')
+            .and_then(|a| a.split_once("] "))
+            .and_then(|(item, _)| item.rsplit_once(':'))
+            .map_or(&self.lemma, |(lemma, _)| lemma)
+    }
 }
 
 /// The path of an analysis through the morphotactic graph: the root's state, then the state each
@@ -1675,10 +1691,11 @@ pub(super) fn render(
     }
 }
 
-/// A path in Zemberek's default format (`AnalysisFormatters.DEFAULT`): the dictionary item,
-/// then the stem with its POS morpheme and each suffix morpheme, `surface:Id` or `Id`, joined
-/// by `+`, with `|` before a derivational morpheme and `→` after it. Pnon and Nom are left out,
-/// as Zemberek's `SingleAnalysis.fromSearchPath` leaves them out.
+/// A path in Zemberek's default format (`AnalysisFormatters.DEFAULT`): the dictionary item
+/// with its lemma as the dictionary spells it ([`DictionaryItem::display_lemma`]), then the stem
+/// with its POS morpheme and each suffix morpheme, `surface:Id` or `Id`, joined by `+`, with `|`
+/// before a derivational morpheme and `→` after it. Pnon and Nom are left out, as Zemberek's
+/// `SingleAnalysis.fromSearchPath` leaves them out.
 fn zemberek_analysis(
     graph: &Graph,
     item: &DictionaryItem,
@@ -1687,7 +1704,9 @@ fn zemberek_analysis(
     input: &str,
 ) -> String {
     let mut out = String::with_capacity(item.lemma.len() + 2 * input.len() + 6 * steps.len() + 16);
-    push_zemberek_item(&mut out, &item.lemma, item.primary_pos, item.secondary_pos);
+    out.push('[');
+    item.push_display_lemma(&mut out);
+    push_zemberek_pos(&mut out, item.primary_pos, item.secondary_pos);
     out.push_str(&stem.surface);
     out.push(':');
     out.push_str(graph.states[stem.to.0 as usize].morpheme.id());
@@ -1721,6 +1740,11 @@ fn zemberek_analysis(
 fn push_zemberek_item(out: &mut String, lemma: &str, pos: PrimaryPos, secondary: SecondaryPos) {
     out.push('[');
     out.push_str(lemma);
+    push_zemberek_pos(out, pos, secondary);
+}
+
+/// The rest of [`push_zemberek_item`] after the lemma: `:Pos] ` or `:Pos,Secondary] `.
+fn push_zemberek_pos(out: &mut String, pos: PrimaryPos, secondary: SecondaryPos) {
     out.push(':');
     out.push_str(match pos {
         PrimaryPos::Q => "Ques",
@@ -1800,22 +1824,28 @@ const DERIVATIONAL_TAGS: &[&str] = &[
     "Reflex",
 ];
 
-/// Sorts (see [`order`]) and drops repeats of the same reading: the same Zemberek analysis of
-/// the same lemma, root and secondary POS. Readings that akana's tags render alike stay apart
-/// when their analyses differ: a participle is a noun (ol-duğ-u "that it is", PastPart→Noun)
-/// and an adjective (ol-duğ-u "which it is", PastPart→Adj), -IcI an agent noun and an
-/// adjective (bağla-yıcı). The root tells apart items whose stems spell alike (irad-ı from
-/// irad and from irat), which the analysis does not.
+/// Sorts (see [`order`]) and drops repeats of the same reading: the same Zemberek analysis
+/// after its dictionary item, of the same lemma, root and POS. Readings that akana's tags render
+/// alike stay apart when their analyses differ: a participle is a noun (ol-duğ-u "that it is",
+/// PastPart→Noun) and an adjective (ol-duğ-u "which it is", PastPart→Adj), -IcI an agent noun
+/// and an adjective (bağla-yıcı). The root tells apart items whose stems spell alike (irad-ı from
+/// irad and from irat), which the analysis does not. Homographs that differ only in spelling
+/// (adet "count" and âdet "custom", metin and metîn) stay one reading, as the order spells it.
 fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
     order(&mut results);
     let mut seen = HashSet::with_capacity(results.len());
     let first: Vec<bool> = results
         .iter()
         .map(|p| {
+            let body = p
+                .analysis
+                .split_once("] ")
+                .map_or(p.analysis.as_str(), |(_, b)| b);
             seen.insert((
-                p.analysis.as_str(),
+                body,
                 p.lemma.as_str(),
                 p.root.as_str(),
+                p.primary_pos,
                 p.secondary_pos,
             ))
         })
@@ -1828,15 +1858,20 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
 /// Most likely first; ties go to fewer tags, then away from the 2nd-person possessive and the
 /// copula (much rarer than the 3rd person and the bare noun), then to the string. Readings
 /// that akana's tags render alike tie on all of that: the noun comes before the adjective
-/// (ol-duğ-u is "that it is" unless a noun follows, which the disambiguator sees), and
-/// otherwise the analyzer's order stands (the sort is stable): the lexicon's items in their
-/// order, the compound before its inner P3sg (üzeri-nden before üzer-i-nden).
+/// (ol-duğ-u is "that it is" unless a noun follows, which the disambiguator sees); a word
+/// written with a circumflex takes the spelling that has one (âdet "custom", not adet "count":
+/// a missing circumflex says nothing, as Turkish often leaves it out); and otherwise the
+/// analyzer's order stands (the sort is stable): the lexicon's items in their order, which puts
+/// the plainly spelled homograph first, and the compound before its inner P3sg (üzeri-nden
+/// before üzer-i-nden).
 fn order(results: &mut [MorphParse]) {
     let p2sg = |p: &MorphParse| p.morpheme_tags.iter().any(|t| t == "P2sg");
     let predicate = |p: &MorphParse| {
         p.primary_pos != PrimaryPos::Verb && p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
     };
     let adjective = |p: &MorphParse| p.pos == PrimaryPos::Adj;
+    let circumflex = |s: &str| s.contains(['â', 'î', 'û', 'Â', 'Î', 'Û']);
+    let respelled = |p: &MorphParse| circumflex(&p.surface) && !circumflex(p.display_lemma());
     results.sort_by(|a, b| {
         b.score
             .partial_cmp(&a.score)
@@ -1846,5 +1881,6 @@ fn order(results: &mut [MorphParse]) {
             .then_with(|| predicate(a).cmp(&predicate(b)))
             .then_with(|| a.formatted.cmp(&b.formatted))
             .then_with(|| adjective(a).cmp(&adjective(b)))
+            .then_with(|| respelled(a).cmp(&respelled(b)))
     });
 }

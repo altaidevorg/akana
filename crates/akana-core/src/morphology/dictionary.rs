@@ -2,9 +2,10 @@
 
 use super::pos::{ascii_lower, PrimaryPos, RootAttr, SecondaryPos, NAME_BUF};
 use super::pronunciation::{guess_abbreviation, letter_pronunciation};
-use crate::phonology::{is_turkish_vowel, to_turkish_lower};
+use crate::phonology::{is_turkish_vowel, to_turkish_lower, to_turkish_upper_char};
 use ahash::AHashMap;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -33,6 +34,11 @@ pub struct DictionaryItem {
     /// separate frequency for each.
     #[serde(default)]
     pub homograph: u8,
+    /// The dictionary's own spelling of the lemma where it is not the one
+    /// [`DictionaryItem::display_lemma`] makes up (kâğıt, Hakkâri, e-posta; the lexicon's
+    /// `display=`).
+    #[serde(default)]
+    pub display: Option<String>,
 }
 
 impl DictionaryItem {
@@ -53,6 +59,61 @@ impl DictionaryItem {
             compound_roots: None,
             governed_case: None,
             homograph: 0,
+            display: None,
+        }
+    }
+
+    /// The lemma as the dictionary spells it, as Zemberek prints it: `display` where there is
+    /// one, else the lemma, capitalised for a proper noun and upper-cased for an abbreviation
+    /// (Ankara, TBMM). `lemma` is the folded key that retrieval and the prior use.
+    pub fn display_lemma(&self) -> Cow<'_, str> {
+        match &self.display {
+            Some(display) => Cow::Borrowed(display),
+            None => self.display_lemma_default(),
+        }
+    }
+
+    /// Writes [`DictionaryItem::display_lemma`] to `out` (the analyzer's `analysis`) without
+    /// building a string for it.
+    pub(crate) fn push_display_lemma(&self, out: &mut String) {
+        if let Some(display) = &self.display {
+            out.push_str(display);
+            return;
+        }
+        match self.secondary_pos {
+            SecondaryPos::ProperNoun => {
+                let mut chars = self.lemma.chars();
+                if let Some(first) = chars.next() {
+                    out.push(to_turkish_upper_char(first));
+                }
+                out.push_str(chars.as_str());
+            }
+            SecondaryPos::Abbreviation => {
+                out.extend(self.lemma.chars().map(to_turkish_upper_char));
+            }
+            _ => out.push_str(&self.lemma),
+        }
+    }
+
+    /// The spelling [`DictionaryItem::display_lemma`] makes up when the dictionary gives none.
+    fn display_lemma_default(&self) -> Cow<'_, str> {
+        match self.secondary_pos {
+            SecondaryPos::ProperNoun => {
+                let mut chars = self.lemma.chars();
+                match chars.next() {
+                    Some(first) => {
+                        let mut out = String::with_capacity(self.lemma.len() + 1);
+                        out.push(to_turkish_upper_char(first));
+                        out.push_str(chars.as_str());
+                        Cow::Owned(out)
+                    }
+                    None => Cow::Borrowed(&self.lemma),
+                }
+            }
+            SecondaryPos::Abbreviation => {
+                Cow::Owned(self.lemma.chars().map(to_turkish_upper_char).collect())
+            }
+            _ => Cow::Borrowed(&self.lemma),
         }
     }
 
@@ -248,7 +309,9 @@ impl RootLexicon {
 
     /// Loads dictionary lines of the form
     /// `lemma root POS [SECONDARY] [ATTRIBUTES...] [pr=PRONUNCIATION] [roots=A-B] [pc=CASE]`
-    /// (`idx=N` marks a homograph after the first; items keep the file's order),
+    /// (`idx=N` marks a homograph after the first; items keep the file's order; `display=`
+    /// spells the lemma as the dictionary does, as does a lemma written with capitals or a
+    /// circumflex: `hâkim hakim Adj`),
     /// e.g. `kitap kitap Noun Voicing`, `gelmek gel Verb`, `abd abd Noun Abbrv pr=abede`.
     ///
     /// The secondary POS uses the names of [`SecondaryPos::from_name`] (`Prop`/`ProperNoun`,
@@ -273,6 +336,7 @@ impl RootLexicon {
                 continue;
             };
 
+            let written = lemma;
             let lemma = normalize_word(lemma);
             let root = normalize_word(root);
             let primary_pos = PrimaryPos::from_name(pos).unwrap_or(PrimaryPos::Noun);
@@ -290,6 +354,7 @@ impl RootLexicon {
                         }
                         "pc" => item.governed_case = Some(value.to_string()),
                         "idx" => item.homograph = value.parse().unwrap_or(0),
+                        "display" => item.display = Some(value.to_string()),
                         _ => {}
                     }
                     continue;
@@ -319,6 +384,12 @@ impl RootLexicon {
                 if guessed != item.root {
                     item.pronunciation = Some(guessed);
                 }
+            }
+            if item.display.is_none() && written != item.lemma {
+                item.display = Some(written.to_string());
+            }
+            if item.display.as_deref() == Some(&*item.display_lemma_default()) {
+                item.display = None;
             }
             infer_attributes(&mut item);
             self.add_item(item);

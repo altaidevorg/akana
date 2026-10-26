@@ -30,12 +30,17 @@ analyzer accepted wrongly:
 
 Output, one item per line, sorted:
     lemma root POS SECONDARY [ATTRIBUTES...] [pr=PRONUNCIATION] [roots=HEAD-TAIL] [pc=CASE]
+        [idx=N] [display=SPELLING]
 `pr=` is written for abbreviations and wherever the pronunciation differs from the root (gram→gıram);
 `idx=` numbers a homograph after the first
 (kalp "heart", kalp idx=1 "counterfeit"), which comes first. `roots=` gives the parts of a compound that carries its own 3rd-person possessive
 (cumhurbaşkanı roots=cumhur-başkan); `pc=` is the case a postposition governs. The attributes
 are Zemberek's after `inferMorphemicAttributes`, so a verb's aorist class and a monosyllable's
-NoVoicing are explicit.
+NoVoicing are explicit. The lemma is folded (lower case, no circumflex, apostrophe or dash), the
+key retrieval uses; `display=` gives the dictionary's own spelling where it is not the folded
+lemma, capitalised for a proper noun or upper-cased for an abbreviation (kâğıt, Hakkâri,
+e-posta, dk). Entries that differ only in that spelling stay one item, whose spelling is
+the plain one if any entry has it (kar and kâr are one item kar, as before).
 """
 
 import argparse
@@ -137,6 +142,20 @@ def turkish_lower(word):
 def normalize_circumflex(word):
     # TurkishAlphabet.normalizeCircumflex: roots are stored without â/î/û (nikâh -> nikah).
     return word.replace("â", "a").replace("î", "i").replace("û", "u")
+
+
+def turkish_upper(word):
+    return word.replace("i", "İ").replace("ı", "I").upper()
+
+
+def default_display(lemma, secondary):
+    """The spelling an item shows when the lexicon gives none: the lemma, capitalised for a
+    proper noun and upper-cased for an abbreviation (the analyzer's `DictionaryItem::display`)."""
+    if secondary == "ProperNoun":
+        return turkish_upper(lemma[:1]) + lemma[1:]
+    if secondary == "Abbrv":
+        return turkish_upper(lemma)
+    return lemma
 
 
 def vowel_count(word):
@@ -310,7 +329,7 @@ def infer_attributes(pron, primary, secondary, attrs):
 
 
 class Entry:
-    __slots__ = ("lemma", "root", "pos", "secondary", "attrs", "pron", "roots", "pc", "explicit", "indexed", "index", "source", "word")
+    __slots__ = ("lemma", "root", "pos", "secondary", "attrs", "pron", "roots", "pc", "explicit", "indexed", "index", "source", "word", "display")
 
     def key(self):
         return (self.lemma, self.root, self.pos, self.secondary)
@@ -329,6 +348,17 @@ class Entry:
         if self.index:
             fields.append(f"idx={self.index}")
         return " ".join(fields)
+
+    def display_field(self):
+        """`display=SPELLING`, or None where the default spelling is the dictionary's. Zemberek's
+        abbreviation list is collected from a corpus and spells most entries in title case
+        (Tbmm, Adsl): such an abbreviation shows in capitals, as the default does; dk, vd and
+        km² keep their own spelling."""
+        if self.display == default_display(self.lemma, self.secondary):
+            return None
+        if self.secondary == "Abbrv" and self.display == turkish_upper(self.lemma[:1]) + self.lemma[1:]:
+            return None
+        return f"display={self.display}"
 
     def sort_key(self):
         # Zemberek's homograph order: the unnumbered sense first (hak "right", then hak [Index:1]).
@@ -374,6 +404,9 @@ def make_entry(word, meta, source):
         # akana entries may point at a canonical lemma (tesbit -> tespit, red -> ret).
         ref = meta["Ref"]
         e.lemma = normalize_circumflex(turkish_lower(ref))
+    # The dictionary's own spelling of the lemma: a verb's infinitive, a name with its capital
+    # and apostrophe, a loanword with its circumflex.
+    e.display = meta["Ref"] if "Ref" in meta and source.startswith("akana") else word
     return e
 
 
@@ -472,7 +505,13 @@ def main():
                 if any(x.attrs != e.attrs for x in existing):
                     report.append(f"later file: dropped {e.source}: {e.line()} (kept {existing[0].line()})")
                 continue
-            if any(x.attrs == e.attrs and x.pron == e.pron for x in existing):
+            twins = [x for x in existing if x.attrs == e.attrs and x.pron == e.pron]
+            if twins:
+                # The same item again. Spelled plainly, it gives the item its plain spelling
+                # (kânun "brazier" then kanun "law": the item kanun shows as kanun).
+                if e.display_field() is None:
+                    for x in twins:
+                        x.display = e.display
                 continue
             same_spelling = [x for x in existing if turkish_lower(x.word) == turkish_lower(e.word)]
             if e.indexed or all(x.indexed for x in existing) or not same_spelling:
@@ -530,8 +569,22 @@ def main():
                 order.append(e.key())
             items[e.key()] = [e]
 
-    entries = {e.line(): e for key in items for e in items[key]}
-    lines = [e.line() for e in sorted(entries.values(), key=Entry.sort_key)]
+    # Entries that come out as the same line are one item; it shows a spelling of its own only
+    # if none of them is spelled as the default (kar and kâr stay the item kar).
+    groups = {}
+    for key in items:
+        for e in items[key]:
+            groups.setdefault(e.line(), []).append(e)
+    # Of homographs that differ in spelling only, the plainly spelled one comes first (adet
+    # "count" before âdet "custom"): the analyzer shows the first for a word written plainly.
+    keyed = []
+    for line, group in groups.items():
+        fields = [e.display_field() for e in group]
+        display = None if None in fields else fields[0]
+        e = group[0]
+        key = (e.lemma, e.root, e.pos, e.secondary, e.index, display is not None, line)
+        keyed.append((key, line if display is None else f"{line} {display}"))
+    lines = [line for _, line in sorted(keyed)]
     # LF on every platform: the embedded lexicon is hashed into the analysis fingerprint.
     with open(args.output, "w", encoding="utf-8", newline="\n") as f:
         for line in lines:

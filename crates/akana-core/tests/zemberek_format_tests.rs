@@ -101,12 +101,51 @@ fn zemberek_readme_examples() {
         ],
     );
     assert_zemberek("okut", &["[okumak:Verb] oku:Verb|t:Caus→Verb+Imp+A2sg"]);
-    // Zemberek writes the lemma of a name as spelled (Ankara); akana's lexicon keeps names
-    // lower-cased, as in `lemma`.
+    // The lemma as the dictionary spells it (`display_lemma`), as Zemberek prints it: a name
+    // with its capital, an abbreviation in capitals, a loanword with its circumflex.
     assert_zemberek(
         "Ankara'dan",
-        &["[ankara:Noun,Prop] ankara:Noun+A3sg+dan:Abl"],
+        &["[Ankara:Noun,Prop] ankara:Noun+A3sg+dan:Abl"],
     );
+    assert_zemberek("TBMM'de", &["[TBMM:Noun,Abbrv] tbmm:Noun+A3sg+de:Loc"]);
+    assert_zemberek(
+        "kâğıdı",
+        &[
+            "[kâğıt:Noun] kağıd:Noun+A3sg+ı:P3sg",
+            "[kâğıt:Noun] kağıd:Noun+A3sg+ı:Acc",
+        ],
+    );
+}
+
+#[test]
+fn display_lemma_keeps_the_dictionary_spelling() {
+    let morphology = TurkishMorphology::new();
+    let first = |word: &str| {
+        let p = morphology
+            .analyze(word)
+            .into_iter()
+            .next()
+            .expect("analysed");
+        (p.lemma.clone(), p.display_lemma().to_string())
+    };
+    assert_eq!(first("Ankara'ya"), ("ankara".into(), "Ankara".into()));
+    assert_eq!(first("İstanbul'da"), ("istanbul".into(), "İstanbul".into()));
+    assert_eq!(first("kâğıt"), ("kağıt".into(), "kâğıt".into()));
+    assert_eq!(first("kağıt"), ("kağıt".into(), "kâğıt".into()));
+    assert_eq!(first("e-postayı"), ("eposta".into(), "e-posta".into()));
+    assert_eq!(first("geldi"), ("gelmek".into(), "gelmek".into()));
+    // kar "snow" and kâr "profit" are one item, which keeps the plain spelling.
+    assert_eq!(first("kar"), ("kar".into(), "kar".into()));
+    // A name the lexicon does not know is shown as the default spelling of its lemma.
+    assert_eq!(first("Mamyak'ın"), ("mamyak".into(), "Mamyak".into()));
+    // A user dictionary may write the lemma as it is spelled.
+    let mut lexicon = RootLexicon::empty();
+    lexicon.load_from_str("hâkim hakim Adj\nNATO nato Noun Abbrv\nzeytin zeytin Noun");
+    let items: Vec<String> = lexicon
+        .items()
+        .map(|i| format!("{}/{}", i.lemma, i.display_lemma()))
+        .collect();
+    assert_eq!(items, ["hakim/hâkim", "nato/NATO", "zeytin/zeytin"]);
 }
 
 #[test]

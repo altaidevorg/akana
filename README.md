@@ -336,6 +336,17 @@ for parse in parses:
 # -> kitap Noun ['Noun', 'P1sg', 'Dat']
 # -> [kitap:Noun] kitab:Noun+A3sg+ım:P1sg+a:Dat    (Zemberek's format: every morpheme and its surface)
 
+# `lemma` is the folded, lower-case key that sparse terms use; `display_lemma` spells it as
+# the dictionary does, and `analysis` shows that spelling, as Zemberek prints it. `pos` is
+# the POS after derivation: a participle reads as a noun and as an adjective with the same
+# akana tags, and `pos` and `analysis` tell them apart.
+p = morph.analyze("Ankara'dan")[0]
+print(p["lemma"], p["display_lemma"], p["analysis"])
+# -> ankara Ankara [Ankara:Noun,Prop] ankara:Noun+A3sg+dan:Abl
+print([(p["pos"], p["analysis"]) for p in morph.analyze("olduğu")][:2])
+# -> [('Noun', '[olmak:Verb] ol:Verb|duğ:PastPart→Noun+A3sg+u:P3sg'),
+#     ('Adj', '[olmak:Verb] ol:Verb|duğ:PastPart→Adj+u:P3sg')]
+
 # 3. Google-Style Syntactic Expressive Morphology (Inflectional Groups & UD)
 syn_parses = akana.syntactic_analyze("geldiğimizde")
 for p in syn_parses:
