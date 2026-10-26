@@ -1,7 +1,8 @@
 //! The best analysis of the most frequent word types of court decisions and RagTurk
 //! (`tests/data/morphology/top_types.txt`), as a snapshot (`top_types_analyses.tsv`): lemma,
-//! root POS, secondary POS and tags. Sparse terms are lemmas, so a lemma that moves changes
-//! every index that holds the word. A change here must be deliberate and listed in its commit.
+//! root POS, secondary POS, tags, the POS after derivation and the Zemberek analysis. Sparse
+//! terms are lemmas, so a lemma that moves changes every index that holds the word. A change
+//! here must be deliberate and listed in its commit.
 //!
 //! After a deliberate change: `AKANA_GOLD_WRITE=1 cargo test -p akana-core --test
 //! morphology_snapshot`, and give the diff of the snapshot in the commit message.
@@ -22,14 +23,16 @@ fn frequent_types_keep_their_best_analysis() {
     let mut now = String::new();
     for word in types.lines().filter(|w| !w.is_empty()) {
         let best = morphology.analyze(word).into_iter().next().map_or_else(
-            || "-\t-\t-\t-".to_string(),
+            || "-\t-\t-\t-\t-\t-".to_string(),
             |p| {
                 format!(
-                    "{}\t{}\t{}\t{}",
+                    "{}\t{}\t{}\t{}\t{}\t{}",
                     p.lemma,
                     p.primary_pos.as_str(),
                     p.secondary_pos.as_str(),
-                    p.morpheme_tags.join("+")
+                    p.morpheme_tags.join("+"),
+                    p.pos.as_str(),
+                    p.analysis
                 )
             },
         );
