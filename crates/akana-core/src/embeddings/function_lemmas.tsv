@@ -1,17 +1,26 @@
-# Terms in more than 0.1 of the documents of both samples (examples/sparse_idf.rs): term, court df, general df.
-#docs	13498	14327
-bir	10961	9204
-aşağı	4806	4503
-kullanmak	5193	2608
-vermek	13498	2461
-almak	10345	2326
-iki	3869	2256
-hangi	2053	3197
-değil	3470	2044
-şekil	7742	2000
-bulunmak	11832	1821
-sonra	9442	1758
-sahip	3686	1684
-ifade	3415	1662
-büyük	1626	1595
-açık	7201	1448
+# Function lemmas of the sparse encoder, frozen with sparse spec 1 (examples/sparse_idf.rs).
+# term, weight in 64ths, then the number of chunks of the court and the general sample it
+# occurs in. DERIVED FROM CC BY-SA DATA: the general sample is UD Turkish BOUN and Kenet
+# (CC BY-SA 4.0); see THIRD_PARTY_NOTICES.
+#spec	1
+#chunks	125163	1977
+bir	19	63421	1939
+almak	26	52950	773
+vermek	29	80782	701
+yer	36	33744	607
+görmek	43	26416	627
+açmak	47	25219	366
+sonra	48	22561	615
+yol	48	22383	420
+ara	49	21392	498
+hal	50	28029	326
+iş	51	19735	570
+bulunmak	53	59316	296
+istemek	56	16869	474
+kalmak	57	16322	500
+gün	57	16224	636
+söz	58	15418	311
+kendi	59	15110	614
+alt	59	15035	342
+içinde	62	13484	380
+getirmek	63	12891	291

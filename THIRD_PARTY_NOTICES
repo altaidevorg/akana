@@ -32,15 +32,38 @@ analyzer.rs) port the design of zemberek-nlp's TurkishMorphotactics, StemTransit
 RuleBasedAnalyzer (Apache License 2.0) to Rust.
 
 -------------------------------------------------------------------------------------------------
-2. Sources approved for use, from which nothing ships yet
+2. Universal Dependencies Turkish treebanks BOUN and Kenet
+-------------------------------------------------------------------------------------------------
+
+Source:     https://github.com/UniversalDependencies/UD_Turkish-BOUN and UD_Turkish-Kenet,
+            release r2.18: the sentences of the train and dev splits.
+Authors:    BOUN: Büşra Marşan, Furkan Akkurt, Utku Türk, Furkan Atmaca, Şaziye Betül Özateş,
+            Gözde Berk, Seyyit Talha Bedir, Abdullatif Köksal, Balkız Öztürk Başaran, Tunga
+            Güngör, Arzucan Özgür (Türk et al. 2022, "Resources for Turkish Dependency Parsing:
+            Introducing the BOUN Treebank and the BoAT Annotation Tool", Language Resources and
+            Evaluation 56(1), doi:10.1007/s10579-021-09558-0; Marşan et al. 2022,
+            arXiv:2207.11782). Kenet: Aslı Kuzgun, Neslihan Cesur, Olcay Taner Yıldız, Oğuzhan
+            Kuyrukçu, Arife Betül Yenice, Bilge Nas Arıcan, Ezgi Sanıyar.
+Licence:    Creative Commons Attribution-ShareAlike 4.0 International,
+            https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Shipped as: crates/akana-core/src/embeddings/function_lemmas.tsv, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no text is shipped. The table holds, for 20 lemmas, the number of 256-token chunks
+            of the treebanks' sentences (and of a court-decision sample) each occurs in, and
+            the weight akana gives it (examples/sparse_idf.rs).
+
+-------------------------------------------------------------------------------------------------
+3. Sources approved for use, from which nothing ships yet
 -------------------------------------------------------------------------------------------------
 
 - Google Research turkish-morphology lexicon (Apache License 2.0), commit 83d4b967.
 - TRmorph lexicon by Çağrı Çöltekin (MIT License, copyright (c) 2011-2015 Çağrı Çöltekin),
   commit fbceb113.
-- Universal Dependencies Turkish treebanks BOUN, Kenet, Penn, Tourism, Atis and FrameNet
-  (CC BY-SA 4.0), release r2.18. A prior or disambiguator estimated from their train and dev
-  splits would ship as DERIVED FROM CC BY-SA DATA.
+- Universal Dependencies Turkish treebanks Penn, Tourism, Atis and FrameNet, and the BOUN and
+  Kenet annotations beyond their sentences (CC BY-SA 4.0), release r2.18. A prior or
+  disambiguator estimated from their train and dev splits would ship as DERIVED FROM CC BY-SA
+  DATA.
 - Universal Dependencies Turkish IMST (CC BY-NC-SA 3.0), release r2.18: evaluation only;
   nothing akana ships is derived from it, nor from any UD test split.
 - Turkish Wiktionary, as extracted by kaikki.org (Wiktionary content: CC BY-SA 4.0 and GFDL):

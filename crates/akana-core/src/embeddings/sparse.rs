@@ -7,8 +7,9 @@
 //!
 //! - its BM25-saturated occurrence count, `tf * (k1 + 1) / (tf + k1)` with `k1 = 1.2`,
 //! - times a part-of-speech weight (proper nouns and numbers > nouns > verbs > adverbs),
-//! - times an IDF weight, below 1 only for the function lemmas: those in more than one document
-//!   in ten of both a court and a general sample (`function_lemmas.tsv`; bir weighs 0.19).
+//! - times an IDF weight, below 1 only for the function lemmas: those in more than one
+//!   256-token chunk in ten of both a court and a general sample (`function_lemmas.tsv`, frozen
+//!   with the sparse spec).
 //!
 //! The IDF is gated on purpose. Scaling every term by a static IDF, from court decisions alone
 //! or from the two samples together, cost up to 0.04 MRR@10 on RagTurk and Turkuaz: a passage's
@@ -82,40 +83,29 @@ pub(crate) const FUNCTION_LEMMAS_TSV: &str = include_str!("function_lemmas.tsv")
 static FUNCTION_LEMMAS: LazyLock<HashMap<u32, f32>> =
     LazyLock::new(|| function_lemma_weights(FUNCTION_LEMMAS_TSV));
 
-/// Reads `function_lemmas.tsv`, written by `examples/sparse_idf.rs`: a `#docs` line with the
-/// sizes of the court and the general sample, then `term<TAB>court df<TAB>general df`.
-///
-/// A term's document frequency `p` is the smaller of its two samples' fractions, so it is common
-/// only if common in both: tarih, in 92 % of court decisions and 2 % of the general sample, is
-/// no function lemma. A function lemma weighs `ln p / ln FUNCTION_LEMMA_DF`, its IDF `ln (1/p)`
-/// relative to the IDF at the threshold: 1 there, 0 for a term in every document.
+/// Reads `function_lemmas.tsv`, written by `examples/sparse_idf.rs`: `term<TAB>weight in 64ths`
+/// and the term's chunk counts in the two samples (for the record). The weights are stored as the
+/// encoder uses them, so nothing is computed from them, and the table changes only with the
+/// sparse spec's major version (`#spec`).
 fn function_lemma_weights(table: &str) -> HashMap<u32, f32> {
-    let mut sizes: Option<(f64, f64)> = None;
-    let mut weights = HashMap::new();
-    for line in table.lines() {
-        let mut fields = line.split('\t');
-        let (Some(term), Some(court), Some(general)) =
-            (fields.next(), fields.next(), fields.next())
-        else {
-            continue;
-        };
-        let (Ok(court), Ok(general)) = (court.parse::<f64>(), general.parse::<f64>()) else {
-            continue;
-        };
-        if term == "#docs" {
-            sizes = Some((court, general)).filter(|&(c, g)| c > 0.0 && g > 0.0);
-            continue;
-        }
-        let Some((court_docs, general_docs)) = sizes else {
-            continue;
-        };
-        let p = (court / court_docs).min(general / general_docs).min(1.0);
-        if p > FUNCTION_LEMMA_DF {
-            let weight = p.ln() / FUNCTION_LEMMA_DF.ln();
-            weights.insert(hash_term_32bit(term), weight as f32);
-        }
-    }
-    weights
+    table
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .filter_map(|line| {
+            let mut fields = line.split('\t');
+            let (term, weight) = (fields.next()?, fields.next()?.parse::<u16>().ok()?);
+            Some((hash_term_32bit(term), f32::from(weight) / 64.0))
+        })
+        .collect()
+}
+
+/// The sparse spec major the function-lemma table was made for (its `#spec` line).
+#[cfg(test)]
+fn function_lemma_spec(table: &str) -> Option<u16> {
+    table
+        .lines()
+        .find_map(|l| l.strip_prefix("#spec\t"))
+        .and_then(|v| v.trim().parse().ok())
 }
 
 /// Turkish morphological sparse encoder.
@@ -344,6 +334,17 @@ mod tests {
         let ratio = twice / once;
         // (2 * 2.2 / 3.2) / (2.2 / 2.2) = 1.375
         assert!((ratio - 1.375).abs() < 1e-4, "{once} {twice}");
+    }
+
+    #[test]
+    fn function_lemma_table_belongs_to_this_spec() {
+        // The table is frozen per spec major: a new one goes with a new major.
+        assert_eq!(
+            function_lemma_spec(FUNCTION_LEMMAS_TSV),
+            Some(crate::embeddings::SPARSE_SPEC.0)
+        );
+        assert!(!FUNCTION_LEMMAS.is_empty());
+        assert!(FUNCTION_LEMMAS.values().all(|&w| w > 0.0 && w <= 1.0));
     }
 
     #[test]
