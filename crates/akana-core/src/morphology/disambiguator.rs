@@ -99,6 +99,7 @@ impl MorphologicalDisambiguator {
             let has_common_reading = parses
                 .iter()
                 .any(|p| p.secondary_pos != SecondaryPos::ProperNoun);
+            let has_determiner_reading = parses.iter().any(|p| p.pos == PrimaryPos::Det);
 
             let mut best_idx = 0;
             let mut best_score = f32::MIN;
@@ -141,12 +142,14 @@ impl MorphologicalDisambiguator {
 
                 // 3. A modifier comes before its noun (Adj, Det, Num: "bu kitap", "yüz kişi").
                 // Determiners (bu, o, bir, her) also have Pron entries: with no noun after them
-                // they stand for one ("Bu doğru", "O gelmedi").
+                // they stand for one ("Bu doğru", "O gelmedi"). The adjective twin of a
+                // determiner (o, her) is one too, and needs the noun as much.
                 if !is_predicate(parse) {
                     match parse.pos {
                         PrimaryPos::Adj if modifies_noun => bonus += 0.7,
                         PrimaryPos::Det | PrimaryPos::Num if modifies_noun => bonus += 1.0,
                         PrimaryPos::Det if !modifies_noun => bonus -= 2.0,
+                        PrimaryPos::Adj if !modifies_noun && has_determiner_reading => bonus -= 2.0,
                         _ => {}
                     }
                 }

@@ -4420,6 +4420,7 @@ automotive automotive Noun ProperNoun ProperNoun
 autoshow autoshow Noun ProperNoun ProperNoun
 autumn autumn Noun ProperNoun ProperNoun
 auxerre auxerre Noun ProperNoun ProperNoun
+av av Noun Abbrv pr=avukat
 av av Noun None NoVoicing
 avad avad Noun ProperNoun ProperNoun
 avadanlık avadanlık Noun None Voicing
@@ -18542,7 +18543,7 @@ fda fda Noun Abbrv pr=fedea
 fdp fdp Noun Abbrv pr=fedepe
 fdt fdt Noun Abbrv pr=fedete
 fe fe Noun Abbrv pr=fee
-fe fe Noun None NoVoicing
+fe fe Noun None NoSuffix NoVoicing
 fear fear Noun ProperNoun ProperNoun
 fecaat fecaat Noun None InverseHarmony
 feci feci Adj None
@@ -20474,7 +20475,7 @@ gdaü gdaü Noun ProperNoun ProperNoun
 gdo gdo Noun Abbrv pr=gedeo
 gdynia gdynia Noun ProperNoun ProperNoun
 ge ge Noun Abbrv pr=gee
-ge ge Noun None NoVoicing
+ge ge Noun None NoSuffix NoVoicing
 gear gear Noun ProperNoun ProperNoun
 gears gears Noun ProperNoun ProperNoun
 geary geary Noun ProperNoun ProperNoun
@@ -27626,7 +27627,7 @@ jazeera jazeera Noun ProperNoun ProperNoun
 jaziri jaziri Noun ProperNoun ProperNoun
 jazz jazz Noun ProperNoun NoVoicing ProperNoun
 jbıc jbıc Noun ProperNoun NoVoicing ProperNoun
-je je Noun None NoVoicing
+je je Noun None NoSuffix NoVoicing
 jean jean Noun ProperNoun ProperNoun
 jeanette jeanette Noun ProperNoun ProperNoun
 jeanne jeanne Noun ProperNoun ProperNoun
@@ -43958,7 +43959,7 @@ pc pc Noun Abbrv pr=pece
 pd pd Noun Abbrv pr=pede
 pdf pdf Noun Abbrv pr=pedefe
 pdy pdy Noun Abbrv pr=pedeye
-pe pe Noun None NoVoicing
+pe pe Noun None NoSuffix NoVoicing
 peabody peabody Noun ProperNoun ProperNoun
 peace peace Noun ProperNoun ProperNoun
 peach peach Noun ProperNoun ProperNoun
@@ -48209,6 +48210,7 @@ samuray samuray Noun None
 samut samut Adj None Voicing
 samyeli samyeli Noun None CompoundP3sg roots=sam-yel
 samyeli samyeli Noun ProperNoun ProperNoun
+san san Noun Abbrv pr=sanayi
 san san Noun None NoVoicing
 sana sana Noun ProperNoun ProperNoun
 sanaa sanaa Noun ProperNoun ProperNoun
@@ -50976,6 +50978,7 @@ sohbet sohbet Noun None NoVoicing
 sohbet sohbet Noun ProperNoun ProperNoun
 soho soho Noun ProperNoun ProperNoun
 soir soir Noun ProperNoun ProperNoun
+sok sok Noun Abbrv pr=sokak
 sokak sokak Noun None Voicing
 sokak sokak Noun ProperNoun ProperNoun
 soket soket Noun None NoVoicing
@@ -65907,7 +65910,7 @@ zıypak zıypak Adj None Voicing
 şaşırmak şaşır Verb None AoristI CausativeT
 şb şb Noun Abbrv pr=şebe
 şe şe Noun Abbrv pr=şee
-şe şe Noun None NoVoicing
+şe şe Noun None NoSuffix NoVoicing
 şeamet şeamet Noun None NoVoicing
 şeb şeb Noun None NoVoicing
 şebab şebab Noun ProperNoun ProperNoun
@@ -66452,7 +66455,7 @@ zıypak zıypak Adj None Voicing
 şovrum şovrum Noun None
 şoygu şoygu Noun ProperNoun ProperNoun
 şrek şrek Noun ProperNoun NoVoicing ProperNoun
-şti şti Noun Abbrv pr=şetei
+şti şti Noun Abbrv pr=şirketi
 şu şu Adj None NoVoicing
 şu şu Det None
 şu şu Pron Demons

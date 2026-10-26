@@ -1,3 +1,12 @@
 ## General entries akana adds to Zemberek's dictionaries (previously built into dictionary.rs).
 istemci
 Akana [P:Noun,Prop]
+
+## Letter names (Zemberek's plain nouns for F, G, J, P and Ş) take no suffix written out: a
+## letter's suffixes follow the letter and an apostrophe (G'ye), as its abbreviation entry reads.
+## Without this geler, peler and the like read as plurals of the letter.
+fe [A:NoSuffix]
+ge [A:NoSuffix]
+je [A:NoSuffix]
+pe [A:NoSuffix]
+şe [A:NoSuffix]

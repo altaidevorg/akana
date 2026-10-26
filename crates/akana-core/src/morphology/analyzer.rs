@@ -47,9 +47,9 @@ pub struct MorphParse {
     #[serde(default)]
     pub analysis: String,
     /// How likely the reading is: a spelling factor (1 for a bare root, 0.95 for a suffixed
-    /// word, 0.6 for a name's suffixes written without an apostrophe) times the reading's corpus
-    /// prior relative to the word's most likely reading, so the best reading keeps its factor.
-    /// Analyses come sorted by it.
+    /// word, 0.6 for a name's suffixes written without an apostrophe) times P(reading | word)
+    /// under the corpus prior, so a word's scores sum to at most 1 and an unambiguous word's is
+    /// its factor. Analyses come sorted by it.
     pub score: f32,
     /// The morphotactic path the reading took, which the syntactic analyzer splits into
     /// inflectional groups. Empty for a reading the analyzer did not make.
@@ -119,21 +119,43 @@ pub(super) const MAX_STATE_REPEAT: usize = 8;
 pub(super) static PRIOR: LazyLock<Prior> =
     LazyLock::new(|| Prior::parse(include_bytes!("prior.tsv.gz")));
 
-/// The second-person tags, which the prior scales by its register factor (see
-/// `examples/morph_prior.rs`).
-pub const SECOND_PERSON: [&str; 4] = ["P2sg", "P2pl", "A2sg", "A2pl"];
+/// Whether the prior scales a reading by its register factor (see `examples/morph_prior.rs`):
+/// a second-person possessive or person (P2sg, A2pl), which rides along with another reading in
+/// every word that has it (karar-ın-ın beside P3sg+Gen, gel-me "don't come" beside the verbal
+/// noun, dönüş-ün beside the genitive). The positive singular imperative (anla, ver) is exempt:
+/// it is the bare verb stem, which the corpus counts on its own; so are the pronouns, whose
+/// person is their own (sen, size).
+pub fn prior_second_person(p: &MorphParse) -> bool {
+    if p.primary_pos == PrimaryPos::Pron {
+        return false;
+    }
+    let tags = &p.morpheme_tags;
+    if !tags
+        .iter()
+        .any(|t| matches!(t.as_str(), "P2sg" | "P2pl" | "A2sg" | "A2pl"))
+    {
+        return false;
+    }
+    let bare_imperative = match tags.as_slice() {
+        [.., before, imp, person] => imp == "Imp" && person == "A2sg" && before != "Neg",
+        _ => false,
+    };
+    !bare_imperative
+}
 
 /// The ratio between adjacent levels of a reading's prior relative to its word's best reading.
 const PRIOR_STEP: f32 = 1.02;
 
 /// Log probabilities of items ([`prior_item_key`]) and of shapes ([`prior_shape_key`]) given
-/// their POS (the shape's first tag): P(item) * P(shape | POS) is how likely a reading is.
-/// The keys are hashed ([`KeyHash`]), so looking a reading up builds no string.
+/// their group ([`prior_shape_group`]: the POS, or the personal pronouns' `Pers`): P(item) *
+/// P(shape | group) is how likely a reading is. The keys are hashed ([`KeyHash`]), so looking
+/// a reading up builds no string.
 pub(super) struct Prior {
     items: KeyMap,
     shapes: KeyMap,
     unseen_item: f32,
-    /// A shape not in the file, per POS; [`Prior::unseen_shape`] for a POS not in it either.
+    /// A shape not in the file, per group; [`Prior::unseen_shape`] (the least of these) for a
+    /// group not in it either.
     unseen_shapes: HashMap<String, f32>,
     unseen_shape: f32,
     /// Per-morpheme backoff for a shape not in the file: log P(tag | POS) over the overt
@@ -198,16 +220,14 @@ impl Prior {
             .iter()
             .map(|&(k, c)| (KeyHash::of(k), ((c + 0.5) / total).ln() as f32))
             .collect();
-        fn pos_of(shape: &str) -> &str {
-            shape.split('+').next().unwrap_or_default()
-        }
         let mut totals: HashMap<&str, f64> = HashMap::new();
         // P(tag | POS) over the overt morphemes of the POS's shapes.
         let mut tag_counts: HashMap<(&str, &str), f64> = HashMap::new();
         let mut tag_totals: HashMap<&str, f64> = HashMap::new();
         for &(k, c) in &shapes {
-            *totals.entry(pos_of(k)).or_insert(0.5) += c + 0.5;
-            let mut tags = k.split('+');
+            *totals.entry(prior_shape_group(k)).or_insert(0.5) += c + 0.5;
+            let tags_only = k.rsplit_once('/').map_or(k, |(_, tags)| tags);
+            let mut tags = tags_only.split('+');
             let pos = tags.next().unwrap_or_default();
             for tag in tags.filter(|t| !matches!(*t, "A3sg" | "Pnon" | "Nom")) {
                 *tag_counts.entry((pos, tag)).or_insert(0.0) += c;
@@ -217,14 +237,15 @@ impl Prior {
         let shapes = shapes
             .iter()
             .map(|&(k, c)| {
-                let total = totals[pos_of(k)];
+                let total = totals[prior_shape_group(k)];
                 (KeyHash::of(k), ((c + 0.5) / total).ln() as f32)
             })
             .collect();
-        let unseen_shapes = totals
+        let unseen_shapes: HashMap<String, f32> = totals
             .iter()
-            .map(|(pos, total)| (pos.to_string(), (0.5 / total).ln() as f32))
+            .map(|(group, total)| (group.to_string(), (0.5 / total).ln() as f32))
             .collect();
+        let unseen_shape = unseen_shapes.values().copied().fold(0.5f32.ln(), f32::min);
         let tag_penalties = tag_counts
             .iter()
             .map(|(&(pos, tag), c)| {
@@ -239,7 +260,7 @@ impl Prior {
             shapes,
             unseen_item,
             unseen_shapes,
-            unseen_shape: 0.5f32.ln(),
+            unseen_shape,
             tag_penalties,
             unseen_tag_penalty,
             second_person,
@@ -278,6 +299,11 @@ impl Prior {
         let shape_key = shape_key_parts(p).fold(KeyHash::new(), KeyHash::feed).0;
         let shape = self.shapes.get(&shape_key).copied().unwrap_or_else(|| {
             let pos = p.morpheme_tags.first().map_or("", String::as_str);
+            let group = if personal_pronoun(p) {
+                PERSONAL_GROUP
+            } else {
+                pos
+            };
             let morphemes: f32 = p.morpheme_tags[1..]
                 .iter()
                 .filter(|t| !matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"))
@@ -289,16 +315,12 @@ impl Prior {
                 })
                 .sum();
             self.unseen_shapes
-                .get(pos)
+                .get(group)
                 .copied()
                 .unwrap_or(self.unseen_shape)
                 + morphemes
         });
-        let register = if p
-            .morpheme_tags
-            .iter()
-            .any(|t| SECOND_PERSON.contains(&t.as_str()))
-        {
+        let register = if prior_second_person(p) {
             self.second_person
         } else {
             0.0
@@ -336,10 +358,27 @@ pub fn prior_item_key(p: &MorphParse) -> String {
     item_key_parts(p).concat()
 }
 
-/// The prior's key for a reading's shape: its tag sequence (Noun+P3sg+Loc).
+/// The prior's key for a reading's shape: its tag sequence (Noun+P3sg+Loc). The personal
+/// pronouns share a group of their own, without their person, which the lemma gives
+/// (`Pers/Pron+Dat` for bana, sana, ona, bize, size): pooled with the other pronouns, whose
+/// shapes bu and o dominate, ben's forms looked rare beside the noun ban (bana) and the noun
+/// ben "mole". A group per pronoun drew whole nouns' forms to it instead (bent-i read as
+/// ben-di "it was me").
 pub fn prior_shape_key(p: &MorphParse) -> String {
     shape_key_parts(p).collect()
 }
+
+/// The group a shape's probability is normalised in: the personal pronouns' (`Pers`), else the
+/// POS (the shape's first tag).
+pub fn prior_shape_group(shape_key: &str) -> &str {
+    match shape_key.split_once('/') {
+        Some((group, _)) => group,
+        None => shape_key.split('+').next().unwrap_or_default(),
+    }
+}
+
+/// The shape group of the personal pronouns.
+const PERSONAL_GROUP: &str = "Pers";
 
 fn item_key_parts(p: &MorphParse) -> [&str; 7] {
     let secondary = match p.secondary_pos.as_str() {
@@ -350,11 +389,33 @@ fn item_key_parts(p: &MorphParse) -> [&str; 7] {
     [&p.lemma, " ", &p.root, " ", pos, " ", secondary]
 }
 
+/// A personal pronoun (ben, sen, o, biz, siz), whose shapes form [`PERSONAL_GROUP`]. Other
+/// pronouns stay pooled by POS: a group per lexical pronoun (cümlesi, kimse) drew nouns' forms
+/// to it (cümlesinde).
+fn personal_pronoun(p: &MorphParse) -> bool {
+    p.primary_pos == PrimaryPos::Pron && p.secondary_pos == SecondaryPos::Personal
+}
+
 fn shape_key_parts(p: &MorphParse) -> impl Iterator<Item = &str> {
-    p.morpheme_tags
-        .iter()
-        .enumerate()
-        .flat_map(|(i, t)| [if i == 0 { "" } else { "+" }, t.as_str()])
+    let personal = personal_pronoun(p);
+    let group: [&str; 2] = if personal {
+        [PERSONAL_GROUP, "/"]
+    } else {
+        ["", ""]
+    };
+    group.into_iter().chain(
+        p.morpheme_tags
+            .iter()
+            .filter(move |t| {
+                !(personal
+                    && matches!(
+                        t.as_str(),
+                        "A1sg" | "A2sg" | "A3sg" | "A1pl" | "A2pl" | "A3pl"
+                    ))
+            })
+            .enumerate()
+            .flat_map(|(i, t)| [if i == 0 { "" } else { "+" }, t.as_str()]),
+    )
 }
 
 /// FNV-1a over the bytes of a prior key, fed in parts: the hash of a key's parts is the hash of
@@ -503,11 +564,17 @@ impl TurkishMorphology {
             let capitalised = prior_capitalised(word);
             let logs: Vec<f32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
             let best = logs.iter().copied().fold(f32::MIN, f32::max);
-            for (p, log) in parses.iter_mut().zip(logs) {
-                // In steps of 2%: readings the corpus cannot tell apart (A3pl+Gen and
-                // A3pl+P2sg always compete in the same words) come out of the estimator equal
-                // up to rounding, and tie, so the analyzer's order decides between them.
-                p.score *= PRIOR_STEP.powf(((log - best) / PRIOR_STEP.ln()).round());
+            // Each reading's prior relative to the best, in steps of 2%: readings the corpus
+            // cannot tell apart (A3pl+Gen and A3pl+P2sg always compete in the same words) come
+            // out of the estimator equal up to rounding, and tie, so the analyzer's order
+            // decides between them. Divided by their sum, they are P(reading | word).
+            let ratios: Vec<f32> = logs
+                .iter()
+                .map(|log| PRIOR_STEP.powf(((log - best) / PRIOR_STEP.ln()).round()))
+                .collect();
+            let total: f32 = ratios.iter().sum();
+            for (p, ratio) in parses.iter_mut().zip(ratios) {
+                p.score *= ratio / total;
             }
             order(&mut parses);
         }
@@ -962,7 +1029,10 @@ impl Search<'_> {
         let graph = self.graph;
         let mut found = false;
         for (id, t) in graph.outgoing(ctx.current) {
-            if tail.is_empty() && t.has_surface() {
+            // A NoSuffix root (a letter name, an indeclinable such as dekore) takes no suffix
+            // with a surface.
+            if t.has_surface() && (tail.is_empty() || item.attributes.contains(RootAttr::NO_SUFFIX))
+            {
                 continue;
             }
             let Some(surface) = t.surface(attrs) else {

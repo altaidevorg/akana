@@ -7,32 +7,35 @@
 //! ```
 //!
 //! Every word type of the training sample is analysed without the prior. A reading's
-//! probability is P(item) * P(shape | POS): how often its dictionary item (lemma, root, POS,
-//! secondary POS) is meant, times how often a word of that POS takes its shape (the tag
-//! sequence, Noun+P3sg+Loc). EM estimates both: each word's count is split among its readings
-//! in proportion to their probability, and the split counts give the next estimates.
+//! probability is P(item) * P(shape | group): how often its dictionary item (lemma, root, POS,
+//! secondary POS) is meant, times how often a word of that group takes its shape (the tag
+//! sequence, Noun+P3sg+Loc). The group is the POS, except that the personal pronouns share one
+//! without their person (bana and ona are both Pers+Dat; see `prior_shape_key`). EM estimates
+//! both: each word's count is split among its readings in proportion to their probability, and
+//! the split counts give the next estimates.
 //!
 //! Two fixed factors join them, each estimated from the words whose readings all agree:
 //! - the case of the word as written, P(capitalised | name) and P(capitalised | other word):
 //!   "Ali" is capitalised 1,142 times in 1,143, "yani" 200 times in 1,571, so Ali is the name
 //!   and Yani the conjunction at the start of a sentence;
-//! - a register factor for the second person (P2sg, A2pl, ...), which almost never stands alone
-//!   in the sample but is everywhere an alternative (karar-ın-ın is P3sg+Gen or P2sg+Gen,
-//!   mahkeme-nin Gen or P2sg+Gen), so EM would credit it from every word it could explain: the
-//!   count of words that can only be second person over those that can only be a third-person
-//!   possessive.
+//! - a register factor for the second person (`prior_second_person`: P2sg, A2pl, ...), which
+//!   almost never stands alone in the sample but is everywhere an alternative (karar-ın-ın is
+//!   P3sg+Gen or P2sg+Gen, gel-me the verbal noun or "don't come"), so EM would credit it from
+//!   every word it could explain: the count of words that can only be second person over those
+//!   that can only be a third-person possessive. The positive singular imperative (anla, ver),
+//!   the bare verb stem, keeps its EM estimate.
 //!
 //! The output lists the factors and both kinds of counts, gzipped, for `analyzer.rs` to embed.
 
 use akana_core::morphology::{
-    prior_capitalised, prior_is_name, prior_item_key, prior_shape_key, TurkishMorphology,
-    SECOND_PERSON,
+    prior_capitalised, prior_is_name, prior_item_key, prior_second_person, prior_shape_group,
+    prior_shape_key, TurkishMorphology,
 };
 use std::collections::HashMap;
 use std::io::Write;
 
-/// One reading of a word type: item id, shape id, whether it names something, whether it is
-/// second person.
+/// One reading of a word type: item id, shape id, whether it names something, whether the
+/// register factor applies to it.
 #[derive(Clone, Copy, PartialEq)]
 struct Reading {
     item: usize,
@@ -106,7 +109,7 @@ fn main() {
             let n = shapes.len();
             let shape = *shapes.entry(key.clone()).or_insert(n);
             if shape == shape_pos.len() {
-                let pos = key.split('+').next().unwrap_or_default().to_string();
+                let pos = prior_shape_group(&key).to_string();
                 let n = pos_ids.len();
                 shape_pos.push(*pos_ids.entry(pos).or_insert(n));
                 third_shape.push(key.split('+').any(|t| matches!(t, "P3sg" | "P3pl")));
@@ -115,10 +118,7 @@ fn main() {
                 item,
                 shape,
                 name: prior_is_name(p),
-                second: p
-                    .morpheme_tags
-                    .iter()
-                    .any(|t| SECOND_PERSON.contains(&t.as_str())),
+                second: prior_second_person(p),
             };
             if !readings.contains(&reading) {
                 readings.push(reading);

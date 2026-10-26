@@ -155,3 +155,7 @@ ABD'nın
 # a name's case, possessive and copula, and any suffix of an abbreviation, need an apostrophe
 Ankarada
 TBMMde
+
+# a letter name written out takes no suffix; the letter's follow an apostrophe (G'ler)
+geler
+peler

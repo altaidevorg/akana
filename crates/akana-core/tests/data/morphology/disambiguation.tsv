@@ -228,3 +228,12 @@ verildi	ver	Verb+Pass+Past
 Her	her	Det
 şey	şey	Noun+A3sg+Nom
 yolunda	yol	Noun+P3sg+Loc
+# Added after the merge (2026-10-26): personal pronouns and an imperative in context.
+> Bana bir kitap ver .
+Bana	ben	Pron+A1sg+Dat
+bir	bir	Det	bir	Num
+kitap	kitap	Noun+A3sg+Nom
+ver	ver	Verb+Imp+A2sg
+> Sözümü anla !
+Sözümü	söz	Noun+P1sg+Acc
+anla	anla	Verb+Imp+A2sg

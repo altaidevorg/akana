@@ -232,3 +232,12 @@ süresince	süre	Noun	Noun+P3sg+Equ
 şunlardır	şu	Pron	Pron+A3pl+CopPres3sg
 Karayolları	karayolu	Noun	Noun+A3pl
 oluncaya	olmak	Verb	Verb+AdvInce+Dat
+
+# Personal pronouns and a tie the prior cannot break (added after the merge, 2026-10-26): gelmem
+# is always both the negative aorist ("I do not come") and the verbal noun ("my coming"), so either
+# reading is accepted.
+bana	ben	Pron	Pron+A1sg+Dat
+sana	sen	Pron	Pron+A2sg+Dat
+ben	ben	Pron	Pron+A1sg+Nom
+gelmem	gelmek	Verb	Verb+Neg+Aor+A1sg
+gelmem	gelmek	Verb	Verb+ActN+P1sg

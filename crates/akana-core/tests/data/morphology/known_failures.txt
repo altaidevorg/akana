@@ -1,5 +1,4 @@
 # Gold items the analyzer gets wrong today (see tests/morphology_gold.rs).
-disamb	Bana	Bana bakıp gül .
 disamb	Kamu	Kamu yararı gözetildi .
 disamb	Kitabı	Kitabı masanın altına koydu .
 disamb	Yüz	Yüz kişi toplantıya geldi .
@@ -9,5 +8,4 @@ disamb	bulundu	Karar tarihinde hazır bulundu .
 disamb	dolu	Dün öğleden sonra dolu yağdı .
 disamb	gül	Bana bakıp gül .
 disamb	katıldı	Davacının vekili duruşmaya katıldı .
-disamb	yaşa	Uzun yaşa !
 disamb	yüz	Çocuklar denizde yüz metre yüzdü .

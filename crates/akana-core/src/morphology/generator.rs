@@ -9,7 +9,7 @@ use super::analyzer::{render, tag_of, Step, TurkishMorphology, ENGINE, MAX_STATE
 use super::dictionary::DictionaryItem;
 use super::morphotactics::{Context, Morpheme as M, PathView};
 use super::phonetics::{attributes_of, PhoneticAttrs as P};
-use super::pos::{PrimaryPos, SecondaryPos};
+use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::stems::{self, StemTransition};
 
 /// Tags a request may spell out that the analyzer leaves unshown after a suffix.
@@ -183,6 +183,9 @@ impl Generation<'_> {
             return;
         }
         for (id, t) in graph.outgoing(ctx.current) {
+            if t.has_surface() && item.attributes.contains(RootAttr::NO_SUFFIX) {
+                continue;
+            }
             let Some(surface) = t.surface(attrs) else {
                 continue;
             };

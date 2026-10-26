@@ -151,8 +151,11 @@ impl TurkishDeasciifier {
                     .chars()
                     .filter(|&c| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı'))
                     .count();
-                // Higher score for candidate matching morphotactics with more proper Turkish characters
-                let score = 1.0 + (diacritic_count as f32 * 0.2) + parses[0].score;
+                // Higher score for candidate matching morphotactics with more proper Turkish characters.
+                // A word's parse scores sum to its expected spelling factor (how cleanly it is
+                // written), whatever the number of readings.
+                let well_formed: f32 = parses.iter().map(|p| p.score).sum();
+                let score = 1.0 + (diacritic_count as f32 * 0.2) + well_formed;
                 if score > best_score {
                     best_score = score;
                     best_word = cand;
