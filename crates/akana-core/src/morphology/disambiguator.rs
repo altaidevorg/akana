@@ -64,6 +64,7 @@ impl MorphologicalDisambiguator {
                     morpheme_tags: vec!["Unk".to_string()],
                     formatted: format!("[{}:Unk]", tokens[i]),
                     score: 0.0,
+                    path: Default::default(),
                 });
                 continue;
             }

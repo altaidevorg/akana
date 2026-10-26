@@ -3,15 +3,21 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fmt::Write;
 
-/// An Inflectional Group (IG) represents an overt derivational span or root tier in Turkish morphology.
+/// An Inflectional Group (IG): the root, or a derivation, with the inflections that follow it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InflectionalGroup {
-    /// Part of Speech for this inflectional tier (e.g. "VB", "NOMP", "NN", "ADJP", "ADV")
+    /// Part of speech of the group: NN, VB, ADJ, ADV, PRON, NUM, DET, CONJ, POSTP, INTERJ,
+    /// QUES, DUP, PUNC; a noun derived from a verb is NOMP and a derived adjective ADJP.
     pub pos: String,
-    /// Overt Derivation tag if this IG was created by a derivational morpheme (e.g. "PastNom", "Agt", "With", "Without", "Caus", "Pass", "Dim")
+    /// The derivation that opened the group: Zemberek's morpheme id (Caus, Pass, Able, Inf1,
+    /// PresPart, While, Ness, With, Rel, ...), PastNom and FutNom for the -DIk and -(y)AcAk
+    /// nominalisations, Cop for a nominal predicate (evde-yim). `None` for the root's group.
     pub derivation: Option<String>,
-    /// Feature-value dictionary for this group (e.g. {"PersonNumber": "A3sg", "Possessive": "P1sg", "Case": "Loc", "Polarity": "Pos"})
+    /// UD features of the group, as UD Turkish writes them (Case=Loc, Number=Plur, Person=3,
+    /// Number[psor]=Sing, Person[psor]=1, Tense=Past, Aspect=Perf, Evident=Nfh, Mood=GenPot,
+    /// Polarity=Neg, Voice=Cau, VerbForm=Part).
     pub features: BTreeMap<String, String>,
 }
 
@@ -41,16 +47,17 @@ impl InflectionalGroup {
         let mut out = String::new();
         out.push('(');
 
+        // Writing to a String cannot fail.
         if is_root {
             let lemma = root_lemma.unwrap_or("?");
-            out.push_str(&format!("{}[{}]", lemma, self.pos));
+            let _ = write!(out, "{}[{}]", lemma, self.pos);
         } else {
             let deriv_name = self.derivation.as_deref().unwrap_or("Deriv");
-            out.push_str(&format!("[{}]-{}", self.pos, deriv_name));
+            let _ = write!(out, "[{}]-{}", self.pos, deriv_name);
         }
 
         for (k, v) in &self.features {
-            out.push_str(&format!("+[{k}={v}]"));
+            let _ = write!(out, "+[{k}={v}]");
         }
 
         out.push(')');
@@ -89,10 +96,11 @@ impl SyntacticParse {
                 formatted.push_str(&ig.format_ig(false, None));
             }
         }
-        formatted.push_str(&format!(
-            "+[Proper={}]",
-            if is_proper { "True" } else { "False" }
-        ));
+        formatted.push_str(if is_proper {
+            "+[Proper=True]"
+        } else {
+            "+[Proper=False]"
+        });
 
         Self {
             surface,

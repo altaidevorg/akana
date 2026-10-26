@@ -265,12 +265,34 @@ def test_syntactic_morphology():
     assert parse.inflectional_groups[1].pos == "NOMP"
     assert parse.inflectional_groups[1].derivation == "PastNom"
     assert parse.inflectional_groups[1].features.get("Case") == "Loc"
+    # UD features: the possessor is Number[psor] and Person[psor].
+    assert parse.inflectional_groups[1].features == {
+        "Case": "Loc",
+        "Number": "Sing",
+        "Number[psor]": "Plur",
+        "Person": "3",
+        "Person[psor]": "1",
+        "VerbForm": "Vnoun",
+    }
 
     # Cross-categorization check (güzel as ADJ and ADV)
     guzel_parses = akana.syntactic_analyze("güzel")
     pos_set = {p.root_pos for p in guzel_parses}
     assert "ADJ" in pos_set
     assert "ADV" in pos_set
+
+    # Voice, the copula and converbs open groups of their own.
+    derivations = {
+        word: [
+            [ig.derivation for ig in p.inflectional_groups]
+            for p in akana.syntactic_analyze(word)
+        ]
+        for word in ["yaptırıldı", "evdeyim", "gelince"]
+    }
+    assert [None, "Caus", "Pass"] in derivations["yaptırıldı"]
+    assert [None, "Cop"] in derivations["evdeyim"]
+    assert [None, "When"] in derivations["gelince"]
+    assert akana.syntactic_analyze("xqzzt") == []
 
     natural_human_text = (
         "Dün sabah erkenden uyandım. Hava çok soğuktu. "
