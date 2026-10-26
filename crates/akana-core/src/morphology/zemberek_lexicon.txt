@@ -414,7 +414,7 @@ acemce acemce Noun ProperNoun ProperNoun
 acemi acemi Adj None
 acemi acemi Noun None
 acemkürdi acemkürdi Noun None display=acemkürdî
-acemlale acemlale Noun None CompoundP3sg roots=acem-lale
+acemlale acemlale Noun None
 acemoğlu acemoğlu Noun ProperNoun ProperNoun
 acente acente Noun None
 acep acep Adv None
@@ -489,8 +489,8 @@ acıpayam acıpayam Noun ProperNoun ProperNoun
 acırak acırak Adj None NoVoicing
 acırga acırga Noun None
 acısu acısu Noun ProperNoun ProperNoun
-acıyonca acıyonca Noun None CompoundP3sg roots=acı-yonca
-acıçiğdem acıçiğdem Noun None CompoundP3sg roots=acı-çiğdem
+acıyonca acıyonca Noun None
+acıçiğdem acıçiğdem Noun None
 acışmak acış Verb None AoristI
 ad ad Noun None NoVoicing
 ad ad Noun None Doubling InverseHarmony NoVoicing idx=1
@@ -5184,7 +5184,6 @@ aşağı aşağı Postp None pc=Abl
 aşağılamak aşağıla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 aşağısamak aşağısa Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 aşcı aşcı Noun ProperNoun ProperNoun
-aşcıbaşı aşcıbaşı Noun None CompoundP3sg roots=aşçı-baş
 aşdod aşdod Noun ProperNoun ProperNoun
 aşerat aşerat Noun None NoVoicing
 aşermek aşer Verb None AoristI CausativeT
@@ -5224,7 +5223,7 @@ aşura aşura Noun ProperNoun ProperNoun
 aşure aşure Noun None
 aşut aşut Noun ProperNoun ProperNoun
 aşçı aşçı Noun None
-aşçıbaşı aşçıbaşı Noun None
+aşçıbaşı aşçıbaşı Noun None CompoundP3sg roots=aşçı-baş
 aşçıoğlu aşçıoğlu Noun ProperNoun ProperNoun
 aşüfte aşüfte Noun None
 aşı aşı Adj None
@@ -5253,7 +5252,6 @@ aşırı aşırı Adv None
 aşırıntı aşırıntı Noun None
 aşıt aşıt Noun None Voicing
 b b Noun Abbrv NoVoicing pr=be
-b1 b1 Noun Abbrv pr=bebirr
 b12 b12 Noun Abbrv pr=beoniki
 b2 b2 Noun Abbrv pr=beiki
 b6 b6 Noun Abbrv pr=bealtı
@@ -5317,7 +5315,7 @@ babyneo babyneo Noun ProperNoun ProperNoun
 babür babür Noun ProperNoun ProperNoun
 babıali babıali Noun ProperNoun ProperNoun display=Babıâli
 baca baca Noun None
-bacabaşı bacabaşı Noun None CompoundP3sg roots=bacak-baş
+bacabaşı bacabaşı Noun None CompoundP3sg roots=baca-baş
 bacak bacak Noun None Voicing
 bacakkalemi bacakkalemi Noun None CompoundP3sg roots=bacak-kalem
 bacakkıran bacakkıran Noun None
@@ -8674,7 +8672,7 @@ borat borat Noun None NoVoicing
 boratav boratav Noun ProperNoun ProperNoun
 boray boray Noun ProperNoun ProperNoun
 borazan borazan Noun None
-borazancıbaşı borazancıbaşı Noun None CompoundP3sg roots=borazan-baş
+borazancıbaşı borazancıbaşı Noun None CompoundP3sg roots=borazancı-baş
 borbiconi borbiconi Noun ProperNoun ProperNoun
 borda borda Noun None
 bordalamak bordala Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -15347,7 +15345,7 @@ düşkurucu düşkurucu Noun None
 düşkü düşkü Noun None
 düşkün düşkün Adj None
 düşkünlerevi düşkünlerevi Noun None CompoundP3sg roots=düşkünler-ev
-düşkırıklığı düşkırıklığı Noun None CompoundP3sg roots=düş-kırık
+düşkırıklığı düşkırıklığı Noun None CompoundP3sg roots=düş-kırıklık
 düşlem düşlem Noun None
 düşlemek düşle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 düşman düşman Adj None
@@ -16036,7 +16034,7 @@ elbette elbette Adv None
 elbeyli elbeyli Noun ProperNoun ProperNoun
 elbezi elbezi Noun None CompoundP3sg roots=el-bez
 elbir elbir Noun ProperNoun ProperNoun
-elbirliği elbirliği Noun None CompoundP3sg roots=el-bir
+elbirliği elbirliği Noun None CompoundP3sg roots=el-birlik
 elbise elbise Noun None
 elbiselik elbiselik Adj None Voicing
 elbistan elbistan Noun ProperNoun ProperNoun
@@ -16296,8 +16294,8 @@ elyaf elyaf Noun None
 elyan elyan Noun ProperNoun ProperNoun
 elyapımı elyapımı Adj None
 elyasa elyasa Noun ProperNoun ProperNoun
-elyazması elyazması Adj None CompoundP3sg roots=el-yaz
-elyazması elyazması Noun None CompoundP3sg roots=el-yaz
+elyazması elyazması Adj None CompoundP3sg roots=el-yazma
+elyazması elyazması Noun None CompoundP3sg roots=el-yazma
 elyazısı elyazısı Noun None CompoundP3sg roots=el-yazı
 elyesa elyesa Noun ProperNoun ProperNoun
 elysee elysee Noun ProperNoun ProperNoun
@@ -19767,7 +19765,6 @@ fıba fıba Noun Abbrv pr=fiba
 fıda fıda Noun Abbrv pr=fida
 fıde fıde Noun Abbrv pr=fide
 fıfa fıfa Noun Abbrv pr=fifa
-fıgc fıgc Noun Abbrv pr=figo
 fıkdan fıkdan Noun None
 fıkra fıkra Noun None
 fıkramak fıkra Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -22515,7 +22512,7 @@ güvenirlik güvenirlik Noun None Voicing
 güvenlik güvenlik Noun None Voicing
 güvenlik güvenlik Noun ProperNoun ProperNoun
 güvenmek güven Verb None AoristI
-güvenoylaması güvenoylaması Noun None CompoundP3sg roots=güven-oyla
+güvenoylaması güvenoylaması Noun None CompoundP3sg roots=güven-oylama
 güvenoyu güvenoyu Noun None
 güvenpark güvenpark Noun ProperNoun ProperNoun
 güventürk güventürk Noun ProperNoun ProperNoun
@@ -22533,7 +22530,7 @@ güvercinler güvercinler Noun None ImplicitPlural
 güvercintepe güvercintepe Noun ProperNoun ProperNoun
 güverte güverte Noun None
 güvey güvey Noun None
-güveyfeneri güveyfeneri Noun None CompoundP3sg roots=güney-fener
+güveyfeneri güveyfeneri Noun None CompoundP3sg roots=güvey-fener
 güveyi güveyi Noun None
 güvez güvez Adj None
 güvez güvez Noun None
@@ -23510,7 +23507,7 @@ hasebiyle hasebiyle Adv None
 hasefe hasefe Noun ProperNoun ProperNoun
 haseke haseke Noun ProperNoun ProperNoun
 haseki haseki Noun None
-hasekiküpesi hasekiküpesi Noun None CompoundP3sg roots=heseki-küpe
+hasekiküpesi hasekiküpesi Noun None CompoundP3sg roots=haseki-küpe
 hasen hasen Noun ProperNoun ProperNoun
 hasenat hasenat Noun None ImplicitPlural NoVoicing
 haseni haseni Noun ProperNoun ProperNoun
@@ -23712,7 +23709,7 @@ havuzbaşı havuzbaşı Noun ProperNoun ProperNoun
 havuzlamak havuzla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 havuç havuç Noun None Voicing
 havva havva Noun ProperNoun ProperNoun
-havvaanaeli havvaanaeli Noun None CompoundP3sg roots=hayvan-el
+havvaanaeli havvaanaeli Noun None CompoundP3sg roots=havvaana-el
 havvanur havvanur Noun ProperNoun ProperNoun
 havya havya Noun None
 havyar havyar Noun None
@@ -34969,7 +34966,6 @@ lös lös Noun None NoVoicing
 lösemi lösemi Noun None
 lösemit lösemit Noun None Voicing
 lösev lösev Noun Abbrv pr=lösev
-löw löw Noun Abbrv NoVoicing pr=löv
 lübbetülayn lübbetülayn Noun ProperNoun ProperNoun
 lübeck lübeck Noun ProperNoun ProperNoun
 lübnan lübnan Noun ProperNoun ProperNoun
@@ -36565,7 +36561,6 @@ mcrae mcrae Noun ProperNoun ProperNoun
 mcveigh mcveigh Noun ProperNoun ProperNoun
 mcıntyre mcıntyre Noun ProperNoun ProperNoun
 md md Noun Abbrv pr=mede
-mdlüğü mdlüğü Noun Abbrv pr=medeleüyumuşakgeü
 mdob mdob Noun ProperNoun NoVoicing ProperNoun
 mead mead Noun ProperNoun ProperNoun
 meade meade Noun ProperNoun ProperNoun
@@ -42624,7 +42619,7 @@ ortanca ortanca Adj None
 ortanca ortanca Noun None
 ortaokul ortaokul Noun None
 ortaoyunu ortaoyunu Noun None CompoundP3sg roots=orta-oyun
-ortaparmak ortapar Verb None AoristI CausativeT CompoundP3sg roots=orta-parmak
+ortaparmak ortaparmak Noun None Voicing
 ortasu ortasu Noun ProperNoun ProperNoun
 ortasıklet ortasıklet Noun None Voicing
 ortay ortay Adj None
@@ -52173,7 +52168,7 @@ sözlük sözlük Noun None Voicing
 sözlükbilim sözlükbilim Noun None
 sözmen sözmen Noun ProperNoun ProperNoun
 sözsüz sözsüz Adj None
-sözvarlığı sözvarlığı Noun None CompoundP3sg roots=söz-var
+sözvarlığı sözvarlığı Noun None CompoundP3sg roots=söz-varlık
 sözvermek sözver Verb None AoristI CausativeT
 sözüer sözüer Noun ProperNoun ProperNoun
 sözümona sözümona Noun None
@@ -53712,7 +53707,7 @@ tavuksular tavuksular Noun None ImplicitPlural
 tavukçuoğlu tavukçuoğlu Noun ProperNoun ProperNoun
 tavulga tavulga Noun None
 tavus tavus Noun None
-tavuskuyruğu tavuskuyruğu Noun None CompoundP3sg roots=tavuk-kuyruk
+tavuskuyruğu tavuskuyruğu Noun None CompoundP3sg roots=tavus-kuyruk
 tavuskuşu tavuskuşu Noun None CompoundP3sg roots=tavus-kuş
 tavzif tavzif Noun None
 tavzih tavzih Noun None
@@ -59457,7 +59452,7 @@ yabalamak yabala Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 yaban yaban Adj None
 yaban yaban Noun None
 yabanarısı yabanarısı Noun None CompoundP3sg roots=yaban-arı
-yabanasması yabanasması Noun None CompoundP3sg roots=yaban-as
+yabanasması yabanasması Noun None CompoundP3sg roots=yaban-asma
 yabancı yabancı Adj None
 yabancıl yabancıl Adj None
 yabancılamak yabancıla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -64591,7 +64586,7 @@ zıypak zıypak Adj None Voicing
 üstbilgi üstbilgi Noun None
 üstbirlik üstbirlik Noun None Voicing
 üstbostancı üstbostancı Noun ProperNoun ProperNoun
-üstderi üstderi Noun None CompoundP3sg roots=üst-de
+üstderi üstderi Noun None
 üstdüzey üstdüzey Adj None
 üste üste Noun None
 üstek üstek Noun ProperNoun ProperNoun
@@ -66234,7 +66229,6 @@ zıypak zıypak Adj None Voicing
 şövalye şövalye Noun None
 şöyle şöyle Adv None
 şöyleki şöyleki Noun ProperNoun ProperNoun
-şöylemesine şöylemesine Noun None CompoundP3sg roots=şöylem-es
 şöylesine şöylesine Adv None
 şüca şüca Noun ProperNoun ProperNoun
 şüceyne şüceyne Noun ProperNoun ProperNoun

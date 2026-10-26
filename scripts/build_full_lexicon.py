@@ -28,6 +28,10 @@ analyzer accepted wrongly:
   (proper, person-names, abbreviations) lists the name too.
 - Roots with characters that are not letters or digits (m², alm.) are dropped.
 
+The build fails when a CompoundP3sg entry's `roots=` does not spell the word (head, tail as it
+is before a vowel, 3rd-person possessive), and reads a -mak/-mek entry without a POS but with
+CompoundP3sg as a noun.
+
 Output, one item per line, sorted:
     lemma root POS SECONDARY [ATTRIBUTES...] [pr=PRONUNCIATION] [roots=HEAD-TAIL] [pc=CASE]
         [idx=N] [display=SPELLING]
@@ -289,7 +293,10 @@ def pos_info(word, meta):
         elif token in POSTP_CASE:
             pc = POSTP_CASE[token]
     if primary is None:
-        primary = "Verb" if is_verb(word) else "Noun"
+        # A -mak/-mek word is a verb unless it carries a noun's attribute (ortaparmak "middle
+        # finger" [A:CompoundP3sg] is no verb ortaparmak).
+        compound = "CompoundP3sg" in meta.get("A", "")
+        primary = "Verb" if is_verb(word) and not compound else "Noun"
     if secondary is None:
         secondary = "ProperNoun" if word[:1].isupper() else "None"
     return primary, secondary, pc
@@ -363,6 +370,32 @@ class Entry:
     def sort_key(self):
         # Zemberek's homograph order: the unnumbered sense first (hak "right", then hak [Index:1]).
         return (self.lemma, self.root, self.pos, self.secondary, self.index, self.line())
+
+
+VOICED = {"k": "ğ", "p": "b", "ç": "c", "t": "d", "g": "ğ"}
+
+
+def compound_spelled(root, roots):
+    """Whether a CompoundP3sg root is its parts with the 3rd-person possessive: the head, then
+    the tail as it is before a vowel (voiced, nk -> ng, doubled or with its last vowel dropped),
+    then -(s)I, -yU after su (madensuyu), or -lArI for a plural head (içişleri). The first part
+    may have its own possessive (yan-ı-baş-ı). One part is the stem itself (üzeri)."""
+    head, _, tail = roots.rpartition("-")
+    head = normalize_circumflex(turkish_lower(head))
+    tail = normalize_circumflex(turkish_lower(tail))
+    if not root.startswith(head):
+        return False
+    rests = [root[len(head):]]
+    if head and rests[0][:1] in ("ı", "i", "u", "ü"):
+        rests.append(rests[0][1:])
+    stems = {tail, tail[:-1] + VOICED.get(tail[-1], tail[-1]), tail + tail[-1]}
+    if tail.endswith("nk"):
+        stems.add(tail[:-1] + "g")
+    if len(tail) >= 3 and tail[-2] in VOWELS:
+        dropped = tail[:-2] + tail[-1]
+        stems |= {dropped, dropped[:-1] + VOICED.get(dropped[-1], dropped[-1])}
+    endings = ("ı", "i", "u", "ü", "sı", "si", "su", "sü", "yu", "yü", "ları", "leri")
+    return any(r.startswith(st) and r[len(st):] in endings for r in rests for st in stems)
 
 
 def make_entry(word, meta, source):
@@ -585,6 +618,16 @@ def main():
         key = (e.lemma, e.root, e.pos, e.secondary, e.index, display is not None, line)
         keyed.append((key, line if display is None else f"{line} {display}"))
     lines = [line for _, line in sorted(keyed)]
+    # Integrity checks: a compound's parts must spell it (review 2 found tavuk-kuyruk for
+    # tavuskuyruğu, hayvan-el for havvaanaeli).
+    misspelled = [
+        e.line()
+        for key in items
+        for e in items[key]
+        if "CompoundP3sg" in e.attrs and e.roots and not compound_spelled(e.root, e.roots)
+    ]
+    if misspelled:
+        raise SystemExit("roots= that do not spell their compound:\n  " + "\n  ".join(misspelled))
     # LF on every platform: the embedded lexicon is hashed into the analysis fingerprint.
     with open(args.output, "w", encoding="utf-8", newline="\n") as f:
         for line in lines:

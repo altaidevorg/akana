@@ -119,3 +119,26 @@ vurulmak [A:NotLexicalized]
 aymak [A:Rare]
 bulamak [A:Rare]
 ilmek [A:Rare]
+
+## Compounds whose Roots: Zemberek misspells or truncates (review 2, MLEX2-08); the build now
+## checks that a compound's parts spell it. Words it marks CompoundP3sg that have no possessive
+## of their own (acemlale, üstderi) are plain nouns, and ortaparmak "middle finger" is no verb.
+tavuskuyruğu [A:CompoundP3sg; Roots:tavus-kuyruk]
+bacabaşı [A:CompoundP3sg; Roots:baca-baş]
+güveyfeneri [A:CompoundP3sg; Roots:güvey-fener]
+hasekiküpesi [A:CompoundP3sg; Roots:haseki-küpe]
+havvaanaeli [A:CompoundP3sg; Roots:havvaana-el]
+borazancıbaşı [A:CompoundP3sg; Roots:borazancı-baş]
+aşçıbaşı [A:CompoundP3sg; Roots:aşçı-baş]
+düşkırıklığı [A:CompoundP3sg; Roots:düş-kırıklık]
+elbirliği [A:CompoundP3sg; Roots:el-birlik]
+elyazması [A:CompoundP3sg; Roots:el-yazma]
+elyazması [P:Adj; A:CompoundP3sg; Roots:el-yazma]
+güvenoylaması [A:CompoundP3sg; Roots:güven-oylama]
+sözvarlığı [A:CompoundP3sg; Roots:söz-varlık]
+yabanasması [A:CompoundP3sg; Roots:yaban-asma]
+acemlale
+acıçiğdem
+acıyonca
+üstderi
+ortaparmak [P:Noun]

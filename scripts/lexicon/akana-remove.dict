@@ -349,3 +349,12 @@ Iris
 Isaf
 Isle
 Işte
+
+## Inherited junk (MLEX2-08): a misspelt compound (aşçıbaşı is listed), a compound with a
+## nonsense split (şöylem-es), and abbreviations with junk pronunciations or none of their own.
+aşcıbaşı
+şöylemesine
+B1 [P:Abbrv]
+FIGC [P:Abbrv]
+Löw [P:Abbrv]
+Mdlüğü [P:Abbrv]
