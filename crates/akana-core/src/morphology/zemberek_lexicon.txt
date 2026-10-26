@@ -1244,7 +1244,7 @@ akkız akkız Noun ProperNoun ProperNoun
 akkışla akkışla Noun ProperNoun ProperNoun
 aklamak akla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 aklan aklan Noun None
-aklanmak aklan Verb None AoristI
+aklanmak aklan Verb None AoristI NotLexicalized
 aklen aklen Adv None
 aklevrek aklevrek Noun None Voicing
 akli akli Adj None
@@ -1327,7 +1327,7 @@ aksanat aksanat Noun ProperNoun ProperNoun
 aksaray aksaray Noun ProperNoun ProperNoun
 aksarayspor aksarayspor Noun ProperNoun ProperNoun
 aksata aksata Noun None
-aksatmak aksat Verb None AoristI
+aksatmak aksat Verb None AoristI Lexicalized
 aksav aksav Noun ProperNoun ProperNoun
 aksay aksay Noun ProperNoun ProperNoun
 aksaz aksaz Noun ProperNoun ProperNoun
@@ -2344,7 +2344,7 @@ alıcı alıcı Noun None
 alıcık alıcık Noun ProperNoun ProperNoun
 alık alık Adj None Voicing
 alıkonmak alıkon Verb None AoristI
-alıkonulmak alıkonul Verb None AoristI CausativeT PassiveIn
+alıkonulmak alıkonul Verb None AoristI CausativeT NotLexicalized PassiveIn
 alıkoymak alıkoy Verb None AoristA
 alım alım Noun None
 alımlamak alımla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -2353,7 +2353,7 @@ alınak alınak Noun ProperNoun ProperNoun
 alındı alındı Noun None
 alındılamak alındıla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 alıngan alıngan Adj None
-alınmak alın Verb None AoristI
+alınmak alın Verb None AoristI NotLexicalized
 alınteri alınteri Noun None CompoundP3sg roots=alın-ter
 alıntı alıntı Noun None
 alıntılamak alıntıla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -2923,7 +2923,7 @@ anlambilim anlambilim Noun None
 anlambilimsel anlambilimsel Noun None
 anlamdaş anlamdaş Adj None
 anlamlanmak anlamlan Verb None AoristI
-anlatmak anlat Verb None AoristI
+anlatmak anlat Verb None AoristI Lexicalized
 anlatı anlatı Noun None
 anlatım anlatım Noun None
 anlayış anlayış Noun None
@@ -3356,7 +3356,7 @@ aranağme aranağme Noun None
 aranje aranje Adj None
 aranjman aranjman Noun None
 aranjör aranjör Noun None
-aranmak aran Verb None AoristI
+aranmak aran Verb None AoristI NotLexicalized
 arantı arantı Noun None
 arap arap Adj None Voicing
 arap arap Adj ProperNoun ProperNoun
@@ -3734,7 +3734,7 @@ artrit artrit Noun None NoVoicing
 artroz artroz Noun None
 arts arts Noun ProperNoun NoVoicing ProperNoun
 artsüre artsüre Noun None
-arttırmak arttır Verb None AoristI CausativeT
+arttırmak arttır Verb None AoristI CausativeT Lexicalized
 arttırım arttırım Noun None
 artuk artuk Noun ProperNoun ProperNoun
 artuklu artuklu Noun ProperNoun ProperNoun
@@ -4361,7 +4361,7 @@ atıl atıl Noun ProperNoun ProperNoun
 atılay atılay Noun ProperNoun ProperNoun
 atılgan atılgan Adj None
 atılgan atılgan Noun ProperNoun ProperNoun
-atılmak atıl Verb None AoristI CausativeT PassiveIn
+atılmak atıl Verb None AoristI CausativeT NotLexicalized PassiveIn
 atılım atılım Noun None
 atım atım Noun None
 atınç atınç Noun ProperNoun ProperNoun
@@ -4565,7 +4565,7 @@ ayakbastı ayakbastı Noun None
 ayakbağı ayakbağı Noun None CompoundP3sg roots=ayak-bağ
 ayakkabı ayakkabı Noun None
 ayaklamak ayakla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-ayaklanmak ayaklan Verb None AoristI
+ayaklanmak ayaklan Verb None AoristI Lexicalized
 ayakligazete ayakligazete Noun ProperNoun ProperNoun
 ayaksızlar ayaksızlar Noun None ImplicitPlural
 ayakta ayakta Adv None
@@ -4736,7 +4736,7 @@ aylık aylık Adj None Voicing
 aylık aylık Adv None
 aylık aylık Noun None Voicing
 aym aym Noun Abbrv pr=ayeme
-aymak ay Verb None AoristA
+aymak ay Verb None AoristA Rare
 ayman ayman Noun ProperNoun ProperNoun
 aymar aymar Noun ProperNoun ProperNoun
 aymaz aymaz Adj None
@@ -4936,7 +4936,7 @@ azadiya azadiya Noun ProperNoun ProperNoun
 azak azak Noun ProperNoun ProperNoun
 azaklı azaklı Noun ProperNoun ProperNoun
 azalmak azal Verb None AoristI CausativeT PassiveIn
-azaltmak azalt Verb None AoristI
+azaltmak azalt Verb None AoristI Lexicalized
 azaltım azaltım Noun None
 azalım azalım Noun None
 azam azam Noun ProperNoun ProperNoun
@@ -4993,7 +4993,7 @@ azkaban azkaban Noun ProperNoun ProperNoun
 azletmek azlet Verb None AoristA Voicing
 azlol azlol Noun None
 azlolmak azlol Verb None AoristI CausativeT PassiveIn
-azlolunmak azlolun Verb None AoristI
+azlolunmak azlolun Verb None AoristI NotLexicalized
 azmak az Verb None AoristA
 azman azman Adj None
 azman azman Noun None
@@ -6162,7 +6162,7 @@ bastı bastı Noun None
 bastıbacak bastıbacak Adj None Voicing
 bastık bastık Noun None Voicing
 bastırak bastırak Noun None Voicing
-bastırmak bastır Verb None AoristI CausativeT
+bastırmak bastır Verb None AoristI CausativeT Lexicalized
 bastırık bastırık Noun None Voicing
 bastırım bastırım Noun None
 basur basur Noun None
@@ -7104,7 +7104,7 @@ belirtik belirtik Adj None Voicing
 belirtim belirtim Noun None
 belirtke belirtke Noun None
 belirtken belirtken Noun None
-belirtmek belirt Verb None AoristI
+belirtmek belirt Verb None AoristI Lexicalized
 belit belit Noun None NoVoicing
 belitken belitken Noun None
 belitlemek belitle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -7911,7 +7911,7 @@ bildiri bildiri Noun None
 bildirim bildirim Noun None
 bildirişim bildirişim Noun None
 bildirişmek bildiriş Verb None AoristI
-bildirmek bildir Verb None AoristI CausativeT
+bildirmek bildir Verb None AoristI CausativeT Lexicalized
 bildt bildt Noun ProperNoun NoVoicing ProperNoun
 bile bile Adv None
 bile bile Conj None
@@ -8058,7 +8058,7 @@ bindallı bindallı Noun None
 binder binder Noun ProperNoun ProperNoun
 bindi bindi Noun None
 bindirim bindirim Noun None
-bindirmek bindir Verb None AoristI CausativeT
+bindirmek bindir Verb None AoristI CausativeT Lexicalized
 binek binek Adj None Voicing
 binek binek Noun None Voicing
 biner biner Num Dist
@@ -8951,7 +8951,7 @@ boztuğ boztuğ Noun ProperNoun ProperNoun
 bozuk bozuk Adj None Voicing
 bozuk bozuk Noun None Voicing
 bozukdüzen bozukdüzen Adj None
-bozulmak bozul Verb None AoristI CausativeT PassiveIn
+bozulmak bozul Verb None AoristI CausativeT NotLexicalized PassiveIn
 bozulum bozulum Noun None
 bozum bozum Noun None
 bozun bozun Noun ProperNoun ProperNoun
@@ -9013,7 +9013,7 @@ boşaltım boşaltım Noun None
 boşalım boşalım Noun None
 boşamak boşa Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 boşanma boşanma Noun None
-boşanmak boşan Verb None AoristI
+boşanmak boşan Verb None AoristI Lexicalized
 boşatmak boşat Verb None AoristI
 boşboğaz boşboğaz Adj None
 boşlamak boşla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -9399,7 +9399,7 @@ bula bula Noun None
 bulada bulada Noun None
 bulak bulak Noun None Voicing
 bulak bulak Noun ProperNoun ProperNoun
-bulamak bula Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
+bulamak bula Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop Rare
 bulamaç bulamaç Adj None Voicing
 bulamaç bulamaç Noun None Voicing
 bulancak bulancak Noun ProperNoun ProperNoun
@@ -9449,8 +9449,8 @@ bulls bulls Noun ProperNoun NoVoicing ProperNoun
 bulmaca bulmaca Noun None
 bulmak bul Verb None AoristI PassiveIn
 bultak bultak Noun None Voicing
-bulundurmak bulundur Verb None AoristI CausativeT
-bulunmak bulun Verb None AoristI
+bulundurmak bulundur Verb None AoristI CausativeT Lexicalized
+bulunmak bulun Verb None AoristI Lexicalized
 buluntu buluntu Noun None
 bulunç bulunç Noun None Voicing
 bulut bulut Noun None NoVoicing
@@ -9959,7 +9959,7 @@ büyümek büyü Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 büyümsemek büyümse Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 büyüteç büyüteç Noun None Voicing
 büyütken büyütken Adj None
-büyütmek büyüt Verb None AoristI
+büyütmek büyüt Verb None AoristI Lexicalized
 büz büz Noun None NoVoicing
 büzgen büzgen Noun None
 büzgü büzgü Noun None
@@ -10580,7 +10580,7 @@ cavit cavit Noun ProperNoun ProperNoun
 cavlak cavlak Adj None Voicing
 cavlamak cavla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 cavs cavs Noun ProperNoun NoVoicing ProperNoun
-caydırmak caydır Verb None AoristI CausativeT
+caydırmak caydır Verb None AoristI CausativeT Lexicalized
 cayenne cayenne Noun ProperNoun ProperNoun
 caygın caygın Adj None
 caymak cay Verb None AoristA
@@ -12683,7 +12683,7 @@ dayama dayama Noun None
 dayamak daya Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 dayanak dayanak Noun None Voicing
 dayangaç dayangaç Noun None Voicing
-dayanmak dayan Verb None AoristI
+dayanmak dayan Verb None AoristI Lexicalized
 dayantı dayantı Noun None
 dayanç dayanç Noun None Voicing
 dayanık dayanık Noun None Voicing
@@ -13188,7 +13188,7 @@ denence denence Noun None
 denet denet Noun None NoVoicing
 denetim denetim Noun None
 denetlemek denetle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-denetmek denet Verb None AoristI
+denetmek denet Verb None AoristI Lexicalized
 denetmen denetmen Noun None
 deneuve deneuve Noun ProperNoun ProperNoun
 deney deney Noun None
@@ -13651,7 +13651,7 @@ değerbilir değerbilir Adj None
 değerbilmez değerbilmez Noun None
 değerlemek değerle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 değerlendirim değerlendirim Noun None
-değerlendirmek değerlendir Verb None AoristI CausativeT
+değerlendirmek değerlendir Verb None AoristI CausativeT Lexicalized
 değerlenmek değerlen Verb None AoristI
 değerli değerli Adj None
 değersiz değersiz Adj None
@@ -14086,7 +14086,7 @@ diren diren Noun None
 direngen direngen Adj None
 direnim direnim Noun None
 direnlemek direnle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-direnmek diren Verb None AoristI
+direnmek diren Verb None AoristI Lexicalized
 direnç direnç Noun None Voicing
 direnç direnç Noun ProperNoun ProperNoun
 dirençölçer dirençölçer Noun None
@@ -14389,7 +14389,7 @@ dokunaklı dokunaklı Adj None
 dokunaç dokunaç Noun None Voicing
 dokunca dokunca Noun None
 dokunmabana dokunmabana Noun None
-dokunmak dokun Verb None AoristI
+dokunmak dokun Verb None AoristI Lexicalized
 dokunmatik dokunmatik Adj None Voicing
 dokunulmaz dokunulmaz Adj None
 dokunum dokunum Noun None
@@ -14416,9 +14416,9 @@ dolam dolam Noun None
 dolamak dola Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 dolambaç dolambaç Noun None Voicing
 dolamık dolamık Noun None Voicing
-dolandırmak dolandır Verb None AoristI CausativeT
+dolandırmak dolandır Verb None AoristI CausativeT Lexicalized
 dolandırıcı dolandırıcı Noun None
-dolanmak dolan Verb None AoristI
+dolanmak dolan Verb None AoristI Lexicalized
 dolantı dolantı Noun None
 dolanım dolanım Noun None
 dolap dolap Noun None Voicing
@@ -14520,7 +14520,7 @@ donanmak donan Verb None AoristI
 donanım donanım Noun None
 donatella donatella Noun ProperNoun ProperNoun
 donatello donatello Noun ProperNoun ProperNoun
-donatmak donat Verb None AoristI
+donatmak donat Verb None AoristI Lexicalized
 donatı donatı Noun None
 donatım donatım Noun None
 donay donay Noun ProperNoun ProperNoun
@@ -14968,7 +14968,7 @@ durbaş durbaş Noun ProperNoun ProperNoun
 durdane durdane Noun ProperNoun ProperNoun
 durden durden Noun ProperNoun ProperNoun
 durdu durdu Noun ProperNoun ProperNoun
-durdurmak durdur Verb None AoristI CausativeT
+durdurmak durdur Verb None AoristI CausativeT Lexicalized
 durendiş durendiş Adj None
 durgu durgu Noun None
 durgun durgun Adj None
@@ -15007,7 +15007,7 @@ durukan durukan Noun ProperNoun ProperNoun
 duruksun duruksun Adj None
 durul durul Noun ProperNoun ProperNoun
 durulamak durula Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-durulmak durul Verb None AoristI CausativeT PassiveIn
+durulmak durul Verb None AoristI CausativeT NotLexicalized PassiveIn
 durum durum Noun None
 duruoğlu duruoğlu Noun ProperNoun ProperNoun
 durusan durusan Noun ProperNoun ProperNoun
@@ -15325,7 +15325,7 @@ düze düze Noun None
 düzelmek düzel Verb None AoristI CausativeT PassiveIn
 düzelti düzelti Noun None
 düzeltim düzeltim Noun None
-düzeltmek düzelt Verb None AoristI
+düzeltmek düzelt Verb None AoristI Lexicalized
 düzeltmen düzeltmen Noun None
 düzem düzem Noun None
 düzemek düze Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -15421,7 +15421,7 @@ düşünce düşünce Noun None
 düşüncel düşüncel Adj None
 düşünceleme düşünceleme Noun None
 düşündeş düşündeş Noun None
-düşündürmek düşündür Verb None AoristI CausativeT
+düşündürmek düşündür Verb None AoristI CausativeT Lexicalized
 düşüngü düşüngü Noun None
 düşünmek düşün Verb None AoristI
 düşüntülü düşüntülü Adj None
@@ -16199,7 +16199,7 @@ elements elements Noun ProperNoun ProperNoun
 elemge elemge Noun None
 elena elena Noun ProperNoun ProperNoun
 eleni eleni Noun ProperNoun ProperNoun
-elenmek elen Verb None AoristI
+elenmek elen Verb None AoristI NotLexicalized
 elense elense Noun None
 elenti elenti Noun None
 eleonora eleonora Noun ProperNoun ProperNoun
@@ -20573,7 +20573,7 @@ gelişim gelişim Noun None
 gelişkin gelişkin Adj None
 gelişmek geliş Verb None AoristI
 geliştirim geliştirim Noun None
-geliştirmek geliştir Verb None AoristI CausativeT
+geliştirmek geliştir Verb None AoristI CausativeT Lexicalized
 gellar gellar Noun ProperNoun ProperNoun
 geller geller Noun ProperNoun ProperNoun
 gelmek gel Verb None AoristI PassiveIn
@@ -21930,7 +21930,7 @@ göran göran Noun ProperNoun ProperNoun
 gördek gördek Noun None Voicing
 gördes gördes Noun ProperNoun ProperNoun
 gördüm gördüm Noun ProperNoun ProperNoun
-gördürmek gördür Verb None AoristI CausativeT
+gördürmek gördür Verb None AoristI CausativeT NotLexicalized
 göre göre Postp None pc=Dat
 görece görece Adj None
 görecilik görecilik Noun None Voicing
@@ -22058,7 +22058,7 @@ gözer gözer Noun None
 gözetim gözetim Noun None
 gözetimevi gözetimevi Noun None CompoundP3sg roots=gözetim-ev
 gözetlemek gözetle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-gözetmek gözet Verb None AoristI
+gözetmek gözet Verb None AoristI Lexicalized
 gözetmen gözetmen Noun None
 gözevi gözevi Noun None
 gözgeç gözgeç Noun ProperNoun ProperNoun
@@ -26023,7 +26023,7 @@ ilgeç ilgeç Noun None Voicing
 ilgi ilgi Noun None
 ilgi ilgi Noun ProperNoun ProperNoun
 ilgilemek ilgile Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-ilgilenmek ilgilen Verb None AoristI
+ilgilenmek ilgilen Verb None AoristI Lexicalized
 ilgili ilgili Adj None
 ilginç ilginç Adj None Voicing
 ilgü ilgü Noun ProperNoun ProperNoun
@@ -26118,7 +26118,7 @@ illüzyon illüzyon Noun None
 illüzyonist illüzyonist Noun None NoVoicing
 illüzyonizm illüzyonizm Noun None
 ilma ilma Noun ProperNoun ProperNoun
-ilmek il Verb None AoristA PassiveIn
+ilmek il Verb None AoristA PassiveIn Rare
 ilmek ilmek Noun None Voicing
 ilmeklemek ilmekle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 ilmen ilmen Noun ProperNoun ProperNoun
@@ -26361,7 +26361,7 @@ indirgemek indirge Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 indirgen indirgen Adj None
 indirgenebilir indirgenebilir Adj None
 indirim indirim Noun None
-indirmek indir Verb None AoristI CausativeT
+indirmek indir Verb None AoristI CausativeT Lexicalized
 indis indis Noun None
 individüalist individüalist Noun None NoVoicing
 individüalizm individüalizm Noun None
@@ -28353,7 +28353,7 @@ kalde kalde Noun ProperNoun ProperNoun
 kalder kalder Noun ProperNoun ProperNoun
 kaldıki kaldıki Noun ProperNoun ProperNoun
 kaldıraç kaldıraç Noun None Voicing
-kaldırmak kaldır Verb None AoristI CausativeT
+kaldırmak kaldır Verb None AoristI CausativeT Lexicalized
 kaldırım kaldırım Noun None
 kale kale Noun None
 kale kale Noun ProperNoun ProperNoun
@@ -28485,7 +28485,7 @@ kalın kalın Adj None
 kalın kalın Noun None
 kalınbağırsak kalınbağırsak Noun None Voicing
 kalınkafalı kalınkafalı Adj None
-kalınmak kalın Verb None AoristI
+kalınmak kalın Verb None AoristI NotLexicalized
 kalıntı kalıntı Noun None
 kalıp kalıp Adj None Voicing
 kalıp kalıp Noun None Voicing
@@ -28647,7 +28647,7 @@ kandiye kandiye Noun ProperNoun ProperNoun
 kandoğan kandoğan Noun ProperNoun ProperNoun
 kandur kandur Noun ProperNoun ProperNoun
 kandıra kandıra Noun ProperNoun ProperNoun
-kandırmak kandır Verb None AoristI CausativeT
+kandırmak kandır Verb None AoristI CausativeT Lexicalized
 kane kane Noun ProperNoun ProperNoun
 kaneda kaneda Noun ProperNoun ProperNoun
 kanei kanei Noun ProperNoun ProperNoun
@@ -28764,7 +28764,7 @@ kapamak kapa Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kapamaç kapamaç Noun None Voicing
 kapan kapan Noun None
 kapaniçe kapaniçe Noun None
-kapanmak kapan Verb None AoristI
+kapanmak kapan Verb None AoristI Lexicalized
 kapanoğlu kapanoğlu Noun ProperNoun ProperNoun
 kapantı kapantı Noun None
 kapanık kapanık Adj None Voicing
@@ -28776,7 +28776,7 @@ kaparozlamak kaparozla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDr
 kapasitans kapasitans Noun None
 kapasite kapasite Noun None
 kapasitör kapasitör Noun None
-kapatmak kapat Verb None AoristI
+kapatmak kapat Verb None AoristI Lexicalized
 kapatım kapatım Noun None
 kapela kapela Noun None
 kapik kapik Noun None Voicing
@@ -28853,7 +28853,7 @@ kapıkulu kapıkulu Noun None CompoundP3sg roots=kapı-kul
 kapıköy kapıköy Noun ProperNoun ProperNoun
 kapılanmak kapılan Verb None AoristI
 kapılgan kapılgan Adj None
-kapılmak kapıl Verb None AoristI CausativeT PassiveIn
+kapılmak kapıl Verb None AoristI CausativeT Lexicalized PassiveIn
 kapışmak kapış Verb None AoristI
 kapşon kapşon Noun None
 kar kar Noun None NoVoicing
@@ -29481,7 +29481,7 @@ karşıdevrim karşıdevrim Noun None
 karşıgelim karşıgelim Noun None
 karşılamak karşıla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 karşılaşmak karşılaş Verb None AoristI Reciprocal
-karşılaştırmak karşılaştır Verb None AoristI CausativeT
+karşılaştırmak karşılaştır Verb None AoristI CausativeT Lexicalized
 karşıllıklı karşıllıklı Adv None
 karşılık karşılık Noun None Voicing
 karşın karşın Postp None pc=Dat
@@ -29662,7 +29662,7 @@ katkı katkı Noun None
 katkılamak katkıla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 katkılanmak katkılan Verb None AoristI
 katlamak katla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-katlanmak katlan Verb None AoristI
+katlanmak katlan Verb None AoristI Lexicalized
 katlantı katlantı Noun None
 katletmek katlet Verb None AoristA Voicing
 katliam katliam Noun None
@@ -29704,7 +29704,7 @@ katı katı Noun None
 katıhal katıhal Noun None
 katık katık Noun None Voicing
 katıklamak katıkla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-katılmak katıl Verb None AoristI CausativeT PassiveIn
+katılmak katıl Verb None AoristI CausativeT Lexicalized PassiveIn
 katılım katılım Noun None
 katım katım Noun None
 katıntı katıntı Adj None
@@ -29891,7 +29891,7 @@ kaynak kaynak Noun None Voicing
 kaynak kaynak Noun ProperNoun ProperNoun
 kaynakhane kaynakhane Noun None
 kaynaklamak kaynakla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-kaynaklanmak kaynaklan Verb None AoristI
+kaynaklanmak kaynaklan Verb None AoristI Lexicalized
 kaynakça kaynakça Noun None
 kaynamak kayna Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kaynana kaynana Noun None
@@ -33638,7 +33638,7 @@ kızamık kızamık Noun None Voicing
 kızan kızan Noun None
 kızarkadaşı kızarkadaşı Noun None CompoundP3sg roots=kız-arkadaş
 kızarmak kızar Verb None AoristI CausativeT
-kızartmak kızart Verb None AoristI
+kızartmak kızart Verb None AoristI Lexicalized
 kızartı kızartı Noun None
 kızarık kızarık Adj None Voicing
 kızböceği kızböceği Noun None CompoundP3sg roots=kız-böcek
@@ -41529,8 +41529,8 @@ nite nite Adv None
 nitekim nitekim Adv None
 nitel nitel Adj None
 nitelemek nitele Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-nitelendirmek nitelendir Verb None AoristI CausativeT
-nitelenmek nitelen Verb None AoristI
+nitelendirmek nitelendir Verb None AoristI CausativeT Lexicalized
+nitelenmek nitelen Verb None AoristI NotLexicalized
 nitelik nitelik Noun None Voicing
 nitramit nitramit Noun None NoVoicing
 nitrat nitrat Noun None NoVoicing
@@ -43106,7 +43106,7 @@ oymakbaşı oymakbaşı Noun None CompoundP3sg roots=oymak-baş
 oymapınar oymapınar Noun ProperNoun ProperNoun
 oynak oynak Adj None Voicing
 oynamak oyna Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-oynatmak oynat Verb None AoristI
+oynatmak oynat Verb None AoristI Lexicalized
 oynatım oynatım Noun None
 oynaş oynaş Noun None
 oynaşmak oynaş Verb None AoristI Reciprocal
@@ -47940,7 +47940,7 @@ sakka sakka Noun ProperNoun ProperNoun
 sakkarin sakkarin Noun None
 saklamak sakla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 saklambaç saklambaç Noun None Voicing
-saklanmak saklan Verb None AoristI
+saklanmak saklan Verb None AoristI NotLexicalized
 saklantı saklantı Noun None
 saklatım saklatım Noun None
 saklı saklı Adj None
@@ -48025,7 +48025,7 @@ saldanlı saldanlı Noun ProperNoun ProperNoun
 saldoğan saldoğan Noun ProperNoun ProperNoun
 saldıray saldıray Noun ProperNoun ProperNoun
 saldırgan saldırgan Adj None
-saldırmak saldır Verb None AoristI CausativeT
+saldırmak saldır Verb None AoristI CausativeT Lexicalized
 saldırı saldırı Noun None
 sale sale Noun ProperNoun ProperNoun
 saleem saleem Noun ProperNoun ProperNoun
@@ -48129,7 +48129,7 @@ salıkbey salıkbey Noun ProperNoun ProperNoun
 salım salım Noun None
 salıncak salıncak Noun None Voicing
 salıngaç salıngaç Noun None Voicing
-salınmak salın Verb None AoristI
+salınmak salın Verb None AoristI NotLexicalized
 salıntı salıntı Noun None
 salınım salınım Noun None
 salıpazarı salıpazarı Noun ProperNoun ProperNoun
@@ -48558,7 +48558,7 @@ sarsmak sars Verb None AoristA
 sarsı sarsı Noun None
 sarsıcı sarsıcı Noun None
 sarsık sarsık Adj None Voicing
-sarsılmak sarsıl Verb None AoristI CausativeT PassiveIn
+sarsılmak sarsıl Verb None AoristI CausativeT NotLexicalized PassiveIn
 sarsım sarsım Noun None
 sarsıntı sarsıntı Noun None
 sart sart Noun ProperNoun NoVoicing ProperNoun
@@ -48781,7 +48781,7 @@ savovic savovic Noun ProperNoun ProperNoun
 savoy savoy Noun ProperNoun ProperNoun
 savran savran Noun ProperNoun ProperNoun
 savruk savruk Adj None Voicing
-savrulmak savrul Verb None AoristI CausativeT PassiveIn
+savrulmak savrul Verb None AoristI CausativeT NotLexicalized PassiveIn
 savrun savrun Noun ProperNoun ProperNoun
 savruntu savruntu Noun None
 savsak savsak Adj None Voicing
@@ -48800,7 +48800,7 @@ savurgan savurgan Adj None
 savurmak savur Verb None AoristI CausativeT VowelDrop
 savut savut Noun ProperNoun ProperNoun
 savuşmak savuş Verb None AoristI
-savuşturmak savuştur Verb None AoristI CausativeT
+savuşturmak savuştur Verb None AoristI CausativeT Lexicalized
 sawers sawers Noun ProperNoun ProperNoun
 sawyer sawyer Noun ProperNoun ProperNoun
 saxo saxo Noun ProperNoun ProperNoun
@@ -50104,7 +50104,7 @@ seçi seçi Noun None
 seçik seçik Dup None Voicing
 seçik seçik Noun None Voicing
 seçil seçil Noun ProperNoun ProperNoun
-seçilmek seçil Verb None AoristI CausativeT PassiveIn
+seçilmek seçil Verb None AoristI CausativeT NotLexicalized PassiveIn
 seçim seçim Noun None
 seçki seçki Noun None
 seçkin seçkin Adj None
@@ -50411,7 +50411,7 @@ silikoz silikoz Noun None
 silindir silindir Noun None
 silindiraj silindiraj Noun None
 silindirik silindirik Adj None Voicing
-silinmek silin Verb None AoristI
+silinmek silin Verb None AoristI NotLexicalized
 silinti silinti Noun None
 silis silis Noun None
 silisseven silisseven Adj None
@@ -50995,7 +50995,7 @@ sokratis sokratis Noun ProperNoun ProperNoun
 soku soku Noun None
 sokulgan sokulgan Adj None
 sokullu sokullu Noun ProperNoun ProperNoun
-sokulmak sokul Verb None AoristI CausativeT PassiveIn
+sokulmak sokul Verb None AoristI CausativeT NotLexicalized PassiveIn
 sokulu sokulu Adj None
 sokulu sokulu Adv None
 sokum sokum Noun None
@@ -51150,7 +51150,7 @@ sonko sonko Noun ProperNoun ProperNoun
 sonkol sonkol Noun ProperNoun ProperNoun
 sonku sonku Noun ProperNoun ProperNoun
 sonlamak sonla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-sonlanmak sonlan Verb None AoristI
+sonlanmak sonlan Verb None AoristI Lexicalized
 sonlu sonlu Adj None
 sonmi sonmi Noun ProperNoun ProperNoun
 sonntag sonntag Noun ProperNoun ProperNoun
@@ -51177,8 +51177,8 @@ sonurgu sonurgu Noun None
 sonurtu sonurtu Noun None
 sonuç sonuç Noun None Voicing
 sonuçlamak sonuçla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-sonuçlandırmak sonuçlandır Verb None AoristI CausativeT
-sonuçlanmak sonuçlan Verb None AoristI
+sonuçlandırmak sonuçlandır Verb None AoristI CausativeT Lexicalized
+sonuçlanmak sonuçlan Verb None AoristI Lexicalized
 sonuçsuz sonuçsuz Adj None
 sonuşmaz sonuşmaz Noun None
 sonver sonver Noun ProperNoun ProperNoun
@@ -51233,7 +51233,7 @@ sorumsuz sorumsuz Adj None
 sorun sorun Noun None
 sorutkan sorutkan Adj None
 soruşmak soruş Verb None AoristI
-soruşturmak soruştur Verb None AoristI CausativeT
+soruşturmak soruştur Verb None AoristI CausativeT Lexicalized
 sos sos Noun None NoVoicing
 sosa sosa Noun ProperNoun ProperNoun
 sosis sosis Noun None
@@ -51361,7 +51361,7 @@ soğurgan soğurgan Adj None
 soğurmak soğur Verb None AoristI CausativeT VowelDrop
 soğutkan soğutkan Adj None
 soğutkan soğutkan Noun None
-soğutmak soğut Verb None AoristI
+soğutmak soğut Verb None AoristI Lexicalized
 soğutmaç soğutmaç Noun None Voicing
 soğuşmak soğuş Verb None AoristI
 sp sp Noun Abbrv pr=sepe
@@ -52156,7 +52156,7 @@ suspus suspus Adv None
 sussex sussex Noun ProperNoun ProperNoun
 sussman sussman Noun ProperNoun ProperNoun
 susta susta Noun None
-susturmak sustur Verb None AoristI CausativeT
+susturmak sustur Verb None AoristI CausativeT Lexicalized
 susturucu susturucu Adj None
 susturucu susturucu Noun None
 susurluk susurluk Noun ProperNoun ProperNoun
@@ -52303,7 +52303,7 @@ sökmenoğlu sökmenoğlu Noun ProperNoun ProperNoun
 sökmensu sökmensu Noun ProperNoun ProperNoun
 söktaş söktaş Noun ProperNoun ProperNoun
 sökük sökük Adj None Voicing
-sökülmek sökül Verb None AoristI CausativeT PassiveIn
+sökülmek sökül Verb None AoristI CausativeT NotLexicalized PassiveIn
 söküm söküm Noun None
 sökün sökün Noun None
 söküntü söküntü Noun None
@@ -52318,7 +52318,7 @@ sömürge sömürge Noun None
 sömürgen sömürgen Adj None
 sömürmek sömür Verb None AoristI CausativeT
 sömürü sömürü Noun None
-söndürmek söndür Verb None AoristI CausativeT
+söndürmek söndür Verb None AoristI CausativeT Lexicalized
 sönmek sön Verb None AoristA
 sönmezalp sönmezalp Noun ProperNoun ProperNoun
 sönmezateş sönmezateş Noun ProperNoun ProperNoun
@@ -52344,7 +52344,7 @@ söylemezgiller söylemezgiller Noun ProperNoun ProperNoun
 söylemezoğlu söylemezoğlu Noun ProperNoun ProperNoun
 söylemsemek söylemse Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 söylence söylence Noun None
-söylenmek söylen Verb None AoristI
+söylenmek söylen Verb None AoristI NotLexicalized
 söylenti söylenti Noun None
 söyler söyler Noun ProperNoun ProperNoun
 söylev söylev Noun None
@@ -52553,7 +52553,7 @@ sürat sürat Noun None InverseHarmony NoVoicing
 süratle süratle Adv None
 süratlenmek süratlen Verb None AoristI
 süratlı süratlı Adj None
-sürdürmek sürdür Verb None AoristI CausativeT
+sürdürmek sürdür Verb None AoristI CausativeT Lexicalized
 sürdürüm sürdürüm Noun None
 süre süre Noun None
 süreaşımı süreaşımı Noun None CompoundP3sg roots=süre-aşım
@@ -52622,7 +52622,7 @@ sürücü sürücü Noun None
 sürücül sürücül Adj None
 sürüklemek sürükle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 sürükleyici sürükleyici Adj None
-sürülmek sürül Verb None AoristI CausativeT PassiveIn
+sürülmek sürül Verb None AoristI CausativeT NotLexicalized PassiveIn
 sürüm sürüm Noun None
 sürümdeğer sürümdeğer Noun None
 sürümek sürü Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -52884,7 +52884,7 @@ sıyrıntı sıyrıntı Noun None
 sıyırga sıyırga Noun None
 sıyırmak sıyır Verb None AoristI CausativeT VowelDrop
 sızak sızak Noun None Voicing
-sızdırmak sızdır Verb None AoristI CausativeT
+sızdırmak sızdır Verb None AoristI CausativeT Lexicalized
 sızgıt sızgıt Noun None NoVoicing
 sızlamak sızla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 sızlayış sızlayış Noun None
@@ -53305,7 +53305,7 @@ takyit takyit Noun None Voicing
 takı takı Noun None
 takık takık Adj None Voicing
 takılgan takılgan Adj None
-takılmak takıl Verb None AoristI CausativeT PassiveIn
+takılmak takıl Verb None AoristI CausativeT NotLexicalized PassiveIn
 takım takım Noun None
 takımada takımada Noun None
 takımyıldız takımyıldız Noun None
@@ -53666,7 +53666,7 @@ taramak tara Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 taran taran Noun ProperNoun ProperNoun
 tarancı tarancı Noun ProperNoun ProperNoun
 taranga taranga Noun None
-taranmak taran Verb None AoristI Reflexive
+taranmak taran Verb None AoristI NotLexicalized Reflexive
 taranoğlu taranoğlu Noun ProperNoun ProperNoun
 tarantini tarantini Noun ProperNoun ProperNoun
 tarantino tarantino Noun ProperNoun ProperNoun
@@ -56783,7 +56783,7 @@ tutuk tutuk Adj None Voicing
 tutukevi tutukevi Noun None CompoundP3sg roots=tutuk-ev
 tutuklamak tutukla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 tutuklu tutuklu Adj None
-tutulmak tutul Verb None AoristI CausativeT PassiveIn
+tutulmak tutul Verb None AoristI CausativeT NotLexicalized PassiveIn
 tutulmaz tutulmaz Adj None
 tutulum tutulum Noun None
 tutum tutum Noun None
@@ -57858,7 +57858,7 @@ uydunet uydunet Noun ProperNoun ProperNoun
 uydurma uydurma Adj None
 uydurma uydurma Noun None
 uydurmaca uydurmaca Adj None
-uydurmak uydur Verb None AoristI CausativeT
+uydurmak uydur Verb None AoristI CausativeT Lexicalized
 uydurmasyon uydurmasyon Noun None
 uyduruk uyduruk Adj None Voicing
 uydurukça uydurukça Noun None
@@ -57927,10 +57927,10 @@ uzalp uzalp Noun ProperNoun ProperNoun
 uzam uzam Noun None
 uzamak uza Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 uzan uzan Noun ProperNoun ProperNoun
-uzanmak uzan Verb None AoristI
+uzanmak uzan Verb None AoristI Lexicalized
 uzantı uzantı Noun None
 uzanım uzanım Noun None
-uzatmak uzat Verb None AoristI
+uzatmak uzat Verb None AoristI Lexicalized
 uzatmayalım uzatmayalım Adv None
 uzatım uzatım Noun None
 uzay uzay Noun None
@@ -58057,7 +58057,7 @@ uğrak uğrak Noun None Voicing
 uğralamak uğrala Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 uğramak uğra Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 uğranmak uğran Verb None AoristI
-uğratmak uğrat Verb None AoristI
+uğratmak uğrat Verb None AoristI Lexicalized
 uğraş uğraş Noun None
 uğraş uğraş Noun ProperNoun ProperNoun
 uğraşmak uğraş Verb None AoristI
@@ -59174,7 +59174,7 @@ vurtut vurtut Adv None
 vurtut vurtut Noun None Voicing
 vuru vuru Noun None
 vuruk vuruk Adj None Voicing
-vurulmak vurul Verb None AoristI CausativeT PassiveIn
+vurulmak vurul Verb None AoristI CausativeT NotLexicalized PassiveIn
 vuruntu vuruntu Noun None
 vuruşkan vuruşkan Adj None
 vuruşmak vuruş Verb None AoristI Reciprocal
@@ -60029,7 +60029,7 @@ yanıkara yanıkara Noun None
 yanıker yanıker Noun ProperNoun ProperNoun
 yanıkoğlu yanıkoğlu Noun ProperNoun ProperNoun
 yanılgı yanılgı Noun None
-yanılmak yanıl Verb None AoristI CausativeT PassiveIn
+yanılmak yanıl Verb None AoristI CausativeT Lexicalized PassiveIn
 yanılsama yanılsama Noun None
 yanıltmaç yanıltmaç Noun None Voicing
 yanıltı yanıltı Noun None
@@ -60069,7 +60069,7 @@ yapı yapı Noun None
 yapıbilim yapıbilim Noun None
 yapıcıoğlu yapıcıoğlu Noun ProperNoun ProperNoun
 yapık yapık Noun None Voicing
-yapılandırmak yapılandır Verb None AoristI CausativeT
+yapılandırmak yapılandır Verb None AoristI CausativeT Lexicalized
 yapılanmak yapılan Verb None AoristI
 yapıldak yapıldak Dup None Voicing
 yapım yapım Noun None
@@ -60109,7 +60109,7 @@ yarar yarar Noun None
 yararlanmak yararlan Verb None AoristI
 yarasa yarasa Noun None
 yarasalar yarasalar Noun None ImplicitPlural
-yaratmak yarat Verb None AoristI
+yaratmak yarat Verb None AoristI Lexicalized
 yaratı yaratı Noun None
 yaratık yaratık Noun None Voicing
 yaratım yaratım Noun None
@@ -61293,7 +61293,7 @@ yönelim yönelim Noun None
 yönelmek yönel Verb None AoristI CausativeT PassiveIn
 yönelteç yönelteç Noun None Voicing
 yöneltim yöneltim Noun None
-yöneltmek yönelt Verb None AoristI
+yöneltmek yönelt Verb None AoristI Lexicalized
 yöner yöner Noun ProperNoun ProperNoun
 yönerge yönerge Noun None
 yönet yönet Noun ProperNoun ProperNoun
@@ -61395,7 +61395,7 @@ yürünmek yürün Verb None AoristI
 yürürlük yürürlük Noun None Voicing
 yürürçalar yürürçalar Noun None
 yürüteç yürüteç Noun None Voicing
-yürütmek yürüt Verb None AoristI
+yürütmek yürüt Verb None AoristI Lexicalized
 yürütüm yürütüm Noun None
 yüsr yüsr Noun ProperNoun NoVoicing ProperNoun
 yüsra yüsra Noun ProperNoun ProperNoun
@@ -61535,7 +61535,7 @@ yılışık yılışık Adj None Voicing
 yılşen yılşen Noun ProperNoun ProperNoun
 yıprak yıprak Adj None Voicing
 yıpramak yıpra Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-yıpranmak yıpran Verb None AoristI
+yıpranmak yıpran Verb None AoristI Lexicalized
 yıpratmak yıprat Verb None AoristI
 yır yır Noun None NoVoicing
 yırcalı yırcalı Noun ProperNoun ProperNoun
@@ -62695,7 +62695,7 @@ zıypak zıypak Adj None Voicing
 çarpı çarpı Noun None
 çarpık çarpık Adj None Voicing
 çarpık çarpık Adv None
-çarpılmak çarpıl Verb None AoristI CausativeT PassiveIn
+çarpılmak çarpıl Verb None AoristI CausativeT NotLexicalized PassiveIn
 çarpım çarpım Noun None
 çarpınmak çarpın Verb None AoristI
 çarpıntı çarpıntı Noun None
@@ -62857,7 +62857,7 @@ zıypak zıypak Adj None Voicing
 çağnur çağnur Noun ProperNoun ProperNoun
 çağrı çağrı Noun None
 çağrı çağrı Noun ProperNoun ProperNoun
-çağrılmak çağrıl Verb None AoristI CausativeT PassiveIn
+çağrılmak çağrıl Verb None AoristI CausativeT NotLexicalized PassiveIn
 çağrım çağrım Noun None
 çağrışmak çağrış Verb None AoristI
 çağrışım çağrışım Noun None
@@ -63699,7 +63699,7 @@ zıypak zıypak Adj None Voicing
 çıkarmak çıkar Verb None AoristI CausativeT
 çıkarsama çıkarsama Noun None
 çıkarsamak çıkarsa Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-çıkartmak çıkart Verb None AoristI
+çıkartmak çıkart Verb None AoristI Lexicalized
 çıkartı çıkartı Noun None
 çıkarım çıkarım Noun None
 çıkarımlamak çıkarımla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -63913,7 +63913,7 @@ zıypak zıypak Adj None Voicing
 öküzdili öküzdili Noun None CompoundP3sg roots=öküz-dil
 öküzgözü öküzgözü Noun None CompoundP3sg roots=öküz-göz
 öldüresiye öldüresiye Adv None
-öldürmek öldür Verb None AoristI CausativeT
+öldürmek öldür Verb None AoristI CausativeT Lexicalized
 öldürüm öldürüm Noun None
 ölesiye ölesiye Adv None
 ölet ölet Noun None NoVoicing
@@ -64345,7 +64345,7 @@ zıypak zıypak Adj None Voicing
 özener özener Noun ProperNoun ProperNoun
 özengen özengen Adj None
 özeni özeni Noun None
-özenmek özen Verb None AoristI
+özenmek özen Verb None AoristI Lexicalized
 özenoğlu özenoğlu Noun ProperNoun ProperNoun
 özensoy özensoy Noun ProperNoun ProperNoun
 özenti özenti Noun None
@@ -64798,7 +64798,7 @@ zıypak zıypak Adj None Voicing
 üretim üretim Noun None
 üretimevi üretimevi Noun None CompoundP3sg roots=üretim-ev
 üretken üretken Adj None
-üretmek üret Verb None AoristI
+üretmek üret Verb None AoristI Lexicalized
 üretra üretra Noun None
 üreysel üreysel Adj None
 ürgüp ürgüp Noun ProperNoun ProperNoun
@@ -65358,7 +65358,7 @@ zıypak zıypak Adj None Voicing
 ıslamic ıslamic Noun ProperNoun ProperNoun
 ısland ısland Noun ProperNoun ProperNoun
 ıslands ıslands Noun ProperNoun ProperNoun
-ıslanmak ıslan Verb None AoristI
+ıslanmak ıslan Verb None AoristI Lexicalized
 ısle ısle Noun ProperNoun ProperNoun
 ısles ısles Noun ProperNoun ProperNoun
 ıslık ıslık Noun None Voicing

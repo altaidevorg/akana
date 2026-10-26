@@ -241,3 +241,27 @@ sana	sen	Pron	Pron+A2sg+Dat
 ben	ben	Pron	Pron+A1sg+Nom
 gelmem	gelmek	Verb	Verb+Neg+Aor+A1sg
 gelmem	gelmek	Verb	Verb+ActN+P1sg
+
+# A lexicon verb and the voice derivation that spells it (katıl-dı / kat-ıl-dı): the lexicon's
+# Lexicalized / NotLexicalized attribute decides (added 2026-10-26).
+katılmıyoruz	katılmak	Verb	Verb+Neg+Prog+A1pl
+katıldı	katılmak	Verb	Verb+Past
+katıldığına	katılmak	Verb	Verb+PastPart+P3sg+Dat
+katılan	katılmak	Verb	Verb+PresPart
+bulundurması	bulundurmak	Verb	Verb+ActN+P3sg
+kaynaklanan	kaynaklanmak	Verb	Verb+PresPart
+sonuçlanan	sonuçlanmak	Verb	Verb+PresPart
+uzanan	uzanmak	Verb	Verb+PresPart
+dokunan	dokunmak	Verb	Verb+PresPart
+bulunan	bulunmak	Verb	Verb+PresPart
+alınan	almak	Verb	Verb+Pass+PresPart
+bozulması	bozmak	Verb	Verb+Pass+ActN+P3sg
+sürülen	sürmek	Verb	Verb+Pass+PresPart
+dinlendikten	dinlemek	Verb	Verb+Pass+PastPart+Abl
+# A bare verb stem beside a noun or adjective is not an imperative in this register.
+et	et	Noun	Noun+A3sg+Nom
+kıl	kıl	Noun	Noun+A3sg+Nom
+aç	aç	Adj	Adj
+# ister alone is the correlative conjunction or the aorist about equally often.
+ister	ister	Conj	Conj
+ister	istemek	Verb	Verb+Aor

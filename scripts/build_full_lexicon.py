@@ -118,6 +118,11 @@ ATTRIBUTES = {
     "ImplicitDative": "ImplicitDative",
     "FamilyMember": "FamilyMember",
     "NoSuffix": "NoSuffix",
+    # akana's own: which of a verb and the voice derivation it looks like (katıl / kat-ıl) wins,
+    # and items that yield to any other reading of a word (bulamak beside bul-ama-).
+    "Lexicalized": "Lexicalized",
+    "NotLexicalized": "NotLexicalized",
+    "Rare": "Rare",
 }
 
 VOWELS = set("aeıioöuüâîû")

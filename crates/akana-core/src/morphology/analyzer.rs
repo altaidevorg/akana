@@ -55,6 +55,9 @@ pub struct MorphParse {
     /// inflectional groups. Empty for a reading the analyzer did not make.
     #[serde(skip)]
     pub(crate) path: MorphPath,
+    /// Whether the lexicon ranks this reading below its twin (see [`prior_yields`]).
+    #[serde(skip)]
+    pub(crate) yields: bool,
 }
 
 /// The path of an analysis through the morphotactic graph: the root's state, then the state each
@@ -122,25 +125,40 @@ pub(super) static PRIOR: LazyLock<Prior> =
 /// Whether the prior scales a reading by its register factor (see `examples/morph_prior.rs`):
 /// a second-person possessive or person (P2sg, A2pl), which rides along with another reading in
 /// every word that has it (karar-ın-ın beside P3sg+Gen, gel-me "don't come" beside the verbal
-/// noun, dönüş-ün beside the genitive). The positive singular imperative (anla, ver) is exempt:
-/// it is the bare verb stem, which the corpus counts on its own; so are the pronouns, whose
-/// person is their own (sen, size).
+/// noun, dönüş-ün beside the genitive), the bare imperative included (et, al, aç beside the
+/// noun or adjective: court text all but never addresses its reader). The pronouns are exempt:
+/// their person is their own (sen, size). The disambiguator takes the factor back in a sentence
+/// that does address someone ("Sözümü anla !").
 pub fn prior_second_person(p: &MorphParse) -> bool {
-    if p.primary_pos == PrimaryPos::Pron {
-        return false;
-    }
-    let tags = &p.morpheme_tags;
-    if !tags
-        .iter()
-        .any(|t| matches!(t.as_str(), "P2sg" | "P2pl" | "A2sg" | "A2pl"))
-    {
-        return false;
-    }
-    let bare_imperative = match tags.as_slice() {
-        [.., before, imp, person] => imp == "Imp" && person == "A2sg" && before != "Neg",
-        _ => false,
-    };
-    !bare_imperative
+    p.primary_pos != PrimaryPos::Pron
+        && p.morpheme_tags
+            .iter()
+            .any(|t| matches!(t.as_str(), "P2sg" | "P2pl" | "A2sg" | "A2pl"))
+}
+
+/// The register factor [`prior_second_person`] readings take.
+pub fn prior_second_person_factor() -> f32 {
+    PRIOR.second_person.exp()
+}
+
+/// The prior's factor for a reading the lexicon ranks below another ([`prior_yields`]), where the
+/// corpus cannot tell the two apart. It is a decision, not a nudge: it outweighs a thousandfold
+/// difference between the two items' frequencies (düşünmek is some 400 times more frequent than
+/// düşündürmek, whose forms are also düşün-dür-), and the disambiguator's context does not
+/// overturn it.
+pub const LEXICAL_PREFERENCE: f32 = 0.001;
+
+/// Whether the prior scales a reading by [`LEXICAL_PREFERENCE`]. Both readings of each pair
+/// below are in every word that has one, so the corpus counts cannot separate them, and the
+/// lexicon decides:
+/// - a lexicon verb and a derivation that spells it (katıl-dı and kat-ıl-dı, kaynaklan-an and
+///   kaynak-lan-an): a verb made from a noun or adjective wins (it is listed because it is a
+///   word of its own); between a verb and the voice derivation of another verb, the verb wins
+///   when it is `Lexicalized` (katılmak "join"), the derivation when it is `NotLexicalized`
+///   (alınmak, whose forms are al-ın "be taken"), and with neither the prior decides;
+/// - a `Rare` item (bulamak "smear") yields to any other reading of the word (bul-ama-dığı).
+pub fn prior_yields(p: &MorphParse) -> bool {
+    p.yields
 }
 
 /// The ratio between adjacent levels of a reading's prior relative to its word's best reading.
@@ -325,6 +343,11 @@ impl Prior {
         } else {
             0.0
         };
+        let lexical = if p.yields {
+            LEXICAL_PREFERENCE.ln()
+        } else {
+            0.0
+        };
         let p_capitalised = if prior_is_name(p) {
             self.capitalised_name
         } else {
@@ -335,7 +358,7 @@ impl Prior {
         } else {
             1.0 - p_capitalised
         };
-        item.unwrap_or(self.unseen_item) + shape + register + case.ln()
+        item.unwrap_or(self.unseen_item) + shape + register + lexical + case.ln()
     }
 }
 
@@ -927,14 +950,85 @@ impl TurkishMorphology {
             search.dfs(i, stem, item, start, ctx, stem.attrs);
         }
         let Search { found, .. } = search;
+        let first = results.len();
+        // Readings through a derivation that spells a lexicon verb (kat-ıl = katıl, hava-lan =
+        // havalan), with that verb and whether the derivation starts from a noun or adjective.
+        let mut twins: Vec<(usize, &DictionaryItem, bool)> = Vec::new();
+        let mut rare: Vec<usize> = Vec::new();
         for (i, steps) in found {
             let (stem, item) = &candidates[i];
             if !apostrophe && !suffixes_without_apostrophe(&engine.graph, item, &steps) {
                 continue;
             }
+            let index = results.len();
+            if item.attributes.contains(RootAttr::RARE) {
+                rare.push(index);
+            }
+            let nominal = item.primary_pos != PrimaryPos::Verb;
+            for end in derived_verb_stems(&engine.graph, &steps) {
+                twins.extend(
+                    self.root_items(&input[..end])
+                        .iter()
+                        .filter(|v| v.primary_pos == PrimaryPos::Verb && v.lemma != item.lemma)
+                        .map(|v| (index, v, nominal)),
+                );
+            }
             results.push(render(engine, item, stem, &steps, input, original));
         }
+        // The lexicon decides which of the two wins (see `prior_yields`): a verb made from a
+        // noun or adjective is listed because it is a word of its own (kaynak-lan "arise",
+        // uzak-laş "move away"), so it wins unless marked NotLexicalized; between a verb and a
+        // voice derivation the verb's attribute decides, and with none the prior does.
+        for (derived, verb, nominal) in twins {
+            if verb.attributes.contains(RootAttr::NOT_LEXICALIZED) {
+                for p in &mut results[first..] {
+                    if p.lemma == verb.lemma
+                        && p.root == verb.root
+                        && p.primary_pos == PrimaryPos::Verb
+                    {
+                        p.yields = true;
+                    }
+                }
+            } else if nominal || verb.attributes.contains(RootAttr::LEXICALIZED) {
+                results[derived].yields = true;
+            }
+        }
+        if rare.len() < results.len() - first {
+            for i in rare {
+                results[i].yields = true;
+            }
+        }
     }
+}
+
+/// The ends (byte offsets into the input) of the verb stems a path's leading derivations spell:
+/// voice suffixes on a verb (kat-ıl-dı has katıl, bul-un-dur-ul-du has bulun and bulundur) and
+/// the verb-making -lAş and -lAn on a noun or adjective (hava-lan-dır-ma has havalan and
+/// havalandır).
+fn derived_verb_stems<'s>(graph: &'s Graph, steps: &'s [Step]) -> impl Iterator<Item = usize> + 's {
+    steps
+        .iter()
+        .map(|s| {
+            (
+                graph.states[graph.transitions[s.transition as usize].to.0 as usize].morpheme,
+                s,
+            )
+        })
+        .take_while(|(m, s)| {
+            s.end == s.start
+                || matches!(
+                    m,
+                    M::Pass | M::Caus | M::Recip | M::Reflex | M::Become | M::Acquire
+                )
+        })
+        .filter(|(m, s)| {
+            s.end > s.start
+                && matches!(
+                    m,
+                    M::Pass | M::Caus | M::Recip | M::Reflex | M::Become | M::Acquire
+                )
+        })
+        .map(|(_, s)| s.end)
 }
 
 /// Whether a name's suffixes may be written without an apostrophe. Turkish spelling separates a
@@ -1360,6 +1454,7 @@ pub(super) fn render(
         formatted,
         analysis: zemberek_analysis(graph, item, stem, steps, input),
         score,
+        yields: false,
         path: MorphPath {
             root: Some(stem.to),
             steps: steps

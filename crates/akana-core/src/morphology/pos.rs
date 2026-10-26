@@ -194,5 +194,18 @@ bitflags::bitflags! {
         /// The stem of a CompoundP3sg noun without its possessive (cumhurbaşkan- of
         /// cumhurbaşkanı), generated at load time; it cannot stand alone
         const COMPOUND_P3SG_ROOT = 1 << 22;
+        /// A verb listed for a meaning of its own that also reads as a voice derivation of
+        /// another verb (katıl "join", not kat-ıl "be added"; kaynaklan "arise from", not
+        /// kaynakla-n "be welded"): its reading outranks the derivation (akana's attribute)
+        const LEXICALIZED = 1 << 23;
+        /// A verb listed although its forms are mostly the voice derivation of another verb
+        /// (alın: al-ın "be taken" far more than alın "take offence"; dinlen: dinle-n "be
+        /// heard"): the derivation outranks it (akana's attribute)
+        const NOT_LEXICALIZED = 1 << 24;
+        /// An item rare enough that any other reading of a word outranks it: its forms
+        /// coincide with a frequent word's (bulamak "smear": bula-ma-dığı beside bul-ama-dığı
+        /// "that he could not find"), which the corpus counts cannot tell apart (akana's
+        /// attribute)
+        const RARE = 1 << 25;
     }
 }

@@ -7,8 +7,11 @@
 //! bonuses are bounded, so context can overturn a reading the corpus finds a dozen times rarer,
 //! not one it finds a hundred times rarer.
 
-use super::analyzer::{MorphParse, TurkishMorphology};
+use super::analyzer::{
+    prior_second_person, prior_second_person_factor, MorphParse, TurkishMorphology,
+};
 use super::pos::{PrimaryPos, SecondaryPos};
+use crate::phonology::to_turkish_lower;
 
 /// The most context can add to one reading's log score (a factor of about 12).
 const MAX_BONUS: f32 = 2.5;
@@ -49,6 +52,7 @@ impl MorphologicalDisambiguator {
 
         let n = tokens.len();
         let mut chosen: Vec<MorphParse> = Vec::with_capacity(n);
+        let register = prior_second_person_factor();
 
         for i in 0..n {
             let parses = &analyses_per_token[i];
@@ -66,6 +70,7 @@ impl MorphologicalDisambiguator {
                     analysis: format!("[{0}:Unk] {0}:Unk", tokens[i]),
                     score: 0.0,
                     path: Default::default(),
+                    yields: false,
                 });
                 continue;
             }
@@ -100,6 +105,30 @@ impl MorphologicalDisambiguator {
                 .iter()
                 .any(|p| p.secondary_pos != SecondaryPos::ProperNoun);
             let has_determiner_reading = parses.iter().any(|p| p.pos == PrimaryPos::Det);
+            // A sentence that ends in "!" addresses someone, so its second-person readings (anla
+            // "understand!", gel-in) lose the register factor the corpus prior gives them.
+            let exclaims = tokens[i + 1..]
+                .iter()
+                .find(|t| matches!(**t, "." | "!" | "?"))
+                .is_some_and(|t| *t == "!");
+            // A correlative conjunction comes twice in its clause (ister ... ister(se), ya ...
+            // ya, hem ... hem, ne ... ne, gerek ... gerek(se)): the word, or the word with -sA,
+            // again before or after it in the sentence.
+            let correlative = parses.iter().any(|p| p.primary_pos == PrimaryPos::Conj) && {
+                let word = to_turkish_lower(tokens[i]);
+                let pairs = |t: &&str| {
+                    let t = to_turkish_lower(t);
+                    t == word
+                        || t.strip_prefix(word.as_str())
+                            .is_some_and(|rest| matches!(rest, "se" | "sa"))
+                        || word
+                            .strip_prefix(t.as_str())
+                            .is_some_and(|rest| matches!(rest, "se" | "sa"))
+                };
+                let end = |t: &&&str| !matches!(**t, "." | "!" | "?" | ";");
+                tokens[i + 1..].iter().take_while(end).any(&pairs)
+                    || tokens[..i].iter().rev().take_while(end).any(pairs)
+            };
 
             let mut best_idx = 0;
             let mut best_score = f32::MIN;
@@ -206,7 +235,13 @@ impl MorphologicalDisambiguator {
                     bonus -= 2.0;
                 }
 
-                // 10. Function-word preference: an unsuffixed conjunction, question particle or
+                // 10. The first half of a correlative conjunction ("ister iktidarda ister
+                // muhalefette", "hem ... hem de").
+                if correlative && parse.primary_pos == PrimaryPos::Conj {
+                    bonus += 1.5;
+                }
+
+                // 11. Function-word preference: an unsuffixed conjunction, question particle or
                 // pronoun outranks an unsuffixed open-class homograph (de, ki, mi, ben), which
                 // is far rarer in running text. The question particle keeps it with copula and
                 // person (mi-yiz, mi-ydi-m), where its homograph is the note "mi".
@@ -219,7 +254,12 @@ impl MorphologicalDisambiguator {
 
                 // Fewer derivation layers on a tie, counting overt morphemes: otherwise "Ali"
                 // (Noun+A3sg+Nom) loses to "Al-i" (Noun+Acc).
-                let score = PRIOR_WEIGHT * parse.score.max(MIN_SCORE).ln() + bonus.min(MAX_BONUS)
+                let prior = if exclaims && prior_second_person(parse) {
+                    parse.score / register
+                } else {
+                    parse.score
+                };
+                let score = PRIOR_WEIGHT * prior.max(MIN_SCORE).ln() + bonus.min(MAX_BONUS)
                     - marked as f32 * 0.01;
                 // The analyzer's order breaks exact ties.
                 if score > best_score {

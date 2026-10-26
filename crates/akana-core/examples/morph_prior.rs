@@ -18,30 +18,36 @@
 //! - the case of the word as written, P(capitalised | name) and P(capitalised | other word):
 //!   "Ali" is capitalised 1,142 times in 1,143, "yani" 200 times in 1,571, so Ali is the name
 //!   and Yani the conjunction at the start of a sentence;
-//! - a register factor for the second person (`prior_second_person`: P2sg, A2pl, ...), which
-//!   almost never stands alone in the sample but is everywhere an alternative (karar-ın-ın is
-//!   P3sg+Gen or P2sg+Gen, gel-me the verbal noun or "don't come"), so EM would credit it from
-//!   every word it could explain: the count of words that can only be second person over those
-//!   that can only be a third-person possessive. The positive singular imperative (anla, ver),
-//!   the bare verb stem, keeps its EM estimate.
+//! - a register factor for the second person (`prior_second_person`: P2sg, A2pl, the bare
+//!   imperative), which almost never stands alone in the sample but is everywhere an
+//!   alternative (karar-ın-ın is P3sg+Gen or P2sg+Gen, gel-me the verbal noun or "don't come",
+//!   et the noun or "do!"), so EM would credit it from every word it could explain: the count
+//!   of words that can only be second person over those that can only be a third-person
+//!   possessive.
+//!
+//! One factor is the lexicon's: a voice derivation and the lexicon verb it spells (kat-ıl-dı and
+//! katıl-dı) are both readings of every word that has one, so the counts cannot separate them;
+//! the verb's `Lexicalized` or `NotLexicalized` attribute decides, and the other reading takes
+//! `LEXICAL_PREFERENCE` (`prior_yields`).
 //!
 //! The output lists the factors and both kinds of counts, gzipped, for `analyzer.rs` to embed.
 
 use akana_core::morphology::{
     prior_capitalised, prior_is_name, prior_item_key, prior_second_person, prior_shape_group,
-    prior_shape_key, TurkishMorphology,
+    prior_shape_key, prior_yields, TurkishMorphology, LEXICAL_PREFERENCE,
 };
 use std::collections::HashMap;
 use std::io::Write;
 
 /// One reading of a word type: item id, shape id, whether it names something, whether the
-/// register factor applies to it.
+/// register factor applies to it, whether the lexicon ranks it below its twin.
 #[derive(Clone, Copy, PartialEq)]
 struct Reading {
     item: usize,
     shape: usize,
     name: bool,
     second: bool,
+    yields: bool,
 }
 
 /// One word type: its count, whether it is capitalised, its readings.
@@ -119,6 +125,7 @@ fn main() {
                 shape,
                 name: prior_is_name(p),
                 second: prior_second_person(p),
+                yields: prior_yields(p),
             };
             if !readings.contains(&reading) {
                 readings.push(reading);
@@ -159,7 +166,12 @@ fn main() {
             (false, true) => 1.0 - capitalised_name,
             (false, false) => 1.0 - capitalised_other,
         };
-        case * if r.second { register } else { 1.0 }
+        let lexical = if r.yields {
+            f64::from(LEXICAL_PREFERENCE)
+        } else {
+            1.0
+        };
+        case * lexical * if r.second { register } else { 1.0 }
     };
 
     let item_probs = |counts: &[f64]| -> Vec<f64> {

@@ -237,3 +237,32 @@ ver	ver	Verb+Imp+A2sg
 > Sözümü anla !
 Sözümü	söz	Noun+P1sg+Acc
 anla	anla	Verb+Imp+A2sg
+# Added 2026-10-26: lexicalised verbs, bare imperatives and a correlative conjunction.
+> Çoğunluk görüşüne katılmıyoruz .
+Çoğunluk	çoğunluk	Noun+A3sg+Nom
+görüşüne	görüş	Noun+P3sg+Dat
+katılmıyoruz	katıl	Verb+Neg+Prog+A1pl
+> Hatadan kaynaklanan zarar ödendi .
+Hatadan	hata	Noun+Abl
+kaynaklanan	kaynaklan	Verb+PresPart
+zarar	zarar	Noun+A3sg+Nom
+ödendi	öde	Verb+Pass+Past
+> Siyasi partiler ister iktidarda ister muhalefette olsunlar .
+Siyasi	siyasi	Adj
+partiler	parti	Noun+A3pl
+ister	ister	Conj
+iktidarda	iktidar	Noun+Loc
+ister	ister	Conj
+muhalefette	muhalefet	Noun+Loc
+olsunlar	ol	Verb+Imp+A3pl
+> Davacı tazminat ister .
+Davacı	davacı	Noun+A3sg+Nom
+tazminat	tazminat	Noun+A3sg+Nom
+ister	iste	Verb+Aor
+> Parayı al !
+Parayı	para	Noun+Acc
+al	al	Verb+Imp+A2sg
+> Kırmızı et yemedi .
+Kırmızı	kırmızı	Adj
+et	et	Noun+A3sg+Nom
+yemedi	ye	Verb+Neg+Past
