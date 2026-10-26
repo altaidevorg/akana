@@ -810,14 +810,36 @@ impl TurkishMorphology {
             // analyzer's order decides between them. Divided by their sum, they are
             // P(reading | word).
             let half = RANK_UNITS_PER_STEP / 2;
-            let steps: Vec<u32> = logs
+            let mut steps: Vec<u32> = logs
                 .iter()
                 .map(|&log| ((best - log + half) / RANK_UNITS_PER_STEP).unsigned_abs())
                 .collect();
+            // Co-occurring readings come out of the estimator in whatever ratio its start
+            // gave them: they share the best of their priors, and each one after the first of
+            // its set gives up a millionth of its score and a rank unit per place, which puts
+            // them in their fixed order.
+            let mut places: Vec<u8> = Vec::new();
+            if parses.iter().filter_map(co_occurring).nth(1).is_some() {
+                let sets: Vec<Option<CoOccurring>> = parses.iter().map(co_occurring).collect();
+                for i in 0..parses.len() {
+                    for j in 0..parses.len() {
+                        if let (Some(a), Some(b)) = (sets[i], sets[j]) {
+                            if i != j && same_class(&parses[i], a, &parses[j], b) {
+                                steps[i] = steps[i].min(steps[j]);
+                            }
+                        }
+                    }
+                }
+                places = sets.iter().map(|c| c.map_or(0, |c| c.place)).collect();
+            }
             let total: f32 = steps.iter().map(|&q| step_ratio(q)).sum();
-            for (p, q) in parses.iter_mut().zip(steps) {
+            for (i, (p, q)) in parses.iter_mut().zip(steps).enumerate() {
                 p.score *= step_ratio(q) / total;
                 p.rank -= q as i32 * RANK_UNITS_PER_STEP;
+                if let Some(&place) = places.get(i) {
+                    p.score *= 1.0 - 1e-6 * f32::from(place);
+                    p.rank -= i32::from(place);
+                }
             }
             order(&mut parses);
         }
@@ -1853,6 +1875,88 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
     let mut first = first.into_iter();
     results.retain(|_| first.next().unwrap_or(true));
     results
+}
+
+/// Where a reading's tags are one of a set that the corpus cannot tell apart, because every
+/// word that has one has the others too:
+/// - the readings of -lArI after a noun: kitap-lar-ı A3pl+P3sg "his books", A3pl+Acc "the
+///   books" (at the end of the word), A3pl+P3pl "their books", kitap-ları P3pl "their book";
+/// - the readings of -lIğI: başkan-lığ-ı Ness+P3sg, Ness+Acc.
+///
+/// The estimator leaves their ratio where its start put it, so any change of the lexicon could
+/// reorder them. Instead they share their best prior and come in a fixed order
+/// ([`TurkishMorphology::analyze`]): the order of their frequency in UD Turkish's train and
+/// dev splits (BOUN, Kenet, Penn, Tourism, Atis, FrameNet). Of 9,329 nouns ending in -lArI,
+/// 76.5 % are plural with a 3sg possessor, 14.6 % plural accusatives, 2.7 % plural with a 3pl
+/// possessor and 1.6 % singular with a 3pl possessor; before a case (-lArInA) the shares are
+/// 77 %, 14 % and 4 % for A3pl+P3sg, A3pl+P3pl and P3pl. Of 1,166 -lIğI, 77 % are P3sg and 14 %
+/// Acc. Context still chooses among them in the disambiguator. The -lArI set is a noun's only:
+/// a participle's P3pl is its subject (git-tik-leri "that they went").
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct CoOccurring {
+    /// The tags `start..end` are the ambiguous part.
+    start: usize,
+    end: usize,
+    /// Which set (-lArI 0, -lIğI 1) and the reading's place in it, first 0.
+    set: u8,
+    place: u8,
+}
+
+/// How many tags more than one a reading's co-occurring part has ([`CoOccurring`]):
+/// A3pl+P3sg and A3pl+P3pl count as one tag, as P3pl does, wherever readings are compared by
+/// their number of morphemes.
+pub(crate) fn co_occurring_extra_tags(p: &MorphParse) -> usize {
+    co_occurring(p).map_or(0, |c| c.end - c.start - 1)
+}
+
+fn co_occurring(p: &MorphParse) -> Option<CoOccurring> {
+    let tags = &p.morpheme_tags;
+    let n = tags.len();
+    let nominal = matches!(p.primary_pos, PrimaryPos::Noun | PrimaryPos::Adj);
+    let set = |start, end, set, place| {
+        Some(CoOccurring {
+            start,
+            end,
+            set,
+            place,
+        })
+    };
+    if nominal && n >= 2 && tags[n - 2] == "Ness" && matches!(tags[n - 1].as_str(), "P3sg" | "Acc")
+    {
+        return set(n - 1, n, 1, u8::from(tags[n - 1] == "Acc"));
+    }
+    // A noun's: a participle's P3pl is its subject (git-tik-leri "that they went").
+    if p.primary_pos != PrimaryPos::Noun {
+        return None;
+    }
+    let Some(i) = tags.iter().position(|t| t == "P3pl" || t == "P3sg") else {
+        return (n >= 2 && tags[n - 2] == "A3pl" && tags[n - 1] == "Acc").then_some(CoOccurring {
+            start: n - 2,
+            end: n,
+            set: 0,
+            place: 1,
+        });
+    };
+    let plural = i > 0 && tags[i - 1] == "A3pl";
+    match (plural, tags[i].as_str()) {
+        (true, "P3sg") => set(i - 1, i + 1, 0, 0),
+        (true, _) => set(i - 1, i + 1, 0, 2),
+        (false, "P3pl") => set(i, i + 1, 0, 3),
+        _ => None,
+    }
+}
+
+/// Whether two readings are members of one set of [`CoOccurring`] readings: the same item, and
+/// the same tags but for the ambiguous part.
+fn same_class(a: &MorphParse, pa: CoOccurring, b: &MorphParse, pb: CoOccurring) -> bool {
+    pa.set == pb.set
+        && a.lemma == b.lemma
+        && a.root == b.root
+        && a.primary_pos == b.primary_pos
+        && a.secondary_pos == b.secondary_pos
+        && a.homograph == b.homograph
+        && a.morpheme_tags[..pa.start] == b.morpheme_tags[..pb.start]
+        && a.morpheme_tags[pa.end..] == b.morpheme_tags[pb.end..]
 }
 
 /// Most likely first; ties go to fewer tags, then away from the 2nd-person possessive and the

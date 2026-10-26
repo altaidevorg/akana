@@ -9,7 +9,8 @@
 //! ([`rank_units`]), so a sentence disambiguates alike on every platform.
 
 use super::analyzer::{
-    prior_second_person, prior_second_person_units, rank_units, MorphParse, TurkishMorphology,
+    co_occurring_extra_tags, prior_second_person, prior_second_person_units, rank_units,
+    MorphParse, TurkishMorphology,
 };
 use super::pos::{PrimaryPos, SecondaryPos};
 use crate::phonology::to_turkish_lower;
@@ -151,11 +152,14 @@ impl MorphologicalDisambiguator {
                 }
                 // Overt morphemes. Only bare dictionary matches spell out the default A3sg/Nom,
                 // so those are not counted.
+                // A co-occurring set's ambiguous part counts once (A3pl+P3sg as P3pl does), so
+                // that the analyzer's order among them stands.
                 let marked = parse
                     .morpheme_tags
                     .iter()
                     .filter(|t| !matches!(t.as_str(), "A3sg" | "Nom"))
-                    .count();
+                    .count()
+                    - co_occurring_extra_tags(parse);
                 let bare_noun = parse.primary_pos == PrimaryPos::Noun
                     && parse.secondary_pos != SecondaryPos::ProperNoun
                     && marked == 1;
