@@ -1,0 +1,101 @@
+# The POS a participle or -IcI form takes in context (`MorphParse::pos`): Adj in a relative
+# clause or before the noun it describes ("verdiği karar", "bağlayıcı karar"); Noun in a noun
+# clause ("olduğu anlaşıldı", "edildiği iddiası") and before a postposition ("olduğu için",
+# "işlendiği takdirde", where the lexicon reads takdirde as one); Verb for a finite form. Each
+# "> " line is a sentence's tokens, followed by token index, token and expected POS. The court
+# sentences are from review/sentences_court.tsv; the short ones were written for this file.
+> Emniyet Müdürlüğü'ne müracaat ettiği , burada fotoğrafı ve parmak izlerinin kayıt altına alındığı belirlenmiştir .
+3	ettiği	Noun
+12	alındığı	Noun
+> İş sözleşmesinin sendikal nedenle feshedildiği iddiası ile açılacak davada , feshin nedenini ispat yükümlülüğü işverene aittir .
+4	feshedildiği	Noun
+7	açılacak	Adj
+> Çocuğun çıkarma açıkça ters düşmediği takdirde ifade edeceği görüşe önem verilmelidir .
+4	düşmediği	Noun
+7	edeceği	Adj
+> Taraflar arasında görülen dava sonucunda verilen kararın , temyizen incelenmesi davacı vekili tarafından istenilmekle , temyiz talebinin süresinde olduğu anlaşıldı .
+18	olduğu	Noun
+> Temyiz dilekçesinde öne sürülen hususlar , temyize konu mahkeme kararının bozulmasını sağlayacak nitelikte bulunmadığından temyiz isteminin reddi gerektiği görüşüyle Dairemiz kararına katılmıyoruz .
+11	sağlayacak	Adj
+17	gerektiği	Noun
+> Temyizen incelenen karar usul ve hukuka uygun olup , dilekçede ileri sürülen temyiz nedenleri kararın bozulmasını gerektirecek nitelikte görülmemiştir .
+16	gerektirecek	Adj
+> Davalı Yanında Müdahil tarafından , dava konusu işlemin hukuka uygun olduğu belirtilerek istemin reddi gerektiği savunulmuştur .
+10	olduğu	Noun
+14	gerektiği	Noun
+> Bu durumda , arabulucu ihtiyaç sayısı sınav ilanında duyurulur .
+3	arabulucu	Noun
+> İncelenen dosyada , dava dilekçesinde haksız olarak tahsil edildiği ileri sürülen vergilerin hesaplanacak faiziyle birlikte iade edilmesinin istenildiği görülmüştür .
+8	edildiği	Noun
+12	hesaplanacak	Adj
+17	istenildiği	Noun
+> Adli yargı yerinde bedele ilişkin olarak açılacak dava , kamulaştırmama işleminin iptali istemiyle idari yargıda açılacak iptal davasının sonucunu beklemek zorundadır .
+6	açılacak	Adj
+15	açılacak	Adj
+> Bu kapsamda dosya öncelikle mahkememizin görevli olup olmadığı yönünden incelenmiştir .
+7	olmadığı	Noun
+> Davacı tarafın delil olarak dayandığı ve davalının el yazısı ile yazıldığını beyan ettiği belgelerin , tarihsiz ve imzasız olduğu görülmüştür .
+4	dayandığı	Adj
+12	ettiği	Adj
+18	olduğu	Noun
+> Her dava , açıldığı tarihteki fiili ve hukuki sebeplere ilişkin koşullara göre hükme bağlanır .
+3	açıldığı	Adj
+> Bununla birlikte bireysel başvuru incelemesinde ayrımcılık yasağının bağımsız bir koruma işlevinin olmaması , bu yasağın genişletici bir yoruma tabi tutulmasına engel teşkil etmemektedir .
+15	genişletici	Adj
+> İlgililer , haklarında idari davaya konu olabilecek bir işlem veya eylemin yapılması için idari makamlara başvurabilirler .
+6	olabilecek	Adj
+> Başvurular , davanın uzun sürmesi nedeniyle makul sürede yargılanma hakkının ihlal edildiği iddiasına ilişkindir .
+11	edildiği	Noun
+> Başvurucu , sorgusunda Pel Yapım şirketinde kameraman olarak çalıştığını ve örgütle bir iltisakının bulunmadığını ifade etmiştir .
+0	Başvurucu	Noun
+> Silivri Ağır Ceza Mahkemesi , İnfaz Hâkimliğinin kararında ve kararın gerekçesinde usul ve kanuna aykırı bir yön bulunmadığı gerekçesiyle itirazın reddine karar vermiştir .
+17	bulunmadığı	Noun
+> Anayasa Mahkemesinin maddi tazminata hükmedebilmesi için başvurucunun uğradığını iddia ettiği maddi zarar ile tespit edilen ihlal arasında illiyet bağı bulunmalıdır .
+9	ettiği	Adj
+> Başvurucu , nakledildiği ceza infaz kurumunda da benzer disiplin cezaları almış ancak başvuruya konu olay itibarıyla bu cezalar henüz kesinleşmemiştir .
+0	Başvurucu	Noun
+2	nakledildiği	Adj
+> Somut olayda başvurucu hakkında işvereni şüphe feshine götüren olgulardan biri , başvurucunun ağabeyi hakkında soruşturma yürütüldüğü ve bu kapsamda tutuklandığı bilgisidir .
+2	başvurucu	Noun
+15	yürütüldüğü	Noun
+19	tutuklandığı	Noun
+> Aynı kararla , kötü muamele yasağının ihlal edildiği iddiası başvuru yollarının tüketilmemesi nedeniyle kabul edilemez bulunmuştur .
+7	edildiği	Noun
+> Ormanlara zarar verebilecek hiçbir faaliyet ve eyleme müsaade edilemez .
+2	verebilecek	Adj
+> Bu konuda yasa koyucunun mutlak bir takdir yetkisinin bulunduğu söylenemez .
+8	bulunduğu	Noun
+> Haklar , ancak sicile işlendiği takdirde hüküm ve sonuç doğurur .
+4	işlendiği	Noun
+> Kaldı ki , Ceza Muhakemesi Kanununda , mağdurun özel yaşamına saygı gösterilmesi için başvurulabilecek kurallar da bulunmaktadır .
+13	başvurulabilecek	Adj
+> Anayasa’ya aykırı olduğu kanısına varan Mahkeme , iptali için başvurmuştur .
+2	olduğu	Noun
+> Mahkemenin verdiği karar kesinleşti .
+1	verdiği	Adj
+> Sahibi olduğu taşınmaz satıldı .
+1	olduğu	Adj
+> Davacının haklı olduğu anlaşılmakla davanın kabulüne karar verildi .
+2	olduğu	Noun
+> Davalının olduğu iddia edilen araç bulundu .
+1	olduğu	Noun
+3	edilen	Adj
+> Suç işlediği sabit olan sanık tutuklandı .
+1	işlediği	Noun
+> Bağlayıcı karar verildi .
+0	Bağlayıcı	Adj
+> Başvurucu vekili itiraz etti .
+0	Başvurucu	Noun
+> Bilirkişinin hazırladığı rapor dosyaya eklendi .
+1	hazırladığı	Adj
+> Davacının işçi olduğu tartışmasızdır .
+2	olduğu	Noun
+> Kararın kesinleştiği tarihten itibaren süre başlar .
+1	kesinleştiği	Adj
+> Davalının borçlu olduğu sabittir .
+2	olduğu	Noun
+> Okuduğum kitabı sana vereceğim .
+0	Okuduğum	Adj
+3	vereceğim	Verb
+> Yapılacak iş kalmadı .
+0	Yapılacak	Adj

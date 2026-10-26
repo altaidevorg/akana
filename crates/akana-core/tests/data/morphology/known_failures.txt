@@ -7,3 +7,18 @@ disamb	bin	Hemen ata bin .
 disamb	dolu	Dün öğleden sonra dolu yağdı .
 disamb	gül	Bana bakıp gül .
 disamb	yüz	Çocuklar denizde yüz metre yüzdü .
+pos	Bağlayıcı	Bağlayıcı karar verildi .
+pos	Okuduğum	Okuduğum kitabı sana vereceğim .
+pos	açıldığı	Her dava , açıldığı tarihteki fiili ve hukuki sebeplere ilişkin koşullara göre hükme bağlanır .
+pos	dayandığı	Davacı tarafın delil olarak dayandığı ve davalının el yazısı ile yazıldığını beyan ettiği belgelerin , tarihsiz ve imzasız olduğu görülmüştür .
+pos	edeceği	Çocuğun çıkarma açıkça ters düşmediği takdirde ifade edeceği görüşe önem verilmelidir .
+pos	ettiği	Anayasa Mahkemesinin maddi tazminata hükmedebilmesi için başvurucunun uğradığını iddia ettiği maddi zarar ile tespit edilen ihlal arasında illiyet bağı bulunmalıdır .
+pos	ettiği	Davacı tarafın delil olarak dayandığı ve davalının el yazısı ile yazıldığını beyan ettiği belgelerin , tarihsiz ve imzasız olduğu görülmüştür .
+pos	genişletici	Bununla birlikte bireysel başvuru incelemesinde ayrımcılık yasağının bağımsız bir koruma işlevinin olmaması , bu yasağın genişletici bir yoruma tabi tutulmasına engel teşkil etmemektedir .
+pos	hazırladığı	Bilirkişinin hazırladığı rapor dosyaya eklendi .
+pos	kesinleştiği	Kararın kesinleştiği tarihten itibaren süre başlar .
+pos	nakledildiği	Başvurucu , nakledildiği ceza infaz kurumunda da benzer disiplin cezaları almış ancak başvuruya konu olay itibarıyla bu cezalar henüz kesinleşmemiştir .
+pos	olabilecek	İlgililer , haklarında idari davaya konu olabilecek bir işlem veya eylemin yapılması için idari makamlara başvurabilirler .
+pos	olduğu	Sahibi olduğu taşınmaz satıldı .
+pos	verdiği	Mahkemenin verdiği karar kesinleşti .
+pos	verebilecek	Ormanlara zarar verebilecek hiçbir faaliyet ve eyleme müsaade edilemez .

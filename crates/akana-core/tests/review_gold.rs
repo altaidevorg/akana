@@ -307,6 +307,7 @@ fn zemberek_tests_keep_their_known_failures() {
                         "ANY" | "TAILANY" => any_tail(arg),
                         "SINGLE" => any_tail(arg) && (mode == "full" || own.len() == 1),
                         "NOTANY" => !any_tail(arg),
+                        "SUCCESS" => !own.is_empty(),
                         "FAIL" => own.is_empty(),
                         "COUNT" => {
                             let n: usize = arg.parse().expect("COUNT n");

@@ -3,7 +3,8 @@
 //! `data/morphology/paradigms.tsv` lists forms that must have an analysis with a given root and
 //! exact tag sequence, `data/morphology/reject.txt` forms that must have none, and
 //! `data/morphology/disambiguation.tsv` the reading the disambiguator should pick for each word
-//! of a sentence. Every analysis of a dictionary word in `paradigms.tsv` and
+//! of a sentence, and `data/morphology/participles.tsv` the POS it should give a participle or
+//! -IcI form in context (Adj before the noun it describes, Noun in a noun clause). Every analysis of a dictionary word in `paradigms.tsv` and
 //! `frequent_types.tsv`, and every analysis of the 800 frequent court words of
 //! `roundtrip_words.txt`, must also generate back from its root (or lemma) and tags. The
 //! analyzer does not meet all of them yet:
@@ -17,6 +18,7 @@ use std::collections::BTreeSet;
 const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
 const REJECT: &str = include_str!("data/morphology/reject.txt");
 const DISAMBIGUATION: &str = include_str!("data/morphology/disambiguation.tsv");
+const PARTICIPLES: &str = include_str!("data/morphology/participles.tsv");
 const FREQUENT_TYPES: &str = include_str!("data/morphology/frequent_types.tsv");
 const ROUNDTRIP_WORDS: &str = include_str!("data/morphology/roundtrip_words.txt");
 const KNOWN_FAILURES: &str = include_str!("data/morphology/known_failures.txt");
@@ -41,8 +43,9 @@ fn generable(morphology: &TurkishMorphology, word: &str, root: &str) -> bool {
 }
 
 /// Every gold item the analyzer currently gets wrong, as `accept<TAB>word<TAB>root<TAB>tags`,
-/// `reject<TAB>word`, `disamb<TAB>word<TAB>sentence` or `generate<TAB>word<TAB>root<TAB>tags`
-/// (a gold or round-trip reading the generator cannot produce).
+/// `reject<TAB>word`, `disamb<TAB>word<TAB>sentence`, `pos<TAB>word<TAB>sentence` (a
+/// participle's POS in context) or `generate<TAB>word<TAB>root<TAB>tags` (a gold or round-trip
+/// reading the generator cannot produce).
 fn current_failures() -> BTreeSet<String> {
     let morphology = TurkishMorphology::new();
     let mut failures = BTreeSet::new();
@@ -118,6 +121,28 @@ fn current_failures() -> BTreeSet<String> {
             }
         }
     }
+    let mut sentence: Vec<&str> = Vec::new();
+    let mut chosen = Vec::new();
+    for line in data_lines(PARTICIPLES) {
+        if let Some(s) = line.strip_prefix("> ") {
+            sentence = s.split(' ').collect();
+            chosen = disambiguator.disambiguate(&sentence);
+            continue;
+        }
+        let fields: Vec<&str> = line.split('\t').collect();
+        let [index, token, pos] = fields[..] else {
+            panic!("malformed participles.tsv line: {line:?}");
+        };
+        let index: usize = index.parse().expect("token index");
+        assert_eq!(
+            sentence.get(index),
+            Some(&token),
+            "participles.tsv: {line:?}"
+        );
+        if chosen[index].pos.as_str() != pos {
+            failures.insert(format!("pos\t{token}\t{}", sentence.join(" ")));
+        }
+    }
     failures
 }
 
@@ -150,14 +175,14 @@ fn gold_failures_match_known_list() {
         let got: Vec<String> = if fields[0] == "generate" {
             let tags: Vec<&str> = fields[3].split('+').collect();
             vec![format!("{:?}", morphology.generate(fields[2], &tags))]
-        } else if fields[0] == "disamb" {
+        } else if fields[0] == "disamb" || fields[0] == "pos" {
             let tokens: Vec<&str> = fields[2].split(' ').collect();
             let chosen = disambiguator.disambiguate(&tokens);
             tokens
                 .iter()
                 .zip(chosen)
                 .filter(|(t, _)| **t == fields[1])
-                .map(|(_, p)| p.formatted)
+                .map(|(_, p)| format!("{} (pos {})", p.analysis, p.pos.as_str()))
                 .collect()
         } else {
             morphology

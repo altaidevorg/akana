@@ -4,8 +4,10 @@
 # by review 2 to one check per line, their dictionary lines in akana's lexicon format.
 # FILE name | TEST name (a test name ending in _IGNORED is @Ignore'd in Zemberek) | DICT line
 # (the test's tiny lexicon; DEFAULT is the built-in one) | RESET (a new lexicon follows) |
-# ANY/TAILANY/SINGLE/NOTANY word analysis-tail | FAIL word | COUNT word n | LEMMA word lemma |
-# NOTCONTAINS word morpheme.
+# ANY/TAILANY/SINGLE/NOTANY word analysis-tail | SUCCESS word (some analysis) | FAIL word |
+# COUNT word n | LEMMA word lemma | NOTCONTAINS word morpheme. NounCompoundsTest's expectsResult
+# and expectsResult2 were corrected against the Java source: their expectSuccess has no count,
+# so they are SUCCESS checks (the conversion had made them COUNT 1 and dropped zeytinyağı).
 FILE	NounsTest
 TEST	implicitDative_1
 DICT	içeri içeri Noun ImplicitDative
@@ -1592,16 +1594,17 @@ TEST	expectsResult
 DICT	zeytin zeytin Noun
 DICT	yağ yağ Noun
 DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
-COUNT	zeytinyağına	1
-COUNT	zeytinyağım	1
-COUNT	zeytinyağlarıma	1
+SUCCESS	zeytinyağı
+SUCCESS	zeytinyağına
+SUCCESS	zeytinyağım
+SUCCESS	zeytinyağlarıma
 TEST	expectsResult2
 DICT	bal bal Noun
 DICT	kabak kabak Noun
 DICT	balkabağı balkabağı Noun CompoundP3sg roots=bal-kabak
-COUNT	balkabağı	1
-COUNT	balkabakları	1
-COUNT	balkabağına	1
+SUCCESS	balkabağı
+SUCCESS	balkabakları
+SUCCESS	balkabağına
 TEST	mustHaveTwoResults
 DICT	zeytin zeytin Noun
 DICT	yağ yağ Noun
