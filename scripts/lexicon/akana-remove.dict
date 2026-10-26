@@ -358,3 +358,14 @@ B1 [P:Abbrv]
 FIGC [P:Abbrv]
 Löw [P:Abbrv]
 Mdlüğü [P:Abbrv]
+
+## Inflected forms listed as words (non-tdk.dict's camii, mevzuu and sanayii, a corpus name
+## Tevzii): the ayn entries of akana-legal.dict read them as cami, mevzu, sanayi and tevzi with
+## the possessive or the accusative.
+camii
+mevzuu
+sanayii
+Tevzii
+## hazırun, which the master dictionary spells so, is hazirun's entry in akana-legal.dict (56
+## sample tokens against 7).
+hazırun

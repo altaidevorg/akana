@@ -142,3 +142,28 @@ acıçiğdem
 acıyonca
 üstderi
 ortaparmak [P:Noun]
+
+## General vocabulary the dictionaries lack (plan step E6, review 2 MLEX2-07): -sI adjectives,
+## and words of the last years with the pronunciation their suffixes follow.
+çocuksu [P:Adj]
+kadınsı [P:Adj]
+erkeksi [P:Adj]
+insansı [P:Adj]
+koronavirüs
+kovid
+COVID [P:Abbrv; Pr:kovid]
+PCR [P:Abbrv]
+NFT [P:Abbrv]
+SİHA [P:Abbrv; Pr:siha]
+blokzincir
+gigabayt
+dron
+fintek
+özçekim
+karekod
+emoji
+otogaz
+## Common spellings of words the dictionary writes otherwise (takoğraf 15 sample tokens against
+## takograf 3); the lemma stays the dictionary's.
+takoğraf [Ref:takograf]
+asteroid [Ref:asteroit]

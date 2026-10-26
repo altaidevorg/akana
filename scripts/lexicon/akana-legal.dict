@@ -181,3 +181,89 @@ sulh [A:NoVoicing; Index:1]
 ## ilâhî "divine".
 salih [P:Adj]
 ilâhî [P:Adj]
+
+## Vocabulary of court decisions the dictionaries lack (plan step E6, review 2 MLEX2-06),
+## among the most frequent words the court and RagTurk samples leave unanalysed. Neither
+## Google's nor TRmorph's lexicon lists them.
+## -en adverbs of Arabic nouns (tensiben 72 court tokens, velayeten 57, ikmalen 61).
+tensiben [P:Adv]
+fiziken [P:Adv]
+garameten [P:Adv]
+ikmalen [P:Adv]
+velayeten [P:Adv]
+vesayeten [P:Adv]
+fuzulen [P:Adv]
+teşdiden [P:Adv]
+hasren [P:Adv]
+sulhen [P:Adv]
+hesaben [P:Adv]
+evleviyetle [P:Adv]
+## Adjectives: nisba -î (içtihadî 64 tokens, kazaî 145), and joined -arası and -dışı.
+içtihadî [P:Adj]
+kazaî [P:Adj]
+tadadî [P:Adj]
+inhisarî [P:Adj]
+mübrez [P:Adj]
+müsnet [P:Adj]
+hakdüşürücü [P:Adj]
+şehirlerarası [P:Adj]
+devletlerarası [P:Adj]
+üniversitelerarası [P:Adj]
+davadışı [P:Adj]
+## Nouns.
+demuraj
+reklamasyon
+müddetname
+işgöremezlik
+soybağı [A:CompoundP3sg; Roots:soy-bağ]
+altsoy
+ikale
+mükerrir
+yasakoyucu
+matlubat [A:NoVoicing]
+hazirun
+hazırun [Ref:hazirun]
+elatma
+kesinhesap
+mirasbırakan
+başmemur
+terdit
+sovtaj
+kloz
+svap [A:NoVoicing]
+terminasyon
+onam
+önaraştırma
+sürüklenim
+## Medical terms of expert reports.
+ekimoz
+epikriz
+eritem
+ekstremite
+tibia
+psikiyatrik [P:Adj]
+progresif [P:Adj]
+psikotrop [P:Adj; A:NoVoicing]
+malül [P:Adj; Ref:malul]
+## Abbreviations (ATK 495 court tokens, BD 609 for the European Court's Grand Chamber, YEKDEM
+## 100).
+ATK [P:Abbrv]
+BD [P:Abbrv]
+BS [P:Abbrv]
+TRH [P:Abbrv]
+İDDK [P:Abbrv]
+UETS [P:Abbrv]
+YEKDEM [P:Abbrv]
+CGNAT [P:Abbrv]
+ÇDP [P:Abbrv]
+TPMK [P:Abbrv]
+CPT [P:Abbrv]
+IBAN [P:Abbrv; Pr:iban]
+ZMM [P:Abbrv]
+## Words whose suffixes keep the ayn of the Arabic (camii, sanayii, mevzuu, vukuu, tevzii), as
+## merci and tevdi above.
+cami [Pr:camiğ; Index:1]
+sanayi [Pr:sanayiğ; Index:1]
+mevzu [Pr:mevzuğ; Index:1]
+vuku [Pr:vukuğ; Index:1]
+tevzi [Pr:tevziğ; Index:1]

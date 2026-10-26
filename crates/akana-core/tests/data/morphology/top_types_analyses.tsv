@@ -3537,7 +3537,7 @@ tescili	tescil	Noun		Noun+P3sg	Noun	[tescil:Noun] tescil:Noun+A3sg+i:P3sg
 uyuşmazlığı	uyuşmak	Verb		Verb+NotState+Acc	Noun	[uyuşmak:Verb] uyuş:Verb|mazlığ:NotState→Noun+A3sg+ı:Acc
 vereceği	vermek	Verb		Verb+FutPart+P3sg	Noun	[vermek:Verb] ver:Verb|eceğ:FutPart→Noun+A3sg+i:P3sg
 özgürlüklerinin	özgürlük	Noun		Noun+A3pl+P3sg+Gen	Noun	[özgürlük:Noun] özgürlük:Noun+ler:A3pl+i:P3sg+nin:Gen
-ATK	-	-	-	-	-	-
+ATK	atk	Noun	Abbrv	Noun+A3sg+Nom	Noun	[ATK:Noun,Abbrv] atk:Noun+A3sg
 Böylece	böylece	Adv		Adv	Adv	[böylece:Adv] böylece:Adv
 DELİLLER	delil	Noun		Noun+A3pl	Noun	[delil:Noun] delil:Noun+ler:A3pl
 Konusu	konu	Noun		Noun+P3sg	Noun	[konu:Noun] konu:Noun+A3sg+su:P3sg
@@ -5179,7 +5179,7 @@ idi	imek	Verb		Verb+CopPast	Verb	[imek:Verb] i:Verb+di:Past+A3sg
 kaybeden	kaybetmek	Verb		Verb+PresPart	Adj	[kaybetmek:Verb] kaybed:Verb|en:PresPart→Adj
 müzisyen	müzisyen	Noun		Noun+A3sg+Nom	Noun	[müzisyen:Noun] müzisyen:Noun+A3sg
 sezonunda	sezon	Noun	Time	Noun+P3sg+Loc	Noun	[sezon:Noun,Time] sezon:Noun+A3sg+u:P3sg+nda:Loc
-Camii	camii	Noun		Noun+A3sg+Nom	Noun	[camii:Noun] camii:Noun+A3sg
+Camii	cami	Noun		Noun+P3sg	Noun	[cami:Noun] cami:Noun+A3sg+i:P3sg
 Kıbrıs	kıbrıs	Noun	Prop	Noun+A3sg+Nom	Noun	[Kıbrıs:Noun,Prop] kıbrıs:Noun+A3sg
 MÖ	mö	Noun	Abbrv	Noun+A3sg+Nom	Noun	[MÖ:Noun,Abbrv] mö:Noun+A3sg
 mm	mm	Noun	Abbrv	Noun+A3sg+Nom	Noun	[MM:Noun,Abbrv] mm:Noun+A3sg
@@ -5635,7 +5635,7 @@ Arka	arka	Noun		Noun+A3sg+Nom	Noun	[arka:Noun] arka:Noun+A3sg
 Bab	bab	Noun	Abbrv	Noun+A3sg+Nom	Noun	[BAB:Noun,Abbrv] bab:Noun+A3sg
 Bey	bey	Noun		Noun+A3sg+Nom	Noun	[bey:Noun] bey:Noun+A3sg
 British	british	Noun	Prop	Noun+A3sg+Nom	Noun	[British:Noun,Prop] british:Noun+A3sg
-COVID	-	-	-	-	-	-
+COVID	covıd	Noun	Abbrv	Noun+A3sg+Nom	Noun	[COVID:Noun,Abbrv] covıd:Noun+A3sg
 Delta	delta	Noun		Noun+A3sg+Nom	Noun	[delta:Noun] delta:Noun+A3sg
 Douglas	douglas	Noun	Prop	Noun+A3sg+Nom	Noun	[Douglas:Noun,Prop] douglas:Noun+A3sg
 Erişim	erişim	Noun		Noun+A3sg+Nom	Noun	[erişim:Noun] erişim:Noun+A3sg
@@ -5933,7 +5933,7 @@ seçilmiştir	seçmek	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[seçmek:Verb] seç:V
 seçimleri	seçim	Noun		Noun+A3pl+P3sg	Noun	[seçim:Noun] seçim:Noun+ler:A3pl+i:P3sg
 stil	stil	Noun		Noun+A3sg+Nom	Noun	[stil:Noun] stil:Noun+A3sg
 sunucu	sunmak	Verb		Verb+Agt	Noun	[sunmak:Verb] sun:Verb|ucu:Agt→Noun+A3sg
-sürüklenim	-	-	-	-	-	-
+sürüklenim	sürüklenim	Noun		Noun+A3sg+Nom	Noun	[sürüklenim:Noun] sürüklenim:Noun+A3sg
 yarışmada	yarışmak	Verb		Verb+ActN+Loc	Noun	[yarışmak:Verb] yarış:Verb|ma:Inf2→Noun+A3sg+da:Loc
 yüzen	yüzmek	Verb		Verb+PresPart	Adj	[yüzmek:Verb] yüz:Verb|en:PresPart→Adj
 yüzey	yüzey	Noun		Noun+A3sg+Nom	Noun	[yüzey:Noun] yüzey:Noun+A3sg

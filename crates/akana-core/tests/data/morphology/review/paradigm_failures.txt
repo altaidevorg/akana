@@ -1,13 +1,9 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 706 of 735 checks pass (96.1 %)
-#   ACC 583/598
+# 710 of 735 checks pass (96.6 %)
+#   ACC 587/598
 #   REJ 72/85
 #   REJL 51/52
 nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	benimki	ben	*
-nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	erkeksi	*	*
-nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	insansı	*	*
-nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	kadınsı	*	*
-nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	çocuksu	*	*
 nouns: -ki -lI -sIz -lIk -CI -CIk	REJ	sütcü
 nouns: vowel drop / doubling / inverse harmony	REJ	akılı
 nouns: vowel drop / doubling / inverse harmony	REJ	burunu
