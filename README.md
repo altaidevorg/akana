@@ -250,6 +250,9 @@ status = akana.check_encoder(stored_info)   # when you open it
 - `"compatible"`: the same sparse spec major and hybrid layout. Some vectors differ: releases that change them say how many, and keep a stale index's MRR@10 within 0.005 of a rebuilt one, so no rebuild is needed.
 - `"rebuild"`: term ids, term definitions or the vector layout changed. Re-embed the documents.
 
+An index built with 0.8.0 or earlier stores no encoder info and must be rebuilt; `CHANGELOG.md`
+lists what else changed since 0.8.0 and how to migrate.
+
 `Cargo.lock` and `rust-toolchain.toml` pin what the vectors depend on (the Unicode tables of the Rust standard library included), and ranking inside the analyzer and disambiguator is done in integers, so a release gives the same vectors on Linux, macOS and Windows.
 
 #### Comparison with RAGTurk (`arXiv:2602.03652`) & Heavy Neural Pipelines

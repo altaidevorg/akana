@@ -406,6 +406,30 @@ fn rules_can_be_chosen() {
 }
 
 #[test]
+fn findings_of_0_8_0_still_deserialize() {
+    use akana_core::grammar::GrammarFinding;
+    let checker = TurkishGrammarChecker::new();
+    let result = checker.check("Veli te geldi.");
+    let found = result
+        .findings
+        .iter()
+        .find(|f| f.category == ErrorCategory::CliticDeDa)
+        .expect("a de/da finding");
+    let json = serde_json::to_value(found).unwrap();
+    let back: GrammarFinding = serde_json::from_value(json.clone()).unwrap();
+    assert_eq!(back.rule, found.rule);
+    // 0.8.0 wrote no rule: the finding takes the first rule of its category.
+    let mut old = json;
+    old.as_object_mut().unwrap().remove("rule");
+    let back: GrammarFinding = serde_json::from_value(old.clone()).unwrap();
+    assert_eq!(back.category, ErrorCategory::CliticDeDa);
+    assert_eq!(back.rule.category(), ErrorCategory::CliticDeDa);
+    // No rule reports SpellingTypo, so such a finding cannot have come from 0.8.0.
+    old["category"] = "SpellingTypo".into();
+    assert!(serde_json::from_value::<GrammarFinding>(old).is_err());
+}
+
+#[test]
 fn sentence_level_rules_stay_in_their_sentence() {
     let checker = TurkishGrammarChecker::with_rules(RuleSet::all());
     // the two "ne" are in different sentences, and the first is a question word

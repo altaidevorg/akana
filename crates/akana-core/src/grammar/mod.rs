@@ -89,6 +89,7 @@ impl ErrorCategory {
 
 /// A specific grammatical/orthographical error finding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(try_from = "FindingRecord")]
 pub struct GrammarFinding {
     /// The rule that found it.
     pub rule: GrammarRule,
@@ -101,6 +102,48 @@ pub struct GrammarFinding {
     pub message_en: String,
     /// The rule's measured precision ([`GrammarRule::confidence`]).
     pub confidence: f32,
+}
+
+/// A [`GrammarFinding`] as it is read back. Findings serialized by akana 0.8.0 have no `rule`;
+/// they take the first rule of their category, which every category 0.8.0 reported has.
+#[derive(Deserialize)]
+struct FindingRecord {
+    #[serde(default)]
+    rule: Option<GrammarRule>,
+    category: ErrorCategory,
+    start_offset: usize,
+    end_offset: usize,
+    original_text: String,
+    replacement: String,
+    message_tr: String,
+    message_en: String,
+    confidence: f32,
+}
+
+impl TryFrom<FindingRecord> for GrammarFinding {
+    type Error = String;
+
+    fn try_from(r: FindingRecord) -> Result<Self, String> {
+        let rule = match r.rule {
+            Some(rule) => rule,
+            None => GrammarRule::ALL
+                .iter()
+                .copied()
+                .find(|rule| rule.category() == r.category)
+                .ok_or_else(|| format!("a {} finding without a rule", r.category.as_str()))?,
+        };
+        Ok(Self {
+            rule,
+            category: r.category,
+            start_offset: r.start_offset,
+            end_offset: r.end_offset,
+            original_text: r.original_text,
+            replacement: r.replacement,
+            message_tr: r.message_tr,
+            message_en: r.message_en,
+            confidence: r.confidence,
+        })
+    }
 }
 
 impl GrammarFinding {

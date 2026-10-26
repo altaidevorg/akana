@@ -1,0 +1,132 @@
+# Changelog
+
+## 0.9.0 (unreleased)
+
+The morphology engine is rebuilt on Zemberek's design, the sparse and hybrid encoders now have
+a version and a compatibility check, and the bindings report character offsets. Several
+results change, and indexes built with 0.8.0 must be rebuilt: see *Migrating from 0.8.0*.
+
+### Migrating from 0.8.0
+
+**Indexes.**
+- Rebuild every sparse or hybrid index built with 0.8.0. Term ids are 32-bit now, the terms
+  are disambiguated lemmas, and their weights changed.
+- Store `akana.encoder_info()` (Rust: `embeddings::encoder_info()`) with each new index. When
+  the index is opened, pass the stored value to `akana.check_encoder()`
+  (`embeddings::compatibility`). It returns one of three values:
+  - `"identical"`: the vectors are the same.
+  - `"compatible"`: same sparse spec major and hybrid layout; the vectors may differ within
+    the bump policy of `embeddings/spec.rs`, and no rebuild is needed.
+  - `"rebuild"`.
+- An index without stored info should be treated as `"rebuild"`.
+
+**Offsets (Python).** NER `start`/`end`, grammar `start_offset`/`end_offset` and style
+`start`/`end` are character offsets now, where 0.8.0 gave byte offsets. Remove any byte-to-
+character conversion. The CLI's JSON still reports byte offsets.
+
+**Verb lemmas.** A verb's lemma is its infinitive, as in Zemberek: `okudu` gives `okumak`,
+where it gave `oku`. This holds in `Morphology.analyze`, `Disambiguator`, `analyze()` and
+`parse_conllu`, the CoNLL-U LEMMA column included. `root` keeps the stem (`oku`), and
+`formatted` shows the infinitive (`[okumak:Verb] oku:Verb+Past`). Code that matched verb
+lemmas against stems should match `root`.
+
+**Readings.** `Morphology.analyze` returns other parse sets than 0.8.0:
+- Duplicates are gone: `geliyorum` gives 1 parse where it gave 2, and `gideceğim` 3 where it
+  gave 4 (the future, and the participle as a noun and as an adjective).
+- Misspellings are rejected (`kitapda`, `gelti`).
+- Missing cells are there (`gelmem`, `bana`, `suyunu`).
+- Tags follow the morphotactics: `burnum` also reads as `CopPres1sg`, and `çalışkan` lost its
+  `Verb+DevGen` readings.
+- Parses are sorted by `score`, which is now the probability of the reading given the word,
+  times a spelling factor; a word's scores sum to at most 1.
+- The parse dicts of `Morphology.analyze` and `Disambiguator.disambiguate` have new keys:
+  `analysis`, the analysis in Zemberek's format; `pos`, the POS after derivation; and
+  `display_lemma`.
+- Participles and -IcI forms read both as a noun and as an adjective, which share
+  `formatted` but differ in `pos` and `analysis`: `olduğu` is `PastPart→Noun` "that it is" or
+  `PastPart→Adj` "which it is", and `bağlayıcı` is `Agt→Noun` or `Agt→Adj`. The noun comes
+  first. The disambiguator picks the adjective before the noun the form describes. Code that
+  expects one parse per `formatted` string should key on `analysis`.
+- `display_lemma` gives the dictionary's spelling of the lemma: `Ankara`, `kâğıt`, `Hakkâri`,
+  `e-posta`. `analysis` uses it, as Zemberek does (`[Ankara:Noun,Prop] ankara:Noun+A3sg`).
+  `lemma` stays the folded, lower-case key (`ankara`, `kağıt`) that sparse terms use.
+
+**Syntactic morphology.** `SyntacticMorphology` and `syntactic_analyze` report UD features:
+`Number`, `Person`, `Number[psor]`, `Person[psor]` and `VerbForm`, where 0.8.0 had
+`PersonNumber` and `Possessive`. `Possessive=Pnon` is gone. The inflectional groups come from
+the analyzer's own morphotactic path, and `TurkishSyntacticMorphology` has no lexicon of its
+own (`google_lexicon.txt` was removed).
+
+**Grammar.**
+- `check_grammar` and `correct_grammar` run the 26 rules measured precise on correct text.
+  The 7 experimental rules are off: enable them with `experimental=True`, or pick rules with
+  `rules=`, `enable=` and `disable=`. `grammar_rules()` lists every rule with its id,
+  category, default state and confidence.
+- Findings carry a `rule` id, and `GrammarFinding.__repr__` shows it instead of the category.
+- In Rust, `GrammarFinding` has a `rule` field. Findings serialized by 0.8.0 still
+  deserialize: they get the first rule of their category.
+
+**Generation.** `Morphology.generate` uses the instance's own lexicon. It returns `None` for
+an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the lemma.
+
+**Errors (Python).**
+- A panic in the native code raises `RuntimeError`, where it raised
+  `pyo3_runtime.PanicException`.
+- If the native extension fails to load, `import akana` raises `ImportError`, where 0.8.0
+  imported and failed later.
+
+**Rust API.**
+- `AkanaEngine` no longer has the public `spell_checker` and `grammar_checker` fields;
+  construct `TurkishSpellChecker` and `TurkishGrammarChecker` directly, which share the
+  built-in lexicon.
+- The `morphology::graph` and `morphology::suffixes` modules (`MorphState`,
+  `SuffixTransition`, `SuffixType`, `TurkishMorphotactics::transitions()`) are replaced by the
+  new morphotactic graph.
+- `MorphParse` has the new field `analysis` (`#[serde(default)]`) and the method
+  `display_lemma()`.
+
+**Other outputs that changed with the analyzer.** `stem`, `extract_keywords`, the
+readability metrics (Kalyoncu word lists and grade), and PII masks (leak fixes) give
+different results.
+
+### Added
+
+- `akana.encoder_info()` and `akana.check_encoder()`; in Rust, `embeddings::spec`
+  (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
+  `compatibility`). Their fingerprints hash the embedded resources, the encoders' constants
+  and the analyses of a probe set.
+- `MorphParse::analysis` and `MorphParse::display_lemma()`, and the Python keys `analysis`,
+  `pos` and `display_lemma`.
+- Grammar rule selection (`rules`, `enable`, `disable`, `experimental`) and `grammar_rules()`.
+- THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
+  Zemberek dictionaries and morphotactics (Apache 2.0) and the UD-derived function-lemma table
+  (CC BY-SA 4.0).
+
+### Changed
+
+- **Morphology.**
+  - The analyzer follows Zemberek's morphotactics and stem transitions.
+  - Its lexicon is built from Zemberek's dictionaries with their pronunciations, aorist
+    classes and compounds, plus akana's legal supplement.
+  - Analyses are ranked by a corpus prior, in integer arithmetic, so that every platform
+    ranks alike.
+  - The prior records the lexicon and morphotactic graph it was estimated for, and a test
+    fails when they no longer match.
+- **Sparse encoder.**
+  - One disambiguated lemma per word occurrence, with 32-bit term ids.
+  - The function-lemma weights come from a table frozen with the sparse spec.
+  - A term weighs by its lemma's lexicon class, not by the reading the disambiguator picked,
+    so a change of ranking no longer moves weights.
+- **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
+  embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
+  analysis snapshot and review gold sets fail CI on any unintended change of the encoders'
+  output.
+- **Performance.** The quadratic and cubic public paths are linear. The lexicon and the
+  embedding weights are built once per process, and the Python bindings release the GIL.
+
+### Fixed
+
+- Crashes on statute headings and non-ASCII plates (PII), upper-case suffixes, non-ASCII
+  spaces and overlapping edits (grammar), and cycles or extra roots in dependency trees.
+- PII leaks: upper-case Turkish triggers, and text that `restore` would turn into an earlier
+  value.
