@@ -89,9 +89,9 @@ def main():
     query_morph = "Köprülerin bakımları hafta sonunda yapılacak mı?"
     sparse = akana.sparse_embed(query_morph)
     print(f"  Input text: '{query_morph}'")
-    print(f"  Extracted morphological roots / lemmas: {sparse['terms']}")
-    print(f"  Hashed 24-bit bucket indices: {sparse['indices']}")
-    print(f"  BM25 term saturation weights: {[round(v, 3) for v in sparse['values']]}")
+    print(f"  Lemmas in context and compound parts: {sparse['terms']}")
+    print(f"  32-bit hashed term ids: {sparse['indices']}")
+    print(f"  BM25-saturated, POS- and IDF-weighted values: {[round(v, 3) for v in sparse['values']]}")
 
     # -------------------------------------------------------------------------
     # 4. Zero-Copy USearch Indexing with Compiled C-ABI Metrics

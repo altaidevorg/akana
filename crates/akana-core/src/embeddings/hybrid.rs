@@ -5,11 +5,13 @@
 //!
 //! ## Memory Layout
 //! - Bytes 0..63 (64 bytes): Dense 2-bit TurboQuant embedding (256 dims @ 2 bits)
-//! - Bytes 64..127 (64 bytes): Top-16 salient unhashed sparse terms (16 slots x 4 bytes)
-//!   - Slot: `[id_hi, id_mid, id_lo, weight_u8]` (24-bit term ID + 8-bit BM25 weight)
-//!   - Sorted ascending by `term_id` for O(K) two-pointer merge intersection.
+//! - Bytes 64..127 (64 bytes): Top-16 salient sparse terms (16 slots x 4 bytes)
+//!   - Slot: `[id_hi, id_mid, id_lo, weight_u8]`: the term's 32-bit id folded to 24 bits
+//!     ([`term_id_24bit`]) and its quantized weight. Two of a vector's 16 terms share a 24-bit id
+//!     about once in 140,000 vectors; the heavier of the two then keeps the slot.
+//!   - Sorted ascending by the 24-bit id for O(K) two-pointer merge intersection.
 
-use super::sparse::{MorphologicalSparseEncoder, MorphologicalSparseVector};
+use super::sparse::{term_id_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector};
 use super::usearch_metrics::cosine_distance_2bit_64;
 use super::{pack_2bit_vector, TurkishEmbeddings, PACKED_2BIT_BYTES};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -106,7 +108,7 @@ pub fn pack_hybrid_vector(
     let mut term_pairs: Vec<(u32, f32)> = sparse_vec
         .indices
         .iter()
-        .copied()
+        .map(|&id| term_id_24bit(id))
         .zip(sparse_vec.values.iter().copied())
         .collect();
 
@@ -114,13 +116,14 @@ pub fn pack_hybrid_vector(
     term_pairs.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     term_pairs.truncate(HYBRID_MAX_SPARSE_SLOTS);
 
-    // Sort selected top-16 by term_id ascending for O(K) two-pointer merge intersection
-    term_pairs.sort_by_key(|p| p.0);
+    // Sort selected top-16 by term_id ascending for O(K) two-pointer merge intersection; of two
+    // terms with the same 24-bit id the heavier keeps the slot.
+    term_pairs.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.total_cmp(&a.1)));
+    term_pairs.dedup_by_key(|p| p.0);
 
     // 3. Write into bytes 64..128
-    for (slot_idx, (term_id, weight)) in term_pairs.iter().enumerate() {
+    for (slot_idx, &(id24, weight)) in term_pairs.iter().enumerate() {
         let offset = 64 + slot_idx * 4;
-        let id24 = term_id & 0x00FF_FFFF;
         // Quantize BM25 weight into u8 (clamped to [1, 255])
         let q_weight = ((weight / 4.0) * 255.0).clamp(1.0, 255.0) as u8;
 

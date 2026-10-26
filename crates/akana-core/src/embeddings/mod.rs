@@ -29,7 +29,9 @@ pub use hybrid::{
     HYBRID_SPARSE_BYTES, HYBRID_VECTOR_BYTES,
 };
 pub use rrf::{reciprocal_rank_fusion, FusedResult};
-pub use sparse::{hash_term_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector};
+pub use sparse::{
+    hash_term_32bit, term_id_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector,
+};
 use tokenizer::UnigramTokenizer;
 pub use usearch_metrics::{
     akana_usearch_metric_1bit, akana_usearch_metric_2bit, cosine_distance_2bit_64,

@@ -15,7 +15,8 @@ same text:
   a line holding only `\\x1e`), which the sweep times `analyze` on.
 - `train/`: decisions that are not in `eval/` (other row groups where a subset has enough,
   otherwise other rows of the same groups), for estimating the analyzer's frequency prior;
-  `<corpus>.types.tsv` and `<corpus>.numbers.tsv` only.
+  `<corpus>.types.tsv` and `<corpus>.numbers.tsv`, and with `--train-text` also `<corpus>.txt`,
+  which the sparse encoder's document frequencies are estimated from (`examples/sparse_idf.rs`).
 """
 
 import argparse
@@ -107,6 +108,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--root", required=True, help="checkout with the court data and RagTurk cache")
     parser.add_argument("--out", default=".cache/morph_sample")
+    parser.add_argument("--train-text", action="store_true", help="also write the training documents")
     args = parser.parse_args()
 
     for subset in SUBSETS:
@@ -114,7 +116,7 @@ def main():
         rng = random.Random(f"morph-sample-v1-{subset}")
         eval_docs, train_docs = sample_court(args.root, subset, rng)
         write_corpus(os.path.join(args.out, "eval"), subset, eval_docs, with_text=True)
-        write_corpus(os.path.join(args.out, "train"), subset, train_docs, with_text=False)
+        write_corpus(os.path.join(args.out, "train"), subset, train_docs, with_text=args.train_text)
     write_corpus(os.path.join(args.out, "eval"), "ragturk", ragturk(args.root), with_text=True)
 
 
