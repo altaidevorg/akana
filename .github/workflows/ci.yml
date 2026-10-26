@@ -29,6 +29,12 @@ jobs:
           python scripts/build_full_lexicon.py
           git diff --exit-code crates/akana-core/src/morphology/zemberek_lexicon.txt
 
+      - name: The shipped copies of THIRD_PARTY_NOTICES equal the root file
+        run: |
+          for f in crates/akana-core/THIRD_PARTY_NOTICES crates/akana-cli/THIRD_PARTY_NOTICES python/akana/THIRD_PARTY_NOTICES; do
+            cmp THIRD_PARTY_NOTICES "$f"
+          done
+
       - name: Prior re-estimation equals the committed prior
         run: |
           cargo run --release --locked -p akana-core --example morph_prior -- \
