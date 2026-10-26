@@ -79,7 +79,7 @@ impl TurkishMorphology {
             )
             .filter(|i| i.primary_pos == pos);
         let prior = &*PRIOR;
-        let mut best: Option<((bool, f32, usize), String)> = None;
+        let mut best: Option<((bool, i32, usize), String)> = None;
         for item in items {
             let mut search = Generation {
                 wanted: &wanted,

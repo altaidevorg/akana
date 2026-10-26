@@ -5,22 +5,23 @@
 //! what the neighbouring words say: a genitive wants a possessed noun after it, a postposition
 //! the case it governs before it, a light verb (et-, ol-) a bare noun before it, and so on. The
 //! bonuses are bounded, so context can overturn a reading the corpus finds a dozen times rarer,
-//! not one it finds a hundred times rarer.
+//! not one it finds a hundred times rarer. All of it is in the analyzer's integer rank units
+//! ([`rank_units`]), so a sentence disambiguates alike on every platform.
 
 use super::analyzer::{
-    prior_second_person, prior_second_person_factor, MorphParse, TurkishMorphology,
+    prior_second_person, prior_second_person_units, rank_units, MorphParse, TurkishMorphology,
 };
 use super::pos::{PrimaryPos, SecondaryPos};
 use crate::phonology::to_turkish_lower;
 
 /// The most context can add to one reading's log score (a factor of about 12).
-const MAX_BONUS: f32 = 2.5;
-/// The lowest score a reading counts with, so that one the prior rules out stays comparable.
-const MIN_SCORE: f32 = 1e-4;
-/// How much the analyzer's log score counts. EM over a word list makes the prior too sure of
-/// itself (kamu is an adjective 250 times more often than a noun), and halving its log lets
-/// context decide such cases ("kamu yararı").
-const PRIOR_WEIGHT: f32 = 0.5;
+const MAX_BONUS: i32 = rank_units(2.5);
+/// How far below its word's best reading a reading's log score counts (a factor of 10^-4), so
+/// that one the prior rules out stays comparable.
+const RANK_FLOOR: i32 = rank_units(-9.210_340_371_976_184);
+// The analyzer's log score counts at half weight: EM over a word list makes the prior too sure
+// of itself (kamu is an adjective 250 times more often than a noun), and halving its log lets
+// context decide such cases ("kamu yararı"). Scores are doubled so that this stays an integer.
 
 pub struct MorphologicalDisambiguator {
     morphology: TurkishMorphology,
@@ -52,7 +53,7 @@ impl MorphologicalDisambiguator {
 
         let n = tokens.len();
         let mut chosen: Vec<MorphParse> = Vec::with_capacity(n);
-        let register = prior_second_person_factor();
+        let register = prior_second_person_units();
 
         for i in 0..n {
             let parses = &analyses_per_token[i];
@@ -71,6 +72,7 @@ impl MorphologicalDisambiguator {
                     score: 0.0,
                     path: Default::default(),
                     yields: false,
+                    rank: 0,
                 });
                 continue;
             }
@@ -131,7 +133,8 @@ impl MorphologicalDisambiguator {
             };
 
             let mut best_idx = 0;
-            let mut best_score = f32::MIN;
+            let mut best_score = i32::MIN;
+            let top_rank = parses.iter().map(|p| p.rank).max().unwrap_or(0);
             for (p_idx, parse) in parses.iter().enumerate() {
                 // Overt morphemes. Only bare dictionary matches spell out the default A3sg/Nom,
                 // so those are not counted.
@@ -143,7 +146,7 @@ impl MorphologicalDisambiguator {
                 let bare_noun = parse.primary_pos == PrimaryPos::Noun
                     && parse.secondary_pos != SecondaryPos::ProperNoun
                     && marked == 1;
-                let mut bonus = 0.0f32;
+                let mut bonus = 0i32;
 
                 // The rules below look at the word's POS after derivation (`pos`): a converb
                 // (baş-la-yınca) is not a noun, a derived verb (an-laş-ıyor-um) is a verb, a
@@ -152,9 +155,9 @@ impl MorphologicalDisambiguator {
                 // 1. The predicate comes last (SOV).
                 if is_sentence_final {
                     if parse.pos == PrimaryPos::Verb {
-                        bonus += 2.0;
+                        bonus += const { rank_units(2.0) };
                     } else if is_predicate(parse) {
-                        bonus += 1.0;
+                        bonus += const { rank_units(1.0) };
                     }
                 }
 
@@ -166,7 +169,7 @@ impl MorphologicalDisambiguator {
                     && (marked == 1 || tokens[i].contains(['\'', '’']))
                     && (!is_sentence_start || !has_common_reading)
                 {
-                    bonus += 1.5;
+                    bonus += const { rank_units(1.5) };
                 }
 
                 // 3. A modifier comes before its noun (Adj, Det, Num: "bu kitap", "yüz kişi").
@@ -175,10 +178,14 @@ impl MorphologicalDisambiguator {
                 // determiner (o, her) is one too, and needs the noun as much.
                 if !is_predicate(parse) {
                     match parse.pos {
-                        PrimaryPos::Adj if modifies_noun => bonus += 0.7,
-                        PrimaryPos::Det | PrimaryPos::Num if modifies_noun => bonus += 1.0,
-                        PrimaryPos::Det if !modifies_noun => bonus -= 2.0,
-                        PrimaryPos::Adj if !modifies_noun && has_determiner_reading => bonus -= 2.0,
+                        PrimaryPos::Adj if modifies_noun => bonus += const { rank_units(0.7) },
+                        PrimaryPos::Det | PrimaryPos::Num if modifies_noun => {
+                            bonus += const { rank_units(1.0) }
+                        }
+                        PrimaryPos::Det if !modifies_noun => bonus -= const { rank_units(2.0) },
+                        PrimaryPos::Adj if !modifies_noun && has_determiner_reading => {
+                            bonus -= const { rank_units(2.0) }
+                        }
                         _ => {}
                     }
                 }
@@ -186,7 +193,7 @@ impl MorphologicalDisambiguator {
                 // 4. A bare noun before a possessed one is its first part ("kamu yararı",
                 // "gelir vergisi"), and before a light verb its object ("devam etti").
                 if bare_noun && (before_possessed || before_light_verb) {
-                    bonus += 1.5;
+                    bonus += const { rank_units(1.5) };
                 }
 
                 if let Some(prev) = previous {
@@ -199,12 +206,12 @@ impl MorphologicalDisambiguator {
                         && !is_predicate(parse)
                         && !is_function_word(parses)
                     {
-                        bonus += 0.5;
+                        bonus += const { rank_units(0.5) };
                     }
                     // 6. A pronoun subject before an inflected verb (ben geldim); a bare verb
                     // stem is an imperative and gets no help ("ben de" is not "I, say!").
                     if prev.pos == PrimaryPos::Pron && parse.pos == PrimaryPos::Verb && marked > 1 {
-                        bonus += 0.5;
+                        bonus += const { rank_units(0.5) };
                     }
                     // 7. A genitive wants a possessed noun ("mahkemenin kararı").
                     if case_of(prev) == Some("Gen")
@@ -213,7 +220,7 @@ impl MorphologicalDisambiguator {
                             .iter()
                             .any(|t| t == "P3sg" || t == "P3pl")
                     {
-                        bonus += 1.5;
+                        bonus += const { rank_units(1.5) };
                     }
                     // 8. A postposition after the case it governs ("öğleden sonra", "yaşa
                     // kadar").
@@ -225,20 +232,20 @@ impl MorphologicalDisambiguator {
                             })
                         })
                     {
-                        bonus += 1.0;
+                        bonus += const { rank_units(1.0) };
                     }
                 }
 
                 // 9. An interjection stands alone ("Hayır, ..."); inside a clause the word is
                 // its noun or adjective twin ("devam edildi", "ileri sürdü").
                 if parse.primary_pos == PrimaryPos::Interj && next_is_word {
-                    bonus -= 2.0;
+                    bonus -= const { rank_units(2.0) };
                 }
 
                 // 10. The first half of a correlative conjunction ("ister iktidarda ister
                 // muhalefette", "hem ... hem de").
                 if correlative && parse.primary_pos == PrimaryPos::Conj {
-                    bonus += 1.5;
+                    bonus += const { rank_units(1.5) };
                 }
 
                 // 11. Function-word preference: an unsuffixed conjunction, question particle or
@@ -249,18 +256,18 @@ impl MorphologicalDisambiguator {
                     || (marked == 1
                         && matches!(parse.primary_pos, PrimaryPos::Conj | PrimaryPos::Pron))
                 {
-                    bonus += 0.1;
+                    bonus += const { rank_units(0.1) };
                 }
 
                 // Fewer derivation layers on a tie, counting overt morphemes: otherwise "Ali"
                 // (Noun+A3sg+Nom) loses to "Al-i" (Noun+Acc).
-                let prior = if exclaims && prior_second_person(parse) {
-                    parse.score / register
+                let rank = if exclaims && prior_second_person(parse) {
+                    parse.rank - register
                 } else {
-                    parse.score
+                    parse.rank
                 };
-                let score = PRIOR_WEIGHT * prior.max(MIN_SCORE).ln() + bonus.min(MAX_BONUS)
-                    - marked as f32 * 0.01;
+                let score = rank.max(top_rank + RANK_FLOOR) + 2 * bonus.min(MAX_BONUS)
+                    - 2 * marked as i32 * const { rank_units(0.01) };
                 // The analyzer's order breaks exact ties.
                 if score > best_score {
                     best_score = score;

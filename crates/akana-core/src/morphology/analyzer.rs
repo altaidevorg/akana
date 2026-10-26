@@ -58,6 +58,10 @@ pub struct MorphParse {
     /// Whether the lexicon ranks this reading below its twin (see [`prior_yields`]).
     #[serde(skip)]
     pub(crate) yields: bool,
+    /// `score` as a log in rank units ([`rank_units`]), relative to the word's other readings:
+    /// what the disambiguator weighs, so that it ranks with integers only.
+    #[serde(skip)]
+    pub(crate) rank: i32,
 }
 
 /// The path of an analysis through the morphotactic graph: the root's state, then the state each
@@ -136,9 +140,9 @@ pub fn prior_second_person(p: &MorphParse) -> bool {
             .any(|t| matches!(t.as_str(), "P2sg" | "P2pl" | "A2sg" | "A2pl"))
 }
 
-/// The register factor [`prior_second_person`] readings take.
-pub fn prior_second_person_factor() -> f32 {
-    PRIOR.second_person.exp()
+/// The register factor [`prior_second_person`] readings take, in rank units.
+pub(crate) fn prior_second_person_units() -> i32 {
+    PRIOR.second_person
 }
 
 /// The prior's factor for a reading the lexicon ranks below another ([`prior_yields`]), where the
@@ -161,134 +165,142 @@ pub fn prior_yields(p: &MorphParse) -> bool {
     p.yields
 }
 
-/// The ratio between adjacent levels of a reading's prior relative to its word's best reading.
-const PRIOR_STEP: f32 = 1.02;
+/// Rank units in one 2% step of a reading's prior relative to its word's best reading. Ranking
+/// is done in integers of 1.02^(1/16): the prior file stores them, and the analyzer and the
+/// disambiguator add them, so a word's readings rank alike on every platform (no `ln`, `exp` or
+/// `powf` at run time, whose last bits differ between libms).
+pub const RANK_UNITS_PER_STEP: i32 = 16;
 
-/// Log probabilities of items ([`prior_item_key`]) and of shapes ([`prior_shape_key`]) given
-/// their group ([`prior_shape_group`]: the POS, or the personal pronouns' `Pers`): P(item) *
-/// P(shape | group) is how likely a reading is. The keys are hashed ([`KeyHash`]), so looking
-/// a reading up builds no string.
+/// Rank units in one natural-log unit: 16 / ln 1.02.
+pub const RANK_UNITS_PER_NAT: f64 = 807.973_596_669_502_4;
+
+/// A natural log (ln p) in rank units, rounded half away from zero.
+pub const fn rank_units(nats: f64) -> i32 {
+    let units = nats * RANK_UNITS_PER_NAT;
+    (if units >= 0.0 {
+        units + 0.5
+    } else {
+        units - 0.5
+    }) as i32
+}
+
+/// 1.02^-q, for a reading q 2% steps below its word's best, built by repeated division (IEEE
+/// basic operations give the same bits everywhere); 0 beyond the f32 range.
+static STEP_RATIOS: LazyLock<Vec<f32>> = LazyLock::new(|| {
+    let mut ratio = 1.0f64;
+    (0..4420)
+        .map(|_| {
+            let r = ratio as f32;
+            ratio /= 1.02;
+            r
+        })
+        .collect()
+});
+
+fn step_ratio(steps: u32) -> f32 {
+    STEP_RATIOS.get(steps as usize).copied().unwrap_or(0.0)
+}
+
+/// The version of the prior file format this analyzer reads (`#akana-prior` header).
+const PRIOR_FORMAT: &str = "2";
+
+/// Log probabilities, in rank units, of items ([`prior_item_key`]) and of shapes
+/// ([`prior_shape_key`]) given their group ([`prior_shape_group`]: the POS, or the personal
+/// pronouns' `Pers`): P(item) * P(shape | group) is how likely a reading is. The file holds them
+/// ready to add (`examples/morph_prior.rs`), so loading computes nothing. The keys are hashed
+/// ([`KeyHash`]), so looking a reading up builds no string.
 pub(super) struct Prior {
     items: KeyMap,
     shapes: KeyMap,
-    unseen_item: f32,
-    /// A shape not in the file, per group; [`Prior::unseen_shape`] (the least of these) for a
-    /// group not in it either.
-    unseen_shapes: HashMap<String, f32>,
-    unseen_shape: f32,
+    unseen_item: i32,
+    /// A shape not in the file, per group; [`Prior::unseen_shape`] for a group not in it either.
+    unseen_shapes: HashMap<String, i32>,
+    unseen_shape: i32,
     /// Per-morpheme backoff for a shape not in the file: log P(tag | POS) over the overt
-    /// morphemes of the POS's shapes, `POS+tag` -> log probability. An unseen shape scores the
+    /// morphemes of the POS's shapes, `POS+tag` -> rank units. An unseen shape scores the
     /// smoothing count times the probabilities of its morphemes, so one of fewer and more
     /// common morphemes outranks one of more or rarer morphemes.
-    tag_penalties: HashMap<String, f32>,
+    tag_penalties: HashMap<String, i32>,
     /// The penalty of a tag a POS's shapes never show.
-    unseen_tag_penalty: f32,
-    /// Log of the factor for second-person readings.
-    second_person: f32,
-    /// P(capitalised | name) and P(capitalised | other word).
-    capitalised_name: f32,
-    capitalised_other: f32,
+    unseen_tag_penalty: i32,
+    /// The register factor of second-person readings.
+    second_person: i32,
+    /// [`LEXICAL_PREFERENCE`].
+    lexical: i32,
+    /// log P(case as written | reading): name capitalised, name lower-case, other word
+    /// capitalised, other word lower-case.
+    case: [i32; 4],
 }
 
 impl Prior {
-    /// Reads `I<TAB>key<TAB>count` and `S<TAB>key<TAB>count` lines, smoothing every count by
-    /// one half as the estimator does. A damaged file only loses the ranking.
+    /// Reads the rows `examples/morph_prior.rs` writes: `I`tems, `S`hapes, `T`ag penalties,
+    /// `U`nseen values and fixed facto`R`s, each `kind<TAB>key<TAB>rank units[<TAB>...]`. A
+    /// damaged file, or one of another format, only loses the ranking.
     fn parse(gz: &[u8]) -> Self {
         use std::io::Read;
         let mut text = String::new();
         if flate2::read::GzDecoder::new(gz)
             .read_to_string(&mut text)
             .is_err()
+            || !text.starts_with(&format!("#akana-prior\t{PRIOR_FORMAT}\t"))
         {
             text.clear();
         }
-        // Borrowed from the decompressed text: no key is copied before it is hashed.
-        let mut items: Vec<(&str, f64)> = Vec::new();
-        let mut shapes: Vec<(&str, f64)> = Vec::new();
-        let mut second_person = 0.0;
-        // Without the file's estimates the word's case says nothing.
-        let mut capitalised_name = 0.5f64;
-        let mut capitalised_other = 0.5f64;
+        let mut prior = Prior {
+            items: KeyMap::default(),
+            shapes: KeyMap::default(),
+            unseen_item: 0,
+            unseen_shapes: HashMap::new(),
+            unseen_shape: 0,
+            tag_penalties: HashMap::new(),
+            unseen_tag_penalty: 0,
+            second_person: 0,
+            lexical: 0,
+            case: [0; 4],
+        };
         for line in text.lines() {
-            let mut fields = line.splitn(3, '\t');
-            let (Some(kind), Some(key), Some(count)) =
+            let mut fields = line.split('\t');
+            let (Some(kind), Some(key), Some(units)) =
                 (fields.next(), fields.next(), fields.next())
             else {
                 continue;
             };
-            let Ok(count) = count.parse::<f64>() else {
+            let Ok(units) = units.parse::<i32>() else {
                 continue;
             };
-            match kind {
-                "I" => items.push((key, count)),
-                "S" => shapes.push((key, count)),
-                "R" if key == "second-person" && count > 0.0 => second_person = count.ln() as f32,
-                "R" if key == "capitalised-name" && count > 0.0 && count < 1.0 => {
-                    capitalised_name = count
+            match (kind, key) {
+                ("I", _) => {
+                    prior.items.insert(KeyHash::of(key), units);
                 }
-                "R" if key == "capitalised-other" && count > 0.0 && count < 1.0 => {
-                    capitalised_other = count
+                ("S", _) => {
+                    prior.shapes.insert(KeyHash::of(key), units);
                 }
+                ("T", _) => {
+                    prior.tag_penalties.insert(key.to_string(), units);
+                }
+                ("U", "item") => prior.unseen_item = units,
+                ("U", "shape") => prior.unseen_shape = units,
+                ("U", "tag") => prior.unseen_tag_penalty = units,
+                ("U", _) => {
+                    if let Some(group) = key.strip_prefix("shape:") {
+                        prior.unseen_shapes.insert(group.to_string(), units);
+                    }
+                }
+                ("R", "second-person") => prior.second_person = units,
+                ("R", "lexical-preference") => prior.lexical = units,
+                ("R", "case-name-capitalised") => prior.case[0] = units,
+                ("R", "case-name-lower") => prior.case[1] = units,
+                ("R", "case-other-capitalised") => prior.case[2] = units,
+                ("R", "case-other-lower") => prior.case[3] = units,
                 _ => {}
             }
         }
-        let total = items.iter().map(|(_, c)| c + 0.5).sum::<f64>() + 0.5;
-        let unseen_item = (0.5 / total).ln() as f32;
-        let items = items
-            .iter()
-            .map(|&(k, c)| (KeyHash::of(k), ((c + 0.5) / total).ln() as f32))
-            .collect();
-        let mut totals: HashMap<&str, f64> = HashMap::new();
-        // P(tag | POS) over the overt morphemes of the POS's shapes.
-        let mut tag_counts: HashMap<(&str, &str), f64> = HashMap::new();
-        let mut tag_totals: HashMap<&str, f64> = HashMap::new();
-        for &(k, c) in &shapes {
-            *totals.entry(prior_shape_group(k)).or_insert(0.5) += c + 0.5;
-            let tags_only = k.rsplit_once('/').map_or(k, |(_, tags)| tags);
-            let mut tags = tags_only.split('+');
-            let pos = tags.next().unwrap_or_default();
-            for tag in tags.filter(|t| !matches!(*t, "A3sg" | "Pnon" | "Nom")) {
-                *tag_counts.entry((pos, tag)).or_insert(0.0) += c;
-                *tag_totals.entry(pos).or_insert(0.5) += c;
-            }
-        }
-        let shapes = shapes
-            .iter()
-            .map(|&(k, c)| {
-                let total = totals[prior_shape_group(k)];
-                (KeyHash::of(k), ((c + 0.5) / total).ln() as f32)
-            })
-            .collect();
-        let unseen_shapes: HashMap<String, f32> = totals
-            .iter()
-            .map(|(group, total)| (group.to_string(), (0.5 / total).ln() as f32))
-            .collect();
-        let unseen_shape = unseen_shapes.values().copied().fold(0.5f32.ln(), f32::min);
-        let tag_penalties = tag_counts
-            .iter()
-            .map(|(&(pos, tag), c)| {
-                let total = tag_totals[pos];
-                (format!("{pos}+{tag}"), ((c + 0.5) / total).ln() as f32)
-            })
-            .collect();
-        let unseen_tag_penalty =
-            (0.5 / tag_totals.values().copied().fold(0.5, f64::max)).ln() as f32;
-        Prior {
-            items,
-            shapes,
-            unseen_item,
-            unseen_shapes,
-            unseen_shape,
-            tag_penalties,
-            unseen_tag_penalty,
-            second_person,
-            capitalised_name: capitalised_name as f32,
-            capitalised_other: capitalised_other as f32,
-        }
+        prior
     }
 
-    /// Log P(item) of a dictionary item, for choosing among homographs (hak the noun).
-    pub(super) fn item_log_p(&self, item: &DictionaryItem) -> f32 {
+    /// Log P(item) of a dictionary item in rank units, for choosing among homographs (hak the
+    /// noun).
+    pub(super) fn item_log_p(&self, item: &DictionaryItem) -> i32 {
         let secondary = match item.secondary_pos.as_str() {
             "" => "-",
             s => s,
@@ -308,12 +320,14 @@ impl Prior {
             .unwrap_or(self.unseen_item)
     }
 
-    /// `capitalised`: the word as written starts with a capital.
-    fn log_p(&self, p: &MorphParse, capitalised: bool) -> f32 {
+    /// A reading's log probability in rank units. `capitalised`: the word as written starts
+    /// with a capital.
+    fn log_p(&self, p: &MorphParse, capitalised: bool) -> i32 {
         let item = self
             .items
             .get(&KeyHash::of_parts(item_key_parts(p)))
-            .copied();
+            .copied()
+            .unwrap_or(self.unseen_item);
         let shape_key = shape_key_parts(p).fold(KeyHash::new(), KeyHash::feed).0;
         let shape = self.shapes.get(&shape_key).copied().unwrap_or_else(|| {
             let pos = p.morpheme_tags.first().map_or("", String::as_str);
@@ -322,7 +336,7 @@ impl Prior {
             } else {
                 pos
             };
-            let morphemes: f32 = p.morpheme_tags[1..]
+            let morphemes: i32 = p.morpheme_tags[1..]
                 .iter()
                 .filter(|t| !matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"))
                 .map(|t| {
@@ -341,24 +355,16 @@ impl Prior {
         let register = if prior_second_person(p) {
             self.second_person
         } else {
-            0.0
+            0
         };
-        let lexical = if p.yields {
-            LEXICAL_PREFERENCE.ln()
-        } else {
-            0.0
-        };
-        let p_capitalised = if prior_is_name(p) {
-            self.capitalised_name
-        } else {
-            self.capitalised_other
-        };
-        let case = if capitalised {
-            p_capitalised
-        } else {
-            1.0 - p_capitalised
-        };
-        item.unwrap_or(self.unseen_item) + shape + register + lexical + case.ln()
+        let lexical = if p.yields { self.lexical } else { 0 };
+        let case = self.case[match (prior_is_name(p), capitalised) {
+            (true, true) => 0,
+            (true, false) => 1,
+            (false, true) => 2,
+            (false, false) => 3,
+        }];
+        item + shape + register + lexical + case
     }
 }
 
@@ -467,7 +473,7 @@ impl KeyHash {
 }
 
 /// A map keyed by [`KeyHash`] values, which need no hashing again.
-type KeyMap = HashMap<u64, f32, std::hash::BuildHasherDefault<IdentityHasher>>;
+type KeyMap = HashMap<u64, i32, std::hash::BuildHasherDefault<IdentityHasher>>;
 
 #[derive(Default)]
 struct IdentityHasher(u64);
@@ -585,19 +591,22 @@ impl TurkishMorphology {
         if self.prior && parses.len() > 1 {
             let prior = &*PRIOR;
             let capitalised = prior_capitalised(word);
-            let logs: Vec<f32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
-            let best = logs.iter().copied().fold(f32::MIN, f32::max);
-            // Each reading's prior relative to the best, in steps of 2%: readings the corpus
-            // cannot tell apart (A3pl+Gen and A3pl+P2sg always compete in the same words) come
-            // out of the estimator equal up to rounding, and tie, so the analyzer's order
-            // decides between them. Divided by their sum, they are P(reading | word).
-            let ratios: Vec<f32> = logs
+            let logs: Vec<i32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
+            let best = logs.iter().copied().max().unwrap_or(0);
+            // Each reading's prior relative to the best, in steps of 2% (rounded half up):
+            // readings the corpus cannot tell apart (A3pl+Gen and A3pl+P2sg always compete in
+            // the same words) come out of the estimator equal up to rounding, and tie, so the
+            // analyzer's order decides between them. Divided by their sum, they are
+            // P(reading | word).
+            let half = RANK_UNITS_PER_STEP / 2;
+            let steps: Vec<u32> = logs
                 .iter()
-                .map(|log| PRIOR_STEP.powf(((log - best) / PRIOR_STEP.ln()).round()))
+                .map(|&log| ((best - log + half) / RANK_UNITS_PER_STEP).unsigned_abs())
                 .collect();
-            let total: f32 = ratios.iter().sum();
-            for (p, ratio) in parses.iter_mut().zip(ratios) {
-                p.score *= ratio / total;
+            let total: f32 = steps.iter().map(|&q| step_ratio(q)).sum();
+            for (p, q) in parses.iter_mut().zip(steps) {
+                p.score *= step_ratio(q) / total;
+                p.rank -= q as i32 * RANK_UNITS_PER_STEP;
             }
             order(&mut parses);
         }
@@ -1426,22 +1435,23 @@ pub(super) fn render(
     // Turkish spelling separates the suffixes of a proper noun or abbreviation with an
     // apostrophe (Ayşe'nin, TBMM'de), so an inflected reading of one written without it
     // (k-ı "ki", Anne-m "Annem") is unlikely; so is a proper noun written lower-case.
-    let score = if bare {
+    // Each factor with its log in rank units (ln f / ln 1.02 * 16).
+    let (score, rank) = if bare {
         if named && !is_upper {
-            0.65
+            (0.65, -348)
         } else if item.primary_pos == PrimaryPos::Verb {
-            0.95
+            (0.95, -41)
         } else {
-            1.0
+            (1.0, 0)
         }
     } else if named {
         if has_apostrophe {
-            0.98
+            (0.98, -16)
         } else {
-            0.6
+            (0.6, -413)
         }
     } else {
-        0.95
+        (0.95, -41)
     };
     MorphParse {
         surface: original.to_string(),
@@ -1455,6 +1465,7 @@ pub(super) fn render(
         analysis: zemberek_analysis(graph, item, stem, steps, input),
         score,
         yields: false,
+        rank,
         path: MorphPath {
             root: Some(stem.to),
             steps: steps

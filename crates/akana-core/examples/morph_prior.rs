@@ -25,16 +25,20 @@
 //!   of words that can only be second person over those that can only be a third-person
 //!   possessive.
 //!
-//! One factor is the lexicon's: a voice derivation and the lexicon verb it spells (kat-ıl-dı and
-//! katıl-dı) are both readings of every word that has one, so the counts cannot separate them;
-//! the verb's `Lexicalized` or `NotLexicalized` attribute decides, and the other reading takes
-//! `LEXICAL_PREFERENCE` (`prior_yields`).
+//! One factor is the lexicon's: where two readings are in every word that has one (kat-ıl-dı and
+//! katıl-dı, bula-ma-dığı and bul-ama-dığı), the counts cannot separate them; the lexicon's
+//! attributes decide, and the other reading takes `LEXICAL_PREFERENCE` (`prior_yields`).
 //!
-//! The output lists the factors and both kinds of counts, gzipped, for `analyzer.rs` to embed.
+//! The output is the model as the analyzer uses it, gzipped for `analyzer.rs` to embed: every
+//! item's and shape's log probability in integer rank units (`rank_units`), with its count, the
+//! backoffs for unseen items, shapes and tags, and the fixed factors. The analyzer only adds
+//! these integers, so it ranks alike on every platform, and nothing it reads was rounded or
+//! renormalised after estimation. Every sum here runs in a fixed order, so the file reproduces
+//! bit for bit.
 
 use akana_core::morphology::{
     prior_capitalised, prior_is_name, prior_item_key, prior_second_person, prior_shape_group,
-    prior_shape_key, prior_yields, TurkishMorphology, LEXICAL_PREFERENCE,
+    prior_shape_key, prior_yields, rank_units, TurkishMorphology, LEXICAL_PREFERENCE,
 };
 use std::collections::HashMap;
 use std::io::Write;
@@ -212,16 +216,93 @@ fn main() {
         shape_p = shape_probs(&shape_c);
     }
 
+    let units = |p: f64| rank_units(p.ln());
+    let item_total: f64 = item_c.iter().sum::<f64>() + 0.5 * item_c.len() as f64;
+    let mut group_totals = vec![0.0f64; pos_ids.len()];
+    for (s, c) in shape_c.iter().enumerate() {
+        group_totals[shape_pos[s]] += c + 0.5;
+    }
+    // P(tag | POS) over the overt morphemes of the POS's shapes: the backoff for a shape the
+    // file does not have.
+    let mut shape_list: Vec<(&String, usize)> = shapes.iter().map(|(k, &s)| (k, s)).collect();
+    shape_list.sort();
+    let mut tag_counts: Vec<(String, f64)> = Vec::new();
+    let mut tag_totals: Vec<(String, f64)> = Vec::new();
+    let add = |list: &mut Vec<(String, f64)>, key: String, start: f64, c: f64| match list
+        .iter_mut()
+        .find(|(k, _)| *k == key)
+    {
+        Some((_, total)) => *total += c,
+        None => list.push((key, start + c)),
+    };
+    for &(key, s) in &shape_list {
+        let tags_only = key.rsplit_once('/').map_or(key.as_str(), |(_, tags)| tags);
+        let mut tags = tags_only.split('+');
+        let pos = tags.next().unwrap_or_default();
+        for tag in tags.filter(|t| !matches!(*t, "A3sg" | "Pnon" | "Nom")) {
+            add(&mut tag_counts, format!("{pos}+{tag}"), 0.0, shape_c[s]);
+            add(&mut tag_totals, pos.to_string(), 0.5, shape_c[s]);
+        }
+    }
+    tag_counts.sort_by(|a, b| a.0.cmp(&b.0));
+    let tag_total = |pos: &str| {
+        tag_totals
+            .iter()
+            .find(|(p, _)| p == pos)
+            .map_or(0.5, |(_, t)| *t)
+    };
+    let max_tag_total = tag_totals.iter().map(|(_, t)| *t).fold(0.5, f64::max);
+    let mut groups: Vec<(&String, usize)> = pos_ids.iter().map(|(g, &i)| (g, i)).collect();
+    groups.sort();
+    let unseen_shape = groups
+        .iter()
+        .map(|&(_, i)| units(0.5 / group_totals[i]))
+        .fold(units(0.5), i32::min);
+
     let mut rows: Vec<String> = vec![
-        format!("R\tcapitalised-name\t{capitalised_name:.6}"),
-        format!("R\tcapitalised-other\t{capitalised_other:.6}"),
-        format!("R\tsecond-person\t{register:.6}"),
+        "#akana-prior\t2\tlog probabilities in rank units of 1.02^(1/16) (examples/morph_prior.rs)"
+            .to_string(),
     ];
-    for (prefix, keys, counts) in [("I", &items, &item_c), ("S", &shapes, &shape_c)] {
-        let mut kind: Vec<(&String, f64)> = keys.iter().map(|(k, &i)| (k, counts[i])).collect();
-        kind.retain(|r| r.1 >= 1.0);
-        kind.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(b.0)));
-        rows.extend(kind.iter().map(|(k, c)| format!("{prefix}\t{k}\t{c:.0}")));
+    for (key, p) in [
+        ("case-name-capitalised", capitalised_name),
+        ("case-name-lower", 1.0 - capitalised_name),
+        ("case-other-capitalised", capitalised_other),
+        ("case-other-lower", 1.0 - capitalised_other),
+        ("second-person", register),
+        ("lexical-preference", f64::from(LEXICAL_PREFERENCE)),
+    ] {
+        rows.push(format!("R\t{key}\t{}\t{p:.6}", units(p)));
+    }
+    rows.push(format!("U\titem\t{}", units(0.5 / item_total)));
+    rows.push(format!("U\tshape\t{unseen_shape}"));
+    for &(group, i) in &groups {
+        rows.push(format!(
+            "U\tshape:{group}\t{}",
+            units(0.5 / group_totals[i])
+        ));
+    }
+    rows.push(format!("U\ttag\t{}", units(0.5 / max_tag_total)));
+    for (key, c) in &tag_counts {
+        let pos = key.split('+').next().unwrap_or_default();
+        rows.push(format!(
+            "T\t{key}\t{}\t{c:.3}",
+            units((c + 0.5) / tag_total(pos))
+        ));
+    }
+    let mut item_rows: Vec<(&String, f64)> = items.iter().map(|(k, &i)| (k, item_c[i])).collect();
+    item_rows.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(b.0)));
+    for (key, c) in item_rows {
+        rows.push(format!(
+            "I\t{key}\t{}\t{c:.3}",
+            units((c + 0.5) / item_total)
+        ));
+    }
+    let mut shape_rows: Vec<(&String, usize)> = shape_list.clone();
+    shape_rows.sort_by(|a, b| shape_c[b.1].total_cmp(&shape_c[a.1]).then(a.0.cmp(b.0)));
+    for (key, s) in shape_rows {
+        let c = shape_c[s];
+        let p = (c + 0.5) / group_totals[shape_pos[s]];
+        rows.push(format!("S\t{key}\t{}\t{c:.3}", units(p)));
     }
     let file = std::fs::File::create(&out).expect("create");
     let mut gz = flate2::GzBuilder::new().write(file, flate2::Compression::best());
