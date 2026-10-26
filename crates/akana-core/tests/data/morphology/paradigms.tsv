@@ -508,3 +508,16 @@ müdafiinin	müdafi	Noun+P3sg+Gen
 incelendikten	incele	Verb+Pass+PastPart+Abl
 Ahmetler	ahmet	Noun+A3pl
 Ankaralı	ankara	Noun+With
+
+# --- a name with its capital and a consonant-initial case or copula ending, written without the
+# apostrophe: read at a lower score when nothing else matches (plan step D1)
+Ankarada	ankara	Noun+Loc
+Türkiyede	türkiye	Noun+Loc
+Türkiyeyi	türkiye	Noun+Acc
+Avrupanın	avrupa	Noun+Gen
+Asyadan	asya	Noun+Abl
+Asyadaki	asya	Noun+Loc+RelClitic
+Ankarayla	ankara	Noun+Ins
+Ermeniyim	ermeni	Noun+CopPres1sg
+TBMMde	tbmm	Noun+Loc
+TBMMnin	tbmm	Noun+Gen

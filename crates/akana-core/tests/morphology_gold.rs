@@ -12,7 +12,7 @@
 //! that list is not exactly the current failures, so it shrinks as fixes land and grows only on
 //! purpose. `AKANA_GOLD_WRITE=1` rewrites the list.
 
-use akana_core::morphology::{MorphologicalDisambiguator, TurkishMorphology};
+use akana_core::morphology::{MorphologicalDisambiguator, SecondaryPos, TurkishMorphology};
 use std::collections::BTreeSet;
 
 const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
@@ -30,11 +30,21 @@ fn data_lines(text: &str) -> impl Iterator<Item = &str> {
 }
 
 /// Whether a gold word is a dictionary word written as the generator writes it: its root (or
-/// infinitive) is in the lexicon (not a number or Roman numeral), and it has no apostrophe
-/// (Ankara'ya).
-fn generable(morphology: &TurkishMorphology, word: &str, root: &str) -> bool {
+/// infinitive) is in the lexicon (not a number or Roman numeral), it has no apostrophe
+/// (Ankara'ya), and it is no name's case or copula, which takes one (Ankarada, which the
+/// analyzer reads since plan step D1, is written Ankara'da).
+fn generable(morphology: &TurkishMorphology, word: &str, root: &str, tags: &str) -> bool {
     let in_lexicon = |r: &str| !morphology.root_items(r).is_empty();
+    let name_case = morphology.root_items(root).iter().all(|i| {
+        matches!(
+            i.secondary_pos,
+            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+        )
+    }) && tags.split('+').any(|t| {
+        ["Dat", "Loc", "Abl", "Gen", "Acc", "Ins"].contains(&t) || t.starts_with("CopPres")
+    });
     !word.contains(['\'', '’', '`'])
+        && !name_case
         && (in_lexicon(root)
             || root
                 .strip_suffix("mek")
@@ -66,7 +76,7 @@ fn current_failures() -> BTreeSet<String> {
             .any(|p| p.root == root && p.morpheme_tags.join("+") == tags);
         if !found {
             failures.insert(format!("accept\t{word}\t{root}\t{tags}"));
-        } else if generable(&morphology, word, root) && !generates(root, tags) {
+        } else if generable(&morphology, word, root, tags) && !generates(root, tags) {
             failures.insert(format!("generate\t{word}\t{root}\t{tags}"));
         }
     }
@@ -75,14 +85,14 @@ fn current_failures() -> BTreeSet<String> {
         let [word, lemma, _, tags] = fields[..] else {
             panic!("malformed frequent_types.tsv line: {line:?}");
         };
-        if generable(&morphology, word, lemma) && !generates(lemma, tags) {
+        if generable(&morphology, word, lemma, tags) && !generates(lemma, tags) {
             failures.insert(format!("generate\t{word}\t{lemma}\t{tags}"));
         }
     }
     for word in data_lines(ROUNDTRIP_WORDS) {
         for p in morphology.analyze(word) {
             let tags = p.morpheme_tags.join("+");
-            if generable(&morphology, word, &p.root) && !generates(&p.root, &tags) {
+            if generable(&morphology, word, &p.root, &tags) && !generates(&p.root, &tags) {
                 failures.insert(format!("generate\t{word}\t{}\t{tags}", p.root));
             }
         }

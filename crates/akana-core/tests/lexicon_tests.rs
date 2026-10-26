@@ -84,6 +84,35 @@ fn proper_nouns_from_the_lexicon_file_are_proper() {
 }
 
 #[test]
+fn a_name_without_its_apostrophe_reads_only_through_a_consonant_ending() {
+    // A name written with its capital and a case ending but no apostrophe reads as the name,
+    // at the factor of a name's suffixes without one (plan step D1).
+    let morph = TurkishMorphology::new();
+    for (word, root, case) in [
+        ("Türkiyede", "türkiye", "Loc"),
+        ("Aachende", "aachen", "Loc"),
+    ] {
+        let parses = morph.analyze(word);
+        assert_eq!(parses[0].root, root, "{word}");
+        assert_eq!(parses[0].morpheme_tags, ["Noun", case], "{word}");
+        assert!(parses.iter().all(|p| p.score <= 0.6), "{word}");
+    }
+    // A vowel after a name is as often the end of a name the lexicon lacks, and -ye after a
+    // name in -i ends many (Nuriye).
+    for (word, root) in [
+        ("Saide", "said"),
+        ("Türkeri", "türker"),
+        ("Özbakım", "özbak"),
+        ("Nuriye", "nuri"),
+    ] {
+        assert!(
+            morph.analyze(word).iter().all(|p| p.root != root),
+            "{word} read through {root}"
+        );
+    }
+}
+
+#[test]
 fn abbreviations_are_not_common_nouns() {
     // Zemberek's `K [P:Abbrv]` became the common noun `k`, so `ki` read as k-ı (Acc).
     let morph = TurkishMorphology::new();

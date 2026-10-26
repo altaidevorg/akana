@@ -152,9 +152,15 @@ yapldı
 II'nın
 ABD'nın
 
-# a name's case, possessive and copula, and any suffix of an abbreviation, need an apostrophe
-Ankarada
-TBMMde
+# a name's case, possessive and copula, and any suffix of an abbreviation, need an apostrophe.
+# Written with its capital, a name with a case or copula ending that starts with a consonant
+# reads at a lower score (Ankarada, TBMMde: paradigms.tsv); in lower case, with a possessive or
+# a past copula, or an abbreviation not in capitals, it does not
+ankarada
+tbmmde
+Tbmmde
+Ankaram
+Ankaraydı
 
 # a letter name written out takes no suffix; the letter's follow an apostrophe (G'ler)
 geler

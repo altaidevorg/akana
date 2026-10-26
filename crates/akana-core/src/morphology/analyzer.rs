@@ -890,7 +890,10 @@ impl TurkishMorphology {
             }
             _ => {
                 let word = lower.replace('\'', "");
-                let parses = self.analyze_normalized(clean, &word, false);
+                let mut parses = self.analyze_normalized(clean, &word, false);
+                if parses.is_empty() {
+                    parses = self.analyze_name_without_apostrophe(clean, &word);
+                }
                 (word, parses)
             }
         };
@@ -1153,6 +1156,76 @@ impl TurkishMorphology {
             stems.iter().map(|s| (s, &guessed)).collect();
         let mut results = Vec::new();
         self.search(&candidates, &joined, clean, true, &mut results);
+        finish(results)
+    }
+
+    /// A name written with its capital and a case or copula ending but without the apostrophe
+    /// (Türkiyede, Avrupanın, Asyadaki, Ermeniyim, TBMMnin): the name's reading, at the factor
+    /// of a name's suffixes without one, for a word that has no other. A left-out apostrophe is
+    /// told from a name the lexicon lacks only where the ending is one lower-case case or
+    /// copula ending that starts with a consonant: a vowel after a name is as often the end of
+    /// another name (Saide is not Said+Dat, Türkeri not Türker+Acc, Özbakım not
+    /// özbak+CopPres1sg), and so is -ye after a name in -i (Nuriye, Zuhriye). In lower case
+    /// the word is more likely a misspelling read through one of the names collected from text
+    /// (burnda, not Burn+Loc), so istanbulda gets no reading; the sparse encoder's backoff stem
+    /// is what matches it to İstanbul. Not for a name that is also a common word (Kitapı is a
+    /// misspelt kitabı, not the name Kitap with its accusative), nor for a name of fewer than
+    /// three letters or an abbreviation not written in capitals.
+    fn analyze_name_without_apostrophe(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
+        if !clean.starts_with(char::is_uppercase) {
+            return Vec::new();
+        }
+        let named = |i: &DictionaryItem| {
+            matches!(
+                i.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            )
+        };
+        let candidates: Vec<(&StemTransition, &DictionaryItem)> = self
+            .stems
+            .prefix_matches(lower)
+            .map(|s| (s, self.stems.item(s)))
+            .filter(|(s, item)| {
+                let stem_chars = s.surface.chars().count();
+                let mut ending = clean.chars().skip(stem_chars).peekable();
+                if ending.peek().is_none_or(|&c| super::phonetics::is_vowel(c))
+                    || ending.any(char::is_uppercase)
+                {
+                    return false;
+                }
+                match item.secondary_pos {
+                    SecondaryPos::ProperNoun => {
+                        stem_chars >= 3 && self.root_items(&item.root).iter().all(named)
+                    }
+                    SecondaryPos::Abbreviation => {
+                        clean.chars().take(stem_chars).all(|c| !c.is_lowercase())
+                    }
+                    _ => false,
+                }
+            })
+            .collect();
+        if candidates.is_empty() {
+            return Vec::new();
+        }
+        let mut results = Vec::new();
+        self.search(&candidates, lower, clean, true, &mut results);
+        results.retain(|p| match p.morpheme_tags.get(1..) {
+            Some([dative]) if dative == "Dat" => !p.root.ends_with(['i', 'ı']),
+            Some([one]) => matches!(
+                one.as_str(),
+                "Loc"
+                    | "Abl"
+                    | "Gen"
+                    | "Acc"
+                    | "Ins"
+                    | "CopPres1sg"
+                    | "CopPres2sg"
+                    | "CopPres1pl"
+                    | "CopPres2pl"
+            ),
+            Some([case, rel]) => matches!(case.as_str(), "Loc" | "Gen") && rel == "RelClitic",
+            _ => false,
+        });
         finish(results)
     }
 
