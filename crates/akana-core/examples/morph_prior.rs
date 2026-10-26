@@ -1,10 +1,15 @@
 //! Estimates the analyzer's frequency prior from a corpus sample.
 //!
 //! ```text
-//! python scripts/morph_corpus_sample.py ...   # writes .cache/morph_sample/{train,eval}
 //! cargo run --release -p akana-core --example morph_prior -- \
-//!     --types .cache/morph_sample/train --out crates/akana-core/src/morphology/prior.tsv.gz
+//!     --types data/morphology/prior_train_types.tsv.gz \
+//!     --out crates/akana-core/src/morphology/prior.tsv.gz
 //! ```
+//!
+//! The training counts are committed (`data/morphology/prior_train_types.tsv.gz`: word and
+//! count, from the train split of `scripts/morph_corpus_sample.py`), so re-estimating needs no
+//! corpus, and CI checks that the committed prior is what they give. `--types` also takes a
+//! directory of `*.types.tsv` files, as the sampler writes them.
 //!
 //! Every word type of the training sample is analysed without the prior. A reading's
 //! probability is P(item) * P(shape | group): how often its dictionary item (lemma, root, POS,
@@ -71,7 +76,7 @@ fn main() {
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
-            "--types" => types_dir = args.next().expect("--types DIR"),
+            "--types" => types_dir = args.next().expect("--types DIR|FILE.gz"),
             "--out" => out = args.next().expect("--out FILE"),
             "--iterations" => {
                 iterations = args
@@ -84,16 +89,30 @@ fn main() {
     }
     let morphology = TurkishMorphology::new().with_prior(false);
 
-    // word -> count over every *.types.tsv file of the directory
+    // word -> count over every *.types.tsv file of the directory, or over the committed list
+    // (data/morphology/prior_train_types.tsv.gz, the same counts in one gzipped file).
     let mut counts: HashMap<String, f64> = HashMap::new();
-    let mut files: Vec<_> = std::fs::read_dir(&types_dir)
-        .expect("types dir")
-        .map(|e| e.expect("entry").path())
-        .filter(|p| p.to_string_lossy().ends_with(".types.tsv"))
-        .collect();
-    files.sort();
-    for path in &files {
-        for line in std::fs::read_to_string(path).expect("read").lines() {
+    let texts: Vec<String> = if types_dir.ends_with(".gz") {
+        use std::io::Read;
+        let mut text = String::new();
+        flate2::read::GzDecoder::new(std::fs::File::open(&types_dir).expect("types file"))
+            .read_to_string(&mut text)
+            .expect("read types file");
+        vec![text]
+    } else {
+        let mut files: Vec<_> = std::fs::read_dir(&types_dir)
+            .expect("types dir")
+            .map(|e| e.expect("entry").path())
+            .filter(|p| p.to_string_lossy().ends_with(".types.tsv"))
+            .collect();
+        files.sort();
+        files
+            .iter()
+            .map(|path| std::fs::read_to_string(path).expect("read"))
+            .collect()
+    };
+    for text in &texts {
+        for line in text.lines() {
             if let Some((w, c)) = line.split_once('\t') {
                 *counts.entry(w.to_string()).or_default() += c.parse::<f64>().unwrap_or(0.0);
             }

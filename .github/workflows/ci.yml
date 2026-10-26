@@ -7,6 +7,34 @@ on:
     branches: [ master, main ]
 
 jobs:
+  # The data compiled into the library must be what its sources give: a lexicon or engine change
+  # that is not followed by a rebuild and a re-estimation fails here.
+  data:
+    name: Regenerated data equals the committed files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.0"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lexicon rebuild equals the committed lexicon
+        run: |
+          python scripts/build_full_lexicon.py
+          git diff --exit-code crates/akana-core/src/morphology/zemberek_lexicon.txt
+
+      - name: Prior re-estimation equals the committed prior
+        run: |
+          cargo run --release --locked -p akana-core --example morph_prior -- \
+            --types data/morphology/prior_train_types.tsv.gz --out "$RUNNER_TEMP/prior.tsv.gz"
+          cmp <(gunzip -c "$RUNNER_TEMP/prior.tsv.gz") <(gunzip -c crates/akana-core/src/morphology/prior.tsv.gz)
+
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
