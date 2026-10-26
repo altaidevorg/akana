@@ -31,7 +31,8 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --locked --out dist --find-interpreter
+          rust-toolchain: "1.99.0"
           manylinux: 2_28
 
       - name: Upload wheels
@@ -58,7 +59,8 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --locked --out dist --find-interpreter
+          rust-toolchain: "1.99.0"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -83,7 +85,8 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --locked --out dist --find-interpreter
+          rust-toolchain: "1.99.0"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:

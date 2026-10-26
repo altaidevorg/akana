@@ -532,7 +532,8 @@ def main():
 
     entries = {e.line(): e for key in items for e in items[key]}
     lines = [e.line() for e in sorted(entries.values(), key=Entry.sort_key)]
-    with open(args.output, "w", encoding="utf-8", newline="\r\n") as f:
+    # LF on every platform: the embedded lexicon is hashed into the analysis fingerprint.
+    with open(args.output, "w", encoding="utf-8", newline="\n") as f:
         for line in lines:
             f.write(line + "\n")
     print(f"Wrote {len(lines)} items to {args.output}")

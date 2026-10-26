@@ -19,8 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The version pinned in rust-toolchain.toml: outputs depend on std's Unicode tables.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.0"
+          components: rustfmt, clippy
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
@@ -31,7 +35,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run Cargo Tests (Rust)
-        run: cargo test -p akana-core
+        run: cargo test -p akana-core --locked
 
       - name: Build Python extension & Run Pytest
         run: |
