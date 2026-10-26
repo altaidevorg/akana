@@ -269,3 +269,28 @@ fn test_frequency_prior_ranking() {
     let flat = TurkishMorphology::new().with_prior(false);
     assert!(flat.analyze("kişilerin").iter().all(|p| p.score >= 0.9));
 }
+
+#[test]
+fn prior_was_estimated_for_this_lexicon_and_graph() {
+    // prior.tsv.gz records the lexicon and morphotactic graph it was estimated for. After a
+    // change to either, re-run examples/morph_prior.rs (see its docs), or the prior's keys
+    // stop describing the analyzer's readings.
+    assert_eq!(
+        akana_core::morphology::embedded_prior_inventory(),
+        akana_core::morphology::prior_inventory()
+    );
+}
+
+#[test]
+fn homographs_have_their_own_prior_keys() {
+    let morphology = TurkishMorphology::new();
+    // ay "moon" and ay "month" (the lexicon's second ay, idx=1) are separate items.
+    let keys: std::collections::HashSet<String> = morphology
+        .analyze("aya")
+        .iter()
+        .filter(|p| p.lemma == "ay" && p.primary_pos == PrimaryPos::Noun)
+        .map(akana_core::morphology::prior_item_key)
+        .collect();
+    assert!(keys.contains("ay ay Noun -"), "{keys:?}");
+    assert!(keys.contains("ay ay Noun Time #1"), "{keys:?}");
+}

@@ -73,6 +73,7 @@ impl MorphologicalDisambiguator {
                     path: Default::default(),
                     yields: false,
                     rank: 0,
+                    homograph: 0,
                 });
                 continue;
             }

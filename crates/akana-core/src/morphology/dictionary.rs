@@ -28,6 +28,11 @@ pub struct DictionaryItem {
     /// The case a postposition governs (gibi: Gen, göre: Dat), Zemberek's PC* secondary POS.
     #[serde(default)]
     pub governed_case: Option<String>,
+    /// Which of several items with the same lemma, root and POS this is (the lexicon's `idx=`;
+    /// 0 for the first): kalp "heart" and kalp "counterfeit", the three hal. The prior keeps a
+    /// separate frequency for each.
+    #[serde(default)]
+    pub homograph: u8,
 }
 
 impl DictionaryItem {
@@ -47,6 +52,7 @@ impl DictionaryItem {
             pronunciation: None,
             compound_roots: None,
             governed_case: None,
+            homograph: 0,
         }
     }
 
@@ -283,6 +289,7 @@ impl RootLexicon {
                             }
                         }
                         "pc" => item.governed_case = Some(value.to_string()),
+                        "idx" => item.homograph = value.parse().unwrap_or(0),
                         _ => {}
                     }
                     continue;

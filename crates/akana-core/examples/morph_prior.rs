@@ -9,7 +9,9 @@
 //! Every word type of the training sample is analysed without the prior. A reading's
 //! probability is P(item) * P(shape | group): how often its dictionary item (lemma, root, POS,
 //! secondary POS) is meant, times how often a word of that group takes its shape (the tag
-//! sequence, Noun+P3sg+Loc). The group is the POS, except that the personal pronouns share one
+//! sequence, Noun+P3sg+Loc). An item is one dictionary entry: homographs (kalp "heart" and kalp
+//! "counterfeit") have keys of their own (`prior_item_key`). The group is the POS, except that
+//! the personal pronouns share one
 //! without their person (bana and ona are both Pers+Dat; see `prior_shape_key`). EM estimates
 //! both: each word's count is split among its readings in proportion to their probability, and
 //! the split counts give the next estimates.
@@ -37,8 +39,9 @@
 //! bit for bit.
 
 use akana_core::morphology::{
-    prior_capitalised, prior_is_name, prior_item_key, prior_second_person, prior_shape_group,
-    prior_shape_key, prior_yields, rank_units, TurkishMorphology, LEXICAL_PREFERENCE,
+    prior_capitalised, prior_inventory, prior_is_name, prior_item_key, prior_second_person,
+    prior_shape_group, prior_shape_key, prior_yields, rank_units, TurkishMorphology,
+    LEXICAL_PREFERENCE,
 };
 use std::collections::HashMap;
 use std::io::Write;
@@ -262,6 +265,7 @@ fn main() {
     let mut rows: Vec<String> = vec![
         "#akana-prior\t2\tlog probabilities in rank units of 1.02^(1/16) (examples/morph_prior.rs)"
             .to_string(),
+        format!("#inventory\t{}", prior_inventory()),
     ];
     for (key, p) in [
         ("case-name-capitalised", capitalised_name),

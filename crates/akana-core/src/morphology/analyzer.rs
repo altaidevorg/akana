@@ -62,6 +62,9 @@ pub struct MorphParse {
     /// what the disambiguator weighs, so that it ranks with integers only.
     #[serde(skip)]
     pub(crate) rank: i32,
+    /// The dictionary item's homograph index ([`DictionaryItem::homograph`]).
+    #[serde(skip)]
+    pub(crate) homograph: u8,
 }
 
 /// The path of an analysis through the morphotactic graph: the root's state, then the state each
@@ -230,6 +233,8 @@ pub(super) struct Prior {
     /// log P(case as written | reading): name capitalised, name lower-case, other word
     /// capitalised, other word lower-case.
     case: [i32; 4],
+    /// [`prior_inventory`] of the lexicon and graph the file was estimated for.
+    inventory: String,
 }
 
 impl Prior {
@@ -257,6 +262,7 @@ impl Prior {
             second_person: 0,
             lexical: 0,
             case: [0; 4],
+            inventory: String::new(),
         };
         for line in text.lines() {
             let mut fields = line.split('\t');
@@ -295,6 +301,9 @@ impl Prior {
                 _ => {}
             }
         }
+        if let Some(line) = text.lines().find(|l| l.starts_with("#inventory\t")) {
+            prior.inventory = line["#inventory\t".len()..].to_string();
+        }
         prior
     }
 
@@ -313,6 +322,7 @@ impl Prior {
             item.primary_pos.as_str(),
             " ",
             secondary,
+            homograph_suffix(item.homograph),
         ];
         self.items
             .get(&KeyHash::of_parts(parts))
@@ -382,9 +392,43 @@ pub fn prior_capitalised(word: &str) -> bool {
     word.trim().chars().next().is_some_and(char::is_uppercase)
 }
 
-/// The prior's key for a reading's dictionary item: lemma, root, POS and secondary POS.
+/// The prior's key for a reading's dictionary item: lemma, root, POS and secondary POS, and the
+/// homograph index after the first (`kalp kalp Noun - #1`), so each item has its own frequency.
 pub fn prior_item_key(p: &MorphParse) -> String {
     item_key_parts(p).concat()
+}
+
+/// The key suffix of a homograph after the first.
+fn homograph_suffix(homograph: u8) -> &'static str {
+    const SUFFIXES: [&str; 8] = ["", " #1", " #2", " #3", " #4", " #5", " #6", " #7"];
+    SUFFIXES
+        .get(usize::from(homograph))
+        .copied()
+        .unwrap_or(" #8+")
+}
+
+/// A signature of what the prior's keys stand for: the built-in lexicon's bytes and every state
+/// and transition of the morphotactic graph (FNV-1a, hex). `examples/morph_prior.rs` writes it
+/// into the prior's header; a test fails when they differ, that is, when the lexicon or the
+/// graph changed and the prior was not re-estimated for them.
+pub fn prior_inventory() -> String {
+    let graph = &ENGINE.graph;
+    let mut hash = KeyHash::new().feed(super::ZEMBEREK_LEXICON);
+    for state in &graph.states {
+        hash = hash.feed(&format!("{state:?}\n"));
+    }
+    for t in &graph.transitions {
+        hash = hash.feed(&format!(
+            "{:?} {:?} {} {:?}\n",
+            t.from, t.to, t.template, t.condition
+        ));
+    }
+    format!("{:016x}", hash.0)
+}
+
+/// The inventory signature the embedded prior was estimated for ([`prior_inventory`]).
+pub fn embedded_prior_inventory() -> &'static str {
+    &PRIOR.inventory
 }
 
 /// The prior's key for a reading's shape: its tag sequence (Noun+P3sg+Loc). The personal
@@ -409,13 +453,22 @@ pub fn prior_shape_group(shape_key: &str) -> &str {
 /// The shape group of the personal pronouns.
 const PERSONAL_GROUP: &str = "Pers";
 
-fn item_key_parts(p: &MorphParse) -> [&str; 7] {
+fn item_key_parts(p: &MorphParse) -> [&str; 8] {
     let secondary = match p.secondary_pos.as_str() {
         "" => "-",
         s => s,
     };
     let pos = p.primary_pos.as_str();
-    [&p.lemma, " ", &p.root, " ", pos, " ", secondary]
+    [
+        &p.lemma,
+        " ",
+        &p.root,
+        " ",
+        pos,
+        " ",
+        secondary,
+        homograph_suffix(p.homograph),
+    ]
 }
 
 /// A personal pronoun (ben, sen, o, biz, siz), whose shapes form [`PERSONAL_GROUP`]. Other
@@ -467,7 +520,7 @@ impl KeyHash {
         KeyHash::new().feed(key).0
     }
 
-    fn of_parts(parts: [&str; 7]) -> u64 {
+    fn of_parts(parts: [&str; 8]) -> u64 {
         parts.into_iter().fold(KeyHash::new(), KeyHash::feed).0
     }
 }
@@ -1466,6 +1519,7 @@ pub(super) fn render(
         score,
         yields: false,
         rank,
+        homograph: item.homograph,
         path: MorphPath {
             root: Some(stem.to),
             steps: steps
