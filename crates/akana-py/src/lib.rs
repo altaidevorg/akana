@@ -692,6 +692,45 @@ fn correct_grammar(
     release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
 }
 
+/// The encoders' contract as JSON (`akana_core::embeddings::encoder_info`): spec, hybrid layout,
+/// dense model, analysis version and the fingerprints an index records.
+#[pyfunction]
+fn encoder_info_json(py: Python<'_>) -> PyResult<String> {
+    release(py, || {
+        let info = akana_core::embeddings::encoder_info();
+        let resources: serde_json::Map<String, serde_json::Value> = info
+            .resources
+            .iter()
+            .map(|(name, hash)| (name.to_string(), serde_json::Value::from(hash.as_str())))
+            .collect();
+        serde_json::json!({
+            "sparse_spec": info.sparse_spec,
+            "hybrid_layout": info.hybrid_layout,
+            "dense_model": info.dense_model,
+            "analysis_version": info.analysis_version,
+            "analysis_fingerprint": info.analysis_fingerprint,
+            "fingerprint": info.fingerprint,
+            "resources": resources,
+        })
+        .to_string()
+    })
+}
+
+/// `identical`, `compatible` or `rebuild`: how an index built with the given encoder info
+/// relates to this library (`akana_core::embeddings::compatibility`).
+#[pyfunction]
+fn encoder_compatibility(
+    sparse_spec: &str,
+    hybrid_layout: u16,
+    fingerprint: &str,
+) -> PyResult<String> {
+    guard(|| {
+        akana_core::embeddings::compatibility(sparse_spec, hybrid_layout, fingerprint)
+            .as_str()
+            .to_string()
+    })
+}
+
 /// Every grammar rule as JSON: `id`, `category`, `default` (in the default set),
 /// `confidence` (its measured precision) and `summary`.
 #[pyfunction]
@@ -1834,6 +1873,8 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(check_grammar_json, m)?)?;
     m.add_function(wrap_pyfunction!(correct_grammar, m)?)?;
     m.add_function(wrap_pyfunction!(grammar_rules_json, m)?)?;
+    m.add_function(wrap_pyfunction!(encoder_info_json, m)?)?;
+    m.add_function(wrap_pyfunction!(encoder_compatibility, m)?)?;
     m.add_function(wrap_pyfunction!(embed, m)?)?;
     m.add_function(wrap_pyfunction!(embed_packed_2bit, m)?)?;
     m.add_function(wrap_pyfunction!(embed_packed_1bit, m)?)?;

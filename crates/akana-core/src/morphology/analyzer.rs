@@ -126,8 +126,158 @@ pub(super) const MAX_STATE_REPEAT: usize = 8;
 
 /// The corpus frequency prior, written by `examples/morph_prior.rs`: how often each dictionary
 /// item and each analysis shape was the right reading in a sample of court decisions.
-pub(super) static PRIOR: LazyLock<Prior> =
-    LazyLock::new(|| Prior::parse(include_bytes!("prior.tsv.gz")));
+const PRIOR_GZ: &[u8] = include_bytes!("prior.tsv.gz");
+
+pub(super) static PRIOR: LazyLock<Prior> = LazyLock::new(|| Prior::parse(PRIOR_GZ));
+
+/// The version of the analyses: lexicon, morphotactics, prior and disambiguator together. It
+/// follows the encoders' bump policy (`embeddings::spec`): a minor version changes some
+/// analyses without changing what a lemma or tag means; a major one changes conventions.
+pub const ANALYSIS_VERSION: &str = "1.0";
+
+/// Words and sentences whose analyses [`analysis_fingerprint`] covers, so that a change in code
+/// the resources do not show (a rule, a tie-break, a factor) still changes it.
+const PROBE_WORDS: &[&str] = &[
+    "kitap",
+    "kitabı",
+    "kitapları",
+    "evlerimizden",
+    "gelmem",
+    "gelmeyecekmişsiniz",
+    "bana",
+    "sana",
+    "ona",
+    "onların",
+    "katıldı",
+    "katılmıyoruz",
+    "alınan",
+    "bulundurması",
+    "kaynaklanan",
+    "birleştirilmesi",
+    "bulamadığı",
+    "et",
+    "al",
+    "aç",
+    "ister",
+    "olduğu",
+    "edildiği",
+    "hakları",
+    "yapılacak",
+    "başkanlığı",
+    "hâlâ",
+    "hala",
+    "kalbi",
+    "ay",
+    "devam",
+    "ileri",
+    "ama",
+    "değil",
+    "ile",
+    "yeni",
+    "ilk",
+    "kamu",
+    "insan",
+    "Kanun",
+    "Ankara'da",
+    "TBMM'nin",
+    "ABD'ye",
+    "1924'te",
+    "%50'si",
+    "XIX.",
+    "15.",
+    "3,5",
+    "zeytinyağı",
+    "cumhurbaşkanına",
+    "üzerlerine",
+    "reddine",
+    "tıbbi",
+    "suyun",
+    "diyor",
+    "yiyecek",
+    "Yani",
+    "Ali",
+    "ekmek",
+    "geliyorum",
+    "okuyorlar",
+    "anlaşılamadı",
+    "yapılmıştır",
+    "denizaltı",
+    "temyizen",
+    "mahkemece",
+    "dairesince",
+];
+
+const PROBE_SENTENCES: &[&[&str]] = &[
+    &["Davacının", "hakları", "korunmalıdır", "."],
+    &["Bana", "bir", "kitap", "ver", "."],
+    &["Çoğunluk", "görüşüne", "katılmıyoruz", "."],
+    &["Uzun", "yaşa", "!"],
+    &[
+        "Siyasi",
+        "partiler",
+        "ister",
+        "iktidarda",
+        "ister",
+        "muhalefette",
+        "olsunlar",
+        ".",
+    ],
+    &["Mahkemenin", "kararı", "kesinleşti", "."],
+];
+
+/// The analyses' fingerprint: the lexicon, the morphotactic graph, the prior and the analyses
+/// and disambiguations of a built-in probe set (32 hex digits). Two libraries with the same one
+/// analyse alike.
+pub fn analysis_fingerprint() -> &'static str {
+    static FINGERPRINT: LazyLock<String> = LazyLock::new(|| {
+        let morphology = TurkishMorphology::new();
+        let mut probe = String::new();
+        for word in PROBE_WORDS {
+            for p in morphology.analyze(word) {
+                probe.push_str(&format!(
+                    "{}|{:?}|{}|{:08x}|{}\n",
+                    p.formatted,
+                    p.secondary_pos,
+                    p.analysis,
+                    p.score.to_bits(),
+                    p.rank
+                ));
+            }
+            probe.push('\n');
+        }
+        let disambiguator = super::disambiguator::MorphologicalDisambiguator::new();
+        for sentence in PROBE_SENTENCES {
+            for p in disambiguator.disambiguate(sentence) {
+                probe.push_str(&p.formatted);
+                probe.push('\n');
+            }
+        }
+        crate::fingerprint::Fingerprint::new()
+            .section("version", ANALYSIS_VERSION.as_bytes())
+            .section("lexicon", super::ZEMBEREK_LEXICON.as_bytes())
+            .section("graph", graph_signature().as_bytes())
+            .section("prior", PRIOR_GZ)
+            .section("probe", probe.as_bytes())
+            .hex()
+    });
+    &FINGERPRINT
+}
+
+/// Every state and transition of the morphotactic graph, as text.
+fn graph_signature() -> String {
+    let graph = &ENGINE.graph;
+    let mut s = String::new();
+    for state in &graph.states {
+        s.push_str(&format!("{state:?}\n"));
+    }
+    for t in &graph.transitions {
+        s.push_str(&format!(
+            "{:?} {:?} {} {:?}\n",
+            t.from, t.to, t.template, t.condition
+        ));
+    }
+    s
+}
 
 /// Whether the prior scales a reading by its register factor (see `examples/morph_prior.rs`):
 /// a second-person possessive or person (P2sg, A2pl), which rides along with another reading in
@@ -412,17 +562,9 @@ fn homograph_suffix(homograph: u8) -> &'static str {
 /// into the prior's header; a test fails when they differ, that is, when the lexicon or the
 /// graph changed and the prior was not re-estimated for them.
 pub fn prior_inventory() -> String {
-    let graph = &ENGINE.graph;
-    let mut hash = KeyHash::new().feed(super::ZEMBEREK_LEXICON);
-    for state in &graph.states {
-        hash = hash.feed(&format!("{state:?}\n"));
-    }
-    for t in &graph.transitions {
-        hash = hash.feed(&format!(
-            "{:?} {:?} {} {:?}\n",
-            t.from, t.to, t.template, t.condition
-        ));
-    }
+    let hash = KeyHash::new()
+        .feed(super::ZEMBEREK_LEXICON)
+        .feed(&graph_signature());
     format!("{:016x}", hash.0)
 }
 

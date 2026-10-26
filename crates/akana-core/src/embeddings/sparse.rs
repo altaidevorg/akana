@@ -75,9 +75,12 @@ const COMPOUND_PART_WEIGHT: f32 = 1.0;
 /// have it.
 pub const FUNCTION_LEMMA_DF: f64 = 0.1;
 
+/// The function-lemma table (`examples/sparse_idf.rs`).
+pub(crate) const FUNCTION_LEMMAS_TSV: &str = include_str!("function_lemmas.tsv");
+
 /// IDF weights of the function lemmas by term id, from `function_lemmas.tsv`.
 static FUNCTION_LEMMAS: LazyLock<HashMap<u32, f32>> =
-    LazyLock::new(|| function_lemma_weights(include_str!("function_lemmas.tsv")));
+    LazyLock::new(|| function_lemma_weights(FUNCTION_LEMMAS_TSV));
 
 /// Reads `function_lemmas.tsv`, written by `examples/sparse_idf.rs`: a `#docs` line with the
 /// sizes of the court and the general sample, then `term<TAB>court df<TAB>general df`.
@@ -227,19 +230,47 @@ impl MorphologicalSparseEncoder {
 }
 
 /// How much a word's reading counts: names and numbers most, function words least.
+/// The weight of a proper noun's term.
+const PROPER_NOUN_WEIGHT: f32 = 1.8;
+
+/// The weight of a term by its reading's POS; [`OTHER_POS_WEIGHT`] for the rest.
+const POS_WEIGHTS: &[(PrimaryPos, f32)] = &[
+    (PrimaryPos::Num, 1.6),
+    (PrimaryPos::Noun, 1.3),
+    (PrimaryPos::Verb, 1.0),
+    (PrimaryPos::Adj, 1.0),
+    (PrimaryPos::Unknown, 0.9),
+    (PrimaryPos::Adv, 0.7),
+    (PrimaryPos::Pron, 0.2),
+    (PrimaryPos::Conj, 0.2),
+    (PrimaryPos::Postp, 0.2),
+    (PrimaryPos::Q, 0.2),
+];
+
+/// The weight of a term whose POS [`POS_WEIGHTS`] does not list.
+const OTHER_POS_WEIGHT: f32 = 0.8;
+
 fn pos_weight(parse: &MorphParse) -> f32 {
     if parse.secondary_pos == SecondaryPos::ProperNoun {
-        return 1.8;
+        return PROPER_NOUN_WEIGHT;
     }
-    match parse.primary_pos {
-        PrimaryPos::Num => 1.6,
-        PrimaryPos::Noun => 1.3,
-        PrimaryPos::Verb | PrimaryPos::Adj => 1.0,
-        PrimaryPos::Unknown => 0.9,
-        PrimaryPos::Adv => 0.7,
-        PrimaryPos::Pron | PrimaryPos::Conj | PrimaryPos::Postp | PrimaryPos::Q => 0.2,
-        _ => 0.8,
+    POS_WEIGHTS
+        .iter()
+        .find(|(pos, _)| *pos == parse.primary_pos)
+        .map_or(OTHER_POS_WEIGHT, |&(_, w)| w)
+}
+
+/// The constants that define terms' values, as text for the encoder fingerprint
+/// ([`super::spec::encoder_info`]).
+pub(crate) fn fingerprint_constants() -> String {
+    let mut s = format!(
+        "k1 {K1} compound-part {COMPOUND_PART_WEIGHT} function-df {FUNCTION_LEMMA_DF} \
+         proper {PROPER_NOUN_WEIGHT} other {OTHER_POS_WEIGHT}"
+    );
+    for (pos, w) in POS_WEIGHTS {
+        s.push_str(&format!(" {}={w}", pos.as_str()));
     }
+    s
 }
 
 #[cfg(test)]

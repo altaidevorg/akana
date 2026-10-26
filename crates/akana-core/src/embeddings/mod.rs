@@ -19,6 +19,7 @@
 pub mod hybrid;
 pub mod rrf;
 pub mod sparse;
+pub mod spec;
 pub mod tokenizer;
 pub mod usearch_metrics;
 pub mod weights;
@@ -31,6 +32,10 @@ pub use hybrid::{
 pub use rrf::{reciprocal_rank_fusion, FusedResult};
 pub use sparse::{
     hash_term_32bit, term_id_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector,
+};
+pub use spec::{
+    compatibility, encoder_info, Compatibility, EncoderInfo, DENSE_MODEL, HYBRID_LAYOUT,
+    SPARSE_SPEC,
 };
 use tokenizer::UnigramTokenizer;
 pub use usearch_metrics::{

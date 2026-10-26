@@ -38,6 +38,8 @@ try:
         chunk_sentences,
         correct_grammar,
         grammar_rules_json,
+        encoder_info_json,
+        encoder_compatibility,
         count_syllables,
         currency_to_words,
         deasciify,
@@ -382,6 +384,27 @@ def grammar_rules() -> list[dict[str, Any]]:
     return json.loads(grammar_rules_json())
 
 
+def encoder_info() -> dict[str, Any]:
+    """What this library's sparse and hybrid encoders are, for an index to store when it is
+    built: ``sparse_spec`` (major.minor), ``hybrid_layout``, ``dense_model``,
+    ``analysis_version``, ``analysis_fingerprint``, ``fingerprint`` and the fingerprint of each
+    embedded ``resources`` file. Pass the stored dict to :func:`check_encoder` when the index is
+    opened."""
+    return json.loads(encoder_info_json())
+
+
+def check_encoder(stored: dict[str, Any]) -> str:
+    """How an index built with ``stored`` (an :func:`encoder_info` dict) relates to this library:
+    ``"identical"`` (the same vectors), ``"compatible"`` (the same spec major and layout: vectors
+    may differ slightly, within the bump policy, and the index needs no rebuild) or
+    ``"rebuild"``."""
+    return encoder_compatibility(
+        str(stored.get("sparse_spec", "")),
+        int(stored.get("hybrid_layout", 0)),
+        str(stored.get("fingerprint", "")),
+    )
+
+
 __version__ = "0.8.0"
 __all__ = [
     "Chunk",
@@ -422,6 +445,8 @@ __all__ = [
     "chunk_sentences",
     "correct_grammar",
     "grammar_rules",
+    "encoder_info",
+    "check_encoder",
     "count_syllables",
     "currency_to_words",
     "deasciify",

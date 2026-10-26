@@ -347,3 +347,16 @@ def test_embeddings():
     assert emb.dimension == 256
     assert len(emb.embed("test")) == 256
     assert emb.similarity("kedi", "kedi") > 0.99
+
+
+def test_encoder_info_and_check():
+    info = akana.encoder_info()
+    assert info["sparse_spec"].split(".")[0] == "1"
+    assert info["hybrid_layout"] == 1
+    assert len(info["fingerprint"]) == 32
+    assert len(info["analysis_fingerprint"]) == 32
+    assert set(info["resources"]) >= {"tokenizer.json", "turboquant_weights.npz", "analysis"}
+    assert akana.check_encoder(info) == "identical"
+    assert akana.check_encoder({**info, "fingerprint": "0"}) == "compatible"
+    assert akana.check_encoder({**info, "sparse_spec": "0.9"}) == "rebuild"
+    assert akana.check_encoder({}) == "rebuild"

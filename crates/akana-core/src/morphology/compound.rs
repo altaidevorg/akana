@@ -46,6 +46,20 @@ const PRODUCTIVE_HEADS: &[(&str, &str)] = &[
     ("yıl", "yıl"),
 ];
 
+/// The productive compound patterns, as text for the encoder fingerprint
+/// ([`crate::embeddings::encoder_info`]): their parts become sparse terms.
+pub fn compound_fingerprint_constants() -> String {
+    let heads: Vec<String> = PRODUCTIVE_HEADS
+        .iter()
+        .map(|(head, root)| format!("{head}={root}"))
+        .collect();
+    format!(
+        "first {} heads {}",
+        PRODUCTIVE_FIRST.join(" "),
+        heads.join(" ")
+    )
+}
+
 pub struct CompoundDecomposer {
     morphology: TurkishMorphology,
 }

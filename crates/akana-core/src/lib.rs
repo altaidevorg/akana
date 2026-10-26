@@ -3,6 +3,7 @@
 pub mod analysis;
 pub mod chunking;
 pub mod embeddings;
+mod fingerprint;
 pub mod grammar;
 pub mod morphology;
 pub mod ner;
