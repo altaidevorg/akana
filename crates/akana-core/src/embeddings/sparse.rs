@@ -6,7 +6,10 @@
 //! the root is a compound (denizaltı -> deniz + alt). A term's value is
 //!
 //! - its BM25-saturated occurrence count, `tf * (k1 + 1) / (tf + k1)` with `k1 = 1.2`,
-//! - times a part-of-speech weight (proper nouns and numbers > nouns > verbs > adverbs),
+//! - times a part-of-speech weight (proper nouns and numbers > nouns > verbs > adverbs): the
+//!   class of the lemma in the lexicon, not of the reading the disambiguator picked, so that a
+//!   ranking change (yeni the adverb or the adjective, devam the interjection or the noun) does
+//!   not move the vector,
 //! - times an IDF weight, below 1 only for the function lemmas: those in more than one
 //!   256-token chunk in ten of both a court and a general sample (`function_lemmas.tsv`, frozen
 //!   with the sparse spec).
@@ -154,7 +157,8 @@ impl MorphologicalSparseEncoder {
                 }
                 let lemma = to_turkish_lower(&parse.lemma);
                 if self.is_term(&lemma) {
-                    out.push((lemma, pos_weight(parse)));
+                    let weight = lemma_weight(&lemma, parse);
+                    out.push((lemma, weight));
                 }
                 let root = to_turkish_lower(&parse.root);
                 let parts = splits.entry(root).or_insert_with_key(|root| {
@@ -241,13 +245,84 @@ const POS_WEIGHTS: &[(PrimaryPos, f32)] = &[
 const OTHER_POS_WEIGHT: f32 = 0.8;
 
 fn pos_weight(parse: &MorphParse) -> f32 {
-    if parse.secondary_pos == SecondaryPos::ProperNoun {
+    class_weight(parse.primary_pos, parse.secondary_pos)
+}
+
+/// The weight of a POS class: proper nouns by [`PROPER_NOUN_WEIGHT`], the rest by
+/// [`POS_WEIGHTS`].
+fn class_weight(pos: PrimaryPos, secondary: SecondaryPos) -> f32 {
+    if secondary == SecondaryPos::ProperNoun {
         return PROPER_NOUN_WEIGHT;
     }
     POS_WEIGHTS
         .iter()
-        .find(|(pos, _)| *pos == parse.primary_pos)
+        .find(|(p, _)| *p == pos)
         .map_or(OTHER_POS_WEIGHT, |&(_, w)| w)
+}
+
+/// When the lexicon's items for one lemma fall in different classes, the class its term
+/// weighs as: the first of these that one of them has. Common items come before proper nouns
+/// (kanun the noun, not a surname Kanun), content classes before function classes, and the
+/// interjection last (devam, ileri, ay).
+const CLASS_PRECEDENCE: &[PrimaryPos] = &[
+    PrimaryPos::Noun,
+    PrimaryPos::Adj,
+    PrimaryPos::Verb,
+    PrimaryPos::Num,
+    PrimaryPos::Adv,
+    PrimaryPos::Det,
+    PrimaryPos::Pron,
+    PrimaryPos::Postp,
+    PrimaryPos::Conj,
+    PrimaryPos::Q,
+    PrimaryPos::Interj,
+];
+
+/// The weight of each lemma whose lexicon items fall in more than one weight class (yeni Adj and
+/// Adv, devam Noun and Interj, Kanun Noun and Prop), by [`CLASS_PRECEDENCE`]. A lemma not in it
+/// has items of one class, which its reading's class gives. Built from the built-in lexicon
+/// once.
+static LEMMA_WEIGHTS: LazyLock<HashMap<String, f32>> = LazyLock::new(|| {
+    let mut classes: HashMap<String, Vec<(PrimaryPos, SecondaryPos)>> = HashMap::new();
+    let morphology = TurkishMorphology::new();
+    for item in morphology.lexicon().items() {
+        let entry = classes.entry(to_turkish_lower(&item.lemma)).or_default();
+        if !entry.contains(&(item.primary_pos, item.secondary_pos)) {
+            entry.push((item.primary_pos, item.secondary_pos));
+        }
+    }
+    classes
+        .into_iter()
+        .filter_map(|(lemma, items)| {
+            let weights: Vec<f32> = items.iter().map(|&(p, s)| class_weight(p, s)).collect();
+            if weights.iter().all(|&w| w == weights[0]) {
+                return None;
+            }
+            let common: Vec<PrimaryPos> = items
+                .iter()
+                .filter(|(_, s)| *s != SecondaryPos::ProperNoun)
+                .map(|&(p, _)| p)
+                .collect();
+            let weight = if common.is_empty() {
+                PROPER_NOUN_WEIGHT
+            } else {
+                CLASS_PRECEDENCE
+                    .iter()
+                    .find(|p| common.contains(p))
+                    .map_or(OTHER_POS_WEIGHT, |&p| class_weight(p, SecondaryPos::None))
+            };
+            Some((lemma, weight))
+        })
+        .collect()
+});
+
+/// The POS weight of a lemma's term: its lexicon class when its items differ in class
+/// ([`LEMMA_WEIGHTS`]), else the reading's.
+fn lemma_weight(lemma: &str, parse: &MorphParse) -> f32 {
+    LEMMA_WEIGHTS
+        .get(lemma)
+        .copied()
+        .unwrap_or_else(|| pos_weight(parse))
 }
 
 /// The constants that define terms' values, as text for the encoder fingerprint
@@ -259,6 +334,10 @@ pub(crate) fn fingerprint_constants() -> String {
     );
     for (pos, w) in POS_WEIGHTS {
         s.push_str(&format!(" {}={w}", pos.as_str()));
+    }
+    s.push_str(" precedence");
+    for pos in CLASS_PRECEDENCE {
+        s.push_str(&format!(" {}", pos.as_str()));
     }
     s
 }
@@ -334,6 +413,22 @@ mod tests {
         let ratio = twice / once;
         // (2 * 2.2 / 3.2) / (2.2 / 2.2) = 1.375
         assert!((ratio - 1.375).abs() < 1e-4, "{once} {twice}");
+    }
+
+    #[test]
+    fn a_lemma_weighs_by_its_lexicon_class_whatever_reading_is_chosen() {
+        // devam is a noun and an interjection, yeni an adjective and an adverb, kanun a noun
+        // and a (corpus) proper noun: each weighs by its first class, whichever reading the
+        // disambiguator takes.
+        assert_eq!(LEMMA_WEIGHTS.get("devam"), Some(&1.3));
+        assert_eq!(LEMMA_WEIGHTS.get("yeni"), Some(&1.0));
+        assert_eq!(LEMMA_WEIGHTS.get("kanun"), Some(&1.3));
+        // A lemma whose items share a class is left to the reading (bırakmak: one verb).
+        assert_eq!(LEMMA_WEIGHTS.get("bırakmak"), None);
+        let encoder = MorphologicalSparseEncoder::new();
+        let alone = term_values(encoder.encode_sparse("Devam."));
+        let in_clause = term_values(encoder.encode_sparse("Davaya devam edildi."));
+        assert_eq!(alone["devam"], in_clause["devam"]);
     }
 
     #[test]
