@@ -161,3 +161,191 @@ olamaz [P:Interj]
 sakın [P:Interj]
 yaşa [P:Interj]
 yaşasın [P:Interj]
+
+## Months and days are common nouns (TDK writes them capitalised only in a full date); their
+## proper-noun twins made Mayıs, Aralık or Pazar read as names (review 2, MLEX2-03).
+Ocak
+Şubat
+Mart
+Mayıs
+Ağustos
+Aralık
+Çarşamba
+Perşembe
+Pazar
+## Two-letter abbreviations of Zemberek's corpus-collected list that spell suffixes, so that
+## fragments such as -ın or -lu read as abbreviations (MLEX2-08).
+In [P:Abbrv]
+Lu [P:Abbrv]
+Li [P:Abbrv]
+Yi [P:Abbrv]
+Na [P:Abbrv]
+Ne [P:Abbrv]
+Ni [P:Abbrv]
+Nu [P:Abbrv]
+Ri [P:Abbrv]
+Ra [P:Abbrv]
+Re [P:Abbrv]
+Me [P:Abbrv]
+Ta [P:Abbrv]
+Te [P:Abbrv]
+## Names only proper-from-corpus.dict lists that are common words (MLEX2-03): the analyzer has
+## a common reading for them, and the court and RagTurk samples write them in lower case at
+## least as often as capitalised (ten times as often where TRmorph's or Google's name lists
+## have them: Edip, Gerçek, Sona, Verdi), or, seen fewer than ten times, they are a common
+## root with a suffix (Ruha, Satar). Their capitals were sentence-initial: Açık, Kadar, Banka,
+## Danışmanlık read as names before. Names without a common reading (temyizen, usuli) wait
+## until their own entries are added.
+Akit
+Anne
+Atar
+Atıksu
+Ayine
+Ayrık
+Açık
+Aşka
+Banka
+Bara
+Bazan
+Başarır
+Baştan
+Beklerken
+Belki
+Bent
+Bizde
+Bize
+Bırak
+Danışmanlık
+Defi
+Deyince
+Diyetetik
+Durak
+Edip
+Ekmek
+Elektrik
+Elektronik
+Elle
+Emeklilik
+Erek
+Factoring
+Fire
+Gayrimenkul
+Gazetecilik
+Gere
+Gerçek
+Geçti
+Global
+Golf
+Grup
+Gördüm
+Görür
+Gözardı
+Gümrük
+Güç
+Hale
+Halefiyet
+Havagazı
+Hole
+İnanç
+İntifada
+İçecek
+Kadar
+Kapitalizasyon
+Karşıoy
+Kağıt
+Kitap
+Kontrol
+Kozmetik
+Kulüp
+Küçük
+Laik
+Lake
+Leasing
+Lem
+Lisanslama
+Mahsusa
+Maktule
+Maktül
+Mantolama
+Marker
+Master
+Mele
+Mezkür
+Mobbing
+Muhakemat
+Muvakkat
+Müdafii
+Müddeabihin
+Mühür
+Müteahhit
+Müterafik
+Müzik
+Norma
+Ortaöğretim
+Ortez
+Oruç
+Park
+Pert
+Peşinde
+Prime
+Rafa
+Ruha
+Sade
+Sana
+Satar
+Sağol
+Sensin
+Seramik
+Seyrek
+Size
+Sona
+Söyler
+Sürer
+Süreç
+Tasaddi
+Teknik
+Tekraren
+Temellük
+Temlik
+Tenfiz
+Tevkifat
+Uyanık
+Uzak
+Uçak
+Vakit
+Verdi
+Vince
+Vinci
+Yanık
+Yasak
+Yurt
+Yükselir
+Zora
+Zoralımına
+Çalışır
+Çıplak
+Öden
+Ölçer
+Önizleme
+Önödeme
+Özelge
+Özür
+Şehit
+Şerefeli
+Şunu
+## Corpus names spelled with a dotless capital I where the word has İ (Idare, Ikinci, Internet:
+## text typed without Turkish letters), which read as ıdare, ıkinci with back-vowel suffixes.
+Ibis
+Idare
+Idea
+Idol
+Ikinci
+Ilan
+Iman
+Indi
+Integral
+Internet
+Iris
+Isaf
+Isle
+Işte

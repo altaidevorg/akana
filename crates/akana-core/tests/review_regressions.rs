@@ -46,18 +46,19 @@ fn lexicon_buckets_hold_no_identical_items() {
 #[test]
 fn readings_differing_only_in_secondary_pos_are_kept_once_each() {
     // Review item 3: deduplication keyed on the analysis string alone, among adjacent
-    // entries, dropped Ekmek's proper-noun reading when it tied with the common noun.
+    // entries, dropped a proper-noun reading when it tied with the common noun (Ekmek then,
+    // whose name entry is gone since; Toprak here).
     let morph = TurkishMorphology::new();
-    let parses = morph.analyze("Ekmek");
+    let parses = morph.analyze("Toprak");
     let bare: Vec<_> = parses
         .iter()
-        .filter(|p| p.formatted == "[ekmek:Noun] ekmek:Noun+A3sg+Nom")
+        .filter(|p| p.formatted == "[toprak:Noun] toprak:Noun+A3sg+Nom")
         .collect();
     assert!(bare
         .iter()
         .any(|p| p.secondary_pos == SecondaryPos::ProperNoun));
     assert!(bare.iter().any(|p| p.secondary_pos == SecondaryPos::None));
-    for word in ["Ekmek", "zammı", "abi", "İstanbulun", "akarsu"] {
+    for word in ["Toprak", "zammı", "abi", "İstanbulun", "akarsu"] {
         let parses = morph.analyze(word);
         for (i, a) in parses.iter().enumerate() {
             assert!(
