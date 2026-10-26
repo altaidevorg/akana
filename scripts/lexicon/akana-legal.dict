@@ -30,7 +30,9 @@ rödovans
 repesaj
 bila [P:Adv]
 ## Variant spellings common in court decisions.
-red [A:NoVoicing; Ref:ret]
+## red is ret's bare form as court decisions write it; ret's suffixed forms spell themselves
+## (reddi, reddine), so red takes none: with NoVoicing the non-word redi read as ret+P3sg.
+red [A:NoSuffix; Ref:ret]
 tesbit [A:NoVoicing; Ref:tespit]
 irad [A:NoVoicing; Ref:irat]
 
@@ -131,8 +133,51 @@ terfi [Pr:terfiğ; Index:1]
 müdafi [Pr:müdafiğ; Index:1]
 iştira [Pr:iştirağ; Index:1]
 ziya [Pr:ziyağ; Index:1]
+zıya [Pr:zıyağ; Ref:ziya]
 
 ## Phonology Zemberek lacks or infers wrongly (TDK): rehin, -hni; halefiyet, -ti; internet, -ti.
 rehin [A:LastVowelDrop]
 halefiyet [A:NoVoicing]
 internet [A:NoVoicing]
+## Attribute errors review 2 confirmed with TDK's suffix hints and corpus forms (MLEX2-04).
+## avuç, -cu (avucu, not avcu); beyit, -yti; hısım, -smı; mehil, -hli; rızık, -zkı; emlak, -kı
+## (back vowels, unvoiced); büyükşehir, -hri (a plain noun, not a compound with its own P3sg,
+## so büyükşehirler reads); kalp, -bi in both senses; zabıt as the court writes it (zabtı 26,
+## zabdı 0).
+avuç [A:Voicing]
+beyit [A:LastVowelDrop, NoVoicing]
+hısım [A:LastVowelDrop]
+mehil [A:LastVowelDrop]
+rızık [A:LastVowelDrop, NoVoicing]
+emlak [A:NoVoicing]
+büyükşehir [A:LastVowelDrop]
+kalp [A:Voicing, InverseHarmony]
+kalp [A:Voicing, InverseHarmony; Index:1]
+kalp [P:Adj; A:Voicing, InverseHarmony]
+zabıt [A:LastVowelDrop, NoVoicing]
+## Voicing Zemberek infers on words the court and RagTurk samples never voice (review 2's
+## corpus flip audit: muhakematı 257 tokens and no voiced form; laptopun, aktivisti,
+## tevfiki ...).
+muhakemat [A:NoVoicing]
+laptop [A:NoVoicing]
+aktivist [A:NoVoicing]
+sukut [A:NoVoicing]
+tevfik [A:NoVoicing]
+matufiyet [A:NoVoicing]
+lejant [A:NoVoicing]
+mamelek [A:NoVoicing]
+tecvit [A:NoVoicing]
+makat [A:NoVoicing]
+memalik [A:NoVoicing]
+## Variant spellings that take the front vowels of the standard ones (gayrimenkul, orijinal;
+## şumul as TDK's şümul): gayrımenkulün 41 tokens, orjinalinde 17, şumulüne 6, none back.
+gayrımenkul [A:InverseHarmony]
+orjinal [A:InverseHarmony]
+şumul [A:InverseHarmony]
+## sulh takes either harmony in court text (sulhe 44 tokens, sulha 18, sulhun 22); TDK gives
+## no hint (MLEX2-11).
+sulh [A:NoVoicing; Index:1]
+## Adjectives Zemberek lists only as a name or a noun: salih "fit, valid" (salih bir delil),
+## ilâhî "divine".
+salih [P:Adj]
+ilâhî [P:Adj]

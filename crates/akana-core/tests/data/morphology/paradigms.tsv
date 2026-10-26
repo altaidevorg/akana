@@ -165,6 +165,24 @@ kalbe	kalp	Noun+Dat
 kalpte	kalp	Noun+Loc
 kalpler	kalp	Noun+A3pl
 sulhe	sulh	Noun+Dat
+sulha	sulh	Noun+Dat
+sulhun	sulh	Noun+Gen
+
+# --- attribute corrections by TDK and the corpus (plan step E4)
+avucu	avuç	Noun+P3sg
+beyti	beyit	Noun+P3sg
+hısmı	hısım	Noun+P3sg
+mehli	mehil	Noun+P3sg
+rızkı	rızık	Noun+P3sg
+emlakı	emlak	Noun+P3sg
+emlakta	emlak	Noun+Loc
+zabtı	zabıt	Noun+P3sg
+büyükşehirler	büyükşehir	Noun+A3pl
+büyükşehri	büyükşehir	Noun+P3sg
+muhakematı	muhakemat	Noun+P3sg
+laptopu	laptop	Noun+P3sg
+red	red	Noun+A3sg+Nom
+reddi	ret	Noun+P3sg
 
 # --- CompoundP3sg: the possessive is part of the root
 zeytinyağı	zeytinyağı	Noun+A3sg+Nom

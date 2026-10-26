@@ -159,3 +159,11 @@ TBMMde
 # a letter name written out takes no suffix; the letter's follow an apostrophe (G'ler)
 geler
 peler
+
+# attributes TDK and the corpus correct (plan step E4): back vowels in emlak, no voicing in
+# rızık and muhakemat, front vowels in kalp; red is ret's bare form only
+emlaki
+rızığı
+muhakemadı
+redi
+kalbı
