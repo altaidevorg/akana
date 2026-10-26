@@ -67,15 +67,25 @@ def test_sparse_morphological_embedding():
     assert len(indices) == len(values) == len(terms)
     assert len(indices) > 0
 
-    # Ensure terms include base roots / lemmas like 'kitap', 'defter', 'masa', 'bırak'
+    # One lemma per word in context: 'kitap', 'defter', 'masa', and the verb's lemma 'bırakmak'
     terms_set = set(terms)
     assert "kitap" in terms_set
     assert "defter" in terms_set
-    assert "bırak" in terms_set
+    assert "bırakmak" in terms_set
+    assert "bırak" not in terms_set
 
-    # Verify 24-bit bounds
+    # 32-bit term ids, never 0 or 2**32 - 1, ascending
     for idx in indices:
-        assert 0 <= idx < (1 << 24)
+        assert 0 < idx < (1 << 32) - 1
+    assert indices == sorted(indices)
+
+    # One term per word occurrence: "kitap" once, not once per reading of "Kitaplarımı"
+    res = akana.sparse_embed("Kitaplarımı okudum. Kitap güzeldi.")
+    once = akana.sparse_embed("Kitaplarımı okudum.")
+    kitap = dict(zip(res["terms"], res["values"]))["kitap"]
+    kitap_once = dict(zip(once["terms"], once["values"]))["kitap"]
+    # BM25 saturation of tf 2 over tf 1: (2 * 2.2 / 3.2) / 1
+    assert kitap / kitap_once == pytest.approx(1.375, rel=1e-4)
 
     # Verify positive BM25 TF values
     for val in values:

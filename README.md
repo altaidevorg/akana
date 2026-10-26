@@ -228,8 +228,8 @@ Latency is per query and end to end (query embedding + search) in a single Pytho
 
 1. **2-bit TurboQuant keeps almost all of FP32's quality**: 0.738 vs 0.772 MRR@10 on RagTurk and 0.375 vs 0.390 on Turkuaz, at 1/16 of the memory. **1-bit** halves the memory again and costs another 0.05–0.08 MRR@10.
 2. **Morphological BM25 is the strongest single retriever on both sets** (RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF gives the best RagTurk Recall@10 (96.8%) at about the same MRR@10.
-3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.02 (RagTurk) and +0.03 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 79 morphological terms) and carries no IDF.
-4. **Hybrid vectors depend on the morphology build.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search); 0.8.0's analyzer, compound and vowel-harmony fixes change it again (the table is measured with them), with retrieval unchanged within noise. Build an index and embed its queries with the same Akana build, and check a fingerprint of `embed_hybrid` on fixed texts when opening an index.
+3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.02 (RagTurk) and +0.03 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 40 terms), weighted by repetition and part of speech; only a handful of function lemmas (*bir*, *hangi*, *vermek*) carry an IDF weight, because a full static IDF cost the hybrid 0.01–0.04 MRR@10 by trading a passage's repeated topic words for words it mentions once.
+4. **Hybrid vectors depend on the morphology build.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search); 0.8.0's analyzer, compound and vowel-harmony fixes change it again (the table is measured with them), with retrieval unchanged within noise. Build an index and embed its queries with the same Akana build, and check a fingerprint of `embed_hybrid` on fixed texts when opening an index. The sparse encoder now counts one disambiguated lemma per word occurrence instead of the top three analyses of each word, and uses 32-bit term ids, so every `sparse_embed` vector and the sparse half of every hybrid vector change again. Against the Zemberek-style morphology it builds on, MRR@10 moves from 0.865 to 0.886 (RagTurk) and 0.448 to 0.471 (Turkuaz) for BM25, from 0.777 to 0.787 and 0.434 to 0.457 for the hybrid, with RRF unchanged within noise; the table above predates both changes.
 5. **Embedding cost:** the 128-byte hybrid embeds about 330 court-decision chunks of 256 tokens per second per CPU core (the dense half alone about 4,300); `embed_batch_hybrid` splits a batch of 512 or more texts across the CPU cores.
 
 #### Comparison with RAGTurk (`arXiv:2602.03652`) & Heavy Neural Pipelines
@@ -434,9 +434,9 @@ index_1bit.add(0, np.frombuffer(vec_1bit, dtype=np.uint8))
 
 # C. Morphological BM25 Sparse Embeddings (Agglutinative roots, lemmas & compounds)
 sparse = akana.sparse_embed("Kitaplarımı çalışma masasına bıraktım.")
-print(sparse["terms"])    # -> ['kitap', 'çalış', 'çalışma', 'masa', 'bırak']
-print(sparse["indices"])  # -> 24-bit hashed bucket indices for Qdrant / Milvus / Inverted Index
-print(sparse["values"])   # -> BM25 term frequencies
+print(sparse["terms"])    # -> ['kitap', 'masa', 'çalışmak', 'bırakmak']: one lemma per word, in context
+print(sparse["indices"])  # -> 32-bit term ids (ascending) for Qdrant / Milvus / Inverted Index
+print(sparse["values"])   # -> BM25-saturated occurrence counts x POS weight x function-lemma IDF
 
 # D. Reciprocal Rank Fusion (RRF) for Hybrid Retrieval
 fused_results = akana.reciprocal_rank_fusion(
