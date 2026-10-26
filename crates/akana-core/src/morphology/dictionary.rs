@@ -23,7 +23,8 @@ pub struct DictionaryItem {
     pub pronunciation: Option<String>,
     /// The two roots of a compound that ends in its own 3rd-person possessive
     /// (cumhurbaşkanı: cumhur, başkan). Its plural and derivations attach to the stem without
-    /// the possessive (cumhurbaşkan-lar-ı).
+    /// the possessive (cumhurbaşkan-lar-ı). A word that is no compound but has such a stem has
+    /// an empty first root (üzeri: "", üzer; üzer-ler-i).
     #[serde(default)]
     pub compound_roots: Option<(String, String)>,
     /// The case a postposition governs (gibi: Gen, göre: Dat), Zemberek's PC* secondary POS.
@@ -347,10 +348,13 @@ impl RootLexicon {
                 if let Some((key, value)) = p.split_once('=') {
                     match key {
                         "pr" => item.pronunciation = Some(normalize_word(value)),
+                        // One part is the stem without the possessive (üzeri roots=üzer), as
+                        // Zemberek joins the parts: its first part is empty.
                         "roots" => {
-                            if let Some((a, b)) = value.split_once('-') {
-                                item.compound_roots = Some((normalize_word(a), normalize_word(b)));
-                            }
+                            item.compound_roots = Some(match value.split_once('-') {
+                                Some((a, b)) => (normalize_word(a), normalize_word(b)),
+                                None => (String::new(), normalize_word(value)),
+                            });
                         }
                         "pc" => item.governed_case = Some(value.to_string()),
                         "idx" => item.homograph = value.parse().unwrap_or(0),

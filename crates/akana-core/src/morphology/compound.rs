@@ -146,7 +146,8 @@ impl CompoundDecomposer {
             .filter(|i| i.attributes.contains(RootAttr::COMPOUND_P3SG))
             .find_map(|i| i.compound_roots.clone())
         {
-            return Some((first, head));
+            // üzeri has the stem üzer- but is one word.
+            return (!first.is_empty()).then_some((first, head));
         }
         // A shorter root plus a derivation is not a compound (dava-cı, not dav + acı).
         let derived = || {

@@ -179,6 +179,10 @@ cumhurbaşkanına	cumhurbaşkanı	Noun+Dat
 cumhurbaşkanları	cumhurbaşkanı	Noun+A3pl
 karayolları	karayolu	Noun+A3pl
 milletvekillerinin	milletvekili	Noun+A3pl+P3sg+Gen
+# üzeri has the stem üzer- (roots=üzer, one part): not the surname Üzer
+üzerlerine	üzeri	Noun+A3pl+P3pl+Dat
+üzerlerinde	üzeri	Noun+A3pl+P3pl+Loc
+üzerleri	üzeri	Noun+A3pl+P3pl
 
 # --- su: suy- before vowels
 su	su	Noun+A3sg+Nom
