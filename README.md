@@ -35,10 +35,10 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
      - **Compound Word Decomposer**: compounds the lexicon marks or productive patterns on lexicon roots (`denizaltı` $\rightarrow$ `deniz + altı`, `başbakanlar` $\rightarrow$ `baş + bakanlar`); *mahkeme* is not *mah + keme*.
      - Morphological Generator on the same graph (`generate("kitap", ["Noun", "A3sg", "P1sg", "Dat"])` $\rightarrow$ `"kitabıma"`); a generated word always analyses back to the requested tags.
      - Context-aware Disambiguator: the corpus prior plus bounded context rules (genitive–possessive agreement, postposition case, light verbs, determiners).
-  2. **Syntactic Expressive Morphology (`akana.SyntacticMorphology`)** *(Google FSMNLP 2019 Architecture)*:
-     - **Inflectional Groups (IG)**: Hierarchical derivational tiers with Universal Dependencies (UD) category-value feature maps.
-     - **Zero-Derivation Elimination**: Cross-categorized lexical entries (e.g. *güzel*, *hızlı*, *soğuk*) eliminating phantom `+^DB` morphemes.
-     - Dedicated, isolated 47,202 gold-standard root lexicon.
+  2. **Syntactic Expressive Morphology (`akana.SyntacticMorphology`)** *(Google FSMNLP 2019 format)*:
+     - **Inflectional Groups (IG)**: the standard analyzer's readings, split where Zemberek's morphotactics derive (participles, converbs, verbal nouns, voice, *-Abil*, *-lIk*, *-lI*, *-sIz*, *-ki*, the copula), each group with its POS and Universal Dependencies features as UD Turkish writes them (`Case`, `Number`, `Person`, `Number[psor]`, `Person[psor]`, `Tense`, `Aspect`, `Evident`, `Mood=GenPot`, `Polarity`, `Voice`, `VerbForm`).
+     - **Zero-Derivation Elimination**: the lexicon lists cross-categorized roots (*güzel* as adjective, adverb and noun), and an adjective inflected as a noun (*güzeller*) is a noun; only the copula (*evde-yim*, *güzel-di*) opens a group of its own.
+     - Same lexicon, ranking and coverage as the standard analyzer.
 - **Modern & Classic Turkish Readability Suite**:
   - **Kalyoncu (2025) Formula Suite**: Multi-regression equations (Formulas 1–4, $R^2$ up to 0.99) with embedded 4,600-word familiarity lexicon and exact grade-level mapping (*3. Sınıf Öncesi* to *Lisansüstü*).
   - **Classical Formulas**: Ateşman (1997), Çetinkaya-Uzun (2010), and Bezirci-Yılmaz (2010).
@@ -320,7 +320,7 @@ for parse in parses:
 syn_parses = akana.syntactic_analyze("geldiğimizde")
 for p in syn_parses:
     print(p.formatted)
-    # Output: (gel[VB]+[Polarity=Pos])([NOMP]-PastNom+[Case=Loc]+[PersonNumber=A3sg]+[Possessive=P1pl])+[Proper=False]
+    # Output: (gel[VB]+[Polarity=Pos])([NOMP]-PastNom+[Case=Loc]+[Number=Sing]+[Number[psor]=Plur]+[Person=3]+[Person[psor]=1]+[VerbForm=Vnoun])+[Proper=False]
     for ig in p.inflectional_groups:
         print(f"  • IG [{ig.pos}] Deriv: {ig.derivation} -> {ig.features}")
 

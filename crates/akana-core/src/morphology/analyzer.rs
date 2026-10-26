@@ -3,7 +3,7 @@
 //! [`super::stems`].
 
 use super::dictionary::{DictionaryItem, RootLexicon};
-use super::morphotactics::{Context, Graph, Morpheme as M, PathView};
+use super::morphotactics::{Context, Graph, Morpheme as M, PathView, StateId};
 use super::phonetics::{attributes_of, PhoneticAttrs as P};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::stems::{self, StemIndex, StemTransition};
@@ -51,6 +51,24 @@ pub struct MorphParse {
     /// prior relative to the word's most likely reading, so the best reading keeps its factor.
     /// Analyses come sorted by it.
     pub score: f32,
+    /// The morphotactic path the reading took, which the syntactic analyzer splits into
+    /// inflectional groups. Empty for a reading the analyzer did not make.
+    #[serde(skip)]
+    pub(crate) path: MorphPath,
+}
+
+/// The path of an analysis through the morphotactic graph: the root's state, then the state each
+/// morpheme reached (POS roots and derivations included) and whether it had a surface.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct MorphPath {
+    pub root: Option<StateId>,
+    pub steps: Vec<PathStep>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct PathStep {
+    pub state: StateId,
+    pub overt: bool,
 }
 
 fn unknown_pos() -> PrimaryPos {
@@ -1272,6 +1290,16 @@ pub(super) fn render(
         formatted,
         analysis: zemberek_analysis(graph, item, stem, steps, input),
         score,
+        path: MorphPath {
+            root: Some(stem.to),
+            steps: steps
+                .iter()
+                .map(|s| PathStep {
+                    state: graph.transitions[s.transition as usize].to,
+                    overt: s.end > s.start,
+                })
+                .collect(),
+        },
     }
 }
 

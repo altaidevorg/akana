@@ -319,7 +319,8 @@ class SyntacticParse:
 
 
 def syntactic_analyze(word: str) -> list[SyntacticParse]:
-    """Performs two-level Google-style syntactic morphological analysis (FSMNLP 2019) with Inflectional Groups."""
+    """Splits each reading of ``Morphology().analyze(word)`` into inflectional groups with UD
+    features, in the format of Öztürel et al. (FSMNLP 2019); the most likely reading first."""
     raw_parses = _shared(SyntacticMorphology).analyze(word)
     return [SyntacticParse(p) for p in raw_parses]
 

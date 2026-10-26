@@ -65,6 +65,7 @@ impl MorphologicalDisambiguator {
                     formatted: format!("[{}:Unk]", tokens[i]),
                     analysis: format!("[{0}:Unk] {0}:Unk", tokens[i]),
                     score: 0.0,
+                    path: Default::default(),
                 });
                 continue;
             }
