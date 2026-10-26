@@ -1,0 +1,760 @@
+# Review 2's paradigm lists, by section (## lines).
+# ACC word lemma analysis-tail: some analysis has the lemma and ends with the tail (* any).
+# REJ word: no analysis. REJL word lemma [tail]: no analysis of that lemma (and tail).
+# Tails are Zemberek analyses, as MorphParse::analysis spells them.
+## nouns: voicing
+ACC	kitap	kitap	Noun + A3sg
+ACC	kitabı	kitap	Noun + A3sg + P3sg
+ACC	kitabı	kitap	Noun + A3sg + Acc
+ACC	kitaba	kitap	Noun + A3sg + Dat
+ACC	kitabım	kitap	Noun + A3sg + P1sg
+ACC	kitabımız	kitap	Noun + A3sg + P1pl
+ACC	kitapta	kitap	Noun + A3sg + Loc
+ACC	kitaptan	kitap	Noun + A3sg + Abl
+ACC	kitapla	kitap	Noun + A3sg + Ins
+ACC	kitabın	kitap	Noun + A3sg + Gen
+ACC	kitaplar	kitap	Noun + A3pl
+ACC	kitapları	kitap	Noun + A3pl + Acc
+ACC	kitaplarımız	kitap	Noun + A3pl + P1pl
+ACC	kitaplarınızdan	kitap	Noun + A3pl + P2pl + Abl
+ACC	kitabında	kitap	Noun + A3sg + P3sg + Loc
+ACC	kitabına	kitap	Noun + A3sg + P3sg + Dat
+ACC	kitabını	kitap	Noun + A3sg + P3sg + Acc
+ACC	kitabının	kitap	Noun + A3sg + P3sg + Gen
+ACC	kitabından	kitap	Noun + A3sg + P3sg + Abl
+ACC	kitabıyla	kitap	Noun + A3sg + P3sg + Ins
+ACC	kitapça	kitap	Noun + A3sg + Equ
+ACC	ağacı	ağaç	Noun + A3sg + P3sg
+ACC	ağaçta	ağaç	Noun + A3sg + Loc
+ACC	rengi	renk	Noun + A3sg + P3sg
+ACC	renkte	renk	Noun + A3sg + Loc
+ACC	köpeği	köpek	Noun + A3sg + P3sg
+ACC	çocuğu	çocuk	Noun + A3sg + P3sg
+ACC	çocuklar	çocuk	Noun + A3pl
+ACC	çocukken	çocuk	Noun + A3sg + Zero + Verb + While + Adv
+ACC	dergisi	dergi	Noun + A3sg + P3sg
+REJ	kitapı
+REJ	kitapım
+REJ	kitabda
+REJ	kitabdan
+REJ	kitab
+REJ	kitapa
+REJ	renki
+REJ	ağaçı
+REJ	köpekı
+REJ	kitapda
+REJ	kitapdan
+REJ	ağaçdan
+REJ	sokakdan
+REJ	kitabıda
+REJ	kitabıa
+REJ	kitabıı
+REJ	kitapcı
+## nouns: vowel drop / doubling / inverse harmony
+ACC	burnu	burun	Noun + A3sg + P3sg
+ACC	burnum	burun	Noun + A3sg + P1sg
+ACC	burunda	burun	Noun + A3sg + Loc
+ACC	aklı	akıl	Noun + A3sg + P3sg
+ACC	akılda	akıl	Noun + A3sg + Loc
+ACC	oğlu	oğul	Noun + A3sg + P3sg
+ACC	ağzı	ağız	Noun + A3sg + P3sg
+ACC	şehri	şehir	Noun + A3sg + P3sg
+ACC	şehirde	şehir	Noun + A3sg + Loc
+ACC	ismi	isim	Noun + A3sg + P3sg
+ACC	resmi	resim	Noun + A3sg + P3sg
+ACC	fikri	fikir	Noun + A3sg + P3sg
+ACC	hakkı	hak	Noun + A3sg + P3sg
+ACC	hakkında	hak	Noun + A3sg + P3sg + Loc
+ACC	haklar	hak	Noun + A3pl
+ACC	hissi	his	Noun + A3sg + P3sg
+ACC	sırrı	sır	Noun + A3sg + P3sg
+ACC	reddi	ret	Noun + A3sg + P3sg
+ACC	reddine	ret	Noun + A3sg + P3sg + Dat
+ACC	retti	ret	Noun + A3sg + Zero + Verb + Past + A3sg
+ACC	tıbbı	tıp	Noun + A3sg + P3sg
+ACC	affı	af	Noun + A3sg + P3sg
+ACC	hattı	hat	Noun + A3sg + P3sg
+ACC	saati	saat	Noun + A3sg + P3sg
+ACC	saatte	saat	Noun + A3sg + Loc
+ACC	saatler	saat	Noun + A3pl
+ACC	kalbi	kalp	Noun + A3sg + P3sg
+ACC	kalpler	kalp	Noun + A3pl
+ACC	alkolü	alkol	Noun + A3sg + P3sg
+ACC	hali	hal	Noun + A3sg + P3sg
+ACC	halde	hal	Noun + A3sg + Loc
+ACC	rolü	rol	Noun + A3sg + P3sg
+ACC	golü	gol	Noun + A3sg + P3sg
+ACC	dikkati	dikkat	Noun + A3sg + P3sg
+ACC	ihtimali	ihtimal	Noun + A3sg + P3sg
+ACC	hayali	hayal	Noun + A3sg + P3sg
+ACC	kabulü	kabul	Noun + A3sg + P3sg
+ACC	harfi	harf	Noun + A3sg + P3sg
+ACC	seyahati	seyahat	Noun + A3sg + P3sg
+ACC	kontrolü	kontrol	Noun + A3sg + P3sg
+ACC	protokolü	protokol	Noun + A3sg + P3sg
+REJ	burunu
+REJ	akılı
+REJ	şehiri
+REJ	isimi
+REJ	burnda
+REJ	hakı
+REJ	hisi
+REJ	sırı
+REJ	redi
+REJ	tıpı
+REJ	saatı
+REJ	saatlar
+REJ	kalbı
+REJ	alkolu
+REJ	rolu
+REJ	dikkatı
+REJ	kontrolu
+## nouns: vowel-final, buffers
+ACC	arabası	araba	Noun + A3sg + P3sg
+ACC	arabaya	araba	Noun + A3sg + Dat
+ACC	arabanın	araba	Noun + A3sg + Gen
+ACC	arabam	araba	Noun + A3sg + P1sg
+ACC	arabayla	araba	Noun + A3sg + Ins
+ACC	arabasında	araba	Noun + A3sg + P3sg + Loc
+ACC	arabasına	araba	Noun + A3sg + P3sg + Dat
+ACC	arabasını	araba	Noun + A3sg + P3sg + Acc
+ACC	arabasının	araba	Noun + A3sg + P3sg + Gen
+ACC	arabasıyla	araba	Noun + A3sg + P3sg + Ins
+ACC	kapıyı	kapı	Noun + A3sg + Acc
+ACC	suyu	su	Noun + A3sg + P3sg
+ACC	suyun	su	Noun + A3sg + Gen
+ACC	suyunu	su	Noun + A3sg + P3sg + Acc
+REJ	arabaı
+REJ	arabaa
+REJ	arabasıa
+REJ	arabasıda
+REJ	evm
+REJ	evsi
+REJ	evye
+REJ	evnin
+REJ	evyle
+REJ	evydi
+REJ	sunun
+REJ	susu
+## nouns: -ki -lI -sIz -lIk -CI -CIk
+ACC	evdeki	ev	Noun + A3sg + Loc + Rel + Adj
+ACC	evdekiler	ev	*
+ACC	masadaki	masa	Noun + A3sg + Loc + Rel + Adj
+ACC	bugünkü	bugün	Noun + A3sg + Rel + Adj
+ACC	dünkü	dün	Noun + A3sg + Rel + Adj
+ACC	yarınki	yarın	*
+ACC	benimki	ben	*
+ACC	seninki	sen	*
+ACC	onunki	o	*
+ACC	bizimki	biz	*
+ACC	masanınki	masa	Gen + Rel + Pron + A3sg
+ACC	kitabınki	kitap	*
+ACC	evli	ev	Noun + A3sg + With + Adj
+ACC	evsiz	ev	Noun + A3sg + Without + Adj
+ACC	kitaplık	kitap	*
+ACC	kitapçı	kitap	*
+ACC	kitapçık	kitap	*
+ACC	gözlük	*	*
+ACC	gözlükçü	*	*
+ACC	tuzlu	tuz	Noun + A3sg + With + Adj
+ACC	tuzsuz	tuz	Noun + A3sg + Without + Adj
+ACC	sütçü	*	*
+ACC	balıkçı	*	*
+ACC	çiçekçi	*	*
+ACC	çocuksu	*	*
+ACC	kadınsı	*	*
+ACC	erkeksi	*	*
+ACC	insansı	*	*
+ACC	mavimsi	mavi	*
+ACC	yeşilimsi	yeşil	*
+REJ	evki
+REJ	kitapki
+REJ	dünki
+REJ	sütcü
+## nouns: copula
+ACC	evdeyim	ev	Loc + Zero + Verb + Pres + A1sg
+ACC	evdesin	ev	Loc + Zero + Verb + Pres + A2sg
+ACC	evdeyiz	ev	Loc + Zero + Verb + Pres + A1pl
+ACC	evdesiniz	ev	Loc + Zero + Verb + Pres + A2pl
+ACC	evdeler	ev	Loc + Zero + Verb + Pres + A3pl
+ACC	evdeydim	ev	Loc + Zero + Verb + Past + A1sg
+ACC	evdeymiş	ev	Loc + Zero + Verb + Narr + A3sg
+ACC	evdeyse	ev	Loc + Zero + Verb + Cond + A3sg
+ACC	evdedir	ev	*
+ACC	evdeyken	ev	*
+ACC	öğretmenim	öğretmen	Zero + Verb + Pres + A1sg
+ACC	öğretmensin	öğretmen	Zero + Verb + Pres + A2sg
+ACC	öğretmeniz	öğretmen	Zero + Verb + Pres + A1pl
+ACC	öğretmendir	öğretmen	*
+ACC	öğretmendi	öğretmen	Zero + Verb + Past + A3sg
+ACC	öğretmenmiş	öğretmen	Zero + Verb + Narr + A3sg
+ACC	öğretmense	öğretmen	Zero + Verb + Cond + A3sg
+ACC	hastayım	hasta	Zero + Verb + Pres + A1sg
+ACC	hastaydı	hasta	Zero + Verb + Past + A3sg
+ACC	hastaymış	hasta	Zero + Verb + Narr + A3sg
+ACC	hastaysa	hasta	Zero + Verb + Cond + A3sg
+ACC	hastayken	hasta	*
+ACC	hazırız	hazır	Zero + Verb + Pres + A1pl
+ACC	eminim	emin	Zero + Verb + Pres + A1sg
+ACC	yorgunum	yorgun	Zero + Verb + Pres + A1sg
+REJ	evdeim
+REJ	hastaım
+REJ	evdedi
+REJ	evdemiş
+REJ	hastadı
+## nouns: equative and -CA after possessive/plural
+ACC	mahkemece	mahkeme	*
+ACC	mahkemelerce	mahkeme	*
+ACC	mahkemesince	mahkeme	*
+ACC	dairesince	daire	*
+ACC	taraflarca	taraf	*
+ACC	bence	ben	*
+ACC	sence	sen	*
+ACC	bizce	biz	*
+## verbs: aorist
+ACC	gelir	gelmek	Verb + Aor + A3sg
+ACC	gelirim	gelmek	Verb + Aor + A1sg
+ACC	gelirsin	gelmek	Verb + Aor + A2sg
+ACC	geliriz	gelmek	Verb + Aor + A1pl
+ACC	gelirsiniz	gelmek	Verb + Aor + A2pl
+ACC	gelirler	gelmek	Verb + Aor + A3pl
+ACC	gelmem	gelmek	Verb + Neg + Aor + A1sg
+ACC	gelmezsin	gelmek	Verb + Neg + Aor + A2sg
+ACC	gelmez	gelmek	Verb + Neg + Aor + A3sg
+ACC	gelmeyiz	gelmek	Verb + Neg + Aor + A1pl
+ACC	gelmezsiniz	gelmek	Verb + Neg + Aor + A2pl
+ACC	gelmezler	gelmek	Verb + Neg + Aor + A3pl
+ACC	yapar	yapmak	Verb + Aor + A3sg
+ACC	yaparım	yapmak	Verb + Aor + A1sg
+ACC	yapmam	yapmak	Verb + Neg + Aor + A1sg
+ACC	alır	almak	Verb + Aor + A3sg
+ACC	olur	olmak	Verb + Aor + A3sg
+ACC	bulur	bulmak	Verb + Aor + A3sg
+ACC	kalır	kalmak	Verb + Aor + A3sg
+ACC	ölür	ölmek	Verb + Aor + A3sg
+ACC	sanır	sanmak	Verb + Aor + A3sg
+ACC	varır	varmak	Verb + Aor + A3sg
+ACC	verir	vermek	Verb + Aor + A3sg
+ACC	vurur	vurmak	Verb + Aor + A3sg
+ACC	durur	durmak	Verb + Aor + A3sg
+ACC	görür	görmek	Verb + Aor + A3sg
+ACC	bilir	bilmek	Verb + Aor + A3sg
+ACC	okur	okumak	Verb + Aor + A3sg
+ACC	eder	etmek	Verb + Aor + A3sg
+ACC	gider	gitmek	Verb + Aor + A3sg
+ACC	der	demek	Verb + Aor + A3sg
+ACC	yer	yemek	Verb + Aor + A3sg
+REJL	geler	gelmek
+REJL	gelr	gelmek
+REJL	yapır	yapmak
+REJL	alar	almak
+REJL	olar	olmak
+REJL	verer	vermek
+REJL	görer	görmek
+REJL	okuyur	okumak
+REJL	gelmezim	gelmek
+REJL	gelmeziz	gelmek
+REJL	gelirn	gelmek
+REJL	gelirm	gelmek
+REJL	gelirk	gelmek
+## verbs: progressive, past, narrative, future
+ACC	geliyorum	gelmek	Verb + Prog1 + A1sg
+ACC	geliyorsun	gelmek	Verb + Prog1 + A2sg
+ACC	geliyor	gelmek	Verb + Prog1 + A3sg
+ACC	geliyoruz	gelmek	Verb + Prog1 + A1pl
+ACC	geliyorsunuz	gelmek	Verb + Prog1 + A2pl
+ACC	geliyorlar	gelmek	Verb + Prog1 + A3pl
+ACC	gelmiyorum	gelmek	Verb + Neg + Prog1 + A1sg
+ACC	bekliyor	beklemek	Verb + Prog1 + A3sg
+ACC	başlıyor	başlamak	Verb + Prog1 + A3sg
+ACC	anlıyor	anlamak	Verb + Prog1 + A3sg
+ACC	söylüyor	söylemek	Verb + Prog1 + A3sg
+ACC	yürüyor	yürümek	Verb + Prog1 + A3sg
+ACC	diyor	demek	Verb + Prog1 + A3sg
+ACC	yiyor	yemek	Verb + Prog1 + A3sg
+ACC	gidiyor	gitmek	Verb + Prog1 + A3sg
+ACC	ediyor	etmek	Verb + Prog1 + A3sg
+ACC	geldim	gelmek	Verb + Past + A1sg
+ACC	geldin	gelmek	Verb + Past + A2sg
+ACC	geldi	gelmek	Verb + Past + A3sg
+ACC	geldik	gelmek	Verb + Past + A1pl
+ACC	geldiniz	gelmek	Verb + Past + A2pl
+ACC	geldiler	gelmek	Verb + Past + A3pl
+ACC	gelmedim	gelmek	Verb + Neg + Past + A1sg
+ACC	yaptım	yapmak	Verb + Past + A1sg
+ACC	gitti	gitmek	Verb + Past + A3sg
+ACC	etti	etmek	Verb + Past + A3sg
+ACC	gelmiş	gelmek	Verb + Narr + A3sg
+ACC	gelmişim	gelmek	Verb + Narr + A1sg
+ACC	gelmişsin	gelmek	Verb + Narr + A2sg
+ACC	gelmişiz	gelmek	Verb + Narr + A1pl
+ACC	gelmişler	gelmek	Verb + Narr + A3pl
+ACC	gelmemiş	gelmek	Verb + Neg + Narr + A3sg
+ACC	geleceğim	gelmek	Verb + Fut + A1sg
+ACC	geleceksin	gelmek	Verb + Fut + A2sg
+ACC	gelecek	gelmek	Verb + Fut + A3sg
+ACC	geleceğiz	gelmek	Verb + Fut + A1pl
+ACC	gelecekler	gelmek	Verb + Fut + A3pl
+ACC	gelmeyeceğim	gelmek	Verb + Neg + Fut + A1sg
+ACC	gideceğim	gitmek	Verb + Fut + A1sg
+ACC	edecek	etmek	Verb + Fut + A3sg
+REJL	gelti	gelmek
+REJL	yapdı	yapmak
+REJL	gitdi	gitmek
+REJL	gitiyor	gitmek
+REJL	gitecek	gitmek
+REJL	etiyor	etmek
+REJL	gelmeyor	gelmek
+REJL	gelmemiyor	gelmek
+REJL	bekleyor	beklemek
+REJL	başlayor	başlamak
+REJL	gelecekim	gelmek
+REJL	geleceğ	gelmek
+REJL	geldiyim	gelmek
+REJL	geliyoryum	gelmek
+REJL	gelmişn	gelmek
+REJL	gelmidi	gelmek
+REJL	gelmimiş	gelmek
+REJL	deyecek	demek
+REJL	deyen	demek
+REJL	yeyecek	yemek
+REJL	deyor	demek
+## verbs: conditional, optative, imperative, necessitative
+ACC	gelsem	gelmek	Verb + Desr + A1sg
+ACC	gelsen	gelmek	Verb + Desr + A2sg
+ACC	gelse	gelmek	Verb + Desr + A3sg
+ACC	gelsek	gelmek	Verb + Desr + A1pl
+ACC	gelseniz	gelmek	Verb + Desr + A2pl
+ACC	gelseler	gelmek	Verb + Desr + A3pl
+ACC	gelirse	gelmek	Verb + Aor + Cond + A3sg
+ACC	geldiyse	gelmek	Verb + Past + Cond + A3sg
+ACC	gelmişse	gelmek	Verb + Narr + Cond + A3sg
+ACC	gelecekse	gelmek	Verb + Fut + Cond + A3sg
+ACC	geliyorsa	gelmek	Verb + Prog1 + Cond + A3sg
+ACC	geleyim	gelmek	Verb + Opt + A1sg
+ACC	gelesin	gelmek	Verb + Opt + A2sg
+ACC	gele	gelmek	Verb + Opt + A3sg
+ACC	gelelim	gelmek	Verb + Opt + A1pl
+ACC	gelesiniz	gelmek	Verb + Opt + A2pl
+ACC	gel	gelmek	Verb + Imp + A2sg
+ACC	gelsin	gelmek	Verb + Imp + A3sg
+ACC	gelin	gelmek	Verb + Imp + A2pl
+ACC	geliniz	gelmek	Verb + Imp + A2pl
+ACC	gelsinler	gelmek	Verb + Imp + A3pl
+ACC	gelme	gelmek	Verb + Neg + Imp + A2sg
+ACC	gelmesin	gelmek	Verb + Neg + Imp + A3sg
+ACC	gelmeyin	gelmek	Verb + Neg + Imp + A2pl
+ACC	okuyun	okumak	Verb + Imp + A2pl
+ACC	okuyunuz	okumak	Verb + Imp + A2pl
+ACC	yapın	yapmak	Verb + Imp + A2pl
+ACC	yapınız	yapmak	Verb + Imp + A2pl
+ACC	gelmeli	gelmek	Verb + Neces + A3sg
+ACC	gelmeliyim	gelmek	Verb + Neces + A1sg
+ACC	gelmelisin	gelmek	Verb + Neces + A2sg
+ACC	gelmeliyiz	gelmek	Verb + Neces + A1pl
+ACC	gelmeliler	gelmek	Verb + Neces + A3pl
+ACC	gelmeliydi	gelmek	Verb + Neces + Past + A3sg
+REJL	gelem	gelmek	Opt + A1sg
+REJL	gelek	gelmek
+## verbs: ability, compound tenses, -(y)ken, -DIr
+ACC	gelebilir	gelmek	Verb + Able + Verb + Aor + A3sg
+ACC	gelebilirim	gelmek	Verb + Able + Verb + Aor + A1sg
+ACC	gelebiliyor	gelmek	Verb + Able + Verb + Prog1 + A3sg
+ACC	gelebildi	gelmek	Verb + Able + Verb + Past + A3sg
+ACC	gelemez	gelmek	Verb + Unable + Aor + A3sg
+ACC	gelemem	gelmek	Verb + Unable + Aor + A1sg
+ACC	gelemiyor	gelmek	Verb + Unable + Prog1 + A3sg
+ACC	gelemedi	gelmek	Verb + Unable + Past + A3sg
+ACC	gelmeyebilir	gelmek	Verb + Neg + Able + Verb + Aor + A3sg
+ACC	gelemeyebilir	gelmek	Verb + Unable + Able + Verb + Aor + A3sg
+ACC	okuyabilir	okumak	Verb + Able + Verb + Aor + A3sg
+ACC	geliyordum	gelmek	Verb + Prog1 + Past + A1sg
+ACC	geliyordu	gelmek	Verb + Prog1 + Past + A3sg
+ACC	geliyormuş	gelmek	Verb + Prog1 + Narr + A3sg
+ACC	gelirdi	gelmek	Verb + Aor + Past + A3sg
+ACC	gelirmiş	gelmek	Verb + Aor + Narr + A3sg
+ACC	gelecekti	gelmek	Verb + Fut + Past + A3sg
+ACC	gelecekmiş	gelmek	Verb + Fut + Narr + A3sg
+ACC	gelmişti	gelmek	Verb + Narr + Past + A3sg
+ACC	gelseydi	gelmek	Verb + Desr + Past + A3sg
+ACC	gelseymiş	gelmek	Verb + Desr + Narr + A3sg
+ACC	gelirken	gelmek	Verb + Aor + While + Adv
+ACC	gelmişken	gelmek	Verb + Narr + While + Adv
+ACC	gelecekken	gelmek	Verb + Fut + While + Adv
+ACC	geliyorken	gelmek	Verb + Prog1 + While + Adv
+ACC	geliyordur	gelmek	Verb + Prog1 + A3sg + Cop
+ACC	gelmiştir	gelmek	Verb + Narr + A3sg + Cop
+ACC	gelecektir	gelmek	Verb + Fut + A3sg + Cop
+ACC	gelmelidir	gelmek	Verb + Neces + A3sg + Cop
+ACC	gelirdir	gelmek	Verb + Aor + A3sg + Cop
+ACC	edilmektedir	etmek	*
+ACC	değerlendirilmektedir	değerlendirmek	*
+ACC	gelmektedir	gelmek	Verb + Prog2 + A3sg + Cop
+REJL	gelebilebil	gelmek
+REJL	gelemeyemez	gelmek
+## verbs: voice
+ACC	yapıldı	yapmak	Verb + Pass + Verb + Past + A3sg
+ACC	yapılır	yapmak	Verb + Pass + Verb + Aor + A3sg
+ACC	yaptırdı	yapmak	Verb + Caus + Verb + Past + A3sg
+ACC	yaptırıldı	yapmak	Verb + Caus + Verb + Pass + Verb + Past + A3sg
+ACC	okundu	okumak	Verb + Pass + Verb + Past + A3sg
+ACC	okutuldu	okumak	Verb + Caus + Verb + Pass + Verb + Past + A3sg
+ACC	görüldü	görmek	Verb + Pass + Verb + Past + A3sg
+ACC	kaldırıldı	kaldırmak	*
+ACC	öldürüldü	öldürmek	*
+ACC	açıldı	*	*
+ACC	söylendi	söylemek	Verb + Pass + Verb + Past + A3sg
+ACC	denildi	demek	Verb + Pass + Verb + Past + A3sg
+ACC	dendi	demek	Verb + Pass + Verb + Past + A3sg
+ACC	yendi	yemek	Verb + Pass + Verb + Past + A3sg
+ACC	bilindi	bilmek	Verb + Pass + Verb + Past + A3sg
+ACC	alındı	almak	Verb + Pass + Verb + Past + A3sg
+ACC	gelindi	gelmek	Verb + Pass + Verb + Past + A3sg
+ACC	yıkandı	*	*
+ACC	görüştü	*	*
+ACC	yaptırttı	yapmak	Verb + Caus + Verb + Caus + Verb + Past + A3sg
+REJL	yapılıldı	yapmak
+REJL	yenildi	yemek	Pass + Verb + Pass
+REJL	yapt	yapmak
+REJL	gelt	gelmek
+REJL	okunuldu	okumak	Pass + Verb + Pass
+## verbs: converbs, participles, infinitives
+ACC	gelince	gelmek	Verb + When + Adv
+ACC	gelip	gelmek	Verb + AfterDoingSo + Adv
+ACC	gelerek	gelmek	Verb + ByDoingSo + Adv
+ACC	gelmeden	gelmek	Verb + WithoutHavingDoneSo + Adv
+ACC	gelmeksizin	gelmek	Verb + WithoutHavingDoneSo + Adv
+ACC	geldikçe	gelmek	Verb + AsLongAs + Adv
+ACC	geleli	gelmek	Verb + SinceDoingSo + Adv
+ACC	gelircesine	gelmek	Verb + Aor + A3sg + AsIf + Adv
+ACC	gelmişçesine	gelmek	Verb + Narr + A3sg + AsIf + Adv
+ACC	gelinceye	gelmek	*
+ACC	oluncaya	olmak	*
+ACC	gelesiye	gelmek	Verb + Adamantly + Adv
+ACC	geliverdi	gelmek	*
+ACC	yapıverdi	yapmak	*
+ACC	gelen	gelmek	Verb + PresPart + Adj
+ACC	gelmeyen	gelmek	Verb + Neg + PresPart + Adj
+ACC	gelenler	gelmek	Verb + PresPart + Noun + A3pl
+ACC	geldiği	gelmek	Verb + PastPart + Noun + A3sg + P3sg
+ACC	geldiğim	gelmek	Verb + PastPart + Noun + A3sg + P1sg
+ACC	geldiğimiz	gelmek	Verb + PastPart + Noun + A3sg + P1pl
+ACC	geldiğini	gelmek	Verb + PastPart + Noun + A3sg + P3sg + Acc
+ACC	geleceği	gelmek	Verb + FutPart + Noun + A3sg + P3sg
+ACC	gelecekleri	gelmek	*
+ACC	geldiğinde	gelmek	Verb + PastPart + Noun + A3sg + P3sg + Loc
+ACC	geldiğinden	gelmek	Verb + PastPart + Noun + A3sg + P3sg + Abl
+ACC	olduğundan	olmak	Verb + PastPart + Noun + A3sg + P3sg + Abl
+ACC	olduğuna	olmak	Verb + PastPart + Noun + A3sg + P3sg + Dat
+ACC	olmadığı	olmak	Verb + Neg + PastPart + Noun + A3sg + P3sg
+ACC	gelmek	gelmek	Verb + Inf1 + Noun + A3sg
+ACC	gelmekte	gelmek	*
+ACC	gelmekten	gelmek	Verb + Inf1 + Noun + A3sg + Abl
+ACC	gelmeye	gelmek	Verb + Inf2 + Noun + A3sg + Dat
+ACC	gelmesi	gelmek	Verb + Inf2 + Noun + A3sg + P3sg
+ACC	gelmesini	gelmek	Verb + Inf2 + Noun + A3sg + P3sg + Acc
+ACC	geliş	gelmek	Verb + Inf3 + Noun + A3sg
+ACC	edilebilirlik	etmek	*
+ACC	deyip	demek	Verb + AfterDoingSo + Adv
+ACC	deyince	demek	*
+ACC	yiyip	yemek	Verb + AfterDoingSo + Adv
+ACC	yiyince	yemek	*
+ACC	diyerek	demek	Verb + ByDoingSo + Adv
+ACC	diyen	demek	Verb + PresPart + Adj
+ACC	diyecek	demek	*
+REJL	diyip	demek
+REJL	diyince	demek
+REJL	yeyip	yemek
+REJL	yeyince	yemek
+REJL	deyerek	demek
+REJL	gelenlerler	gelmek
+REJL	gelenlerlik	gelmek
+## pronouns
+ACC	ben	ben	Pron + A1sg
+ACC	bana	ben	Pron + A1sg + Dat
+ACC	beni	ben	Pron + A1sg + Acc
+ACC	benim	ben	Pron + A1sg + Gen
+ACC	benden	ben	Pron + A1sg + Abl
+ACC	bende	ben	Pron + A1sg + Loc
+ACC	benimle	ben	Pron + A1sg + Ins
+ACC	sana	sen	Pron + A2sg + Dat
+ACC	seni	sen	Pron + A2sg + Acc
+ACC	senin	sen	Pron + A2sg + Gen
+ACC	ona	o	Pron + A3sg + Dat
+ACC	onu	o	Pron + A3sg + Acc
+ACC	onun	o	Pron + A3sg + Gen
+ACC	ondan	o	Pron + A3sg + Abl
+ACC	onda	o	Pron + A3sg + Loc
+ACC	onunla	o	Pron + A3sg + Ins
+ACC	onlar	o	Pron + A3pl
+ACC	onlara	o	Pron + A3pl + Dat
+ACC	onların	o	Pron + A3pl + Gen
+ACC	biz	biz	Pron + A1pl
+ACC	bize	biz	Pron + A1pl + Dat
+ACC	bizim	biz	Pron + A1pl + Gen
+ACC	siz	siz	Pron + A2pl
+ACC	size	siz	Pron + A2pl + Dat
+ACC	sizin	siz	Pron + A2pl + Gen
+ACC	bu	bu	Pron + A3sg
+ACC	buna	bu	Pron + A3sg + Dat
+ACC	bunu	bu	Pron + A3sg + Acc
+ACC	bunun	bu	Pron + A3sg + Gen
+ACC	bundan	bu	Pron + A3sg + Abl
+ACC	bunda	bu	Pron + A3sg + Loc
+ACC	bununla	bu	Pron + A3sg + Ins
+ACC	bunlar	bu	Pron + A3pl
+ACC	bunları	bu	Pron + A3pl + Acc
+ACC	şuna	şu	Pron + A3sg + Dat
+ACC	şunlar	şu	Pron + A3pl
+ACC	şunları	şu	Pron + A3pl + Acc
+ACC	kendi	kendi	Pron + A3sg + P3sg
+ACC	kendim	kendi	Pron + A1sg + P1sg
+ACC	kendin	kendi	Pron + A2sg + P2sg
+ACC	kendisi	kendi	Pron + A3sg + P3sg
+ACC	kendimiz	kendi	Pron + A1pl + P1pl
+ACC	kendileri	kendi	Pron + A3pl + P3pl
+ACC	kendine	kendi	*
+ACC	kendini	kendi	*
+ACC	kendisine	kendi	Pron + A3sg + P3sg + Dat
+ACC	kendimi	kendi	Pron + A1sg + P1sg + Acc
+ACC	ne	ne	Pron + A3sg
+ACC	neyi	ne	Pron + A3sg + Acc
+ACC	neye	ne	Pron + A3sg + Dat
+ACC	neden	ne	Pron + A3sg + Abl
+ACC	nesi	ne	Pron + A3sg + P3sg
+ACC	neler	ne	Pron + A3pl
+ACC	kim	kim	Pron + A3sg
+ACC	kimi	kim	Pron + A3sg + Acc
+ACC	kime	kim	Pron + A3sg + Dat
+ACC	kimin	kim	Pron + A3sg + Gen
+ACC	kimler	kim	Pron + A3pl
+ACC	hangisi	hangi	*
+ACC	hangisini	hangi	*
+ACC	hangileri	hangi	*
+ACC	nereye	nere	Pron + A3sg + Dat
+ACC	nerede	nere	Pron + A3sg + Loc
+ACC	nereden	nere	Pron + A3sg + Abl
+ACC	neresi	nere	Pron + A3sg + P3sg
+ACC	birbirine	birbiri	Pron + A3sg + P3sg + Dat
+ACC	birbirlerine	birbiri	*
+ACC	hepimiz	hep	Pron + A1pl + P1pl
+ACC	hepsi	hepsi	Pron + A3pl + P3pl
+ACC	herkes	herkes	Pron + A3pl
+ACC	herkese	herkes	Pron + A3pl + Dat
+REJ	bene
+REJ	sene
+REJ	banı
+REJ	onlarlar
+REJ	bunlarlar
+REJ	bizler'e
+REJL	ona	o	P2sg
+REJL	bunu	bu	P2sg
+## question particle, değil, imek
+ACC	mi	mi	Ques + Pres + A3sg
+ACC	mı	mı	Ques + Pres + A3sg
+ACC	mu	mu	Ques + Pres + A3sg
+ACC	mü	mü	Ques + Pres + A3sg
+ACC	misin	mi	Ques + Pres + A2sg
+ACC	misiniz	mi	Ques + Pres + A2pl
+ACC	miyim	mi	Ques + Pres + A1sg
+ACC	miyiz	mi	Ques + Pres + A1pl
+ACC	midir	mi	*
+ACC	miydi	mi	Ques + Past + A3sg
+ACC	miymiş	mi	Ques + Narr + A3sg
+ACC	mıdır	mı	*
+ACC	musun	mu	Ques + Pres + A2sg
+ACC	değil	değil	*
+ACC	değilim	değil	Neg + Pres + A1sg
+ACC	değilsin	değil	Neg + Pres + A2sg
+ACC	değiliz	değil	Neg + Pres + A1pl
+ACC	değilsiniz	değil	Neg + Pres + A2pl
+ACC	değiller	değil	Neg + Pres + A3pl
+ACC	değildi	değil	Neg + Past + A3sg
+ACC	değilmiş	değil	Neg + Narr + A3sg
+ACC	değilse	değil	Neg + Cond + A3sg
+ACC	değildir	değil	*
+ACC	değilken	değil	*
+ACC	idi	imek	Verb + Past + A3sg
+ACC	imiş	imek	Verb + Narr + A3sg
+ACC	ise	imek	Verb + Cond + A3sg
+ACC	iken	imek	*
+ACC	idim	imek	Verb + Past + A1sg
+ACC	idik	imek	Verb + Past + A1pl
+ACC	idiler	imek	Verb + Past + A3pl
+ACC	isem	imek	Verb + Cond + A1sg
+REJ	miim
+REJ	değilsiniz'
+## adjectives, adverbs
+ACC	güzel	güzel	Adj
+ACC	güzeller	güzel	*
+ACC	güzelleşti	güzel	*
+ACC	güzellik	güzel	*
+ACC	güzelce	güzel	*
+ACC	büyüğü	büyük	*
+ACC	küçüğe	küçük	*
+ACC	iyisi	iyi	*
+ACC	hızlıca	hızlı	*
+ACC	yavaşça	yavaş	*
+ACC	çabucak	*	*
+## numerals and digits
+ACC	bir	bir	*
+ACC	iki	iki	*
+ACC	birinci	birinci	*
+ACC	ikinci	ikinci	*
+ACC	dördüncü	dördüncü	*
+ACC	ikişer	ikişer	*
+ACC	ikisi	iki	*
+ACC	üçü	üç	*
+ACC	dördü	dört	*
+ACC	ikimiz	iki	*
+ACC	onlarca	on	*
+ACC	yüzlerce	yüz	*
+ACC	binlerce	bin	*
+ACC	milyonlarca	milyon	*
+ACC	1923'te	1923	*
+ACC	1923'ten	1923	*
+ACC	15'i	15	*
+ACC	3'ü	3	*
+ACC	5'te	5	*
+ACC	6'da	6	*
+ACC	7'de	7	*
+ACC	10'da	10	*
+ACC	100'de	100	*
+ACC	1000'de	1000	*
+ACC	2026'da	2026	*
+ACC	%50'si	%50	*
+ACC	3,5'e	3,5	*
+ACC	15.	15.	*
+ACC	1990'lı	1990	*
+ACC	1990'larda	1990	*
+ACC	4'e	4	*
+ACC	4'ü	4	*
+ACC	40'ta	40	*
+ACC	60'ta	60	*
+ACC	90'da	90	*
+ACC	1'e	1	*
+ACC	2'ye	2	*
+ACC	9'a	9	*
+ACC	1.000.000'a	1.000.000	*
+ACC	XIX.	XIX.	*
+ACC	II.	II.	*
+ACC	2.	2.	*
+ACC	5'inci	5	*
+ACC	5'ince	5	*
+ACC	21.10.2026	*	*
+ACC	10:30'da	*	*
+REJ	1923'de
+REJ	5'de
+REJ	3'u
+REJ	6'ta
+REJ	40'da
+REJ	4'a
+REJ	1'a
+REJ	2'e
+REJ	1990'li
+REJ	100'te
+## postpositions
+ACC	gibi	gibi	*
+ACC	için	için	*
+ACC	göre	göre	*
+ACC	rağmen	rağmen	*
+ACC	karşın	karşın	*
+ACC	dolayı	dolayı	*
+ACC	üzere	üzere	*
+ACC	kadar	kadar	*
+## circumflex and loanwords
+ACC	kâğıdı	kâğıt	*
+ACC	kağıdı	kağıt	*
+ACC	dükkânı	dükkân	*
+ACC	dükkanı	dükkan	*
+ACC	rüzgârı	rüzgâr	*
+ACC	hikâyesi	hikâye	*
+ACC	hâlâ	*	*
+ACC	nikâhı	nikah	*
+ACC	mahkûm	*	*
+## compounds
+ACC	zeytinyağı	zeytinyağı	*
+ACC	zeytinyağları	zeytinyağı	*
+ACC	zeytinyağına	zeytinyağı	*
+ACC	zeytinyağlı	zeytinyağı	*
+ACC	cumhurbaşkanı	cumhurbaşkanı	*
+ACC	cumhurbaşkanları	cumhurbaşkanı	*
+ACC	cumhurbaşkanına	cumhurbaşkanı	*
+ACC	cumhurbaşkanlığı	*	*
+ACC	başbakanı	başbakan	*
+ACC	buzdolabı	buzdolabı	*
+ACC	buzdolabına	buzdolabı	*
+ACC	ayakkabısı	ayakkabı	*
+ACC	kahvaltısı	kahvaltı	*
+ACC	bilgisayarı	bilgisayar	*
+ACC	anayasası	anayasa	*
+ACC	hanımeli	hanımeli	*
+ACC	kuşbaşı	kuşbaşı	*
+REJ	zeytinyağıya
+REJ	cumhurbaşkanıya
+REJ	buzdolabıya
+## proper nouns and abbreviations
+ACC	Ankara'ya	ankara	*
+ACC	Ankara'da	ankara	*
+ACC	Ankara'dan	ankara	*
+ACC	Ankara'nın	ankara	*
+ACC	Ankara'yı	ankara	*
+ACC	İstanbul'a	istanbul	*
+ACC	İstanbul'da	istanbul	*
+ACC	İstanbul'un	istanbul	*
+ACC	Türkiye'de	türkiye	*
+ACC	Türkiye'nin	türkiye	*
+ACC	Ali'nin	ali	*
+ACC	Ali'ye	ali	*
+ACC	Ayşe'ye	ayşe	*
+ACC	Ahmet'e	ahmet	*
+ACC	Mehmet'in	mehmet	*
+ACC	Atatürk'ün	atatürk	*
+ACC	Kemal'in	kemal	*
+ACC	TBMM'de	tbmm	*
+ACC	TBMM'nin	tbmm	*
+ACC	ABD'de	abd	*
+ACC	ABD'nin	abd	*
+ACC	AB'de	ab	*
+ACC	AKP'nin	akp	*
+ACC	NATO'nun	nato	*
+ACC	HMK'nın	hmk	*
+ACC	TCK'nın	tck	*
+ACC	CMK'nın	cmk	*
+ACC	AİHM'nin	aihm	*
+ACC	UNESCO'nun	unesco	*
+ACC	PTT'ye	ptt	*
+ACC	THY'nin	thy	*
+ACC	Ankaralı	ankara	*
+ACC	Ankaralılar	ankara	*
+ACC	İstanbullu	istanbul	*
+ACC	Türkiye'deki	türkiye	*
+ACC	Ankara’ya	ankara	*
+ACC	Ankara‘ya	ankara	*
+ACC	Ankaraʼya	ankara	*
+ACC	Ankara`ya	ankara	*
+ACC	Yargıtay'ın	yargıtay	*
+ACC	Danıştay'a	danıştay	*
+ACC	Kocaeli'nde	kocaeli	*
+ACC	Kuşadası'na	kuşadası	*
+ACC	Dr.	*	*
+ACC	Prof.	*	*
+ACC	vb.	*	*
+ACC	vs.	*	*
+ACC	md.	*	*
+ACC	Av.	*	*
+REJ	Ankara'ye
+REJ	İstanbul'e
+REJ	Ali'nın
+REJ	Türkiye'da
+REJ	ABD'nın
+REJ	TBMM'da
+REJ	Ahmet'a
+REJ	Ahmed'e
+REJ	Ankara'yaa
+## hyphens
+ACC	e-posta	*	*
+ACC	e-postası	*	*
+ACC	Türk-İslam	*	*
+ACC	anti-demokratik	*	*
+ACC	sosyo-ekonomik	*	*

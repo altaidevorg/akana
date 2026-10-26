@@ -1,0 +1,51 @@
+# Gold items the analyzer gets wrong today (tests/review_gold.rs).
+# 797 tokens in context: exact 94.6 %, lemma 99.1 %, POS 97.1 %
+# a gold reading is among the analyses for 99.4 %
+10:2	açıkça	tags	açık|Adj|Adj+AsIf|
+11:8	temyizen	pos	temyizen|Noun|Noun+A3sg+Nom|P
+12:8	esas	pos	esas|Adj|Adj|
+14:0	Temyizen	pos	temyizen|Noun|Noun+A3sg+Nom|P
+14:13	nedenleri	tags	neden|Noun|Noun+A3pl+P3pl|
+16:11	sona	pos	son|Num|Num+Dat|
+16:3	hükümlerine	tags	hüküm|Noun|Noun+A3pl+P3pl+Dat|
+17:4	bulunan	lemma	bulunmak|Verb|Verb+PresPart|
+19:3	AT	tags	at|Noun|Noun+A3sg+Nom|P
+20:0	Kanun	tags	kanun|Noun|Noun+A3sg+Nom|P
+21:6	varsa	lemma+pos	varmak|Verb|Verb+Cond|
+23:9	temyizen	pos	temyizen|Noun|Noun+A3sg+Nom|P
+24:2	yerinde	lemma+pos	yerinde|Adv|Adv|
+28:9	ile	pos	ile|Conj|Conj|
+29:11	dayalı	pos	dayalı|Adv|Adv|
+2:6	karşı	pos	karşı|Noun|Noun+A3sg+Nom|
+30:5	fiili	lemma+pos	fiil|Noun|Noun+P3sg|
+35:7	tek	pos	tek|Adv|Adv|
+38:6	olabilecek	tags	olmak|Verb|Verb+Abil+Fut|
+39:3	uzun	pos	uzun|Adv|Adv|
+3:0	İlk	pos	ilk|Adv|Adv|
+3:6	karşı	pos	karşı|Noun|Noun+A3sg+Nom|
+40:3	Pel	lemma+pos	|Unk||
+41:6	Hâkimliğinin	tags	hakim|Noun|Noun+Ness+P3sg+Gen|P
+42:3	yerine	lemma+pos	yerine|Adv|Adv|
+44:9	cezaları	tags	ceza|Noun|Noun+A3pl+P3pl|
+45:4	işvereni	tags	işveren|Noun|Noun+P3sg|
+46:10	yollarının	tags	yol|Noun|Noun+A3pl+P3pl+Gen|
+46:15	bulunmuştur	lemma	bulunmak|Verb|Verb+Evid+CopPres3sg|
+47:7	makamlarının	tags	makam|Noun|Noun+A3pl+P3pl+Gen|
+48:2	farklılığı	tags	fark|Noun|Noun+With+Ness+Acc|
+49:2	verebilecek	tags	vermek|Verb|Verb+Abil+Fut|
+4:9	izlerinin	tags	iz|Noun|Noun+A3pl+P3pl+Gen|
+50:4	mutlak	pos	mutlak|Adv|Adv|
+52:2	ancak	pos	ancak|Conj|Conj|
+59:0	Bir	pos	bir|Adv|Adv|
+5:13	yükümlülüğü	tags	yüküm|Noun|Noun+With+Ness+Acc|
+5:6	ile	pos	ile|Conj|Conj|
+60:1	nitelikleri	tags	nitelik|Noun|Noun+A3pl+P3pl|
+6:6	rahatsız	pos	rahat|Noun|Noun+Without|
+7:5	dayalı	pos	dayalı|Adv|Adv|
+8:5	hükümleri	tags	hüküm|Noun|Noun+A3pl+P3pl|
+9:3	nedenleri	tags	neden|Noun|Noun+A3pl+P3pl|
+missing	11:8	temyizen
+missing	14:0	Temyizen
+missing	19:3	AT
+missing	23:9	temyizen
+missing	40:3	Pel

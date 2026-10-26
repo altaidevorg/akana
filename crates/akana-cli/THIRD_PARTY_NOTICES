@@ -31,6 +31,13 @@ The morphotactics (crates/akana-core/src/morphology/turkish_morphotactics.rs, st
 analyzer.rs) port the design of zemberek-nlp's TurkishMorphotactics, StemTransitionsBase and
 RuleBasedAnalyzer (Apache License 2.0) to Rust.
 
+crates/akana-core/tests/data/morphology/review/zemberek_tests.tsv is test data, not compiled
+into the library. It is part of the source repository and of the crate's source package. It
+holds the analysis checks of zemberek-nlp's morphology tests
+(morphology/src/test/java/zemberek/morphology/analysis, Apache License 2.0). They were
+converted to one check per line, and their dictionary lines were rewritten in akana's
+lexicon format.
+
 -------------------------------------------------------------------------------------------------
 2. Universal Dependencies Turkish treebanks BOUN and Kenet
 -------------------------------------------------------------------------------------------------

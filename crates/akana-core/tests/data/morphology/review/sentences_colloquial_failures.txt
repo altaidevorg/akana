@@ -1,0 +1,32 @@
+# Gold items the analyzer gets wrong today (tests/review_gold.rs).
+# 145 tokens in context: exact 82.8 %, lemma 95.2 %, POS 89.7 %
+# a gold reading is among the analyses for 97.2 %
+11:0	Hava	pos	hava|Adj|Adj|
+12:3	ama	pos	ama|Adj|Adj|
+14:0	Yüzünü	tags	yüz|Noun|Noun+P3sg+Acc|
+14:1	yıka	lemma	yıkmak|Verb|Verb+Opt|
+16:2	yüz	pos	yüz|Noun|Noun+A3sg+Nom|
+18:2	unutma	tags	unutmak|Verb|Verb+ActN|
+1:3	ne	pos	ne|Conj|Conj|
+20:0	Ödevini	tags	ödev|Noun|Noun+P3sg+Acc|
+20:2	dışarı	tags	dışarı|Noun|Noun+A3sg+Nom|
+23:0	Kalemini	tags	kalem|Noun|Noun+P3sg+Acc|
+25:4	ateşin	tags	ateş|Noun|Noun+Gen|
+26:0	Dolu	pos	dolu|Adj|Adj|
+26:1	yağınca	lemma+pos	yağ|Noun|Noun+P3sg+Equ|
+28:0	Napıyorsun	lemma+pos	|Unk||
+29:1	gelcem	lemma+pos	|Unk||
+29:4	etme	tags	etmek|Verb|Verb+ActN|
+2:2	yeni	pos	yeni|Adv|Adv|
+2:3	bir	pos	bir|Adv|Adv|
+2:4	kazak	pos	kazak|Adj|Adj|
+30:0	Bi	lemma+pos	|Unk||
+30:1	dakka	lemma	dakka|Noun|Noun+A3sg+Nom|P
+30:2	bekle	lemma+pos	bek|Noun|Noun+Ins|
+4:1	kitabı	tags	kitap|Noun|Noun+P3sg|
+4:5	çok	pos	çok|Det|Det|
+5:4	soğuk	pos	soğuk|Noun|Noun+A3sg+Nom|
+missing	28:0	Napıyorsun
+missing	29:1	gelcem
+missing	30:0	Bi
+missing	30:1	dakka

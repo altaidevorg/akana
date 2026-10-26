@@ -1,0 +1,40 @@
+# Gold items the analyzer gets wrong today (tests/review_gold.rs).
+# 700 of 735 checks pass (95.2 %)
+#   ACC 579/598
+#   REJ 70/85
+#   REJL 51/52
+circumflex and loanwords	ACC	dükkânı	dükkân	*
+circumflex and loanwords	ACC	hikâyesi	hikâye	*
+circumflex and loanwords	ACC	kâğıdı	kâğıt	*
+circumflex and loanwords	ACC	rüzgârı	rüzgâr	*
+nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	benimki	ben	*
+nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	erkeksi	*	*
+nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	insansı	*	*
+nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	kadınsı	*	*
+nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	çocuksu	*	*
+nouns: -ki -lI -sIz -lIk -CI -CIk	REJ	sütcü
+nouns: vowel drop / doubling / inverse harmony	REJ	akılı
+nouns: vowel drop / doubling / inverse harmony	REJ	burunu
+nouns: vowel drop / doubling / inverse harmony	REJ	isimi
+nouns: vowel drop / doubling / inverse harmony	REJ	kalbı
+nouns: vowel drop / doubling / inverse harmony	REJ	redi
+nouns: vowel drop / doubling / inverse harmony	REJ	sırı
+nouns: vowel-final, buffers	REJ	evye
+nouns: vowel-final, buffers	REJ	sunun
+pronouns	REJ	banı
+pronouns	REJ	bene
+pronouns	REJ	bizler'e
+pronouns	REJ	sene
+proper nouns and abbreviations	ACC	Av.	*	*
+proper nouns and abbreviations	ACC	Dr.	*	*
+proper nouns and abbreviations	ACC	Prof.	*	*
+proper nouns and abbreviations	ACC	md.	*	*
+proper nouns and abbreviations	ACC	vb.	*	*
+proper nouns and abbreviations	ACC	vs.	*	*
+proper nouns and abbreviations	REJ	Ahmed'e
+question particle, değil, imek	ACC	iken	imek	*
+question particle, değil, imek	REJ	değilsiniz'
+verbs: converbs, participles, infinitives	ACC	deyince	demek	*
+verbs: converbs, participles, infinitives	ACC	deyip	demek	Verb + AfterDoingSo + Adv
+verbs: converbs, participles, infinitives	ACC	yiyince	yemek	*
+verbs: converbs, participles, infinitives	REJL	diyip	demek

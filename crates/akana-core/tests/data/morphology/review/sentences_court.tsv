@@ -1,0 +1,927 @@
+# Review 2's hand-checked gold for the analyzer and the disambiguator in context (sentences of Turkish court decisions, official texts that may be reproduced).
+# Each sentence is a "> " line of its tokens separated by single spaces, preceded by "@ source",
+# then one row per checked token: token index, token, kind, gold.
+# kind: ok | C colloquial non-standard form | T misspelling | S foreign or corrupt (T and S are
+# not scored). gold: the acceptable readings separated by " || ", each lemma|POS|tags|flag
+# (flag P proper noun, A abbreviation); the first is preferred.
+@ yargitay
+> Ceza Dairesine gönderilmek üzere Yargıtay Cumhuriyet Başsavcılığına TEVDİİNE , 09.10.2023 tarihinde karar verildi .
+0	Ceza	ok	ceza|Noun|Noun+A3sg+Nom|
+1	Dairesine	ok	daire|Noun|Noun+P3sg+Dat|
+2	gönderilmek	ok	göndermek|Verb|Verb+Pass+Inf|
+3	üzere	ok	üzere|Postp|Postp|
+4	Yargıtay	ok	yargıtay|Noun|Noun+A3sg+Nom|P
+5	Cumhuriyet	ok	cumhuriyet|Noun|Noun+A3sg+Nom|
+6	Başsavcılığına	ok	başsavcı|Noun|Noun+Ness+P3sg+Dat|
+7	TEVDİİNE	ok	tevdi|Noun|Noun+P3sg+Dat|
+9	09.10.2023	ok	09.10.2023|Num|Num|
+10	tarihinde	ok	tarih|Noun|Noun+P3sg+Loc|
+11	karar	ok	karar|Noun|Noun+A3sg+Nom|
+12	verildi	ok	vermek|Verb|Verb+Pass+Past|
+@ yargitay
+> Bölge Adliye Mahkemesinin yukarıda belirtilen kararına karşı süresi içinde davalı vekili temyiz isteminde bulunmuştur .
+0	Bölge	ok	bölge|Noun|Noun+A3sg+Nom|
+1	Adliye	ok	adliye|Noun|Noun+A3sg+Nom|
+2	Mahkemesinin	ok	mahkeme|Noun|Noun+P3sg+Gen|
+3	yukarıda	ok	yukarı|Noun|Noun+Loc|
+4	belirtilen	ok	belirtmek|Verb|Verb+Pass+PresPart|
+5	kararına	ok	karar|Noun|Noun+P3sg+Dat|
+6	karşı	ok	karşı|Postp|Postp|
+7	süresi	ok	süre|Noun|Noun+P3sg|
+8	içinde	ok	iç|Noun|Noun+P3sg+Loc| || içinde|Adv|Adv|
+9	davalı	ok	davalı|Adj|Adj| || dava|Noun|Noun+With|
+10	vekili	ok	vekil|Noun|Noun+P3sg|
+11	temyiz	ok	temyiz|Noun|Noun+A3sg+Nom|
+12	isteminde	ok	istem|Noun|Noun+P3sg+Loc|
+13	bulunmuştur	ok	bulunmak|Verb|Verb+Evid+CopPres3sg|
+@ yargitay
+> İlk Derece Mahkemesinin 22.02.2018 tarihli kararına karşı süresi içinde davacı vekili istinaf başvurusunda bulunmuştur .
+0	İlk	ok	ilk|Adj|Adj|
+1	Derece	ok	derece|Noun|Noun+A3sg+Nom|
+2	Mahkemesinin	ok	mahkeme|Noun|Noun+P3sg+Gen|
+3	22.02.2018	ok	22.02.2018|Num|Num|
+4	tarihli	ok	tarih|Noun|Noun+With|
+5	kararına	ok	karar|Noun|Noun+P3sg+Dat|
+6	karşı	ok	karşı|Postp|Postp|
+7	süresi	ok	süre|Noun|Noun+P3sg|
+8	içinde	ok	iç|Noun|Noun+P3sg+Loc| || içinde|Adv|Adv|
+9	davacı	ok	davacı|Noun|Noun+A3sg+Nom| || dava|Noun|Noun+Agt|
+10	vekili	ok	vekil|Noun|Noun+P3sg|
+11	istinaf	ok	istinaf|Noun|Noun+A3sg+Nom|
+12	başvurusunda	ok	başvuru|Noun|Noun+P3sg+Loc|
+13	bulunmuştur	ok	bulunmak|Verb|Verb+Evid+CopPres3sg|
+@ yargitay
+> Emniyet Müdürlüğü'ne müracaat ettiği , burada fotoğrafı ve parmak izlerinin kayıt altına alındığı belirlenmiştir .
+0	Emniyet	ok	emniyet|Noun|Noun+A3sg+Nom|
+1	Müdürlüğü'ne	ok	müdür|Noun|Noun+Ness+P3sg+Dat|
+2	müracaat	ok	müracaat|Noun|Noun+A3sg+Nom|
+3	ettiği	ok	etmek|Verb|Verb+PastPart+P3sg|
+5	burada	ok	bura|Noun|Noun+Loc|
+6	fotoğrafı	ok	fotoğraf|Noun|Noun+P3sg|
+7	ve	ok	ve|Conj|Conj|
+8	parmak	ok	parmak|Noun|Noun+A3sg+Nom|
+9	izlerinin	ok	iz|Noun|Noun+A3pl+P3sg+Gen|
+10	kayıt	ok	kayıt|Noun|Noun+A3sg+Nom|
+11	altına	ok	alt|Noun|Noun+P3sg+Dat|
+12	alındığı	ok	almak|Verb|Verb+Pass+PastPart+P3sg|
+13	belirlenmiştir	ok	belirlemek|Verb|Verb+Pass+Evid+CopPres3sg|
+@ yargitay
+> İş sözleşmesinin sendikal nedenle feshedildiği iddiası ile açılacak davada , feshin nedenini ispat yükümlülüğü işverene aittir .
+0	İş	ok	iş|Noun|Noun+A3sg+Nom|
+1	sözleşmesinin	ok	sözleşme|Noun|Noun+P3sg+Gen|
+2	sendikal	ok	sendikal|Adj|Adj|
+3	nedenle	ok	neden|Noun|Noun+Ins|
+4	feshedildiği	ok	feshetmek|Verb|Verb+Pass+PastPart+P3sg|
+5	iddiası	ok	iddia|Noun|Noun+P3sg|
+6	ile	ok	ile|Postp|Postp|
+7	açılacak	ok	açmak|Verb|Verb+Pass+FutPart|
+8	davada	ok	dava|Noun|Noun+Loc|
+10	feshin	ok	fesih|Noun|Noun+Gen|
+11	nedenini	ok	neden|Noun|Noun+P3sg+Acc|
+12	ispat	ok	ispat|Noun|Noun+A3sg+Nom|
+13	yükümlülüğü	ok	yüküm|Noun|Noun+With+Ness+P3sg|
+14	işverene	ok	işveren|Noun|Noun+Dat|
+15	aittir	ok	ait|Postp|Postp+CopPres3sg|
+@ yargitay
+> Bunun üzerine sanık beni sürekli arayarak rahatsız etmeye başladı .
+0	Bunun	ok	bu|Pron|Pron+Gen|
+1	üzerine	ok	üzeri|Noun|Noun+Dat| || üzerine|Adv|Adv|
+2	sanık	ok	sanık|Noun|Noun+A3sg+Nom|
+3	beni	ok	ben|Pron|Pron+A1sg+Acc|
+4	sürekli	ok	sürekli|Adv|Adv|
+5	arayarak	ok	aramak|Verb|Verb+AdvErek|
+6	rahatsız	ok	rahat|Adj|Adj+Without|
+7	etmeye	ok	etmek|Verb|Verb+ActN+Dat|
+8	başladı	ok	başlamak|Verb|Verb+Past|
+@ yargitay
+> Dava , satış vaadi sözleşmesine dayalı alacağın tahsili isteğine ilişkindir .
+0	Dava	ok	dava|Noun|Noun+A3sg+Nom|
+2	satış	ok	satış|Noun|Noun+A3sg+Nom|
+3	vaadi	ok	vaat|Noun|Noun+P3sg|
+4	sözleşmesine	ok	sözleşme|Noun|Noun+P3sg+Dat|
+5	dayalı	ok	dayalı|Adj|Adj|
+6	alacağın	ok	alacak|Noun|Noun+Gen|
+7	tahsili	ok	tahsil|Noun|Noun+P3sg|
+8	isteğine	ok	istek|Noun|Noun+P3sg+Dat|
+9	ilişkindir	ok	ilişkin|Postp|Postp+CopPres3sg|
+@ yargitay
+> Taraflar arasındaki uyuşmazlık , İİK hükümleri uyarınca istihkak istemine ilişkindir .
+0	Taraflar	ok	taraf|Noun|Noun+A3pl|
+1	arasındaki	ok	ara|Noun|Noun+P3sg+Loc+RelClitic|
+2	uyuşmazlık	ok	uyuşmak|Verb|Verb+Neg+AorPart+Ness| || uyuşmak|Verb|Verb+NotState|
+4	İİK	ok	iik|Noun|Noun+A3sg+Nom|A
+5	hükümleri	ok	hüküm|Noun|Noun+A3pl+P3sg|
+6	uyarınca	ok	uyarınca|Postp|Postp|
+7	istihkak	ok	istihkak|Noun|Noun+A3sg+Nom|
+8	istemine	ok	istem|Noun|Noun+P3sg+Dat|
+9	ilişkindir	ok	ilişkin|Postp|Postp+CopPres3sg|
+@ yargitay
+> Temyiz isteğinin reddi nedenleri bulunmadığından işin esasına geçildi .
+0	Temyiz	ok	temyiz|Noun|Noun+A3sg+Nom|
+1	isteğinin	ok	istek|Noun|Noun+P3sg+Gen|
+2	reddi	ok	ret|Noun|Noun+P3sg|
+3	nedenleri	ok	neden|Noun|Noun+A3pl+P3sg|
+4	bulunmadığından	ok	bulunmak|Verb|Verb+Neg+PastPart+P3sg+Abl|
+5	işin	ok	iş|Noun|Noun+Gen|
+6	esasına	ok	esas|Noun|Noun+P3sg+Dat|
+7	geçildi	ok	geçmek|Verb|Verb+Pass+Past|
+@ yargitay
+> Çocuğun çıkarma açıkça ters düşmediği takdirde ifade edeceği görüşe önem verilmelidir .
+0	Çocuğun	ok	çocuk|Noun|Noun+Gen|
+1	çıkarma	S	
+2	açıkça	ok	açık|Adj|Adj+Ly|
+3	ters	ok	ters|Adj|Adj|
+4	düşmediği	ok	düşmek|Verb|Verb+Neg+PastPart+P3sg|
+5	takdirde	ok	takdirde|Postp|Postp| || takdir|Noun|Noun+Loc|
+6	ifade	ok	ifade|Noun|Noun+A3sg+Nom|
+7	edeceği	ok	etmek|Verb|Verb+FutPart+P3sg|
+8	görüşe	ok	görüş|Noun|Noun+Dat|
+9	önem	ok	önem|Noun|Noun+A3sg+Nom|
+10	verilmelidir	ok	vermek|Verb|Verb+Pass+Nec+CopPres3sg|
+@ yargitay
+> Taraflar arasında görülen dava sonucunda verilen kararın , temyizen incelenmesi davacı vekili tarafından istenilmekle , temyiz talebinin süresinde olduğu anlaşıldı .
+0	Taraflar	ok	taraf|Noun|Noun+A3pl|
+1	arasında	ok	ara|Noun|Noun+P3sg+Loc|
+2	görülen	ok	görmek|Verb|Verb+Pass+PresPart|
+3	dava	ok	dava|Noun|Noun+A3sg+Nom|
+4	sonucunda	ok	sonuç|Noun|Noun+P3sg+Loc|
+5	verilen	ok	vermek|Verb|Verb+Pass+PresPart|
+6	kararın	ok	karar|Noun|Noun+Gen|
+8	temyizen	ok	temyizen|Adv|Adv|
+9	incelenmesi	ok	incelemek|Verb|Verb+Pass+ActN+P3sg|
+10	davacı	ok	davacı|Noun|Noun+A3sg+Nom| || dava|Noun|Noun+Agt|
+11	vekili	ok	vekil|Noun|Noun+P3sg|
+12	tarafından	ok	taraf|Noun|Noun+P3sg+Abl| || tarafından|Adv|Adv|
+13	istenilmekle	ok	istemek|Verb|Verb+Pass+Inf+Ins|
+15	temyiz	ok	temyiz|Noun|Noun+A3sg+Nom|
+16	talebinin	ok	talep|Noun|Noun+P3sg+Gen|
+17	süresinde	ok	süre|Noun|Noun+P3sg+Loc|
+18	olduğu	ok	olmak|Verb|Verb+PastPart+P3sg|
+19	anlaşıldı	ok	anlaşmak|Verb|Verb+Pass+Past|
+@ yargitay
+> Davalı vekilinin temyizi üzerine 31.10.2022 tarihinde bozulan hükme esas alınan bilirkişi raporunda ise sözü edilen alacak kalemi , 14.05.2021 tarihine kadar hesaplanmıştır .
+0	Davalı	ok	davalı|Adj|Adj| || dava|Noun|Noun+With|
+1	vekilinin	ok	vekil|Noun|Noun+P3sg+Gen|
+2	temyizi	ok	temyiz|Noun|Noun+P3sg|
+3	üzerine	ok	üzeri|Noun|Noun+Dat| || üzerine|Adv|Adv|
+4	31.10.2022	ok	31.10.2022|Num|Num|
+5	tarihinde	ok	tarih|Noun|Noun+P3sg+Loc|
+6	bozulan	ok	bozmak|Verb|Verb+Pass+PresPart|
+7	hükme	ok	hüküm|Noun|Noun+Dat|
+8	esas	ok	esas|Noun|Noun+A3sg+Nom|
+9	alınan	ok	almak|Verb|Verb+Pass+PresPart|
+10	bilirkişi	ok	bilirkişi|Noun|Noun+A3sg+Nom|
+11	raporunda	ok	rapor|Noun|Noun+P3sg+Loc|
+12	ise	ok	imek|Verb|Verb+CopCond| || ise|Adv|Adv|
+13	sözü	ok	söz|Noun|Noun+P3sg|
+14	edilen	ok	etmek|Verb|Verb+Pass+PresPart|
+15	alacak	ok	alacak|Noun|Noun+A3sg+Nom|
+16	kalemi	ok	kalem|Noun|Noun+P3sg|
+18	14.05.2021	ok	14.05.2021|Num|Num|
+19	tarihine	ok	tarih|Noun|Noun+P3sg+Dat|
+20	kadar	ok	kadar|Postp|Postp|
+21	hesaplanmıştır	ok	hesaplamak|Verb|Verb+Pass+Evid+CopPres3sg|
+@ danistay
+> Temyiz dilekçesinde öne sürülen hususlar , temyize konu mahkeme kararının bozulmasını sağlayacak nitelikte bulunmadığından temyiz isteminin reddi gerektiği görüşüyle Dairemiz kararına katılmıyoruz .
+0	Temyiz	ok	temyiz|Noun|Noun+A3sg+Nom|
+1	dilekçesinde	ok	dilekçe|Noun|Noun+P3sg+Loc|
+2	öne	ok	ön|Noun|Noun+Dat|
+3	sürülen	ok	sürmek|Verb|Verb+Pass+PresPart|
+4	hususlar	ok	husus|Noun|Noun+A3pl|
+6	temyize	ok	temyiz|Noun|Noun+Dat|
+7	konu	ok	konu|Noun|Noun+A3sg+Nom|
+8	mahkeme	ok	mahkeme|Noun|Noun+A3sg+Nom|
+9	kararının	ok	karar|Noun|Noun+P3sg+Gen|
+10	bozulmasını	ok	bozmak|Verb|Verb+Pass+ActN+P3sg+Acc|
+11	sağlayacak	ok	sağlamak|Verb|Verb+FutPart|
+12	nitelikte	ok	nitelik|Noun|Noun+Loc|
+13	bulunmadığından	ok	bulunmak|Verb|Verb+Neg+PastPart+P3sg+Abl|
+14	temyiz	ok	temyiz|Noun|Noun+A3sg+Nom|
+15	isteminin	ok	istem|Noun|Noun+P3sg+Gen|
+16	reddi	ok	ret|Noun|Noun+P3sg|
+17	gerektiği	ok	gerekmek|Verb|Verb+PastPart+P3sg|
+18	görüşüyle	ok	görüş|Noun|Noun+P3sg+Ins|
+19	Dairemiz	ok	daire|Noun|Noun+P1pl|
+20	kararına	ok	karar|Noun|Noun+P3sg+Dat|
+21	katılmıyoruz	ok	katılmak|Verb|Verb+Neg+Prog+A1pl|
+@ danistay
+> Temyizen incelenen karar usul ve hukuka uygun olup , dilekçede ileri sürülen temyiz nedenleri kararın bozulmasını gerektirecek nitelikte görülmemiştir .
+0	Temyizen	ok	temyizen|Adv|Adv|
+1	incelenen	ok	incelemek|Verb|Verb+Pass+PresPart|
+2	karar	ok	karar|Noun|Noun+A3sg+Nom|
+3	usul	ok	usul|Noun|Noun+A3sg+Nom|
+4	ve	ok	ve|Conj|Conj|
+5	hukuka	ok	hukuk|Noun|Noun+Dat|
+6	uygun	ok	uygun|Adj|Adj|
+7	olup	ok	olmak|Verb|Verb+AdvIp|
+9	dilekçede	ok	dilekçe|Noun|Noun+Loc|
+10	ileri	ok	ileri|Adv|Adv| || ileri|Noun|Noun+A3sg+Nom|
+11	sürülen	ok	sürmek|Verb|Verb+Pass+PresPart|
+12	temyiz	ok	temyiz|Noun|Noun+A3sg+Nom|
+13	nedenleri	ok	neden|Noun|Noun+A3pl+P3sg|
+14	kararın	ok	karar|Noun|Noun+Gen|
+15	bozulmasını	ok	bozmak|Verb|Verb+Pass+ActN+P3sg+Acc|
+16	gerektirecek	ok	gerekmek|Verb|Verb+Caus+FutPart|
+17	nitelikte	ok	nitelik|Noun|Noun+Loc|
+18	görülmemiştir	ok	görmek|Verb|Verb+Pass+Neg+Evid+CopPres3sg|
+@ danistay
+> Davalı Yanında Müdahil tarafından , dava konusu işlemin hukuka uygun olduğu belirtilerek istemin reddi gerektiği savunulmuştur .
+0	Davalı	ok	davalı|Adj|Adj| || dava|Noun|Noun+With|
+1	Yanında	ok	yan|Noun|Noun+P3sg+Loc| || yanında|Adv|Adv|
+2	Müdahil	ok	müdahil|Adj|Adj|
+3	tarafından	ok	taraf|Noun|Noun+P3sg+Abl| || tarafından|Adv|Adv|
+5	dava	ok	dava|Noun|Noun+A3sg+Nom|
+6	konusu	ok	konu|Noun|Noun+P3sg|
+7	işlemin	ok	işlem|Noun|Noun+Gen|
+8	hukuka	ok	hukuk|Noun|Noun+Dat|
+9	uygun	ok	uygun|Adj|Adj|
+10	olduğu	ok	olmak|Verb|Verb+PastPart+P3sg|
+11	belirtilerek	ok	belirtmek|Verb|Verb+Pass+AdvErek|
+12	istemin	ok	istem|Noun|Noun+Gen|
+13	reddi	ok	ret|Noun|Noun+P3sg|
+14	gerektiği	ok	gerekmek|Verb|Verb+PastPart+P3sg|
+15	savunulmuştur	ok	savunmak|Verb|Verb+Pass+Evid+CopPres3sg|
+@ danistay
+> Türk Ticaret Kanunu hükümlerine göre şirketlerin tüzel kişilikleri ticaret sicilinden silinmesiyle sona ermektedir .
+0	Türk	ok	türk|Noun|Noun+A3sg+Nom|P
+1	Ticaret	ok	ticaret|Noun|Noun+A3sg+Nom|
+2	Kanunu	ok	kanun|Noun|Noun+P3sg|
+3	hükümlerine	ok	hüküm|Noun|Noun+A3pl+P3sg+Dat|
+4	göre	ok	göre|Postp|Postp|
+5	şirketlerin	ok	şirket|Noun|Noun+A3pl+Gen|
+6	tüzel	ok	tüzel|Adj|Adj|
+7	kişilikleri	ok	kişilik|Noun|Noun+A3pl+P3sg| || kişilik|Noun|Noun+A3pl+P3pl| || kişi|Noun|Noun+Ness+A3pl+P3sg| || kişi|Noun|Noun+Ness+A3pl+P3pl|
+8	ticaret	ok	ticaret|Noun|Noun+A3sg+Nom|
+9	sicilinden	ok	sicil|Noun|Noun+P3sg+Abl|
+10	silinmesiyle	ok	silmek|Verb|Verb+Pass+ActN+P3sg+Ins|
+11	sona	ok	son|Noun|Noun+Dat|
+12	ermektedir	ok	ermek|Verb|Verb+Prog+CopPres3sg|
+@ danistay
+> Belirtilen gerekçelerle hukuka aykırı bulunan dava konusu işlemin iptaline karar verilmiştir .
+0	Belirtilen	ok	belirtmek|Verb|Verb+Pass+PresPart|
+1	gerekçelerle	ok	gerekçe|Noun|Noun+A3pl+Ins|
+2	hukuka	ok	hukuk|Noun|Noun+Dat|
+3	aykırı	ok	aykırı|Adj|Adj|
+4	bulunan	ok	bulmak|Verb|Verb+Pass+PresPart|
+5	dava	ok	dava|Noun|Noun+A3sg+Nom|
+6	konusu	ok	konu|Noun|Noun+P3sg|
+7	işlemin	ok	işlem|Noun|Noun+Gen|
+8	iptaline	ok	iptal|Noun|Noun+P3sg+Dat|
+9	karar	ok	karar|Noun|Noun+A3sg+Nom|
+10	verilmiştir	ok	vermek|Verb|Verb+Pass+Evid+CopPres3sg|
+@ danistay
+> Bu durumda , arabulucu ihtiyaç sayısı sınav ilanında duyurulur .
+0	Bu	ok	bu|Det|Det|
+1	durumda	ok	durum|Noun|Noun+Loc|
+3	arabulucu	ok	arabulmak|Verb|Verb+Agt|
+4	ihtiyaç	ok	ihtiyaç|Noun|Noun+A3sg+Nom|
+5	sayısı	ok	sayı|Noun|Noun+P3sg|
+6	sınav	ok	sınav|Noun|Noun+A3sg+Nom|
+7	ilanında	ok	ilan|Noun|Noun+P3sg+Loc|
+8	duyurulur	ok	duyurmak|Verb|Verb+Pass+Aor|
+@ danistay
+> Bir tedarikçi tarafından AT yüklenicisine temin edilen mallar veya sunulan hizmetler veya yapılan işler de katma değer vergisinden muaf tutulacaktır .
+0	Bir	ok	bir|Det|Det|
+1	tedarikçi	ok	tedarik|Noun|Noun+Agt|
+2	tarafından	ok	taraf|Noun|Noun+P3sg+Abl| || tarafından|Adv|Adv|
+3	AT	ok	at|Noun|Noun+A3sg+Nom|A
+4	yüklenicisine	ok	yüklemek|Verb|Verb+Pass+Agt+P3sg+Dat|
+5	temin	ok	temin|Noun|Noun+A3sg+Nom|
+6	edilen	ok	etmek|Verb|Verb+Pass+PresPart|
+7	mallar	ok	mal|Noun|Noun+A3pl|
+8	veya	ok	veya|Conj|Conj|
+9	sunulan	ok	sunmak|Verb|Verb+Pass+PresPart|
+10	hizmetler	ok	hizmet|Noun|Noun+A3pl|
+11	veya	ok	veya|Conj|Conj|
+12	yapılan	ok	yapmak|Verb|Verb+Pass+PresPart|
+13	işler	ok	iş|Noun|Noun+A3pl|
+14	de	ok	de|Conj|Conj|
+15	katma	ok	katmak|Verb|Verb+ActN|
+16	değer	ok	değer|Noun|Noun+A3sg+Nom|
+17	vergisinden	ok	vergi|Noun|Noun+P3sg+Abl|
+18	muaf	ok	muaf|Adj|Adj|
+19	tutulacaktır	ok	tutmak|Verb|Verb+Pass+Fut+CopPres3sg|
+@ danistay
+> Kanun , gerçek mahiyetin ortaya çıkarılmasında , yemin hariç her türlü delile izin vermiştir .
+0	Kanun	ok	kanun|Noun|Noun+A3sg+Nom|
+2	gerçek	ok	gerçek|Adj|Adj|
+3	mahiyetin	ok	mahiyet|Noun|Noun+Gen|
+4	ortaya	ok	orta|Noun|Noun+Dat|
+5	çıkarılmasında	ok	çıkarmak|Verb|Verb+Pass+ActN+P3sg+Loc|
+7	yemin	ok	yemin|Noun|Noun+A3sg+Nom|
+8	hariç	ok	hariç|Adv|Adv|
+9	her	ok	her|Det|Det|
+10	türlü	ok	türlü|Adj|Adj|
+11	delile	ok	delil|Noun|Noun+Dat|
+12	izin	ok	izin|Noun|Noun+A3sg+Nom|
+13	vermiştir	ok	vermek|Verb|Verb+Evid+CopPres3sg|
+@ danistay
+> Tüzel kişilerin mütaaddit müdür veya temsilcisi varsa tebliğin bunlardan birine yapılması kafidir .
+0	Tüzel	ok	tüzel|Adj|Adj|
+1	kişilerin	ok	kişi|Noun|Noun+A3pl+Gen|
+2	mütaaddit	T	
+3	müdür	ok	müdür|Noun|Noun+A3sg+Nom|
+4	veya	ok	veya|Conj|Conj|
+5	temsilcisi	ok	temsilci|Noun|Noun+P3sg| || temsil|Noun|Noun+Agt+P3sg|
+6	varsa	ok	var|Adj|Adj+CopCond|
+7	tebliğin	ok	tebliğ|Noun|Noun+Gen|
+8	bunlardan	ok	bu|Pron|Pron+A3pl+Abl|
+9	birine	ok	bir|Num|Num+P3sg+Dat| || biri|Pron|Pron+Dat|
+10	yapılması	ok	yapmak|Verb|Verb+Pass+ActN+P3sg|
+11	kafidir	ok	kafi|Adj|Adj+CopPres3sg|
+@ danistay
+> İncelenen dosyada , dava dilekçesinde haksız olarak tahsil edildiği ileri sürülen vergilerin hesaplanacak faiziyle birlikte iade edilmesinin istenildiği görülmüştür .
+0	İncelenen	ok	incelemek|Verb|Verb+Pass+PresPart|
+1	dosyada	ok	dosya|Noun|Noun+Loc|
+3	dava	ok	dava|Noun|Noun+A3sg+Nom|
+4	dilekçesinde	ok	dilekçe|Noun|Noun+P3sg+Loc|
+5	haksız	ok	hak|Noun|Noun+Without| || hak|Adj|Adj+Without|
+6	olarak	ok	olmak|Verb|Verb+AdvErek|
+7	tahsil	ok	tahsil|Noun|Noun+A3sg+Nom|
+8	edildiği	ok	etmek|Verb|Verb+Pass+PastPart+P3sg|
+9	ileri	ok	ileri|Adv|Adv| || ileri|Noun|Noun+A3sg+Nom|
+10	sürülen	ok	sürmek|Verb|Verb+Pass+PresPart|
+11	vergilerin	ok	vergi|Noun|Noun+A3pl+Gen|
+12	hesaplanacak	ok	hesaplamak|Verb|Verb+Pass+FutPart|
+13	faiziyle	ok	faiz|Noun|Noun+P3sg+Ins|
+14	birlikte	ok	birlikte|Postp|Postp| || birlikte|Adv|Adv|
+15	iade	ok	iade|Noun|Noun+A3sg+Nom|
+16	edilmesinin	ok	etmek|Verb|Verb+Pass+ActN+P3sg+Gen|
+17	istenildiği	ok	istemek|Verb|Verb+Pass+PastPart+P3sg|
+18	görülmüştür	ok	görmek|Verb|Verb+Pass+Evid+CopPres3sg|
+@ danistay
+> Bunun üzerine , anılan işlemin iptaline karar verilmesi istemiyle temyizen incelenen dava açılmıştır .
+0	Bunun	ok	bu|Pron|Pron+Gen|
+1	üzerine	ok	üzeri|Noun|Noun+Dat| || üzerine|Adv|Adv|
+3	anılan	ok	anmak|Verb|Verb+Pass+PresPart|
+4	işlemin	ok	işlem|Noun|Noun+Gen|
+5	iptaline	ok	iptal|Noun|Noun+P3sg+Dat|
+6	karar	ok	karar|Noun|Noun+A3sg+Nom|
+7	verilmesi	ok	vermek|Verb|Verb+Pass+ActN+P3sg|
+8	istemiyle	ok	istem|Noun|Noun+P3sg+Ins|
+9	temyizen	ok	temyizen|Adv|Adv|
+10	incelenen	ok	incelemek|Verb|Verb+Pass+PresPart|
+11	dava	ok	dava|Noun|Noun+A3sg+Nom|
+12	açılmıştır	ok	açmak|Verb|Verb+Pass+Evid+CopPres3sg|
+@ danistay
+> Adli yargı yerinde bedele ilişkin olarak açılacak dava , kamulaştırmama işleminin iptali istemiyle idari yargıda açılacak iptal davasının sonucunu beklemek zorundadır .
+0	Adli	ok	adli|Adj|Adj|
+1	yargı	ok	yargı|Noun|Noun+A3sg+Nom|
+2	yerinde	ok	yer|Noun|Noun+P3sg+Loc|
+3	bedele	ok	bedel|Noun|Noun+Dat|
+4	ilişkin	ok	ilişkin|Postp|Postp|
+5	olarak	ok	olmak|Verb|Verb+AdvErek|
+6	açılacak	ok	açmak|Verb|Verb+Pass+FutPart|
+7	dava	ok	dava|Noun|Noun+A3sg+Nom|
+9	kamulaştırmama	ok	kamu|Noun|Noun+BecomeVerb+Caus+Neg+ActN| || kamu|Adj|Adj+BecomeVerb+Caus+Neg+ActN|
+10	işleminin	ok	işlem|Noun|Noun+P3sg+Gen|
+11	iptali	ok	iptal|Noun|Noun+P3sg|
+12	istemiyle	ok	istem|Noun|Noun+P3sg+Ins|
+13	idari	ok	idari|Adj|Adj|
+14	yargıda	ok	yargı|Noun|Noun+Loc|
+15	açılacak	ok	açmak|Verb|Verb+Pass+FutPart|
+16	iptal	ok	iptal|Noun|Noun+A3sg+Nom|
+17	davasının	ok	dava|Noun|Noun+P3sg+Gen|
+18	sonucunu	ok	sonuç|Noun|Noun+P3sg+Acc|
+19	beklemek	ok	beklemek|Verb|Verb+Inf|
+20	zorundadır	ok	zor|Noun|Noun+P3sg+Loc+CopPres3sg| || zor|Adj|Adj+P3sg+Loc+CopPres3sg|
+@ emsal
+> Bu kapsamda dosya öncelikle mahkememizin görevli olup olmadığı yönünden incelenmiştir .
+0	Bu	ok	bu|Det|Det|
+1	kapsamda	ok	kapsam|Noun|Noun+Loc|
+2	dosya	ok	dosya|Noun|Noun+A3sg+Nom|
+3	öncelikle	ok	öncelikle|Adv|Adv| || öncelik|Noun|Noun+Ins|
+4	mahkememizin	ok	mahkeme|Noun|Noun+P1pl+Gen|
+5	görevli	ok	görev|Noun|Noun+With|
+6	olup	ok	olmak|Verb|Verb+AdvIp|
+7	olmadığı	ok	olmak|Verb|Verb+Neg+PastPart+P3sg|
+8	yönünden	ok	yön|Noun|Noun+P3sg+Abl|
+9	incelenmiştir	ok	incelemek|Verb|Verb+Pass+Evid+CopPres3sg|
+@ emsal
+> Yargıtay’ın yerleşik uygulamasına ve öğretideki genel kabule göre , maddi olgunun tespitine ilişkin ceza mahkemesi kararı hukuk hakimini bağlar .
+0	Yargıtay’ın	ok	yargıtay|Noun|Noun+Gen|P
+1	yerleşik	ok	yerleşik|Adj|Adj|
+2	uygulamasına	ok	uygulamak|Verb|Verb+ActN+P3sg+Dat|
+3	ve	ok	ve|Conj|Conj|
+4	öğretideki	ok	öğreti|Noun|Noun+Loc+RelClitic|
+5	genel	ok	genel|Adj|Adj|
+6	kabule	ok	kabul|Noun|Noun+Dat|
+7	göre	ok	göre|Postp|Postp|
+9	maddi	ok	maddi|Adj|Adj|
+10	olgunun	ok	olgu|Noun|Noun+Gen|
+11	tespitine	ok	tespit|Noun|Noun+P3sg+Dat|
+12	ilişkin	ok	ilişkin|Postp|Postp|
+13	ceza	ok	ceza|Noun|Noun+A3sg+Nom|
+14	mahkemesi	ok	mahkeme|Noun|Noun+P3sg|
+15	kararı	ok	karar|Noun|Noun+P3sg|
+16	hukuk	ok	hukuk|Noun|Noun+A3sg+Nom|
+17	hakimini	ok	hakim|Noun|Noun+P3sg+Acc|
+18	bağlar	ok	bağlamak|Verb|Verb+Aor|
+@ emsal
+> Davalıya usulüne uygun dava dilekçesi , duruşma gün ve saati tebliğ edilmiş , davalı tarafından davaya cevap verilmemiştir .
+0	Davalıya	ok	davalı|Adj|Adj+Dat| || dava|Noun|Noun+With+Dat|
+1	usulüne	ok	usul|Noun|Noun+P3sg+Dat|
+2	uygun	ok	uygun|Adj|Adj|
+3	dava	ok	dava|Noun|Noun+A3sg+Nom|
+4	dilekçesi	ok	dilekçe|Noun|Noun+P3sg|
+6	duruşma	ok	duruşma|Noun|Noun+A3sg+Nom|
+7	gün	ok	gün|Noun|Noun+A3sg+Nom|
+8	ve	ok	ve|Conj|Conj|
+9	saati	ok	saat|Noun|Noun+P3sg|
+10	tebliğ	ok	tebliğ|Noun|Noun+A3sg+Nom|
+11	edilmiş	ok	etmek|Verb|Verb+Pass+Evid|
+13	davalı	ok	davalı|Adj|Adj| || dava|Noun|Noun+With|
+14	tarafından	ok	taraf|Noun|Noun+P3sg+Abl| || tarafından|Adv|Adv|
+15	davaya	ok	dava|Noun|Noun+Dat|
+16	cevap	ok	cevap|Noun|Noun+A3sg+Nom|
+17	verilmemiştir	ok	vermek|Verb|Verb+Pass+Neg+Evid+CopPres3sg|
+@ emsal
+> Davacı tarafın delil olarak dayandığı ve davalının el yazısı ile yazıldığını beyan ettiği belgelerin , tarihsiz ve imzasız olduğu görülmüştür .
+0	Davacı	ok	davacı|Noun|Noun+A3sg+Nom| || dava|Noun|Noun+Agt|
+1	tarafın	ok	taraf|Noun|Noun+Gen|
+2	delil	ok	delil|Noun|Noun+A3sg+Nom|
+3	olarak	ok	olmak|Verb|Verb+AdvErek|
+4	dayandığı	ok	dayanmak|Verb|Verb+PastPart+P3sg|
+5	ve	ok	ve|Conj|Conj|
+6	davalının	ok	davalı|Adj|Adj+Gen| || dava|Noun|Noun+With+Gen|
+7	el	ok	el|Noun|Noun+A3sg+Nom|
+8	yazısı	ok	yazı|Noun|Noun+P3sg|
+9	ile	ok	ile|Postp|Postp|
+10	yazıldığını	ok	yazmak|Verb|Verb+Pass+PastPart+P3sg+Acc|
+11	beyan	ok	beyan|Noun|Noun+A3sg+Nom|
+12	ettiği	ok	etmek|Verb|Verb+PastPart+P3sg|
+13	belgelerin	ok	belge|Noun|Noun+A3pl+Gen|
+15	tarihsiz	ok	tarih|Noun|Noun+Without|
+16	ve	ok	ve|Conj|Conj|
+17	imzasız	ok	imza|Noun|Noun+Without|
+18	olduğu	ok	olmak|Verb|Verb+PastPart+P3sg|
+19	görülmüştür	ok	görmek|Verb|Verb+Pass+Evid+CopPres3sg|
+@ emsal
+> Uyuşmazlık , trafik kazasından kaynaklanan araçta oluşan hasar ve değer kaybına dayalı tazminat istemine ilişkindir .
+0	Uyuşmazlık	ok	uyuşmak|Verb|Verb+Neg+AorPart+Ness| || uyuşmak|Verb|Verb+NotState|
+2	trafik	ok	trafik|Noun|Noun+A3sg+Nom|
+3	kazasından	ok	kaza|Noun|Noun+P3sg+Abl|
+4	kaynaklanan	ok	kaynaklanmak|Verb|Verb+PresPart| || kaynak|Noun|Noun+Acquire+PresPart|
+5	araçta	ok	araç|Noun|Noun+Loc|
+6	oluşan	ok	oluşmak|Verb|Verb+PresPart|
+7	hasar	ok	hasar|Noun|Noun+A3sg+Nom|
+8	ve	ok	ve|Conj|Conj|
+9	değer	ok	değer|Noun|Noun+A3sg+Nom|
+10	kaybına	ok	kayıp|Noun|Noun+P3sg+Dat|
+11	dayalı	ok	dayalı|Adj|Adj|
+12	tazminat	ok	tazminat|Noun|Noun+A3sg+Nom|
+13	istemine	ok	istem|Noun|Noun+P3sg+Dat|
+14	ilişkindir	ok	ilişkin|Postp|Postp+CopPres3sg|
+@ emsal
+> Her dava , açıldığı tarihteki fiili ve hukuki sebeplere ilişkin koşullara göre hükme bağlanır .
+0	Her	ok	her|Det|Det|
+1	dava	ok	dava|Noun|Noun+A3sg+Nom|
+3	açıldığı	ok	açmak|Verb|Verb+Pass+PastPart+P3sg|
+4	tarihteki	ok	tarih|Noun|Noun+Loc+RelClitic|
+5	fiili	ok	fiili|Adj|Adj|
+6	ve	ok	ve|Conj|Conj|
+7	hukuki	ok	hukuki|Adj|Adj|
+8	sebeplere	ok	sebep|Noun|Noun+A3pl+Dat|
+9	ilişkin	ok	ilişkin|Postp|Postp|
+10	koşullara	ok	koşul|Noun|Noun+A3pl+Dat|
+11	göre	ok	göre|Postp|Postp|
+12	hükme	ok	hüküm|Noun|Noun+Dat|
+13	bağlanır	ok	bağlamak|Verb|Verb+Pass+Aor|
+@ emsal
+> Ancak alacak bir ilama müstenid ise teminat aranmaz .
+0	Ancak	ok	ancak|Conj|Conj| || ancak|Adv|Adv|
+1	alacak	ok	alacak|Noun|Noun+A3sg+Nom|
+2	bir	ok	bir|Det|Det|
+3	ilama	ok	ilam|Noun|Noun+Dat|
+4	müstenid	T	
+5	ise	ok	imek|Verb|Verb+CopCond| || ise|Adv|Adv|
+6	teminat	ok	teminat|Noun|Noun+A3sg+Nom|
+7	aranmaz	ok	aramak|Verb|Verb+Pass+Neg+Aor| || aranmak|Verb|Verb+Neg+Aor|
+@ emsal
+> Bu uygulamaya sosyal tesislerde bulunan satış dükkanları da dahildir .
+0	Bu	ok	bu|Det|Det|
+1	uygulamaya	ok	uygulamak|Verb|Verb+ActN+Dat|
+2	sosyal	ok	sosyal|Adj|Adj|
+3	tesislerde	ok	tesis|Noun|Noun+A3pl+Loc|
+4	bulunan	ok	bulunmak|Verb|Verb+PresPart| || bulmak|Verb|Verb+Pass+PresPart|
+5	satış	ok	satış|Noun|Noun+A3sg+Nom|
+6	dükkanları	ok	dükkan|Noun|Noun+A3pl+P3sg| || dükkan|Noun|Noun+A3pl+P3pl|
+7	da	ok	da|Conj|Conj|
+8	dahildir	ok	dahil|Noun|Noun+CopPres3sg|
+@ emsal
+> Taraf delilleri toplanmış , hasar dosyası ve poliçe celp edilmiş , uzman bilirkişi heyetinden rapor alınmıştır .
+0	Taraf	ok	taraf|Noun|Noun+A3sg+Nom|
+1	delilleri	ok	delil|Noun|Noun+A3pl+P3sg| || delil|Noun|Noun+A3pl+P3pl|
+2	toplanmış	ok	toplamak|Verb|Verb+Pass+Evid|
+4	hasar	ok	hasar|Noun|Noun+A3sg+Nom|
+5	dosyası	ok	dosya|Noun|Noun+P3sg|
+6	ve	ok	ve|Conj|Conj|
+7	poliçe	ok	poliçe|Noun|Noun+A3sg+Nom|
+8	celp	ok	celp|Noun|Noun+A3sg+Nom|
+9	edilmiş	ok	etmek|Verb|Verb+Pass+Evid|
+11	uzman	ok	uzman|Adj|Adj| || uzman|Noun|Noun+A3sg+Nom|
+12	bilirkişi	ok	bilirkişi|Noun|Noun+A3sg+Nom|
+13	heyetinden	ok	heyet|Noun|Noun+P3sg+Abl|
+14	rapor	ok	rapor|Noun|Noun+A3sg+Nom|
+15	alınmıştır	ok	almak|Verb|Verb+Pass+Evid+CopPres3sg|
+@ emsal
+> Feragat , dilekçeyle veya yargılama sırasında sözlü olarak yapılır .
+0	Feragat	ok	feragat|Noun|Noun+A3sg+Nom|
+2	dilekçeyle	ok	dilekçe|Noun|Noun+Ins|
+3	veya	ok	veya|Conj|Conj|
+4	yargılama	ok	yargılamak|Verb|Verb+ActN|
+5	sırasında	ok	sıra|Noun|Noun+P3sg+Loc| || sırasında|Adv|Adv|
+6	sözlü	ok	sözlü|Adj|Adj| || söz|Noun|Noun+With|
+7	olarak	ok	olmak|Verb|Verb+AdvErek|
+8	yapılır	ok	yapmak|Verb|Verb+Pass+Aor|
+@ emsal
+> Diğer bir anlatımla , sürücünün alkollü olması tek başına hasarın teminat dışı kalmasını gerektirmez .
+0	Diğer	ok	diğer|Adj|Adj|
+1	bir	ok	bir|Det|Det|
+2	anlatımla	ok	anlatım|Noun|Noun+Ins|
+4	sürücünün	ok	sürücü|Noun|Noun+Gen|
+5	alkollü	ok	alkol|Noun|Noun+With|
+6	olması	ok	olmak|Verb|Verb+ActN+P3sg|
+7	tek	ok	tek|Adj|Adj|
+8	başına	ok	baş|Noun|Noun+P3sg+Dat|
+9	hasarın	ok	hasar|Noun|Noun+Gen|
+10	teminat	ok	teminat|Noun|Noun+A3sg+Nom|
+11	dışı	ok	dış|Noun|Noun+P3sg|
+12	kalmasını	ok	kalmak|Verb|Verb+ActN+P3sg+Acc|
+13	gerektirmez	ok	gerekmek|Verb|Verb+Caus+Neg+Aor|
+@ emsal
+> Çeklerin karşılığı malın teslim edilmediğini ispat yükü davacı tarafa aittir .
+0	Çeklerin	ok	çek|Noun|Noun+A3pl+Gen|
+1	karşılığı	ok	karşılık|Noun|Noun+P3sg| || karşı|Noun|Noun+Ness+P3sg|
+2	malın	ok	mal|Noun|Noun+Gen|
+3	teslim	ok	teslim|Noun|Noun+A3sg+Nom|
+4	edilmediğini	ok	etmek|Verb|Verb+Pass+Neg+PastPart+P3sg+Acc|
+5	ispat	ok	ispat|Noun|Noun+A3sg+Nom|
+6	yükü	ok	yük|Noun|Noun+P3sg|
+7	davacı	ok	davacı|Noun|Noun+A3sg+Nom| || dava|Noun|Noun+Agt|
+8	tarafa	ok	taraf|Noun|Noun+Dat|
+9	aittir	ok	ait|Postp|Postp+CopPres3sg|
+@ aym_bb
+> Bununla birlikte bireysel başvuru incelemesinde ayrımcılık yasağının bağımsız bir koruma işlevinin olmaması , bu yasağın genişletici bir yoruma tabi tutulmasına engel teşkil etmemektedir .
+0	Bununla	ok	bu|Pron|Pron+Ins|
+1	birlikte	ok	birlikte|Postp|Postp| || birlikte|Adv|Adv|
+2	bireysel	ok	bireysel|Adj|Adj| || birey|Noun|Noun+Related|
+3	başvuru	ok	başvuru|Noun|Noun+A3sg+Nom|
+4	incelemesinde	ok	incelemek|Verb|Verb+ActN+P3sg+Loc|
+5	ayrımcılık	ok	ayrım|Noun|Noun+Agt+Ness|
+6	yasağının	ok	yasak|Noun|Noun+P3sg+Gen|
+7	bağımsız	ok	bağımsız|Adj|Adj|
+8	bir	ok	bir|Det|Det|
+9	koruma	ok	korumak|Verb|Verb+ActN|
+10	işlevinin	ok	işlev|Noun|Noun+P3sg+Gen|
+11	olmaması	ok	olmak|Verb|Verb+Neg+ActN+P3sg|
+13	bu	ok	bu|Det|Det|
+14	yasağın	ok	yasak|Noun|Noun+Gen|
+15	genişletici	ok	genişlemek|Verb|Verb+Caus+Agt|
+16	bir	ok	bir|Det|Det|
+17	yoruma	ok	yorum|Noun|Noun+Dat|
+18	tabi	ok	tabi|Adj|Adj|
+19	tutulmasına	ok	tutmak|Verb|Verb+Pass+ActN+P3sg+Dat|
+20	engel	ok	engel|Noun|Noun+A3sg+Nom|
+21	teşkil	ok	teşkil|Noun|Noun+A3sg+Nom|
+22	etmemektedir	ok	etmek|Verb|Verb+Neg+Prog+CopPres3sg|
+@ aym_bb
+> İlgililer , haklarında idari davaya konu olabilecek bir işlem veya eylemin yapılması için idari makamlara başvurabilirler .
+0	İlgililer	ok	ilgili|Adj|Adj+A3pl| || ilgi|Noun|Noun+With+A3pl|
+2	haklarında	ok	hak|Noun|Noun+P3pl+Loc| || hak|Noun|Noun+A3pl+P3pl+Loc|
+3	idari	ok	idari|Adj|Adj|
+4	davaya	ok	dava|Noun|Noun+Dat|
+5	konu	ok	konu|Noun|Noun+A3sg+Nom|
+6	olabilecek	ok	olmak|Verb|Verb+Abil+FutPart|
+7	bir	ok	bir|Det|Det|
+8	işlem	ok	işlem|Noun|Noun+A3sg+Nom|
+9	veya	ok	veya|Conj|Conj|
+10	eylemin	ok	eylem|Noun|Noun+Gen|
+11	yapılması	ok	yapmak|Verb|Verb+Pass+ActN+P3sg|
+12	için	ok	için|Postp|Postp|
+13	idari	ok	idari|Adj|Adj|
+14	makamlara	ok	makam|Noun|Noun+A3pl+Dat|
+15	başvurabilirler	ok	başvurmak|Verb|Verb+Abil+Aor+A3pl|
+@ aym_bb
+> Başvurular , davanın uzun sürmesi nedeniyle makul sürede yargılanma hakkının ihlal edildiği iddiasına ilişkindir .
+0	Başvurular	ok	başvuru|Noun|Noun+A3pl|
+2	davanın	ok	dava|Noun|Noun+Gen|
+3	uzun	ok	uzun|Adj|Adj|
+4	sürmesi	ok	sürmek|Verb|Verb+ActN+P3sg|
+5	nedeniyle	ok	neden|Noun|Noun+P3sg+Ins| || nedeniyle|Adv|Adv|
+6	makul	ok	makul|Adj|Adj|
+7	sürede	ok	süre|Noun|Noun+Loc|
+8	yargılanma	ok	yargılamak|Verb|Verb+Pass+ActN|
+9	hakkının	ok	hak|Noun|Noun+P3sg+Gen|
+10	ihlal	ok	ihlal|Noun|Noun+A3sg+Nom|
+11	edildiği	ok	etmek|Verb|Verb+Pass+PastPart+P3sg|
+12	iddiasına	ok	iddia|Noun|Noun+P3sg+Dat|
+13	ilişkindir	ok	ilişkin|Postp|Postp+CopPres3sg|
+@ aym_bb
+> Başvurucu , sorgusunda Pel Yapım şirketinde kameraman olarak çalıştığını ve örgütle bir iltisakının bulunmadığını ifade etmiştir .
+0	Başvurucu	ok	başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
+2	sorgusunda	ok	sorgu|Noun|Noun+P3sg+Loc|
+3	Pel	ok	pel|Noun|Noun+A3sg+Nom|P
+4	Yapım	ok	yapım|Noun|Noun+A3sg+Nom|
+5	şirketinde	ok	şirket|Noun|Noun+P3sg+Loc|
+6	kameraman	ok	kameraman|Noun|Noun+A3sg+Nom|
+7	olarak	ok	olmak|Verb|Verb+AdvErek|
+8	çalıştığını	ok	çalışmak|Verb|Verb+PastPart+P3sg+Acc|
+9	ve	ok	ve|Conj|Conj|
+10	örgütle	ok	örgüt|Noun|Noun+Ins|
+11	bir	ok	bir|Det|Det|
+12	iltisakının	ok	iltisak|Noun|Noun+P3sg+Gen|
+13	bulunmadığını	ok	bulunmak|Verb|Verb+Neg+PastPart+P3sg+Acc|
+14	ifade	ok	ifade|Noun|Noun+A3sg+Nom|
+15	etmiştir	ok	etmek|Verb|Verb+Evid+CopPres3sg|
+@ aym_bb
+> Silivri Ağır Ceza Mahkemesi , İnfaz Hâkimliğinin kararında ve kararın gerekçesinde usul ve kanuna aykırı bir yön bulunmadığı gerekçesiyle itirazın reddine karar vermiştir .
+0	Silivri	ok	silivri|Noun|Noun+A3sg+Nom|P
+1	Ağır	ok	ağır|Adj|Adj|
+2	Ceza	ok	ceza|Noun|Noun+A3sg+Nom|
+3	Mahkemesi	ok	mahkeme|Noun|Noun+P3sg|
+5	İnfaz	ok	infaz|Noun|Noun+A3sg+Nom|
+6	Hâkimliğinin	ok	hakim|Noun|Noun+Ness+P3sg+Gen|
+7	kararında	ok	karar|Noun|Noun+P3sg+Loc|
+8	ve	ok	ve|Conj|Conj|
+9	kararın	ok	karar|Noun|Noun+Gen|
+10	gerekçesinde	ok	gerekçe|Noun|Noun+P3sg+Loc|
+11	usul	ok	usul|Noun|Noun+A3sg+Nom|
+12	ve	ok	ve|Conj|Conj|
+13	kanuna	ok	kanun|Noun|Noun+Dat|
+14	aykırı	ok	aykırı|Adj|Adj|
+15	bir	ok	bir|Det|Det|
+16	yön	ok	yön|Noun|Noun+A3sg+Nom|
+17	bulunmadığı	ok	bulunmak|Verb|Verb+Neg+PastPart+P3sg|
+18	gerekçesiyle	ok	gerekçe|Noun|Noun+P3sg+Ins|
+19	itirazın	ok	itiraz|Noun|Noun+Gen|
+20	reddine	ok	ret|Noun|Noun+P3sg+Dat|
+21	karar	ok	karar|Noun|Noun+A3sg+Nom|
+22	vermiştir	ok	vermek|Verb|Verb+Evid+CopPres3sg|
+@ aym_bb
+> Cumhuriyet savcısı olay yerine saat 10.50 civarında intikal etmiştir .
+0	Cumhuriyet	ok	cumhuriyet|Noun|Noun+A3sg+Nom|
+1	savcısı	ok	savcı|Noun|Noun+P3sg|
+2	olay	ok	olay|Noun|Noun+A3sg+Nom|
+3	yerine	ok	yer|Noun|Noun+P3sg+Dat|
+4	saat	ok	saat|Noun|Noun+A3sg+Nom|
+5	10.50	ok	10.50|Num|Num|
+6	civarında	ok	civar|Noun|Noun+P3sg+Loc|
+7	intikal	ok	intikal|Noun|Noun+A3sg+Nom|
+8	etmiştir	ok	etmek|Verb|Verb+Evid+CopPres3sg|
+@ aym_bb
+> Anayasa Mahkemesinin maddi tazminata hükmedebilmesi için başvurucunun uğradığını iddia ettiği maddi zarar ile tespit edilen ihlal arasında illiyet bağı bulunmalıdır .
+0	Anayasa	ok	anayasa|Noun|Noun+A3sg+Nom|
+1	Mahkemesinin	ok	mahkeme|Noun|Noun+P3sg+Gen|
+2	maddi	ok	maddi|Adj|Adj|
+3	tazminata	ok	tazminat|Noun|Noun+Dat|
+4	hükmedebilmesi	ok	hükmetmek|Verb|Verb+Abil+ActN+P3sg|
+5	için	ok	için|Postp|Postp|
+6	başvurucunun	ok	başvurmak|Verb|Verb+Agt+Gen| || başvuru|Noun|Noun+Agt+Gen|
+7	uğradığını	ok	uğramak|Verb|Verb+PastPart+P3sg+Acc|
+8	iddia	ok	iddia|Noun|Noun+A3sg+Nom|
+9	ettiği	ok	etmek|Verb|Verb+PastPart+P3sg|
+10	maddi	ok	maddi|Adj|Adj|
+11	zarar	ok	zarar|Noun|Noun+A3sg+Nom|
+12	ile	ok	ile|Conj|Conj|
+13	tespit	ok	tespit|Noun|Noun+A3sg+Nom|
+14	edilen	ok	etmek|Verb|Verb+Pass+PresPart|
+15	ihlal	ok	ihlal|Noun|Noun+A3sg+Nom|
+16	arasında	ok	ara|Noun|Noun+P3sg+Loc|
+17	illiyet	ok	illiyet|Noun|Noun+A3sg+Nom|
+18	bağı	ok	bağ|Noun|Noun+P3sg|
+19	bulunmalıdır	ok	bulunmak|Verb|Verb+Nec+CopPres3sg|
+@ aym_bb
+> Başvurucu , nakledildiği ceza infaz kurumunda da benzer disiplin cezaları almış ancak başvuruya konu olay itibarıyla bu cezalar henüz kesinleşmemiştir .
+0	Başvurucu	ok	başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
+2	nakledildiği	ok	nakletmek|Verb|Verb+Pass+PastPart+P3sg|
+3	ceza	ok	ceza|Noun|Noun+A3sg+Nom|
+4	infaz	ok	infaz|Noun|Noun+A3sg+Nom|
+5	kurumunda	ok	kurum|Noun|Noun+P3sg+Loc|
+6	da	ok	da|Conj|Conj|
+7	benzer	ok	benzer|Adj|Adj|
+8	disiplin	ok	disiplin|Noun|Noun+A3sg+Nom|
+9	cezaları	ok	ceza|Noun|Noun+A3pl+P3sg|
+10	almış	ok	almak|Verb|Verb+Evid|
+11	ancak	ok	ancak|Conj|Conj|
+12	başvuruya	ok	başvuru|Noun|Noun+Dat|
+13	konu	ok	konu|Noun|Noun+A3sg+Nom|
+14	olay	ok	olay|Noun|Noun+A3sg+Nom|
+15	itibarıyla	ok	itibar|Noun|Noun+P3sg+Ins| || itibarıyla|Adv|Adv|
+16	bu	ok	bu|Det|Det|
+17	cezalar	ok	ceza|Noun|Noun+A3pl|
+18	henüz	ok	henüz|Adv|Adv|
+19	kesinleşmemiştir	ok	kesin|Adj|Adj+BecomeVerb+Neg+Evid+CopPres3sg|
+@ aym_bb
+> Somut olayda başvurucu hakkında işvereni şüphe feshine götüren olgulardan biri , başvurucunun ağabeyi hakkında soruşturma yürütüldüğü ve bu kapsamda tutuklandığı bilgisidir .
+0	Somut	ok	somut|Adj|Adj|
+1	olayda	ok	olay|Noun|Noun+Loc|
+2	başvurucu	ok	başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
+3	hakkında	ok	hak|Noun|Noun+P3sg+Loc| || hakkında|Adv|Adv|
+4	işvereni	ok	işveren|Noun|Noun+Acc|
+5	şüphe	ok	şüphe|Noun|Noun+A3sg+Nom|
+6	feshine	ok	fesih|Noun|Noun+P3sg+Dat|
+7	götüren	ok	götürmek|Verb|Verb+PresPart|
+8	olgulardan	ok	olgu|Noun|Noun+A3pl+Abl|
+9	biri	ok	biri|Pron|Pron+A3sg+Nom| || bir|Num|Num+P3sg|
+11	başvurucunun	ok	başvurmak|Verb|Verb+Agt+Gen| || başvuru|Noun|Noun+Agt+Gen|
+12	ağabeyi	ok	ağabey|Noun|Noun+P3sg|
+13	hakkında	ok	hak|Noun|Noun+P3sg+Loc| || hakkında|Adv|Adv|
+14	soruşturma	ok	soruşturmak|Verb|Verb+ActN|
+15	yürütüldüğü	ok	yürütmek|Verb|Verb+Pass+PastPart+P3sg|
+16	ve	ok	ve|Conj|Conj|
+17	bu	ok	bu|Det|Det|
+18	kapsamda	ok	kapsam|Noun|Noun+Loc|
+19	tutuklandığı	ok	tutuklamak|Verb|Verb+Pass+PastPart+P3sg|
+20	bilgisidir	ok	bilgi|Noun|Noun+P3sg+CopPres3sg|
+@ aym_bb
+> Aynı kararla , kötü muamele yasağının ihlal edildiği iddiası başvuru yollarının tüketilmemesi nedeniyle kabul edilemez bulunmuştur .
+0	Aynı	ok	aynı|Adj|Adj|
+1	kararla	ok	karar|Noun|Noun+Ins|
+3	kötü	ok	kötü|Adj|Adj|
+4	muamele	ok	muamele|Noun|Noun+A3sg+Nom|
+5	yasağının	ok	yasak|Noun|Noun+P3sg+Gen|
+6	ihlal	ok	ihlal|Noun|Noun+A3sg+Nom|
+7	edildiği	ok	etmek|Verb|Verb+Pass+PastPart+P3sg|
+8	iddiası	ok	iddia|Noun|Noun+P3sg|
+9	başvuru	ok	başvuru|Noun|Noun+A3sg+Nom|
+10	yollarının	ok	yol|Noun|Noun+A3pl+P3sg+Gen|
+11	tüketilmemesi	ok	tüketmek|Verb|Verb+Pass+Neg+ActN+P3sg|
+12	nedeniyle	ok	neden|Noun|Noun+P3sg+Ins| || nedeniyle|Adv|Adv|
+13	kabul	ok	kabul|Noun|Noun+A3sg+Nom|
+14	edilemez	ok	etmek|Verb|Verb+Pass+NegAbil+Aor| || etmek|Verb|Verb+Pass+NegAbil+AorPart|
+15	bulunmuştur	ok	bulmak|Verb|Verb+Pass+Evid+CopPres3sg|
+@ aym_bb
+> Başvurucuya göre bu belge , ülkesinin kamu makamlarının takibinde olduğunu , hakkında ceza soruşturması açıldığını göstermektedir .
+0	Başvurucuya	ok	başvurmak|Verb|Verb+Agt+Dat| || başvuru|Noun|Noun+Agt+Dat|
+1	göre	ok	göre|Postp|Postp|
+2	bu	ok	bu|Det|Det|
+3	belge	ok	belge|Noun|Noun+A3sg+Nom|
+5	ülkesinin	ok	ülke|Noun|Noun+P3sg+Gen|
+6	kamu	ok	kamu|Noun|Noun+A3sg+Nom| || kamu|Adj|Adj|
+7	makamlarının	ok	makam|Noun|Noun+A3pl+P3sg+Gen|
+8	takibinde	ok	takip|Noun|Noun+P3sg+Loc|
+9	olduğunu	ok	olmak|Verb|Verb+PastPart+P3sg+Acc|
+11	hakkında	ok	hak|Noun|Noun+P3sg+Loc| || hakkında|Adv|Adv|
+12	ceza	ok	ceza|Noun|Noun+A3sg+Nom|
+13	soruşturması	ok	soruşturmak|Verb|Verb+ActN+P3sg|
+14	açıldığını	ok	açmak|Verb|Verb+Pass+PastPart+P3sg+Acc|
+15	göstermektedir	ok	göstermek|Verb|Verb+Prog+CopPres3sg|
+@ aym_bb
+> Hatta içtihat farklılığı aynı mahkeme içinde de söz konusu olabilir .
+0	Hatta	ok	hatta|Conj|Conj| || hatta|Adv|Adv|
+1	içtihat	ok	içtihat|Noun|Noun+A3sg+Nom|
+2	farklılığı	ok	fark|Noun|Noun+With+Ness+P3sg|
+3	aynı	ok	aynı|Adj|Adj|
+4	mahkeme	ok	mahkeme|Noun|Noun+A3sg+Nom|
+5	içinde	ok	iç|Noun|Noun+P3sg+Loc| || içinde|Adv|Adv|
+6	de	ok	de|Conj|Conj|
+7	söz	ok	söz|Noun|Noun+A3sg+Nom|
+8	konusu	ok	konu|Noun|Noun+P3sg|
+9	olabilir	ok	olmak|Verb|Verb+Abil+Aor|
+@ aym_norm
+> Ormanlara zarar verebilecek hiçbir faaliyet ve eyleme müsaade edilemez .
+0	Ormanlara	ok	orman|Noun|Noun+A3pl+Dat|
+1	zarar	ok	zarar|Noun|Noun+A3sg+Nom|
+2	verebilecek	ok	vermek|Verb|Verb+Abil+FutPart|
+3	hiçbir	ok	hiçbir|Det|Det|
+4	faaliyet	ok	faaliyet|Noun|Noun+A3sg+Nom|
+5	ve	ok	ve|Conj|Conj|
+6	eyleme	ok	eylem|Noun|Noun+Dat|
+7	müsaade	ok	müsaade|Noun|Noun+A3sg+Nom|
+8	edilemez	ok	etmek|Verb|Verb+Pass+NegAbil+Aor|
+@ aym_norm
+> Bu konuda yasa koyucunun mutlak bir takdir yetkisinin bulunduğu söylenemez .
+0	Bu	ok	bu|Det|Det|
+1	konuda	ok	konu|Noun|Noun+Loc|
+2	yasa	ok	yasa|Noun|Noun+A3sg+Nom|
+3	koyucunun	ok	koymak|Verb|Verb+Agt+Gen|
+4	mutlak	ok	mutlak|Adj|Adj|
+5	bir	ok	bir|Det|Det|
+6	takdir	ok	takdir|Noun|Noun+A3sg+Nom|
+7	yetkisinin	ok	yetki|Noun|Noun+P3sg+Gen|
+8	bulunduğu	ok	bulunmak|Verb|Verb+PastPart+P3sg|
+9	söylenemez	ok	söylemek|Verb|Verb+Pass+NegAbil+Aor|
+@ aym_norm
+> Anayasa'nın 149 uncu maddesine dayanılarak bu hükümlerin iptali istenilmiştir .
+0	Anayasa'nın	ok	anayasa|Noun|Noun+Gen|
+1	149	ok	149|Num|Num|
+2	uncu	S	
+3	maddesine	ok	madde|Noun|Noun+P3sg+Dat|
+4	dayanılarak	ok	dayanmak|Verb|Verb+Pass+AdvErek|
+5	bu	ok	bu|Det|Det|
+6	hükümlerin	ok	hüküm|Noun|Noun+A3pl+Gen|
+7	iptali	ok	iptal|Noun|Noun+P3sg|
+8	istenilmiştir	ok	istemek|Verb|Verb+Pass+Evid+CopPres3sg|
+@ aym_norm
+> Haklar , ancak sicile işlendiği takdirde hüküm ve sonuç doğurur .
+0	Haklar	ok	hak|Noun|Noun+A3pl|
+2	ancak	ok	ancak|Adv|Adv|
+3	sicile	ok	sicil|Noun|Noun+Dat|
+4	işlendiği	ok	işlemek|Verb|Verb+Pass+PastPart+P3sg|
+5	takdirde	ok	takdirde|Postp|Postp| || takdir|Noun|Noun+Loc|
+6	hüküm	ok	hüküm|Noun|Noun+A3sg+Nom|
+7	ve	ok	ve|Conj|Conj|
+8	sonuç	ok	sonuç|Noun|Noun+A3sg+Nom|
+9	doğurur	ok	doğurmak|Verb|Verb+Aor|
+@ aym_norm
+> Hukuk devletinde kanunların kamu yararı gözetilerek çıkarılması zorunludur .
+0	Hukuk	ok	hukuk|Noun|Noun+A3sg+Nom|
+1	devletinde	ok	devlet|Noun|Noun+P3sg+Loc|
+2	kanunların	ok	kanun|Noun|Noun+A3pl+Gen|
+3	kamu	ok	kamu|Noun|Noun+A3sg+Nom| || kamu|Adj|Adj|
+4	yararı	ok	yarar|Noun|Noun+P3sg|
+5	gözetilerek	ok	gözetmek|Verb|Verb+Pass+AdvErek|
+6	çıkarılması	ok	çıkarmak|Verb|Verb+Pass+ActN+P3sg|
+7	zorunludur	ok	zorunlu|Adj|Adj+CopPres3sg|
+@ aym_norm
+> Kaldı ki , Ceza Muhakemesi Kanununda , mağdurun özel yaşamına saygı gösterilmesi için başvurulabilecek kurallar da bulunmaktadır .
+0	Kaldı	ok	kalmak|Verb|Verb+Past|
+1	ki	ok	ki|Conj|Conj|
+3	Ceza	ok	ceza|Noun|Noun+A3sg+Nom|
+4	Muhakemesi	ok	muhakeme|Noun|Noun+P3sg|
+5	Kanununda	ok	kanun|Noun|Noun+P3sg+Loc|
+7	mağdurun	ok	mağdur|Adj|Adj+Gen|
+8	özel	ok	özel|Adj|Adj|
+9	yaşamına	ok	yaşam|Noun|Noun+P3sg+Dat|
+10	saygı	ok	saygı|Noun|Noun+A3sg+Nom|
+11	gösterilmesi	ok	göstermek|Verb|Verb+Pass+ActN+P3sg|
+12	için	ok	için|Postp|Postp|
+13	başvurulabilecek	ok	başvurmak|Verb|Verb+Pass+Abil+FutPart|
+14	kurallar	ok	kural|Noun|Noun+A3pl|
+15	da	ok	da|Conj|Conj|
+16	bulunmaktadır	ok	bulunmak|Verb|Verb+Prog+CopPres3sg|
+@ aym_norm
+> Anayasa’ya aykırı olduğu kanısına varan Mahkeme , iptali için başvurmuştur .
+0	Anayasa’ya	ok	anayasa|Noun|Noun+Dat|
+1	aykırı	ok	aykırı|Adj|Adj|
+2	olduğu	ok	olmak|Verb|Verb+PastPart+P3sg|
+3	kanısına	ok	kanı|Noun|Noun+P3sg+Dat|
+4	varan	ok	varmak|Verb|Verb+PresPart|
+5	Mahkeme	ok	mahkeme|Noun|Noun+A3sg+Nom|
+7	iptali	ok	iptal|Noun|Noun+P3sg|
+8	için	ok	için|Postp|Postp|
+9	başvurmuştur	ok	başvurmak|Verb|Verb+Evid+CopPres3sg|
+@ aym_norm
+> Dilekçe bu maddelerde belirtilen konulardan hiç birisini kapsamamaktadır .
+0	Dilekçe	ok	dilekçe|Noun|Noun+A3sg+Nom|
+1	bu	ok	bu|Det|Det|
+2	maddelerde	ok	madde|Noun|Noun+A3pl+Loc|
+3	belirtilen	ok	belirtmek|Verb|Verb+Pass+PresPart|
+4	konulardan	ok	konu|Noun|Noun+A3pl+Abl|
+5	hiç	ok	hiç|Adv|Adv|
+6	birisini	ok	biri|Pron|Pron+P3sg+Acc|
+7	kapsamamaktadır	ok	kapsamak|Verb|Verb+Neg+Prog+CopPres3sg|
+@ aym_norm
+> İtiraz konusu ibarenin kapsamının belirlenmesi , maddenin birinci fıkrasının tamamının değerlendirilmesini gerektirmektedir .
+0	İtiraz	ok	itiraz|Noun|Noun+A3sg+Nom|
+1	konusu	ok	konu|Noun|Noun+P3sg|
+2	ibarenin	ok	ibare|Noun|Noun+Gen|
+3	kapsamının	ok	kapsam|Noun|Noun+P3sg+Gen|
+4	belirlenmesi	ok	belirlemek|Verb|Verb+Pass+ActN+P3sg|
+6	maddenin	ok	madde|Noun|Noun+Gen|
+7	birinci	ok	birinci|Num|Num|
+8	fıkrasının	ok	fıkra|Noun|Noun+P3sg+Gen|
+9	tamamının	ok	tamam|Adj|Adj+P3sg+Gen|
+10	değerlendirilmesini	ok	değerlendirmek|Verb|Verb+Pass+ActN+P3sg+Acc|
+11	gerektirmektedir	ok	gerekmek|Verb|Verb+Caus+Prog+CopPres3sg|
+@ aym_norm
+> Hiçbir kişiye , aileye , zümreye veya sınıfa imtiyaz tanınamaz .
+0	Hiçbir	ok	hiçbir|Det|Det|
+1	kişiye	ok	kişi|Noun|Noun+Dat|
+3	aileye	ok	aile|Noun|Noun+Dat|
+5	zümreye	ok	zümre|Noun|Noun+Dat|
+6	veya	ok	veya|Conj|Conj|
+7	sınıfa	ok	sınıf|Noun|Noun+Dat|
+8	imtiyaz	ok	imtiyaz|Noun|Noun+A3sg+Nom|
+9	tanınamaz	ok	tanımak|Verb|Verb+Pass+NegAbil+Aor|
+@ aym_norm
+> Bir başka deyişle tebligat işleminin iki unsurunu belgelendirme ve bilgilendirme oluşturmaktadır .
+0	Bir	ok	bir|Det|Det|
+1	başka	ok	başka|Adj|Adj|
+2	deyişle	ok	deyiş|Noun|Noun+Ins|
+3	tebligat	ok	tebligat|Noun|Noun+A3sg+Nom|
+4	işleminin	ok	işlem|Noun|Noun+P3sg+Gen|
+5	iki	ok	iki|Num|Num|
+6	unsurunu	ok	unsur|Noun|Noun+P3sg+Acc|
+7	belgelendirme	ok	belge|Noun|Noun+Acquire+Caus+ActN|
+8	ve	ok	ve|Conj|Conj|
+9	bilgilendirme	ok	bilgilenmek|Verb|Verb+Caus+ActN| || bilgi|Noun|Noun+Acquire+Caus+ActN|
+10	oluşturmaktadır	ok	oluşmak|Verb|Verb+Caus+Prog+CopPres3sg|
+@ aym_norm
+> Belirtilen nitelikleri itibarıyla kuralın belirsiz ve öngörülemez olduğundan söz edilemeyeceğinden kuralda belirlilik ilkesine aykırılık bulunmamaktadır .
+0	Belirtilen	ok	belirtmek|Verb|Verb+Pass+PresPart|
+1	nitelikleri	ok	nitelik|Noun|Noun+A3pl+P3sg|
+2	itibarıyla	ok	itibar|Noun|Noun+P3sg+Ins| || itibarıyla|Adv|Adv|
+3	kuralın	ok	kural|Noun|Noun+Gen|
+4	belirsiz	ok	belirsiz|Adj|Adj|
+5	ve	ok	ve|Conj|Conj|
+6	öngörülemez	ok	öngörmek|Verb|Verb+Pass+NegAbil+AorPart| || öngörmek|Verb|Verb+Pass+NegAbil+Aor|
+7	olduğundan	ok	olmak|Verb|Verb+PastPart+P3sg+Abl|
+8	söz	ok	söz|Noun|Noun+A3sg+Nom|
+9	edilemeyeceğinden	ok	etmek|Verb|Verb+Pass+NegAbil+FutPart+P3sg+Abl|
+10	kuralda	ok	kural|Noun|Noun+Loc|
+11	belirlilik	ok	belirli|Adj|Adj+Ness|
+12	ilkesine	ok	ilke|Noun|Noun+P3sg+Dat|
+13	aykırılık	ok	aykırı|Adj|Adj+Ness|
+14	bulunmamaktadır	ok	bulunmak|Verb|Verb+Neg+Prog+CopPres3sg|
