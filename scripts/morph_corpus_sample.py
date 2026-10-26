@@ -9,12 +9,15 @@ The samples are deterministic (fixed seeds), so every phase of a change is measu
 same text:
 
 - `eval/`: 600 decisions from each of the five court subsets, drawn from 6 random row groups
-  per subset (the 2026-10-20 review's sample), each capped at 40,000 characters, plus all
-  RagTurk articles. For each corpus: `<corpus>.types.tsv` (letter tokens, `word<TAB>count`),
-  `<corpus>.numbers.tsv` (tokens with digits) and `<corpus>.txt` (the documents, separated by
-  a line holding only `\\x1e`), which the sweep times `analyze` on.
+  per subset with a fixed seed, each capped at 40,000 characters, plus all RagTurk articles.
+  (It is not the 2026-10-20 review's sample, as an earlier version of this note said; review 2
+  found the token counts differ.) For each corpus: `<corpus>.types.tsv` (letter tokens,
+  `word<TAB>count`), `<corpus>.numbers.tsv` (tokens with digits) and `<corpus>.txt` (the
+  documents, separated by a line holding only `\\x1e`), which the sweep times `analyze` on.
 - `train/`: decisions that are not in `eval/` (other row groups where a subset has enough,
-  otherwise other rows of the same groups), for estimating the analyzer's frequency prior;
+  otherwise other rows of the same groups), for estimating the analyzer's frequency prior. A
+  subset whose first 8 training groups run out (the small groups of aym_bb and aym_norm) is
+  filled up from its other rows, so that it has its `TRAIN_DOCS`;
   `<corpus>.types.tsv` and `<corpus>.numbers.tsv`, and with `--train-text` also `<corpus>.txt`,
   which the sparse encoder's document frequencies are estimated from (`examples/sparse_idf.rs`).
 """
@@ -73,6 +76,20 @@ def sample_court(root, subset, rng):
         for i in rng.sample(free, min(per, len(free))):
             if len(train_docs) < want:
                 train_docs.append(texts[i][:CAP])
+                taken.add((f, g, i))
+    # Filling up draws from a generator of its own, so that the draws above (and the eval
+    # samples of the subsets after this one) stay as they were.
+    if len(train_docs) < want:
+        fill = random.Random(f"morph-sample-fill-{subset}")
+        for f, g in groups[6:] + eval_groups:
+            texts = read_texts(f, g)
+            free = [i for i in range(len(texts)) if (f, g, i) not in taken and texts[i]]
+            fill.shuffle(free)
+            for i in free:
+                if len(train_docs) == want:
+                    break
+                train_docs.append(texts[i][:CAP])
+                taken.add((f, g, i))
     return eval_docs, train_docs
 
 
