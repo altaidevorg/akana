@@ -417,18 +417,18 @@ mod tests {
 
     #[test]
     fn a_lemma_weighs_by_its_lexicon_class_whatever_reading_is_chosen() {
-        // devam is a noun and an interjection, yeni an adjective and an adverb, kanun a noun
-        // and a (corpus) proper noun: each weighs by its first class, whichever reading the
-        // disambiguator takes.
-        assert_eq!(LEMMA_WEIGHTS.get("devam"), Some(&1.3));
+        // yazık is a noun, an adverb and an interjection, yeni an adjective and an adverb, kanun
+        // a noun and a (corpus) proper noun: each weighs by its first class, whichever reading
+        // the disambiguator takes.
+        assert_eq!(LEMMA_WEIGHTS.get("yazık"), Some(&1.3));
         assert_eq!(LEMMA_WEIGHTS.get("yeni"), Some(&1.0));
         assert_eq!(LEMMA_WEIGHTS.get("kanun"), Some(&1.3));
         // A lemma whose items share a class is left to the reading (bırakmak: one verb).
         assert_eq!(LEMMA_WEIGHTS.get("bırakmak"), None);
         let encoder = MorphologicalSparseEncoder::new();
-        let alone = term_values(encoder.encode_sparse("Devam."));
-        let in_clause = term_values(encoder.encode_sparse("Davaya devam edildi."));
-        assert_eq!(alone["devam"], in_clause["devam"]);
+        let alone = term_values(encoder.encode_sparse("Yazık."));
+        let in_clause = term_values(encoder.encode_sparse("Emekler çok yazık oldu."));
+        assert_eq!(alone["yazık"], in_clause["yazık"]);
     }
 
     #[test]

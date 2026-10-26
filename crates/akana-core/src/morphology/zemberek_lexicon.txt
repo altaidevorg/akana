@@ -389,7 +389,6 @@ acarya acarya Noun ProperNoun ProperNoun
 acaröz acaröz Noun ProperNoun ProperNoun
 acay acay Noun ProperNoun ProperNoun
 acayip acayip Adj None Voicing
-acayip acayip Interj None
 accelerando accelerando Adv None
 accent accent Noun ProperNoun ProperNoun
 accenture accenture Noun ProperNoun ProperNoun
@@ -704,7 +703,6 @@ affair affair Noun ProperNoun ProperNoun
 affairs affairs Noun ProperNoun ProperNoun
 affan affan Noun ProperNoun ProperNoun
 affetmek affet Verb None AoristA Voicing
-affetmişsin affetmişsin Interj None
 affettuoso affettuoso Adv None
 affeyleme affeyleme Noun None
 affeylemek affeyle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -847,7 +845,6 @@ aharlamak aharla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 ahassan ahassan Noun ProperNoun ProperNoun
 ahat ahat Noun ProperNoun ProperNoun
 ahavi ahavi Noun ProperNoun ProperNoun
-ahbap ahbap Interj None
 ahbap ahbap Noun None Voicing
 ahbar ahbar Noun ProperNoun ProperNoun
 ahbari ahbari Noun ProperNoun ProperNoun display=Ahbarî
@@ -1657,7 +1654,6 @@ alanyurt alanyurt Noun ProperNoun ProperNoun
 alanzinho alanzinho Noun ProperNoun ProperNoun
 alaplı alaplı Noun ProperNoun ProperNoun
 alarga alarga Adv None
-alarga alarga Interj None
 alarga alarga Noun None
 alaric alaric Noun ProperNoun ProperNoun
 alarko alarko Noun ProperNoun ProperNoun
@@ -2434,7 +2430,6 @@ ambrose ambrose Noun ProperNoun ProperNoun
 ambrosio ambrosio Noun ProperNoun ProperNoun
 ambulans ambulans Noun None
 ambülans ambülans Noun None
-amca amca Interj None
 amca amca Noun None
 amcamlar amcamlar Noun None ImplicitP1sg ImplicitPlural
 amcanlar amcanlar Noun None ImplicitP2sg ImplicitPlural
@@ -2587,7 +2582,6 @@ amy amy Noun ProperNoun ProperNoun pr=eymi
 amyant amyant Noun None Voicing
 an an Noun Time NoVoicing
 ana ana Adj None
-ana ana Interj None
 ana ana Noun None
 anaarı anaarı Noun None
 anababa anababa Noun None
@@ -3265,7 +3259,6 @@ apse apse Noun None
 apsent apsent Noun None NoVoicing
 apsis apsis Noun None
 aptal aptal Adj None
-aptal aptal Interj None
 aptalcasına aptalcasına Adv None
 aptamil aptamil Noun ProperNoun ProperNoun
 apteriks apteriks Noun None
@@ -3834,7 +3827,6 @@ arızalanmak arızalan Verb None AoristI
 arızi arızi Adj None
 arıç arıç Noun ProperNoun ProperNoun
 arış arış Noun None
-arş arş Interj None
 arş arş Noun None NoVoicing
 arşavin arşavin Noun ProperNoun ProperNoun
 arşe arşe Noun None
@@ -4444,7 +4436,6 @@ avantür avantür Noun None
 avantüriye avantüriye Adj None
 avantüriyer avantüriyer Adj None
 avar avar Noun ProperNoun ProperNoun
-avara avara Interj None
 avara avara Noun None
 avare avare Adj None
 avarya avarya Noun None
@@ -4551,7 +4542,6 @@ axelrod axelrod Noun ProperNoun ProperNoun
 axess axess Noun ProperNoun ProperNoun
 axis axis Noun ProperNoun ProperNoun
 axor axor Noun ProperNoun ProperNoun
-ay ay Interj None
 ay ay Noun None NoVoicing
 ay ay Noun ProperNoun NoVoicing ProperNoun
 ay ay Noun Time NoVoicing idx=1
@@ -4877,7 +4867,6 @@ ayçiçek ayçiçek Noun None Voicing
 ayçiçeği ayçiçeği Noun None CompoundP3sg roots=ay-çiçek
 ayçöreği ayçöreği Noun None CompoundP3sg roots=ay-çörek
 ayçıl ayçıl Noun ProperNoun ProperNoun
-ayı ayı Interj None
 ayı ayı Noun None
 ayıbacağı ayıbacağı Noun None CompoundP3sg roots=ayı-bacak
 ayıbalığı ayıbalığı Noun None CompoundP3sg roots=ayı-balık
@@ -5095,9 +5084,7 @@ ağ ağ Noun None NoVoicing
 ağa ağa Adj None
 ağa ağa Noun None
 ağababa ağababa Adj None
-ağababa ağababa Interj None
 ağababa ağababa Noun None
-ağabey ağabey Interj None
 ağabey ağabey Noun None
 ağabeylik ağabeylik Noun None Voicing
 ağacıkoğlu ağacıkoğlu Noun ProperNoun ProperNoun
@@ -5253,7 +5240,6 @@ aşüfte aşüfte Noun None
 aşı aşı Adj None
 aşı aşı Noun None
 aşıboyası aşıboyası Noun None CompoundP3sg roots=aşı-boya
-aşık aşık Interj None display=âşık
 aşık aşık Noun None Voicing display=âşık
 aşık aşık Noun None NoVoicing idx=1
 aşıkane aşıkane Adj None display=âşıkane
@@ -5358,7 +5344,6 @@ bacile bacile Noun ProperNoun ProperNoun
 back back Noun ProperNoun NoVoicing ProperNoun
 backup backup Noun ProperNoun ProperNoun
 bacon bacon Noun ProperNoun ProperNoun
-bacı bacı Interj None
 bacı bacı Noun None
 bad bad Noun Abbrv NoVoicing pr=bad
 bad bad Noun None NoVoicing
@@ -5849,7 +5834,6 @@ banking banking Noun ProperNoun ProperNoun
 bankiz bankiz Noun None
 banknot banknot Noun None NoVoicing
 banko banko Adv None
-banko banko Interj None
 banko banko Noun None
 bankpozitif bankpozitif Noun ProperNoun ProperNoun
 banks banks Noun ProperNoun NoVoicing ProperNoun
@@ -5968,7 +5952,6 @@ barguti barguti Noun ProperNoun ProperNoun
 barhana barhana Noun None
 barhum barhum Noun ProperNoun ProperNoun
 bari bari Adv None
-bari bari Interj None
 barika barika Noun ProperNoun ProperNoun
 barikat barikat Noun None NoVoicing
 barikatlamak barikatla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -6292,7 +6275,6 @@ bavyeralı bavyeralı Noun ProperNoun ProperNoun
 baxter baxter Noun ProperNoun ProperNoun
 bay bay Adj None NoVoicing
 bay bay Noun None NoVoicing
-bayan bayan Interj None
 bayan bayan Noun None
 bayar bayar Noun ProperNoun ProperNoun
 bayarslan bayarslan Noun ProperNoun ProperNoun
@@ -6816,7 +6798,6 @@ bebe bebe Noun None
 bebecik bebecik Noun None Voicing
 bebedor bebedor Noun ProperNoun ProperNoun
 bebefox bebefox Noun ProperNoun ProperNoun
-bebek bebek Interj None
 bebek bebek Noun None Voicing
 bebek bebek Noun ProperNoun ProperNoun
 bebekçe bebekçe Adv None
@@ -7614,7 +7595,6 @@ beyazımtırak beyazımtırak Adj None Voicing
 beyazıt beyazıt Noun ProperNoun ProperNoun
 beyazşehir beyazşehir Noun ProperNoun ProperNoun
 beyağaç beyağaç Noun ProperNoun ProperNoun
-beybaba beybaba Interj None
 beybaba beybaba Noun None
 beybars beybars Noun ProperNoun ProperNoun
 beybolat beybolat Noun ProperNoun ProperNoun
@@ -8116,7 +8096,6 @@ bir bir Adv None
 bir bir Det None
 bir bir Num Card
 bira bira Noun None
-birader birader Interj None
 birader birader Noun None
 birahane birahane Noun None
 birak birak Noun ProperNoun ProperNoun
@@ -11194,7 +11173,6 @@ cicik cicik Noun None Voicing
 cicim cicim Noun None
 cicinho cicinho Noun ProperNoun ProperNoun
 cicişler cicişler Noun ProperNoun ProperNoun
-cicoz cicoz Interj None
 cicoz cicoz Noun None
 cicozlamak cicozla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 cidal cidal Noun None InverseHarmony
@@ -12204,7 +12182,6 @@ dadak dadak Noun ProperNoun ProperNoun
 dadaloğlu dadaloğlu Noun ProperNoun ProperNoun
 dadanmak dadan Verb None AoristI
 daday daday Noun ProperNoun ProperNoun
-dadaş dadaş Interj None
 dadaş dadaş Noun None
 dadaşkent dadaşkent Noun ProperNoun ProperNoun
 daddario daddario Noun ProperNoun ProperNoun
@@ -12436,7 +12413,6 @@ dancer dancer Noun ProperNoun ProperNoun
 dancing dancing Noun ProperNoun ProperNoun
 dandik dandik Adj None Voicing
 dandini dandini Adj None
-dandini dandini Interj None
 dane dane Noun None
 danes danes Noun ProperNoun ProperNoun
 danforth danforth Noun ProperNoun ProperNoun
@@ -12703,7 +12679,6 @@ daylak daylak Noun None Voicing
 days days Noun ProperNoun NoVoicing ProperNoun
 dayton dayton Noun ProperNoun ProperNoun
 dayı dayı Adj None
-dayı dayı Interj None
 dayı dayı Noun None
 dayımlar dayımlar Noun None ImplicitP1sg ImplicitPlural
 dayınlar dayınlar Noun None ImplicitP2sg ImplicitPlural
@@ -12832,7 +12807,6 @@ declan declan Noun ProperNoun ProperNoun
 deco deco Noun ProperNoun ProperNoun
 deda deda Noun ProperNoun ProperNoun
 dedaş dedaş Noun ProperNoun ProperNoun
-dede dede Interj None
 dede dede Noun None
 dedeağaç dedeağaç Noun ProperNoun ProperNoun
 dedegil dedegil Noun ProperNoun ProperNoun
@@ -12920,7 +12894,6 @@ dehliz dehliz Noun None
 dehna dehna Noun ProperNoun ProperNoun
 dehri dehri Noun ProperNoun ProperNoun
 dehşet dehşet Adj None NoVoicing
-dehşet dehşet Interj None NoVoicing
 dehşet dehşet Noun None NoVoicing
 dehşetlenmek dehşetlen Verb None AoristI
 dehşetli dehşetli Adj None
@@ -13014,7 +12987,6 @@ delihasan delihasan Noun ProperNoun ProperNoun
 delik delik Adj None Voicing
 delik delik Noun None Voicing
 delikanlı delikanlı Adj None
-delikanlı delikanlı Interj None
 delikanlı delikanlı Noun None
 delikliler delikliler Noun None ImplicitPlural
 deliklitaş deliklitaş Noun ProperNoun ProperNoun
@@ -13545,7 +13517,6 @@ deva deva Noun ProperNoun ProperNoun
 devaimisk devaimisk Noun None NoVoicing
 devalüasyon devalüasyon Noun None
 devalüe devalüe Adj None
-devam devam Interj None
 devam devam Noun None
 devan devan Noun ProperNoun ProperNoun
 devanası devanası Noun None CompoundP3sg roots=dev-ana
@@ -13636,7 +13607,6 @@ deyr deyr Noun ProperNoun NoVoicing ProperNoun
 deyrulzafaran deyrulzafaran Noun ProperNoun ProperNoun
 deyruz deyruz Noun ProperNoun ProperNoun
 deyyus deyyus Adj None
-deyyus deyyus Interj None
 dezavantaj dezavantaj Noun None
 dezenfeksiyon dezenfeksiyon Noun None
 dezenfektan dezenfektan Adj None
@@ -13855,7 +13825,6 @@ dikizlemek dikizle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 dikiş dikiş Noun None
 dikkafalı dikkafalı Adj None
 dikkaldırım dikkaldırım Noun ProperNoun ProperNoun
-dikkat dikkat Interj None InverseHarmony
 dikkat dikkat Noun None InverseHarmony
 dikkatli dikkatli Adj None
 dikkatli dikkatli Adv None
@@ -15758,7 +15727,6 @@ efelik efelik Noun None Voicing
 efemine efemine Adj None
 efemçukuru efemçukuru Noun ProperNoun ProperNoun
 efendi efendi Adj None
-efendi efendi Interj None
 efendi efendi Noun None
 efendibaba efendibaba Noun None
 efendigil efendigil Noun ProperNoun ProperNoun
@@ -18503,7 +18471,6 @@ fayed fayed Noun ProperNoun ProperNoun
 fayih fayih Noun ProperNoun ProperNoun
 fayiha fayiha Noun ProperNoun ProperNoun
 faymann faymann Noun ProperNoun ProperNoun
-fayrap fayrap Interj None
 fayrap fayrap Noun None Voicing
 faysal faysal Noun ProperNoun ProperNoun
 fayton fayton Noun None
@@ -19337,7 +19304,6 @@ folyo folyo Noun None
 fomara fomara Noun ProperNoun ProperNoun
 fomc fomc Noun ProperNoun NoVoicing ProperNoun
 fon fon Noun None NoVoicing
-fonda fonda Interj None
 fonda fonda Noun None
 fondan fondan Noun None
 fondip fondip Adv None
@@ -19371,7 +19337,6 @@ foods foods Noun ProperNoun ProperNoun
 foot foot Noun ProperNoun ProperNoun
 football football Noun ProperNoun ProperNoun
 for for Noun Abbrv NoVoicing pr=for
-fora fora Interj None
 fora fora Noun None
 forbes forbes Noun ProperNoun ProperNoun
 forbesun forbesun Noun ProperNoun ProperNoun
@@ -20221,7 +20186,6 @@ garibe garibe Noun None
 garibe garibe Noun ProperNoun ProperNoun
 garih garih Noun ProperNoun ProperNoun
 garip garip Adj None Voicing
-garip garip Interj None
 garip garip Noun ProperNoun ProperNoun
 garipoğlu garipoğlu Noun ProperNoun ProperNoun
 garipsemek garipse Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -20744,7 +20708,6 @@ gergin gergin Adj None
 gerhard gerhard Noun ProperNoun ProperNoun
 geri geri Adj None
 geri geri Adv None
-geri geri Interj None
 geri geri Noun None
 geriatri geriatri Noun None
 geribesleme geribesleme Noun None
@@ -20960,7 +20923,6 @@ giderek giderek Adv None
 gidermek gider Verb None AoristI CausativeT
 gideğen gideğen Noun None
 gidi gidi Adj None
-gidi gidi Interj None
 gidimli gidimli Noun None
 gidişat gidişat Noun None NoVoicing
 gidişgeliş gidişgeliş Noun None
@@ -22938,7 +22900,6 @@ hail hail Noun None
 haile haile Noun None
 hailey hailey Noun ProperNoun ProperNoun
 hain hain Adj None
-hain hain Interj None
 haincesine haincesine Adv None
 haines haines Noun ProperNoun ProperNoun
 hair hair Noun ProperNoun ProperNoun
@@ -23371,7 +23332,6 @@ hanönü hanönü Noun ProperNoun ProperNoun
 hanüman hanüman Noun None
 hanım hanım Adj None
 hanım hanım Noun None
-hanımanne hanımanne Interj None
 hanımanne hanımanne Noun None
 hanımağa hanımağa Noun ProperNoun ProperNoun
 hanımböceği hanımböceği Noun None CompoundP3sg roots=hanım-böcek
@@ -23399,7 +23359,6 @@ hapsetmek hapset Verb None AoristA Voicing
 hapsolmak hapsol Verb None AoristI CausativeT PassiveIn
 haptetmek haptet Verb None AoristA Voicing
 hapur hapur Dup None
-hapur hapur Interj None
 hapır hapır Dup None
 hapşu hapşu Noun None
 hapşırmak hapşır Verb None AoristI CausativeT
@@ -23480,7 +23439,6 @@ haricen haricen Adv None
 harici harici Adj None display=haricî
 hariciye hariciye Noun None
 harika harika Adj None
-harika harika Interj None
 harika harika Noun ProperNoun ProperNoun
 harikulade harikulade Noun None display=harikulâde
 harim harim Noun None
@@ -23905,7 +23863,6 @@ hayran hayran Adj None
 hayrat hayrat Noun None NoVoicing
 hayrat hayrat Noun ProperNoun ProperNoun
 hayreddin hayreddin Noun ProperNoun ProperNoun
-hayret hayret Interj None NoVoicing
 hayret hayret Noun None NoVoicing
 hayret hayret Noun ProperNoun ProperNoun
 hayretle hayretle Adv None
@@ -23999,7 +23956,6 @@ haznedarlık haznedarlık Noun None Voicing
 haznedaroğlu haznedaroğlu Noun ProperNoun ProperNoun
 hazra hazra Noun ProperNoun ProperNoun display=Hazrâ
 hazrec hazrec Noun ProperNoun ProperNoun
-hazret hazret Interj None NoVoicing
 hazret hazret Noun None NoVoicing
 hazretleri hazretleri Noun None
 hazro hazro Noun ProperNoun ProperNoun
@@ -25360,7 +25316,6 @@ hücre hücre Noun None
 hücrebilim hücrebilim Noun None
 hücredışı hücredışı Adj None
 hücreiçi hücreiçi Adj None
-hücum hücum Interj None
 hücum hücum Noun None
 hücumbot hücumbot Noun None NoVoicing
 hüda hüda Noun ProperNoun ProperNoun
@@ -25617,7 +25572,6 @@ iblağ iblağ Noun None display=iblâğ
 iblis iblis Noun None
 iblisane iblisane Adj None
 ibn ibn Noun Abbrv pr=ibene
-ibne ibne Interj None
 ibne ibne Noun None
 ibnu ibnu Noun ProperNoun ProperNoun
 ibnül ibnül Noun ProperNoun ProperNoun
@@ -25964,7 +25918,6 @@ ila ila Conj None display=ilâ
 ilah ilah Noun None display=ilâh
 ilah ilah Noun ProperNoun ProperNoun
 ilahe ilahe Noun None display=ilâhe
-ilahi ilahi Interj ProperNoun ProperNoun display=İlahî
 ilahi ilahi Noun None display=ilâhî
 ilahiyat ilahiyat Noun None NoVoicing display=ilâhiyat
 ilam ilam Noun None display=ilâm
@@ -26003,7 +25956,6 @@ ilenç ilenç Noun ProperNoun ProperNoun
 ilerde ilerde Noun None
 ileri ileri Adj None
 ileri ileri Adv None
-ileri ileri Interj None
 ileri ileri Noun None ImplicitDative
 ilerlek ilerlek Adj None Voicing
 ilerlemek ilerle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -26456,7 +26408,6 @@ inovasyon inovasyon Noun None
 inovatif inovatif Noun None
 inovatif inovatif Noun ProperNoun ProperNoun
 insa insa Noun ProperNoun ProperNoun
-insaf insaf Interj None
 insaf insaf Noun None
 insan insan Adj None
 insan insan Noun None
@@ -26697,7 +26648,6 @@ is is Noun None NoVoicing
 isa isa Noun ProperNoun ProperNoun
 isaac isaac Noun ProperNoun ProperNoun
 isabella isabella Noun ProperNoun ProperNoun
-isabet isabet Interj None NoVoicing
 isabet isabet Noun None NoVoicing
 isabet isabet Noun ProperNoun ProperNoun
 isabey isabey Noun ProperNoun ProperNoun
@@ -28181,10 +28131,8 @@ kafeşantan kafeşantan Noun None
 kaffe kaffe Noun None display=kâffe
 kaffesi kaffesi Pron None display=kâffesi
 kafi kafi Adj None display=kâfi
-kafi kafi Interj None display=kâfi
 kafi kafi Noun ProperNoun ProperNoun display=Kâfi
 kafile kafile Noun None
-kafir kafir Interj None display=kâfir
 kafir kafir Noun None display=kâfir
 kafiristan kafiristan Noun None display=kâfiristan
 kafiye kafiye Noun None
@@ -28235,7 +28183,6 @@ kahreylemek kahreyle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kahriman kahriman Noun ProperNoun ProperNoun
 kahrolası kahrolası Adj None
 kahrolmak kahrol Verb None AoristI CausativeT PassiveIn
-kahrolsun kahrolsun Interj None
 kahta kahta Noun ProperNoun ProperNoun display=Kâhta
 kahtani kahtani Noun ProperNoun ProperNoun
 kahvaltı kahvaltı Noun None
@@ -28533,7 +28480,6 @@ kamelya kamelya Noun None
 kamelya kamelya Noun ProperNoun ProperNoun
 kamen kamen Noun ProperNoun ProperNoun
 kamer kamer Noun None
-kamera kamera Interj None
 kamera kamera Noun None
 kameraman kameraman Noun None
 kameri kameri Adj None display=kamerî
@@ -29234,7 +29180,6 @@ kardaş kardaş Noun ProperNoun ProperNoun
 kardelen kardelen Noun None
 kardemir kardemir Noun ProperNoun ProperNoun
 kardeş kardeş Adj None
-kardeş kardeş Interj None
 kardeş kardeş Noun None
 kardeşkanı kardeşkanı Noun None CompoundP3sg roots=kardeş-kan
 kardeşlenmek kardeşlen Verb None AoristI
@@ -30709,7 +30654,6 @@ keşiş keşiş Noun None
 keşişhane keşişhane Noun None
 keşişleme keşişleme Noun None
 keşke keşke Adv None
-keşke keşke Interj None
 keşkek keşkek Noun None Voicing
 keşki keşki Interj None
 keşkül keşkül Noun None
@@ -32445,7 +32389,6 @@ kurani kurani Noun ProperNoun ProperNoun
 kuranyi kuranyi Noun ProperNoun ProperNoun
 kuranıkerim kuranıkerim Noun ProperNoun ProperNoun
 kuray kuray Noun ProperNoun ProperNoun
-kurban kurban Interj None
 kurban kurban Noun None
 kurbanoğlu kurbanoğlu Noun ProperNoun ProperNoun
 kurbağa kurbağa Noun None
@@ -32824,7 +32767,6 @@ kyzikos kyzikos Noun ProperNoun ProperNoun
 kö kö Noun Abbrv pr=keö
 köfte köfte Noun None
 köftehor köftehor Adj None
-köftehor köftehor Interj None
 köfter köfter Noun None
 köftün köftün Noun None
 köhler köhler Noun ProperNoun ProperNoun
@@ -32884,9 +32826,7 @@ köpekgiller köpekgiller Noun None ImplicitPlural
 köpekkuyruğu köpekkuyruğu Noun None CompoundP3sg roots=köpek-kuyruk
 köpeklemek köpekle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 köpekmemesi köpekmemesi Noun None
-köpekoğlu köpekoğlu Interj None
 köpekoğlu köpekoğlu Noun None CompoundP3sg roots=köpek-oğul
-köpoğlu köpoğlu Interj None
 köpoğlu köpoğlu Noun None CompoundP3sg roots=köp-oğul
 köprü köprü Noun None
 köprüaltı köprüaltı Noun None CompoundP3sg roots=köprü-alt
@@ -33036,7 +32976,6 @@ külek külek Noun None Voicing
 külfet külfet Noun None NoVoicing
 külhan külhan Noun None
 külhanbeyi külhanbeyi Noun None CompoundP3sg roots=külhan-bey
-külhani külhani Interj None
 külhani külhani Noun None
 külkedisi külkedisi Adj None
 küllemek külle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -33522,7 +33461,6 @@ kıskı kıskı Noun None
 kıskıvrak kıskıvrak Adv None
 kısmak kıs Verb None AoristA
 kısmen kısmen Adv None
-kısmet kısmet Interj None NoVoicing
 kısmet kısmet Noun None NoVoicing
 kısmi kısmi Adj None display=kısmî
 kısmık kısmık Adj None Voicing
@@ -33630,7 +33568,6 @@ kıyın kıyın Noun None
 kıyınmak kıyın Verb None AoristI
 kıyıntı kıyıntı Noun None
 kıyışmak kıyış Verb None AoristI
-kız kız Interj None
 kız kız Noun None NoVoicing
 kızak kızak Noun None Voicing
 kızaklamak kızakla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -33781,7 +33718,6 @@ lady lady Noun ProperNoun NoVoicing ProperNoun
 laedri laedri Adj None
 laedriye laedriye Noun None
 laeken laeken Noun ProperNoun ProperNoun
-laf laf Interj None
 laf laf Noun None NoVoicing
 lafarge lafarge Noun ProperNoun ProperNoun
 lafayette lafayette Noun ProperNoun ProperNoun
@@ -33865,7 +33801,6 @@ lakırdı lakırdı Noun None
 lakırtı lakırtı Noun None
 lal lal Adj None InverseHarmony NoVoicing
 lal lal Noun None InverseHarmony NoVoicing
-lala lala Interj None
 lala lala Noun None
 lalahan lalahan Noun ProperNoun ProperNoun
 lalanga lalanga Noun None
@@ -33942,7 +33877,6 @@ landreau landreau Noun ProperNoun ProperNoun
 landry landry Noun ProperNoun NoVoicing ProperNoun
 lane lane Noun ProperNoun ProperNoun
 lanet lanet Adj None NoVoicing
-lanet lanet Interj None NoVoicing
 lanet lanet Noun None NoVoicing
 lanetlemek lanetle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 lang lang Noun ProperNoun NoVoicing ProperNoun
@@ -35942,7 +35876,6 @@ manukyan manukyan Noun ProperNoun ProperNoun
 manuçehr manuçehr Noun ProperNoun ProperNoun
 manya manya Noun None
 manyak manyak Adj None Voicing
-manyak manyak Interj None
 manyas manyas Noun ProperNoun ProperNoun
 manyat manyat Noun None NoVoicing
 manyetik manyetik Adj None Voicing
@@ -36246,7 +36179,6 @@ maryland maryland Noun ProperNoun ProperNoun
 marys marys Noun ProperNoun NoVoicing ProperNoun
 marzuk marzuk Noun ProperNoun ProperNoun
 marzuki marzuki Noun ProperNoun ProperNoun
-marş marş Interj None
 marş marş Noun None NoVoicing
 marşan marşan Noun ProperNoun ProperNoun
 marşandiz marşandiz Noun None
@@ -36520,7 +36452,6 @@ mayistra mayistra Noun None
 maymun maymun Adj None
 maymun maymun Noun None
 maymunlar maymunlar Noun None ImplicitPlural
-mayna mayna Interj None
 mayna mayna Noun None
 maynard maynard Noun ProperNoun ProperNoun
 mayo mayo Noun None
@@ -38216,7 +38147,6 @@ minnettar minnettar Noun None
 minnettarane minnettarane Adv None
 minnie minnie Noun ProperNoun ProperNoun
 minnihanov minnihanov Noun ProperNoun ProperNoun
-minnoş minnoş Interj None
 minnoş minnoş Noun None
 minny minny Noun ProperNoun NoVoicing ProperNoun
 mino mino Noun ProperNoun ProperNoun
@@ -38665,7 +38595,6 @@ monty monty Noun ProperNoun NoVoicing ProperNoun
 montür montür Noun None
 monza monza Noun ProperNoun ProperNoun
 monşer monşer Adj None
-monşer monşer Interj None
 mood mood Noun ProperNoun ProperNoun
 moody moody Noun ProperNoun ProperNoun
 moodys moodys Noun ProperNoun ProperNoun
@@ -39591,7 +39520,6 @@ mübahase mübahase Noun None
 mübahat mübahat Noun ProperNoun ProperNoun
 mübalağa mübalağa Noun None display=mübalâğa
 mübarek mübarek Adj None Voicing
-mübarek mübarek Interj None
 mübarek mübarek Noun ProperNoun ProperNoun
 mübareke mübareke Noun ProperNoun ProperNoun
 mübareze mübareze Noun None
@@ -39767,7 +39695,6 @@ mühür mühür Noun ProperNoun ProperNoun
 mühürdar mühürdar Noun None
 mühürlemek mühürle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 müjdat müjdat Noun ProperNoun ProperNoun
-müjde müjde Interj None
 müjde müjde Noun None
 müjde müjde Noun ProperNoun ProperNoun
 müjdelemek müjdele Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -40201,7 +40128,6 @@ müteşebbis müteşebbis Noun None
 müteşekkil müteşekkil Adj None
 müteşekkir müteşekkir Adj None
 müthiş müthiş Adj None
-müthiş müthiş Interj None
 mütim mütim Noun ProperNoun ProperNoun
 müttefik müttefik Adj None NoVoicing
 müttefik müttefik Noun None NoVoicing
@@ -40894,7 +40820,6 @@ nduka nduka Noun ProperNoun ProperNoun
 ne ne Adj None NoVoicing
 ne ne Adv None
 ne ne Conj None
-ne ne Interj None
 ne ne Noun Abbrv pr=nee
 ne ne Noun None NoVoicing
 ne ne Pron Ques
@@ -41098,7 +41023,6 @@ ner ner Noun Abbrv NoVoicing pr=ner
 nerd nerd Noun ProperNoun NoVoicing ProperNoun
 nere nere Pron Ques
 nerede nerede Adv None
-nerede nerede Interj None
 neredeyse neredeyse Adv None
 neretva neretva Noun ProperNoun ProperNoun
 nergis nergis Noun None
@@ -41482,7 +41406,6 @@ nimetullah nimetullah Noun ProperNoun ProperNoun
 nimetşinas nimetşinas Adj None
 nimre nimre Noun ProperNoun ProperNoun
 nina nina Noun ProperNoun ProperNoun
-nine nine Interj None
 nine nine Noun None
 ninemler ninemler Noun None ImplicitP1sg ImplicitPlural
 ninenler ninenler Noun None ImplicitP2sg ImplicitPlural
@@ -41490,7 +41413,6 @@ ning ning Noun ProperNoun NoVoicing ProperNoun
 ningbo ningbo Noun ProperNoun ProperNoun
 ninja ninja Noun ProperNoun ProperNoun
 ninna ninna Noun ProperNoun ProperNoun
-ninni ninni Interj None
 ninni ninni Noun None
 nino nino Noun ProperNoun ProperNoun
 ninova ninova Noun ProperNoun ProperNoun
@@ -41983,7 +41905,6 @@ nısıf nısıf Noun None VowelDrop
 nışadır nışadır Noun None
 o o Adj None NoVoicing
 o o Det None
-o o Interj None
 o o Pron Demons idx=1
 o o Pron Pers
 oa oa Noun Abbrv pr=oa
@@ -42289,7 +42210,6 @@ okşan okşan Noun ProperNoun ProperNoun
 okşantı okşantı Noun None
 olaf olaf Noun ProperNoun ProperNoun
 olagelmek olagel Verb None AoristI CausativeT PassiveIn
-olamaz olamaz Interj None
 olanak olanak Noun None Voicing
 olanca olanca Adj None
 olası olası Adj None
@@ -42758,7 +42678,6 @@ orojenik orojenik Noun None Voicing
 orospu orospu Noun None
 orostopol orostopol Noun None
 orpheus orpheus Noun ProperNoun ProperNoun
-orsa orsa Interj None
 orsa orsa Noun None
 orsalamak orsala Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 orsan orsan Noun ProperNoun ProperNoun
@@ -43076,7 +42995,6 @@ owens owens Noun ProperNoun ProperNoun
 oxfam oxfam Noun ProperNoun ProperNoun
 oxford oxford Noun ProperNoun ProperNoun
 oxygen oxygen Noun ProperNoun ProperNoun
-oy oy Interj None
 oy oy Noun None NoVoicing
 oya oya Noun None
 oyak oyak Noun ProperNoun ProperNoun
@@ -43164,7 +43082,6 @@ oğlan oğlan Noun None
 oğlanevi oğlanevi Noun None CompoundP3sg roots=oğlan-ev
 oğluş oğluş Noun ProperNoun ProperNoun
 oğraş oğraş Noun ProperNoun ProperNoun
-oğul oğul Interj None VowelDrop
 oğul oğul Noun None VowelDrop
 oğulcan oğulcan Noun ProperNoun ProperNoun
 oğulduruk oğulduruk Noun None Voicing
@@ -43684,7 +43601,6 @@ parıl parıl Dup None
 parıldamak parılda Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 parıltı parıltı Noun None
 parşömen parşömen Noun None
-pas pas Interj None
 pas pas Noun None NoVoicing
 pasadena pasadena Noun ProperNoun ProperNoun
 pasaj pasaj Noun None
@@ -43881,7 +43797,6 @@ payas payas Noun ProperNoun ProperNoun
 payaz payaz Noun ProperNoun ProperNoun
 payda payda Noun None
 paydaş paydaş Noun None
-paydos paydos Interj None
 paydos paydos Noun None
 paye paye Noun None
 paye paye Noun ProperNoun ProperNoun
@@ -44461,7 +44376,6 @@ peyrev peyrev Noun ProperNoun ProperNoun
 peyton peyton Noun ProperNoun ProperNoun
 peyzaj peyzaj Noun None
 peyzaj peyzaj Noun ProperNoun ProperNoun
-pezevenk pezevenk Interj None
 pezevenk pezevenk Noun None Voicing
 pezo pezo Noun None
 peç peç Noun None NoVoicing
@@ -44733,7 +44647,6 @@ pislenmek pislen Verb None AoristI
 pislik pislik Noun None Voicing
 pislikçil pislikçil Noun None
 pissu pissu Noun None
-pist pist Interj None NoVoicing
 pist pist Noun None NoVoicing
 pistols pistols Noun ProperNoun ProperNoun
 piston piston Noun None
@@ -45642,7 +45555,6 @@ puşkaş puşkaş Noun ProperNoun ProperNoun
 puşkin puşkin Noun ProperNoun ProperNoun
 puşkov puşkov Noun ProperNoun ProperNoun
 puşt puşt Adj None NoVoicing
-puşt puşt Interj None
 puşt puşt Noun None NoVoicing
 puşu puşu Noun None
 pvc pvc Noun Abbrv pr=pevece
@@ -45988,7 +45900,6 @@ ragued ragued Noun ProperNoun ProperNoun
 ragıp ragıp Noun ProperNoun ProperNoun
 rahat rahat Adj None NoVoicing
 rahat rahat Adv None NoVoicing
-rahat rahat Interj None NoVoicing
 rahat rahat Noun None NoVoicing
 rahatefza rahatefza Noun ProperNoun ProperNoun
 rahatlamak rahatla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -47963,7 +47874,6 @@ sakura sakura Noun ProperNoun ProperNoun
 sakıb sakıb Noun ProperNoun ProperNoun
 sakıba sakıba Noun ProperNoun ProperNoun
 sakık sakık Noun ProperNoun ProperNoun
-sakın sakın Interj None
 sakınca sakınca Noun None
 sakıngan sakıngan Adj None
 sakınmak sakın Verb None AoristI
@@ -52989,7 +52899,6 @@ tabetmek tabet Verb None AoristA Voicing
 tabgis tabgis Noun ProperNoun ProperNoun
 tabhane tabhane Noun None
 tabi tabi Adj None
-tabi tabi Interj None
 tabi tabi Noun None
 tabiat tabiat Noun None NoVoicing
 tabiatüstü tabiatüstü Adj None
@@ -55088,7 +54997,6 @@ teskomb teskomb Noun ProperNoun ProperNoun
 tesla tesla Noun ProperNoun ProperNoun
 teslih teslih Noun None
 teslihat teslihat Noun None Voicing
-teslim teslim Interj None
 teslim teslim Noun None
 teslimat teslimat Noun None NoVoicing
 teslimiyet teslimiyet Noun None NoVoicing
@@ -55223,7 +55131,6 @@ teyo teyo Noun ProperNoun ProperNoun
 teyp teyp Noun None Voicing
 teyran teyran Noun ProperNoun ProperNoun
 teyyare teyyare Noun ProperNoun ProperNoun
-teyze teyze Interj None
 teyze teyze Noun None
 teyzemler teyzemler Noun None ImplicitP1sg ImplicitPlural
 teyzenler teyzenler Noun None ImplicitP2sg ImplicitPlural
@@ -56484,7 +56391,6 @@ ttnet ttnet Noun Abbrv pr=teteneete
 tts tts Noun Abbrv pr=tetese
 ttso ttso Noun Abbrv pr=teteseo
 ttıp ttıp Noun Abbrv pr=teteıpe
-tu tu Interj None
 tu tu Noun Abbrv pr=teu
 tual tual Noun None InverseHarmony
 tuan tuan Noun ProperNoun ProperNoun
@@ -56512,7 +56418,6 @@ tugay tugay Noun None
 tugay tugay Noun ProperNoun ProperNoun
 tuh tuh Interj None
 tuhaf tuhaf Adj None
-tuhaf tuhaf Interj None
 tuhafiye tuhafiye Noun None
 tuhfe tuhfe Noun ProperNoun ProperNoun
 tuhr tuhr Noun ProperNoun NoVoicing ProperNoun
@@ -56936,7 +56841,6 @@ töz töz Noun None NoVoicing
 tözel tözel Adj None
 tözge tözge Noun ProperNoun ProperNoun
 tözüm tözüm Noun ProperNoun ProperNoun
-tü tü Interj None
 tü tü Noun Abbrv pr=teü
 tüba tüba Noun Abbrv pr=tüba
 tüberkülin tüberkülin Noun None
@@ -57380,7 +57284,6 @@ uf uf Interj None
 uf uf Noun None NoVoicing
 ufacık ufacık Adj None Voicing
 ufak ufak Adj None Voicing
-ufaklık ufaklık Interj None
 ufaklık ufaklık Noun None Voicing
 ufalamak ufala Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 ufalmak ufal Verb None AoristI CausativeT PassiveIn
@@ -58608,7 +58511,6 @@ veledrom veledrom Noun None
 veledrom veledrom Noun ProperNoun ProperNoun
 velense velense Noun None
 velespit velespit Noun None Voicing
-velet velet Interj None
 velet velet Noun None Voicing
 velev velev Conj None
 velez velez Noun ProperNoun ProperNoun
@@ -58948,7 +58850,6 @@ vip vip Noun Abbrv NoVoicing pr=vip
 vip vip Noun None NoVoicing
 viper viper Noun ProperNoun ProperNoun
 vira vira Adv None
-vira vira Interj None
 viraj viraj Noun None
 viral viral Adj None
 viran viran Adj None
@@ -59025,7 +58926,6 @@ vivian vivian Noun ProperNoun ProperNoun
 viviane viviane Noun ProperNoun ProperNoun
 vivien vivien Noun ProperNoun ProperNoun
 vivienne vivienne Noun ProperNoun ProperNoun
-viya viya Interj None
 viya viya Noun None
 viyadük viyadük Noun None Voicing
 viyak viyak Noun None Voicing
@@ -60435,7 +60335,6 @@ yağıztekin yağıztekin Noun ProperNoun ProperNoun
 yağışölçer yağışölçer Noun None
 yaş yaş Adj None NoVoicing
 yaş yaş Noun None NoVoicing
-yaşa yaşa Interj None
 yaşam yaşam Noun None
 yaşam yaşam Noun ProperNoun ProperNoun
 yaşamak yaşa Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -60453,7 +60352,6 @@ yaşargil yaşargil Noun ProperNoun ProperNoun
 yaşari yaşari Noun ProperNoun ProperNoun
 yaşarmak yaşar Verb None AoristI CausativeT
 yaşaroğlu yaşaroğlu Noun ProperNoun ProperNoun
-yaşasın yaşasın Interj None
 yaşatkan yaşatkan Adj None
 yaşatım yaşatım Noun None
 yaşdönümü yaşdönümü Noun None CompoundP3sg roots=yaş-dönüm
@@ -60623,7 +60521,6 @@ yenel yenel Noun ProperNoun ProperNoun
 yener yener Noun ProperNoun ProperNoun
 yenerer yenerer Noun ProperNoun ProperNoun
 yenersu yenersu Noun ProperNoun ProperNoun
-yenge yenge Interj None
 yenge yenge Noun None
 yengen yengen Noun None
 yengeç yengeç Noun None Voicing
@@ -60812,7 +60709,6 @@ yezidi yezidi Noun ProperNoun ProperNoun
 yezit yezit Adj None Voicing
 yezit yezit Noun None Voicing
 yeğ yeğ Adj None NoVoicing
-yeğen yeğen Interj None
 yeğen yeğen Noun None
 yeğenoğlu yeğenoğlu Noun ProperNoun ProperNoun
 yeğin yeğin Adj None
@@ -62425,7 +62321,6 @@ zıypak zıypak Adj None Voicing
 çabucak çabucak Adv None
 çabuk çabuk Adj None Voicing
 çabuk çabuk Adv None
-çabuk çabuk Interj None
 çad çad Noun ProperNoun NoVoicing ProperNoun
 çadır çadır Noun None
 çadıruşak çadıruşak Noun None Voicing
@@ -62645,7 +62540,6 @@ zıypak zıypak Adj None Voicing
 çapkan çapkan Noun ProperNoun ProperNoun
 çapkımak çapkı Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 çapkın çapkın Adj None
-çapkın çapkın Interj None
 çaplamak çapla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 çapmak çap Verb None AoristA
 çapoğlu çapoğlu Noun ProperNoun ProperNoun
@@ -63266,7 +63160,6 @@ zıypak zıypak Adj None Voicing
 çini çini Adj None
 çini çini Noun None
 çinko çinko Adj None
-çinko çinko Interj None
 çinko çinko Noun None
 çinkograf çinkograf Noun None
 çinkografi çinkografi Noun None
@@ -63940,7 +63833,6 @@ zıypak zıypak Adj None Voicing
 ölü ölü Noun None
 ölüdeniz ölüdeniz Noun ProperNoun ProperNoun
 ölüdoğa ölüdoğa Noun None
-ölüm ölüm Interj None
 ölüm ölüm Noun None
 ölümcül ölümcül Adj None
 ölümsek ölümsek Adj None Voicing
@@ -64198,7 +64090,6 @@ zıypak zıypak Adj None Voicing
 öykünmek öykün Verb None AoristI
 öyle öyle Adj None
 öyle öyle Adv None
-öyle öyle Interj None
 öylek öylek Noun ProperNoun ProperNoun
 öylelikle öylelikle Adv None
 öylemesine öylemesine Adv None
@@ -64844,7 +64735,6 @@ zıypak zıypak Adj None Voicing
 üst üst Noun None NoVoicing
 üstadane üstadane Adv None
 üstam üstam Noun ProperNoun ProperNoun
-üstat üstat Interj None
 üstat üstat Noun None Voicing
 üstay üstay Noun ProperNoun ProperNoun
 üstben üstben Noun None
