@@ -53,10 +53,19 @@ impl MorphologicalDisambiguator {
 
         let n = tokens.len();
         let mut chosen: Vec<MorphParse> = Vec::with_capacity(n);
+        // The previous word's reading as the rules saw it: a participle's noun reading even
+        // where its adjective twin was output, so the twin never changes another word's choice.
+        let mut context: Option<usize> = None;
         let register = prior_second_person_units();
 
         for i in 0..n {
             let parses = &analyses_per_token[i];
+            let previous = match context {
+                Some(j) if i > 0 => analyses_per_token[i - 1].get(j),
+                _ if i > 0 => chosen.last(),
+                _ => None,
+            };
+            context = None;
             if parses.is_empty() {
                 // Fallback unknown parse
                 chosen.push(MorphParse {
@@ -80,6 +89,7 @@ impl MorphologicalDisambiguator {
 
             if parses.len() == 1 {
                 chosen.push(parses[0].clone());
+                context = Some(0);
                 continue;
             }
 
@@ -88,7 +98,6 @@ impl MorphologicalDisambiguator {
             // The first word of a sentence or of a quotation is capitalised whatever it is.
             let is_sentence_start = i == 0 || is_opening(tokens[i - 1]);
             let is_first_char_upper = tokens[i].chars().next().is_some_and(|c| c.is_uppercase());
-            let previous = if i > 0 { chosen.last() } else { None };
             let following = &analyses_per_token[i + 1..];
             let next_parses = following.first().map(Vec::as_slice).unwrap_or_default();
             let next_is_word = i + 1 < n && !is_punctuation(tokens[i + 1]);
@@ -137,6 +146,9 @@ impl MorphologicalDisambiguator {
             let mut best_score = i32::MIN;
             let top_rank = parses.iter().map(|p| p.rank).max().unwrap_or(0);
             for (p_idx, parse) in parses.iter().enumerate() {
+                if adjective_twin(parse, parses) {
+                    continue;
+                }
                 // Overt morphemes. Only bare dictionary matches spell out the default A3sg/Nom,
                 // so those are not counted.
                 let marked = parse
@@ -276,11 +288,36 @@ impl MorphologicalDisambiguator {
                 }
             }
 
-            chosen.push(parses[best_idx].clone());
+            // The noun reading of a participle or -IcI form stood for both twins; its adjective
+            // replaces it in the output when the form modifies the words after it.
+            context = Some(best_idx);
+            let best = &parses[best_idx];
+            let twin = parses
+                .iter()
+                .find(|p| p.formatted == best.formatted && adjective_twin(p, parses));
+            match twin {
+                Some(adjective) if participle_head(following, possessive(adjective)) => {
+                    chosen.push(adjective.clone());
+                }
+                _ => chosen.push(best.clone()),
+            }
         }
 
         chosen
     }
+}
+
+/// The adjective reading of a participle or -IcI form that akana's tags render as its noun
+/// reading does (ol-duğ-u: PastPart→Adj "which it is" beside PastPart→Noun "that it is";
+/// bağla-yıcı: Agt→Adj beside Agt→Noun; grup-lan-dığ-ı from a noun's verb too). The rules
+/// choose among a word's readings with the noun standing for both, so the choice of lemma
+/// never depends on the twin, and other words see the noun: the twin only says what the form
+/// does in its phrase (`participle_head`).
+fn adjective_twin(p: &MorphParse, parses: &[MorphParse]) -> bool {
+    p.pos == PrimaryPos::Adj
+        && parses
+            .iter()
+            .any(|q| q.formatted == p.formatted && q.pos == PrimaryPos::Noun)
 }
 
 /// A predicate reading: a nominal with the copula (evde-yim, doğru-dur).
@@ -328,7 +365,9 @@ fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
                 && p.secondary_pos != SecondaryPos::ProperNoun
                 && !is_predicate(p)
         });
-        let adj = parses.iter().any(|p| p.pos == PrimaryPos::Adj);
+        let adj = parses
+            .iter()
+            .any(|p| p.pos == PrimaryPos::Adj && !adjective_twin(p, parses));
         if noun && !adj {
             return true;
         }
@@ -337,6 +376,72 @@ fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
         }
     }
     false
+}
+
+/// Whether a participle or -IcI form modifies the words after it: a relative clause or an
+/// attribute ("verdiği karar", "açılacak iptal davası", "olabilecek bir işlem", "bağlayıcı
+/// karar") rather than a noun clause ("olduğu anlaşıldı", "edildiği iddiası", "olduğu iddia
+/// edilen", "işlendiği takdirde" before the postposition). Its head is the first word after
+/// any determiners, number words and bare adjectives; a name or a number in digits after the
+/// form starts another phrase ("başvurucu Mecidiye ...", "başvurucu 22/7/2016 tarihli"). The
+/// head's best reading must be a common noun that no verb went into (tarih-te-ki counts,
+/// tarih-li and an-laş-ıl-dı do not) and that is not the first half of a light-verb compound
+/// (iddia et-, sabit ol-), nor possessed: a possessed noun after a clause is the noun the
+/// clause complements (iddia-sı, görüş-ü, gerekçe-si), and after a bare -IcI noun the head of
+/// a compound (başvurucu vekil-i). A participle with a possessive of its own (oku-duğ-um) also
+/// modifies an accusative head (kitab-ı), which looks like a possessed one, so for it
+/// (`own_possessive`) the head counts as possessed only when it has no other noun reading.
+fn participle_head(following: &[Vec<MorphParse>], own_possessive: bool) -> bool {
+    let noun = |p: &MorphParse| {
+        p.primary_pos == PrimaryPos::Noun
+            && (p.pos == PrimaryPos::Noun || p.morpheme_tags.iter().any(|t| t == "RelClitic"))
+            && p.secondary_pos != SecondaryPos::ProperNoun
+            && !p.analysis.contains("→Verb")
+            && !is_predicate(p)
+    };
+    for (k, parses) in following.iter().enumerate() {
+        let Some(top) = parses.first() else {
+            return false;
+        };
+        if is_function_word(parses)
+            || top
+                .surface
+                .starts_with(|c: char| c.is_uppercase() || c.is_ascii_digit())
+        {
+            return false;
+        }
+        if matches!(top.pos, PrimaryPos::Det | PrimaryPos::Num)
+            || (top.primary_pos == PrimaryPos::Adj && top.morpheme_tags.len() == 1)
+        {
+            continue;
+        }
+        if !noun(top) {
+            return false;
+        }
+        let complemented = if own_possessive {
+            parses.iter().filter(|p| noun(p)).all(possessive)
+        } else {
+            possessive(top)
+        };
+        let light_verb = following.get(k + 1).is_some_and(|next| {
+            next.iter().any(|p| {
+                p.primary_pos == PrimaryPos::Verb
+                    && matches!(p.root.as_str(), "et" | "ol" | "eyle" | "kıl")
+            })
+        });
+        return !complemented && !light_verb;
+    }
+    false
+}
+
+/// Whether a reading has a possessive (P1sg ... P3pl).
+fn possessive(p: &MorphParse) -> bool {
+    p.morpheme_tags.iter().any(|t| {
+        matches!(
+            t.as_str(),
+            "P1sg" | "P2sg" | "P3sg" | "P1pl" | "P2pl" | "P3pl"
+        )
+    })
 }
 
 /// Whether a token is read as a bare conjunction or postposition (hem, ki, kadar) or as the

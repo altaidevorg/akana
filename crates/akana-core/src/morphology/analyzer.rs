@@ -1800,17 +1800,25 @@ const DERIVATIONAL_TAGS: &[&str] = &[
     "Reflex",
 ];
 
-/// Sorts by score, then fewer tags, then away from the 2nd-person possessive (much rarer than
-/// the 3rd in running text) and from a nominal predicate (kitab-ım "my book" before "I am a
-/// book"), then by `formatted`; and drops repeats of the same reading (`formatted` plus its
-/// secondary POS), so two Zemberek readings that are one reading in akana's tags (an empty
-/// P3sg or Pnon after a CompoundP3sg noun) keep the first one's `analysis`.
+/// Sorts (see [`order`]) and drops repeats of the same reading: the same Zemberek analysis of
+/// the same lemma, root and secondary POS. Readings that akana's tags render alike stay apart
+/// when their analyses differ: a participle is a noun (ol-duğ-u "that it is", PastPart→Noun)
+/// and an adjective (ol-duğ-u "which it is", PastPart→Adj), -IcI an agent noun and an
+/// adjective (bağla-yıcı). The root tells apart items whose stems spell alike (irad-ı from
+/// irad and from irat), which the analysis does not.
 fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
     order(&mut results);
     let mut seen = HashSet::with_capacity(results.len());
     let first: Vec<bool> = results
         .iter()
-        .map(|p| seen.insert((p.formatted.as_str(), p.secondary_pos)))
+        .map(|p| {
+            seen.insert((
+                p.analysis.as_str(),
+                p.lemma.as_str(),
+                p.root.as_str(),
+                p.secondary_pos,
+            ))
+        })
         .collect();
     let mut first = first.into_iter();
     results.retain(|_| first.next().unwrap_or(true));
@@ -1818,12 +1826,17 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
 }
 
 /// Most likely first; ties go to fewer tags, then away from the 2nd-person possessive and the
-/// copula (much rarer than the 3rd person and the bare noun), then to the string.
+/// copula (much rarer than the 3rd person and the bare noun), then to the string. Readings
+/// that akana's tags render alike tie on all of that: the noun comes before the adjective
+/// (ol-duğ-u is "that it is" unless a noun follows, which the disambiguator sees), and
+/// otherwise the analyzer's order stands (the sort is stable): the lexicon's items in their
+/// order, the compound before its inner P3sg (üzeri-nden before üzer-i-nden).
 fn order(results: &mut [MorphParse]) {
     let p2sg = |p: &MorphParse| p.morpheme_tags.iter().any(|t| t == "P2sg");
     let predicate = |p: &MorphParse| {
         p.primary_pos != PrimaryPos::Verb && p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
     };
+    let adjective = |p: &MorphParse| p.pos == PrimaryPos::Adj;
     results.sort_by(|a, b| {
         b.score
             .partial_cmp(&a.score)
@@ -1832,5 +1845,6 @@ fn order(results: &mut [MorphParse]) {
             .then_with(|| p2sg(a).cmp(&p2sg(b)))
             .then_with(|| predicate(a).cmp(&predicate(b)))
             .then_with(|| a.formatted.cmp(&b.formatted))
+            .then_with(|| adjective(a).cmp(&adjective(b)))
     });
 }

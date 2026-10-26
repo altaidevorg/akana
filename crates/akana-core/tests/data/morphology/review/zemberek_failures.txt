@@ -1,6 +1,6 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# tiny lexicons: 1220 of 1245 checks pass (98.0 %)
-# full lexicons: 1167 of 1238 checks pass (94.3 %)
+# tiny lexicons: 1230 of 1245 checks pass (98.8 %)
+# full lexicons: 1175 of 1238 checks pass (94.9 %)
 #   AdjectiveDerivationTest full 23/24
 #   AdjectiveDerivationTest tiny 23/24
 #   AdjectivesTest full 9/9
@@ -12,21 +12,21 @@
 #   FunctionalTests full 7/23
 #   FunctionalTests tiny 27/30
 #   NounCompoundsTest full 22/22
-#   NounCompoundsTest tiny 21/22
+#   NounCompoundsTest tiny 22/22
 #   NounDerivationTest full 183/185
 #   NounDerivationTest tiny 183/185
 #   NounsTest full 141/145
-#   NounsTest tiny 142/145
-#   NumeralTest full 2/3
-#   NumeralTest tiny 2/3
+#   NounsTest tiny 143/145
+#   NumeralTest full 3/3
+#   NumeralTest tiny 3/3
 #   PostpTest full 11/11
 #   PostpTest tiny 11/11
 #   PronounsTest full 269/302
 #   PronounsTest tiny 302/302
 #   QuestionTest full 14/14
 #   QuestionTest tiny 14/14
-#   VerbDerivationTest full 104/112
-#   VerbDerivationTest tiny 104/112
+#   VerbDerivationTest full 111/112
+#   VerbDerivationTest tiny 111/112
 #   VerbsTest full 378/384
 #   VerbsTest tiny 378/384
 full	AdjectiveDerivationTest/justlikeAdjTest	SINGLE	siyahsı	Adj + JustLike + Adj
@@ -52,7 +52,6 @@ full	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdknın	Noun + A3sg + Gen
 full	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdkya	Noun + A3sg + Dat
 full	NounsTest/family1	FAIL	annemlerim	
 full	NounsTest/family3	NOTCONTAINS	annemleri	P3sg
-full	NumeralTest/ordinalTest	ANY	birmiş	Num + Zero + Verb + Narr + A3sg
 full	PronounsTest/baziTest	FAIL	bazı	
 full	PronounsTest/baziTest	FAIL	bazılar	
 full	PronounsTest/baziTest	FAIL	bazım	
@@ -86,14 +85,7 @@ full	PronounsTest/oburuTest	SINGLE	öbürü	Pron + A3sg + P3sg
 full	PronounsTest/oburuTest	SINGLE	öbürüne	Pron + A3sg + P3sg + Dat
 full	PronounsTest/oburuTest	SINGLE	öbürünü	Pron + A3sg + P3sg + Acc
 full	PronounsTest/umumTest	FAIL	umumlar	
-full	VerbDerivationTest/agt	ANY	okutucu	Verb + Caus + Verb + Agt + Adj
-full	VerbDerivationTest/agt	ANY	okuyucu	Verb + Agt + Adj
-full	VerbDerivationTest/futurePartTest	ANY	camlaşmayabileceği	FutPart + Adj + P3sg
-full	VerbDerivationTest/futurePartTest	ANY	okumayacağım	Verb + Neg + FutPart + Adj + P1sg
 full	VerbDerivationTest/futurePartTest	ANY	okuyacaklarca	Verb + FutPart + Noun + A3pl + Equ
-full	VerbDerivationTest/pastPartTest	ANY	okuduk	Verb + PastPart + Adj
-full	VerbDerivationTest/pastPartTest	ANY	okumadık	Verb + Neg + PastPart + Adj
-full	VerbDerivationTest/pastPartTest	ANY	okumadığım	Verb + Neg + PastPart + Adj + P1sg
 full	VerbsTest/demekYemek	FAIL	diyip	
 full	VerbsTest/demekYemek	SINGLE	deyip	Verb + AfterDoingSo + Adv
 full	VerbsTest/reciprocalTest_IGNORED	ANY	dövüştük	Verb + Recip + Verb + Past + A1pl
@@ -104,21 +96,11 @@ tiny	AdjectiveDerivationTest/justlikeAdjTest	SINGLE	siyahsı	Adj + JustLike + Ad
 tiny	FunctionalTests/defaultUrlEtc	COUNT	www.foo.com	1
 tiny	FunctionalTests/testAbbreviationVoicing_Issue_183	COUNT	Tübitaka	1
 tiny	FunctionalTests/testWordsWithDot	COUNT	Dr.	1
-tiny	NounCompoundsTest/mustHaveTwoResults	COUNT	zeytinyağı	2
 tiny	NounDerivationTest/justlikeTest	ANY	zeytinyağsı	Noun + A3sg + JustLike + Adj
 tiny	NounDerivationTest/justlikeTest	SINGLE	odunsu	A3sg + JustLike + Adj
 tiny	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdknın	Noun + A3sg + Gen
 tiny	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdkya	Noun + A3sg + Dat
-tiny	NounsTest/uzeri	COUNT	üzeri	2
-tiny	NumeralTest/ordinalTest	ANY	birmiş	Num + Zero + Verb + Narr + A3sg
-tiny	VerbDerivationTest/agt	ANY	okutucu	Verb + Caus + Verb + Agt + Adj
-tiny	VerbDerivationTest/agt	ANY	okuyucu	Verb + Agt + Adj
-tiny	VerbDerivationTest/futurePartTest	ANY	camlaşmayabileceği	FutPart + Adj + P3sg
-tiny	VerbDerivationTest/futurePartTest	ANY	okumayacağım	Verb + Neg + FutPart + Adj + P1sg
 tiny	VerbDerivationTest/futurePartTest	ANY	okuyacaklarca	Verb + FutPart + Noun + A3pl + Equ
-tiny	VerbDerivationTest/pastPartTest	ANY	okuduk	Verb + PastPart + Adj
-tiny	VerbDerivationTest/pastPartTest	ANY	okumadık	Verb + Neg + PastPart + Adj
-tiny	VerbDerivationTest/pastPartTest	ANY	okumadığım	Verb + Neg + PastPart + Adj + P1sg
 tiny	VerbsTest/demekYemek	FAIL	diyip	
 tiny	VerbsTest/demekYemek	SINGLE	deyip	Verb + AfterDoingSo + Adv
 tiny	VerbsTest/reciprocalTest_IGNORED	ANY	dövüştük	Verb + Recip + Verb + Past + A1pl
