@@ -741,7 +741,7 @@ varılmıştır	varmak	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[varmak:Verb] var:Ve
 sonuçlarının	sonuç	Noun		Noun+A3pl+P3sg+Gen	Noun	[sonuç:Noun] sonuç:Noun+lar:A3pl+ı:P3sg+nın:Gen
 yönetim	yönetim	Noun		Noun+A3sg+Nom	Noun	[yönetim:Noun] yönetim:Noun+A3sg
 Millet	millet	Noun		Noun+A3sg+Nom	Noun	[millet:Noun] millet:Noun+A3sg
-temyizen	temyizen	Noun	Prop	Noun+A3sg+Nom	Noun	[Temyizen:Noun,Prop] temyizen:Noun+A3sg
+temyizen	temyizen	Adv		Adv	Adv	[temyizen:Adv] temyizen:Adv
 sonuç	sonuç	Noun		Noun+A3sg+Nom	Noun	[sonuç:Noun] sonuç:Noun+A3sg
 uygulanacak	uygulamak	Verb		Verb+Pass+Fut	Verb	[uygulamak:Verb] uygula:Verb|n:Pass→Verb+acak:Fut+A3sg
 hakları	hak	Noun		Noun+A3pl+P3sg	Noun	[hak:Noun] hak:Noun+lar:A3pl+ı:P3sg
@@ -1684,7 +1684,7 @@ arabuluculuk	arabulmak	Verb		Verb+Agt+Ness	Noun	[arabulmak:Verb] arabul:Verb|ucu
 fazlaya	fazla	Adj		Adj+Dat	Noun	[fazla:Adj] fazla:Adj|Zero→Noun+A3sg+ya:Dat
 maruz	maruz	Adj		Adj	Adj	[maruz:Adj] maruz:Adj
 yayımlanarak	yayımlamak	Verb		Verb+Pass+AdvErek	Adv	[yayımlamak:Verb] yayımla:Verb|n:Pass→Verb|arak:ByDoingSo→Adv
-UYAP	uyap	Noun	Prop	Noun+A3sg+Nom	Noun	[Uyap:Noun,Prop] uyap:Noun+A3sg
+UYAP	uyap	Noun	Abbrv	Noun+A3sg+Nom	Noun	[UYAP:Noun,Abbrv] uyap:Noun+A3sg
 hukuku	hukuk	Noun		Noun+P3sg	Noun	[hukuk:Noun] hukuk:Noun+A3sg+u:P3sg
 hükümlü	hüküm	Noun		Noun+With	Adj	[hüküm:Noun] hüküm:Noun+A3sg|lü:With→Adj
 kurulmuştur	kurmak	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[kurmak:Verb] kur:Verb|ul:Pass→Verb+muş:Narr+A3sg+tur:Cop
@@ -1886,7 +1886,7 @@ gümrük	gümrük	Noun		Noun+A3sg+Nom	Noun	[gümrük:Noun] gümrük:Noun+A3sg
 devamı	devam	Noun		Noun+P3sg	Noun	[devam:Noun] devam:Noun+A3sg+ı:P3sg
 taraflarca	taraf	Noun		Noun+A3pl+Equ	Noun	[taraf:Noun] taraf:Noun+lar:A3pl+ca:Equ
 temerrüt	temerrüt	Noun		Noun+A3sg+Nom	Noun	[temerrüt:Noun] temerrüt:Noun+A3sg
-OHAL	ohal	Noun	Prop	Noun+A3sg+Nom	Noun	[Ohal:Noun,Prop] ohal:Noun+A3sg
+OHAL	ohal	Noun	Abbrv	Noun+A3sg+Nom	Noun	[OHAL:Noun,Abbrv] ohal:Noun+A3sg
 hususları	husus	Noun		Noun+A3pl+P3sg	Noun	[husus:Noun] husus:Noun+lar:A3pl+ı:P3sg
 iyi	iyi	Adj		Adj	Adj	[iyi:Adj] iyi:Adj
 tehdit	tehdit	Noun		Noun+A3sg+Nom	Noun	[tehdit:Noun] tehdit:Noun+A3sg
@@ -2654,7 +2654,7 @@ olabilecek	olmak	Verb		Verb+Abil+Fut	Verb	[olmak:Verb] ol:Verb|abil:Able→Verb+
 BIRAKILMASINA	bırakmak	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[bırakmak:Verb] bırak:Verb|ıl:Pass→Verb|ma:Inf2→Noun+A3sg+sı:P3sg+na:Dat
 Hakimi	hakim	Noun		Noun+P3sg	Noun	[hâkim:Noun] hakim:Noun+A3sg+i:P3sg
 Personel	personel	Noun		Noun+A3sg+Nom	Noun	[personel:Noun] personel:Noun+A3sg
-Temyizen	temyizen	Noun	Prop	Noun+A3sg+Nom	Noun	[Temyizen:Noun,Prop] temyizen:Noun+A3sg
+Temyizen	temyizen	Adv		Adv	Adv	[temyizen:Adv] temyizen:Adv
 altıncı	altıncı	Num	Ord	Num	Num	[altıncı:Num,Ord] altıncı:Num
 delillerle	delil	Noun		Noun+A3pl+Ins	Noun	[delil:Noun] delil:Noun+ler:A3pl+le:Ins
 gözetim	gözetim	Noun		Noun+A3sg+Nom	Noun	[gözetim:Noun] gözetim:Noun+A3sg
@@ -4372,7 +4372,7 @@ savıyla	sav	Noun		Noun+P3sg+Ins	Noun	[sav:Noun] sav:Noun+A3sg+ı:P3sg+yla:Ins
 sisteme	sistem	Noun		Noun+Dat	Noun	[sistem:Noun] sistem:Noun+A3sg+e:Dat
 sistemine	sistem	Noun		Noun+P3sg+Dat	Noun	[sistem:Noun] sistem:Noun+A3sg+i:P3sg+ne:Dat
 sonuçlandırılması	sonuçlandırmak	Verb		Verb+Pass+ActN+P3sg	Noun	[sonuçlandırmak:Verb] sonuçlandır:Verb|ıl:Pass→Verb|ma:Inf2→Noun+A3sg+sı:P3sg
-usuli	usuli	Noun	Prop	Noun+A3sg+Nom	Noun	[Usuli:Noun,Prop] usuli:Noun+A3sg
+usuli	usuli	Adj		Adj	Adj	[usulî:Adj] usuli:Adj
 yapılabileceği	yapmak	Verb		Verb+Pass+Abil+FutPart+P3sg	Noun	[yapmak:Verb] yap:Verb|ıl:Pass→Verb|abil:Able→Verb|eceğ:FutPart→Noun+A3sg+i:P3sg
 yapıldığının	yapmak	Verb		Verb+Pass+PastPart+P3sg+Gen	Noun	[yapmak:Verb] yap:Verb|ıl:Pass→Verb|dığ:PastPart→Noun+A3sg+ı:P3sg+nın:Gen
 çıkarılmış	çıkarmak	Verb		Verb+Pass+Evid	Verb	[çıkarmak:Verb] çıkar:Verb|ıl:Pass→Verb+mış:Narr+A3sg

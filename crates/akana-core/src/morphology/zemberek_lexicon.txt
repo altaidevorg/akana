@@ -25606,7 +25606,7 @@ icmal icmal Noun None InverseHarmony
 icmal icmal Noun ProperNoun ProperNoun display=İcmâl
 icra icra Noun None
 icraat icraat Noun None ImplicitPlural NoVoicing
-icrai icrai Noun ProperNoun ProperNoun
+icrai icrai Adj None display=icraî
 id id Noun Abbrv pr=ide
 idadi idadi Noun None display=idadî
 idam idam Noun None
@@ -25759,7 +25759,7 @@ ihtiram ihtiram Noun None
 ihtiram ihtiram Noun ProperNoun ProperNoun
 ihtiras ihtiras Noun None
 ihtiraz ihtiraz Noun None
-ihtirazi ihtirazi Noun ProperNoun ProperNoun
+ihtirazi ihtirazi Adj None display=ihtirazî
 ihtisar ihtisar Noun None
 ihtisas ihtisas Noun None
 ihtiva ihtiva Noun None
@@ -26481,7 +26481,7 @@ inşa inşa Noun None
 inşaa inşaa Noun None
 inşaallah inşaallah Noun ProperNoun ProperNoun
 inşaat inşaat Noun None NoVoicing
-inşai inşai Noun ProperNoun ProperNoun
+inşai inşai Adj None display=inşaî
 inşallah inşallah Interj None
 inşat inşat Noun None Voicing
 inşaullah inşaullah Noun ProperNoun ProperNoun
@@ -28002,7 +28002,7 @@ kadana kadana Noun None
 kadar kadar Noun None
 kadar kadar Postp None pc=Dat
 kadarki kadarki Noun ProperNoun ProperNoun
-kadastral kadastral Noun ProperNoun ProperNoun
+kadastral kadastral Adj None
 kadastro kadastro Noun None
 kadastrolamak kadastrola Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kadavra kadavra Noun None
@@ -29778,7 +29778,7 @@ kayaş kayaş Noun ProperNoun ProperNoun
 kayaşehir kayaşehir Noun ProperNoun ProperNoun
 kaybetmek kaybet Verb None AoristA Voicing
 kaybolmak kaybol Verb None AoristI CausativeT PassiveIn
-kayden kayden Noun ProperNoun ProperNoun
+kayden kayden Adv None
 kaydetmek kaydet Verb None AoristA Voicing
 kaydi kaydi Noun None
 kaydiye kaydiye Noun None
@@ -31463,7 +31463,6 @@ koni koni Adj None
 koni koni Noun None
 konik konik Adj None Voicing
 konik konik Noun None Voicing
-konişmento konişmento Noun ProperNoun ProperNoun
 konje konje Noun None
 konjonktivit konjonktivit Noun None Voicing
 konjonktür konjonktür Noun None
@@ -31600,6 +31599,7 @@ konyaspor konyaspor Noun ProperNoun ProperNoun
 konç konç Noun None Voicing
 konçerto konçerto Noun None
 konçina konçina Noun None
+konşimento konişmento Noun None
 konşimento konşimento Noun None
 kool kool Noun ProperNoun ProperNoun
 koons koons Noun ProperNoun ProperNoun
@@ -34167,13 +34167,13 @@ legorn legorn Noun None
 legrand legrand Noun ProperNoun ProperNoun
 leh leh Noun None NoVoicing
 leh leh Noun ProperNoun NoVoicing ProperNoun
-lehdar lehdar Noun ProperNoun ProperNoun
 lehigh lehigh Noun ProperNoun ProperNoun
 lehim lehim Noun None
 lehimlemek lehimle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 lehistan lehistan Noun ProperNoun ProperNoun
 lehman lehman Noun ProperNoun ProperNoun
 lehmann lehmann Noun ProperNoun ProperNoun
+lehtar lehdar Noun None
 lehtar lehtar Noun None
 lehçe lehçe Adj ProperNoun ProperNoun
 lehçe lehçe Noun None
@@ -35647,6 +35647,7 @@ malul malul Noun None InverseHarmony
 malul malül Adj None
 malulen malulen Adv None
 maluliyet maluliyet Noun None NoVoicing
+maluliyet malüliyet Noun None NoVoicing
 malum malum Adj None
 malum malum Adv None
 malum malum Noun None
@@ -35659,7 +35660,6 @@ malz malz Noun ProperNoun NoVoicing ProperNoun
 malzeme malzeme Noun None
 malç malç Noun None NoVoicing
 malçok malçok Noun ProperNoun ProperNoun
-malüliyet malüliyet Noun ProperNoun ProperNoun
 malıköy malıköy Noun ProperNoun ProperNoun
 mam mam Noun None NoVoicing
 mama mama Noun None
@@ -38786,7 +38786,7 @@ mtv mtv Noun Abbrv pr=meteve
 mu mu Noun Abbrv pr=meu
 mu mu Q None
 muaccel muaccel Adj None
-muacceliyet muacceliyet Noun ProperNoun ProperNoun
+muacceliyet muacceliyet Noun None NoVoicing
 muacciz muacciz Adj None
 muaddal muaddal Noun ProperNoun ProperNoun
 muaddel muaddel Adj None
@@ -38964,7 +38964,7 @@ muhayyile muhayyile Noun None
 muhbir muhbir Noun None
 muhbir muhbir Noun ProperNoun ProperNoun
 muhcu muhcu Noun ProperNoun ProperNoun
-muhdesat muhdesat Noun ProperNoun ProperNoun
+muhdesat muhdesat Noun None NoVoicing
 muhdesatın muhdesatın Noun ProperNoun ProperNoun
 muhdin muhdin Noun ProperNoun ProperNoun
 muhib muhib Noun ProperNoun ProperNoun
@@ -39290,7 +39290,6 @@ muta muta Noun ProperNoun ProperNoun
 mutaassıp mutaassıp Adj None Voicing
 mutabakat mutabakat Noun None NoVoicing
 mutabık mutabık Adj None NoVoicing
-mutad mutad Noun ProperNoun ProperNoun
 mutaf mutaf Noun None
 mutafoğlu mutafoğlu Noun ProperNoun ProperNoun
 mutafyan mutafyan Noun ProperNoun ProperNoun
@@ -39311,6 +39310,7 @@ mutasyonist mutasyonist Adj None NoVoicing
 mutasyonist mutasyonist Noun None NoVoicing
 mutasyonizm mutasyonizm Noun None
 mutasım mutasım Noun ProperNoun ProperNoun
+mutat mutad Adj None
 mutat mutat Adj None NoVoicing
 mutatabbip mutatabbip Noun None Voicing
 mutavaat mutavaat Adj None NoVoicing
@@ -40994,7 +40994,7 @@ neron neron Noun ProperNoun ProperNoun
 neruda neruda Noun ProperNoun ProperNoun
 nervür nervür Noun None
 nes nes Noun Abbrv NoVoicing pr=nes
-nesafet nesafet Noun ProperNoun ProperNoun
+nesafet nesafet Noun None NoVoicing
 nesai nesai Noun ProperNoun ProperNoun
 nescafe nescafe Noun ProperNoun ProperNoun
 nesefi nesefi Noun ProperNoun ProperNoun
@@ -42024,7 +42024,7 @@ ogs ogs Noun Abbrv pr=ogese
 ogün ogün Noun ProperNoun ProperNoun
 oh oh Interj None
 oha oha Interj None
-ohal ohal Noun ProperNoun ProperNoun
+ohal ohal Noun Abbrv pr=ohal
 ohannes ohannes Noun ProperNoun ProperNoun
 ohare ohare Noun ProperNoun ProperNoun
 ohio ohio Noun ProperNoun ProperNoun
@@ -47365,7 +47365,7 @@ röyalti röyalti Noun None
 rübap rübap Noun None Voicing
 rücu rücu Noun None
 rücuan rücuan Noun ProperNoun ProperNoun
-rücuen rücuen Noun ProperNoun ProperNoun
+rücuen rücuen Adv None
 rücum rücum Noun ProperNoun ProperNoun
 rücuu rücuu Noun ProperNoun ProperNoun
 rüesa rüesa Noun None
@@ -47424,7 +47424,7 @@ rıhtım rıhtım Noun None
 rım rım Noun Abbrv NoVoicing pr=rım
 rıza rıza Noun None
 rıza rıza Noun ProperNoun ProperNoun
-rızaen rızaen Noun ProperNoun ProperNoun
+rızaen rızaen Adv None
 rızai rızai Noun ProperNoun ProperNoun
 rızanur rızanur Noun ProperNoun ProperNoun
 rızk rızk Noun None NoVoicing
@@ -54605,7 +54605,7 @@ temsiliyet temsiliyet Noun None NoVoicing
 temur temur Noun ProperNoun ProperNoun
 temuçin temuçin Noun ProperNoun ProperNoun
 temyiz temyiz Noun None
-temyizen temyizen Noun ProperNoun ProperNoun
+temyizen temyizen Adv None
 temür temür Noun ProperNoun ProperNoun
 ten ten Noun None NoVoicing
 tenafür tenafür Noun None
@@ -56060,7 +56060,7 @@ trakya trakya Noun ProperNoun ProperNoun
 trakyabirlik trakyabirlik Noun ProperNoun ProperNoun
 trambus trambus Noun ProperNoun ProperNoun
 trambüs trambüs Noun ProperNoun ProperNoun
-tramer tramer Noun ProperNoun ProperNoun
+tramer tramer Noun None
 trampa trampa Noun None
 trampet trampet Noun None NoVoicing
 tramplen tramplen Noun None
@@ -57646,7 +57646,7 @@ usulca usulca Adv None
 usulcacık usulcacık Adv None
 usuldan usuldan Adv None
 usulen usulen Adv None
-usuli usuli Noun ProperNoun ProperNoun
+usuli usuli Adj None display=usulî
 usulünce usulünce Adv None
 usum usum Noun ProperNoun ProperNoun
 usun usun Noun ProperNoun ProperNoun
@@ -57684,7 +57684,7 @@ uxbal uxbal Noun ProperNoun ProperNoun
 uyak uyak Noun None Voicing
 uyanmak uyan Verb None AoristI
 uyanık uyanık Adj None Voicing
-uyap uyap Noun ProperNoun ProperNoun
+uyap uyap Noun Abbrv pr=uyap
 uyar uyar Noun ProperNoun ProperNoun
 uyaralp uyaralp Noun ProperNoun ProperNoun
 uyarel uyarel Noun ProperNoun ProperNoun

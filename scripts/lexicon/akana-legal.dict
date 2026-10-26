@@ -267,3 +267,28 @@ sanayi [Pr:sanayiğ; Index:1]
 mevzu [Pr:mevzuğ; Index:1]
 vuku [Pr:vukuğ; Index:1]
 tevzi [Pr:tevziğ; Index:1]
+
+## Court words that Zemberek has only as names collected from text (plan step E6, review 2
+## MLEX2-03 and -06): the samples write them in lower case (temyizen 4,941 tokens against 1,146
+## capitalised), so the name reading stood in for the word. akana-remove.dict drops the names.
+## Spellings of words the dictionary writes otherwise keep the dictionary's lemma (lehdar 56
+## sample tokens against lehtar 159, konişmento 41 against konşimento 63).
+temyizen [P:Adv]
+rücuen [P:Adv]
+kayden [P:Adv]
+rızaen [P:Adv]
+usulî [P:Adj]
+ihtirazî [P:Adj]
+icraî [P:Adj]
+inşaî [P:Adj]
+kadastral [P:Adj]
+mutad [P:Adj; Ref:mutat]
+lehdar [Ref:lehtar]
+konişmento [Ref:konşimento]
+nesafet [A:NoVoicing]
+muhdesat [A:NoVoicing]
+malüliyet [A:NoVoicing; Ref:maluliyet]
+muacceliyet [A:NoVoicing]
+tramer
+OHAL [P:Abbrv; Pr:ohal]
+UYAP [P:Abbrv; Pr:uyap]

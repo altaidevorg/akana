@@ -1,16 +1,13 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 797 tokens in context: exact 95.9 %, lemma 99.1 %, POS 97.1 %
-# a gold reading is among the analyses for 99.4 %
+# 797 tokens in context: exact 96.2 %, lemma 99.1 %, POS 97.5 %
+# a gold reading is among the analyses for 99.7 %
 10:2	açıkça	tags	açık|Adj|Adj+AsIf|
-11:8	temyizen	pos	temyizen|Noun|Noun+A3sg+Nom|P
 12:8	esas	pos	esas|Adj|Adj|
-14:0	Temyizen	pos	temyizen|Noun|Noun+A3sg+Nom|P
 16:11	sona	pos	son|Num|Num+Dat|
 17:4	bulunan	lemma	bulunmak|Verb|Verb+PresPart|
 19:3	AT	tags	at|Noun|Noun+A3sg+Nom|P
 20:0	Kanun	tags	kanun|Noun|Noun+A3sg+Nom|P
 21:6	varsa	lemma+pos	varmak|Verb|Verb+Cond|
-23:9	temyizen	pos	temyizen|Noun|Noun+A3sg+Nom|P
 24:2	yerinde	lemma+pos	yerinde|Adv|Adv|
 28:9	ile	pos	ile|Conj|Conj|
 29:11	dayalı	pos	dayalı|Adv|Adv|
@@ -34,8 +31,5 @@
 5:6	ile	pos	ile|Conj|Conj|
 6:6	rahatsız	pos	rahat|Noun|Noun+Without|
 7:5	dayalı	pos	dayalı|Adv|Adv|
-missing	11:8	temyizen
-missing	14:0	Temyizen
 missing	19:3	AT
-missing	23:9	temyizen
 missing	40:3	Pel
