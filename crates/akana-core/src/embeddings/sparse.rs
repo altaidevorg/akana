@@ -280,6 +280,12 @@ fn suffix_fragment(tokens: &[&str], i: usize) -> bool {
 const PROPER_NOUN_WEIGHT: f32 = 1.8;
 
 /// The weight of a term by its reading's POS; [`OTHER_POS_WEIGHT`] for the rest.
+///
+/// Numbers weigh 1.6, which gives them 11.8 % of court hybrid slots (terms with a digit). Plan
+/// step G5 (review 2 MSTAB-08) measured 1.3, 1.0 and a cap of two number slots against it:
+/// each lowered exact-search hybrid MRR@10 (RagTurk 0.7900 at 1.6 against 0.7877, 0.7807 and
+/// 0.7870; Turkuaz 0.4400 against 0.4384, 0.4404 and 0.4392), so 1.6 is kept and frozen with
+/// spec 1.
 const POS_WEIGHTS: &[(PrimaryPos, f32)] = &[
     (PrimaryPos::Num, 1.6),
     (PrimaryPos::Noun, 1.3),

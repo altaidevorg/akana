@@ -20,12 +20,14 @@
 //!
 //! Spec 1 of the sparse encoder: text is split into sentences and words (the akana tokenizer);
 //! each word is analysed and disambiguated in its sentence; its term is the reading's lemma
-//! (lower-case, no circumflex), plus the parts of a lexicon compound, but for a word the
-//! dictionary lists as a postposition or an adverb, whose term is fixed (that word, or the
-//! verb an adverb is a form of: `sparse::frozen_form`); stopword lemmas are
-//! dropped; a term's id is the 32-bit FNV-1a of its string ([`super::hash_term_32bit`]); its
-//! value is BM25-saturated term frequency (k1 = 1.2) times its POS weight times its
-//! function-lemma weight. The hybrid vector packs the 2-bit dense embedding (64 bytes) with the
+//! (lower-case, no circumflex), plus the parts of a compound (the lexicon's, and those listed
+//! in `morphology::compound`, but not a compound that is a word of its own: anayasa), but for
+//! a word the dictionary lists as a postposition or an adverb, whose term is fixed (that word,
+//! or the verb an adverb is a form of: `sparse::frozen_form`); stopwords and function lemmas
+//! (`sparse::STOP_LEMMAS`: a lemma whose items are all pronouns, conjunctions, postpositions,
+//! determiners or question particles, and a listed few) are dropped; a term's id is the 32-bit
+//! FNV-1a of its string ([`super::hash_term_32bit`]); its value is BM25-saturated term
+//! frequency (k1 = 1.2) times its POS weight times its function-lemma weight. The hybrid vector packs the 2-bit dense embedding (64 bytes) with the
 //! 16 heaviest sparse terms (24-bit id and an 8-bit weight each; ties go to the lower id).
 
 use crate::fingerprint::Fingerprint;
