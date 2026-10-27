@@ -48,7 +48,6 @@ COURT_SUBSETS = ["aym_bb", "aym_norm", "danistay", "emsal", "yargitay"]
 CHUNKS_PER_SUBSET = 1000
 CHUNK_WORDS = 256
 SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
-TURKUAZ_CACHE = Path(".cache/rag_benchmarks/turkuaz.jsonl")
 
 
 def chunk(decision: str) -> list[str]:
@@ -85,27 +84,11 @@ def court_chunks(sample_dir: Path) -> list[str]:
 
 
 def turkuaz() -> tuple[list[dict], list[dict]]:
-    """Turkuaz texts and questions, from the on-disk cache (written on the first run)."""
-    if not TURKUAZ_CACHE.exists():
-        from benchmark_rag_real_data import fetch_turkuaz_dataset
+    """Turkuaz texts and questions, from the benchmark's on-disk cache (written on the first
+    run)."""
+    from benchmark_rag_real_data import fetch_turkuaz_dataset
 
-        docs, queries = fetch_turkuaz_dataset(max_samples=500)
-        if not queries:
-            return [], []
-        TURKUAZ_CACHE.parent.mkdir(parents=True, exist_ok=True)
-        with TURKUAZ_CACHE.open("w", encoding="utf-8") as f:
-            for d in docs:
-                f.write(json.dumps({"doc": d["key"], "text": d["text"]}, ensure_ascii=False) + "\n")
-            for q in queries:
-                f.write(json.dumps({"question": q["question"], "gold": sorted(q["gold_keys"])}, ensure_ascii=False) + "\n")
-    docs, queries = [], []
-    for line in TURKUAZ_CACHE.read_text(encoding="utf-8").splitlines():
-        row = json.loads(line)
-        if "doc" in row:
-            docs.append({"key": row["doc"], "text": row["text"]})
-        else:
-            queries.append({"question": row["question"], "gold_keys": set(row["gold"])})
-    return docs, queries
+    return fetch_turkuaz_dataset(max_samples=500)
 
 
 def encode(texts: list[str]) -> list[dict]:

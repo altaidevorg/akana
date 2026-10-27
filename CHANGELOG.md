@@ -122,6 +122,13 @@ different results.
   `TurkishMorphology::analyze_standard` and `TurkishMorphology::backoff_stem`, and the Python
   keys `analysis`, `pos`, `display_lemma` and `nonstandard`.
 - Grammar rule selection (`rules`, `enable`, `disable`, `experimental`) and `grammar_rules()`.
+- `morphology::verb_form` and `verb_form_of` (Rust): a reading's non-finite verb form and its
+  UD `VerbForm`.
+- Measurement scripts: `scripts/ud_eval.py` (the analyzer on held-out UD Turkish data, by
+  treebank and genre), `scripts/benchmark_embedding_cost.py`, and `--readme` in
+  `scripts/benchmark_rag_real_data.py`, which prints the README's retrieval table. The
+  retrieval benchmark caches Turkuaz on disk after the first run and has an exact FP32 row.
+  The README's retrieval, morphology and embedding-cost figures are regenerated with them.
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
   Zemberek dictionaries and morphotactics (Apache 2.0), and the UD-derived function-lemma table
   and morphology prior (CC BY-SA 4.0).

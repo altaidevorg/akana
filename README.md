@@ -92,13 +92,16 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
 
 ## Performance Benchmarks (Akana vs Zeyrek / Zemberek & StringZilla SIMD)
 
-Tested on real Turkish text corpora and 10,500 morphological queries (`benchmarks/`):
+Tested on real Turkish text corpora and 10,500 morphological queries (`benchmarks/`). The
+Zeyrek column is from the 0.8.0 run of `benchmarks/benchmark_vs_zeyrek.py` and was not
+re-measured (Zeyrek is not installed here); Akana's morphology rows are the median of three
+runs of the same script on 0.9.0, from Python, on a laptop CPU.
 
 | Benchmark Metric | Zeyrek (Python Zemberek Port) | Akana (Rust + StringZilla SIMD) | Performance / Throughput |
 | :--- | :--- | :--- | :--- |
-| **Active Root Lexicon** | ~90,000 roots | **66,586 roots** | **Full Coverage** |
-| **Startup / Lexicon Init** | `2,733.8 ms` (~2.7s) | **`200.2 ms`** | **13.6x faster** |
-| **Morphological Parse (10.5k words)** | `55,349.7 ms` (55.3s) | **`989.7 ms`** (0.98s) | **55.9x faster** (`10,609 words/sec`) |
+| **Root Lexicon** | 66,821 entries (Zemberek's six dictionaries) | **66,436 items** | The same dictionaries, merged, cleaned and supplemented (court terms, abbreviations) |
+| **Startup / Lexicon Init** | `2,733.8 ms` (~2.7s) | **`114.8 ms`** | **~24x faster** |
+| **Morphological Parse (10.5k words)** | `55,349.7 ms` (55.3s) | **`178.7 ms`** | **~310x faster** (`58,760 words/sec`; 42k–63k over three runs) |
 | **Tokenization (Zero-Allocation)** | ~230 words/sec | **`949,991 tokens/sec`** | **>4,000x faster** (<21 ms for 19.5k tokens) |
 | **Informal Normalization** | N/A | **`36,222 words/sec`** | **High Throughput** (Zero-Regex Suffix Matching) |
 | **AI Writing Style Audit** | N/A | **`54,700 words/sec`** | **StringZilla SIMD** rules + trained AI-text detector (10.2k words in 187 ms with `benchmarks/benchmark_stringzilla_optimizations.py`; the rules alone run at ~120k words/sec in the same script on the same machine) |
@@ -109,6 +112,37 @@ Tested on real Turkish text corpora and 10,500 morphological queries (`benchmark
 | **Semantic Chunking (TurboQuant)** | ~80 words/sec (Neural) | **`62,500 words/sec`** | **~780x faster** (~40 ms for 200 sents) |
 | **Turkish PII Masking & Restoration** | N/A (Standard Regex / Spacy) | **`3,570 docs/sec`** | **Ultra-Fast KVKK Pipeline** (<0.28 ms / doc, 50+ entity types) |
 | **Hardware Acceleration** | Pure Python loops | **StringZilla AVX-512 / AVX2 / NEON** | **Native SIMD Instructions** |
+
+### Morphological Analysis on Held-Out Treebanks (`scripts/ud_eval.py`)
+
+The analyzer and the disambiguator on UD Turkish data that trains nothing akana ships: the test
+splits of the six treebanks whose train and dev sentences feed the ranking prior, and all of
+IMST (CC BY-NC-SA, used for evaluation only). BOUN's test split is broken down by genre.
+*Coverage*: the word has a reading. *Class*: the disambiguated reading's part of speech is UD's
+(a participle or verbal noun counts as a verb or as the class it derives; names, punctuation
+and symbols left out). *Twins*: the same, on the words whose readings fall in two classes or
+more, one of them UD's. *Lemma*: the reading's lemma or root equals UD's lemma; UD writes a
+verb's stem and some derivations differently, so this is agreement, not accuracy.
+
+| set | words | coverage % | class % | twins | twins % | lemma % |
+|---|---|---|---|---|---|---|
+| Atis | 4784 | 98.9 | 89.4 | 1265 | 89.3 | 86.4 |
+| BOUN biographical | 1797 | 99.4 | 88.9 | 641 | 90.0 | 92.6 |
+| BOUN essays | 2192 | 99.0 | 85.4 | 844 | 83.2 | 89.6 |
+| BOUN instructional | 1636 | 98.9 | 86.8 | 666 | 86.6 | 92.9 |
+| BOUN news | 2541 | 98.4 | 88.4 | 742 | 83.2 | 90.8 |
+| BOUN popular culture | 1821 | 99.0 | 86.5 | 721 | 82.5 | 92.0 |
+| FrameNet | 1198 | 99.7 | 93.2 | 518 | 90.3 | 92.5 |
+| IMST | 45998 | 99.2 | 86.3 | 18092 | 85.7 | 92.6 |
+| Kenet | 15135 | 99.5 | 88.9 | 6291 | 85.7 | 90.4 |
+| Penn | 8471 | 96.4 | 89.8 | 2844 | 87.9 | 90.7 |
+| Tourism | 7915 | 99.8 | 96.1 | 3757 | 95.7 | 95.2 |
+| all | 93488 | 99.0 | 88.2 | 36381 | 87.0 | 91.9 |
+
+On the court-decision and RagTurk samples of the morphology sweep (3.6 M and 163 k tokens,
+`examples/morph_sweep.rs`), 0.49 % and 7.6 % of tokens have no reading (0.36 % and 2.3 % of
+lower-case words: the rest are names, foreign words and codes), with 2.2 and 1.9 readings per
+token.
 
 ### Turkish Text Chunking Performance Benchmark (`scripts/benchmark_chunking.py`)
 
@@ -210,27 +244,27 @@ Evaluated on **`metunlp/ragturk`** (Turkish agglutinative morphology failure mod
 
 | Retrieval Engine | Bytes / Vector | RAM Footprint (1M Docs) | Turkuaz Recall@10 | Turkuaz MRR@10 | RagTurk Recall@10 | RagTurk MRR@10 | Query Latency (RagTurk) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Dense FP32 (256-dim, exact cosine)** | 1,024 B | 1,024 MB | 75.8% | 0.390 | 93.2% | 0.772 | — |
-| **Akana Dense 2-Bit (TurboQuant)** | **64 B** | **`64 MB` (16x smaller)** | 73.8% | 0.375 | 91.2% | 0.738 | **148 µs** |
-| **Akana Dense 1-Bit (Binary Hamming)** | **32 B** | **`32 MB` (32x smaller)** | 67.0% | 0.329 | 86.3% | 0.662 | **82 µs** |
-| **Akana Morphological BM25 (inverted index)** | Inverted | ~116 MB | **`84.2%`** | **`0.449`** | 95.3% | **`0.848`** | 1,695 µs |
-| **Akana Single-Buffer Hybrid (128B)** | **128 B** | **`128 MB` (8x smaller)** | 81.6% | 0.407 | 92.8% | 0.758 | 551 µs |
-| **Akana Dual-Index RRF (2-Bit + BM25)** | 64 B + Inverted | ~180 MB | 81.6% | 0.430 | **`96.8%`** | 0.840 | 2,255 µs |
-| **Akana Dual-Index RRF (1-Bit + BM25)** | 32 B + Inverted | ~148 MB | 79.6% | 0.396 | 96.5% | 0.819 | 2,251 µs |
+| **Dense FP32 (256-dim, exact cosine)** | 1,024 B | 1,024 MB | 75.4% | 0.383 | 93.2% | 0.772 | 740 µs |
+| **Akana Dense 2-Bit (TurboQuant)** | **64 B** | **`64 MB` (16x smaller)** | 73.8% | 0.375 | 91.2% | 0.738 | 328 µs |
+| **Akana Dense 1-Bit (Binary Hamming)** | **32 B** | **`32 MB` (32x smaller)** | 67.0% | 0.329 | 86.3% | 0.662 | 184 µs |
+| **Akana Morphological BM25 (inverted index)** | Inverted | ~116 MB | **`87.4%`** | **`0.473`** | **`97.8%`** | **`0.879`** | 1,790 µs |
+| **Akana Single-Buffer Hybrid (128B)** | **128 B** | **`128 MB` (8x smaller)** | 84.0% | 0.448 | 94.7% | 0.788 | 1,072 µs |
+| **Akana Dual-Index RRF (2-Bit + BM25)** | 64 B + Inverted | ~180 MB | 83.0% | 0.441 | 97.7% | 0.836 | 2,893 µs |
+| **Akana Dual-Index RRF (1-Bit + BM25)** | 32 B + Inverted | ~148 MB | 81.6% | 0.417 | 97.5% | 0.808 | 2,877 µs |
 
 Latency is per query and end to end (query embedding + search) in a single Python process on a laptop CPU; the BM25 inverted index is the pure-Python one in the benchmark script, so the BM25 and RRF rows are dominated by Python. The FP32 row is exact brute-force cosine over `akana.embed` vectors.
 
-> **Reproducibility:** `python scripts/benchmark_rag_real_data.py --dataset all` (defaults: 300 RagTurk articles, 500 Turkuaz samples) and the runnable workflows in [`examples/11_ultra_low_memory_retrieval_usearch.py`](examples/11_ultra_low_memory_retrieval_usearch.py).
+> **Reproducibility:** `python scripts/benchmark_rag_real_data.py --dataset all --readme` prints this table (defaults: 300 RagTurk articles, 500 Turkuaz samples; Turkuaz is streamed once and then read from `.cache/rag_benchmarks/turkuaz.jsonl`, so later runs work offline). Every quality figure is deterministic: two runs give the same reciprocal rank for every question. See also the runnable workflows in [`examples/11_ultra_low_memory_retrieval_usearch.py`](examples/11_ultra_low_memory_retrieval_usearch.py).
 
 > **Correction (0.8.0):** earlier versions of this table (and of the benchmark script, example and README snippets) built USearch indexes as `Index(ndim=nbytes, dtype="u8")` and added numpy `uint8` arrays. USearch reads `uint8` arrays as packed bits and unpacks them into such an index, so it kept only the first `nbytes` bits of each vector as 0/1 bytes: 1/8 of each dense vector, and none of the hybrid's sparse half. Every USearch row of the old table measured that loss (for example 36.7% RagTurk Recall@10 for the hybrid, and 1-bit appearing better than 2-bit). Indexes must store the packed bytes verbatim: `Index(ndim=8 * nbytes, dtype="b1", metric=...)`, which also passes `nbytes` to the compiled metric. Any index built the old way has to be rebuilt. After `Index.load()` or `Index.view()`, set `index.metric` to the compiled metric again: USearch restores the metric from the file header, which cannot hold a function pointer (a reloaded `b1` index crashes on search without it; a reloaded `u8` index silently used USearch's own cosine).
 
 #### Key Empirical Findings
 
-1. **2-bit TurboQuant keeps almost all of FP32's quality**: 0.738 vs 0.772 MRR@10 on RagTurk and 0.375 vs 0.390 on Turkuaz, at 1/16 of the memory. **1-bit** halves the memory again and costs another 0.05–0.08 MRR@10.
-2. **Morphological BM25 is the strongest single retriever on both sets** (RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF gives the best RagTurk Recall@10 (96.8%) at about the same MRR@10.
-3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.02 (RagTurk) and +0.03 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 40 terms), weighted by repetition and part of speech; only a handful of function lemmas (*bir*, *hangi*, *vermek*) carry an IDF weight, because a full static IDF cost the hybrid 0.01–0.04 MRR@10 by trading a passage's repeated topic words for words it mentions once.
-4. **Hybrid vectors depend on the morphology build.** 0.7.0's morphology fixes changed the sparse half of almost every hybrid vector (dense halves are unchanged) and improved hybrid MRR@10 on RagTurk from 0.717 to 0.757 (exact search); 0.8.0's analyzer, compound and vowel-harmony fixes change it again (the table is measured with them), with retrieval unchanged within noise. Store `akana.encoder_info()` with an index and check it with `akana.check_encoder()` when you open it (see *Index compatibility* below). The sparse encoder now counts one disambiguated lemma per word occurrence instead of the top three analyses of each word, and uses 32-bit term ids, so every `sparse_embed` vector and the sparse half of every hybrid vector change again. Against the Zemberek-style morphology it builds on, MRR@10 moves from 0.865 to 0.886 (RagTurk) and 0.448 to 0.471 (Turkuaz) for BM25, from 0.777 to 0.787 and 0.434 to 0.457 for the hybrid, with RRF unchanged within noise; the table above predates both changes.
-5. **Embedding cost:** the 128-byte hybrid embeds about 330 court-decision chunks of 256 tokens per second per CPU core (the dense half alone about 4,300); `embed_batch_hybrid` splits a batch of 512 or more texts across the CPU cores.
+1. **2-bit TurboQuant keeps almost all of FP32's quality**: 0.738 vs 0.772 MRR@10 on RagTurk and 0.375 vs 0.383 on Turkuaz, at 1/16 of the memory. **1-bit** halves the memory again and costs another 0.05–0.08 MRR@10.
+2. **Morphological BM25 is the strongest single retriever on both sets** (0.879 MRR@10 on RagTurk, 0.473 on Turkuaz; RagTurk questions share most of their vocabulary with their passages). Fusing it with 2-bit dense through RRF matches its RagTurk Recall@10 (97.7% vs 97.8%) but not its MRR@10 (0.836), and trails it on Turkuaz.
+3. **The 128-byte single-buffer hybrid is one memory-mappable index with no inverted index.** It adds +0.05 (RagTurk) and +0.07 (Turkuaz) MRR@10 over 2-bit dense alone but stays below BM25: its sparse half holds the 16 heaviest terms of a passage (a RagTurk chunk has a median of 39 terms), weighted by repetition and part of speech. Function words are no terms (`ve`, `için`, `bu`, `bir`, `tarafından`), and only the twenty lemmas most frequent in both court decisions and general text (*almak*, *vermek*, *yer* ...) carry an IDF weight, because a full static IDF cost the hybrid 0.01–0.04 MRR@10 by trading a passage's repeated topic words for words it mentions once.
+4. **Hybrid vectors depend on the morphology build.** 0.9.0's analyzer and sparse encoder change every `sparse_embed` vector and the sparse half of every hybrid vector built with 0.8.0 (dense halves are unchanged): rebuild such indexes. From 0.9.0 on, store `akana.encoder_info()` with an index and check it with `akana.check_encoder()` when you open it (see *Index compatibility* below); a release that changes vectors within the same sparse spec reports how many and keeps a stale index within 0.005 MRR@10 of a rebuilt one.
+5. **Embedding cost:** on one core of a laptop CPU, the 128-byte hybrid embeds 170–240 court-decision chunks of about 214 words per second, the sparse half alone 200–220 and the dense half alone 1,600–2,100 (`scripts/benchmark_embedding_cost.py`, three runs; the machine's load moves these by a third). `embed_batch_hybrid` splits a batch of 512 or more texts across the CPU cores.
 
 #### Index compatibility
 
@@ -263,7 +297,7 @@ lists what else changed since 0.8.0 and how to migrate.
 | **RAGTurk Baseline (EmbeddingGemma)** | ~600 MB | 1,024 MB (1.0 GB) | ~15 ms | ~70–75% | Neural embedder, drops on morphology |
 | **RAGTurk "Production-Friendly" (MiniLM Reranker)** | ~730 MB | 1,024 MB (1.0 GB) | 40–80 ms | ~90.1% | Requires cross-encoder over all candidate pairs |
 | **RAGTurk "Max Accuracy" (HyDE + LLM)** | Multi-GB | 1,024 MB (1.0 GB) | 1,500–4,000 ms | ~92.0% | Heavy LLM query generation ($3.7\times$ tokens) |
-| **Akana Dual-Index RRF (2-Bit + Morph BM25)** | **`2.50 MB`** | **`~180 MB`** | **`2.3 ms`** | **`96.7%`** (RagTurk, 600 questions) | **Zero LLMs, zero GPUs. Runs entirely on CPU** |
+| **Akana Dual-Index RRF (2-Bit + Morph BM25)** | **`2.50 MB`** | **`~180 MB`** | **`2.9 ms`** | **`97.7%`** (RagTurk, 600 questions) | **Zero LLMs, zero GPUs. Runs entirely on CPU** |
 
 *The neural rows are as reported for their own setups; the Akana row is measured on the 300-article RagTurk subset above, so the two are not a like-for-like comparison.*
 
