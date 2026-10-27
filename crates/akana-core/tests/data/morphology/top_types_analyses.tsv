@@ -599,7 +599,7 @@ tahsil	tahsil	Noun		Noun+A3sg+Nom	Noun	[tahsil:Noun] tahsil:Noun+A3sg
 giren	girmek	Verb		Verb+PresPart	Adj	[girmek:Verb] gir:Verb|en:PresPart→Adj
 teslim	teslim	Noun		Noun+A3sg+Nom	Noun	[teslim:Noun] teslim:Noun+A3sg
 hem	hem	Conj		Conj	Conj	[hem:Conj] hem:Conj
-Resmî	resmi	Noun	Prop	Noun+A3sg+Nom	Noun	[Resmi:Noun,Prop] resmi:Noun+A3sg
+Resmî	resmi	Adj		Adj	Adj	[resmî:Adj] resmi:Adj
 başvurucuların	başvuru	Noun		Noun+Agt+A3pl+Gen	Noun	[başvuru:Noun] başvuru:Noun+A3sg|cu:Agt→Noun+lar:A3pl+ın:Gen
 eklenen	eklemek	Verb		Verb+Pass+PresPart	Adj	[eklemek:Verb] ekle:Verb|n:Pass→Verb|en:PresPart→Adj
 ücreti	ücret	Noun		Noun+P3sg	Noun	[ücret:Noun] ücret:Noun+A3sg+i:P3sg
@@ -879,7 +879,7 @@ işlemleri	işlem	Noun		Noun+A3pl+P3sg	Noun	[işlem:Noun] işlem:Noun+ler:A3pl+i
 Bir	bir	Det		Det	Det	[bir:Det] bir:Det
 Davacının	davacı	Noun		Noun+Gen	Noun	[davacı:Noun] davacı:Noun+A3sg+nın:Gen
 ki	ki	Conj		Conj	Conj	[ki:Conj] ki:Conj
-Resmi	resmi	Noun	Prop	Noun+A3sg+Nom	Noun	[Resmi:Noun,Prop] resmi:Noun+A3sg
+Resmi	resmi	Adj		Adj	Adj	[resmî:Adj] resmi:Adj
 Sulh	sulh	Noun		Noun+A3sg+Nom	Noun	[sulh:Noun] sulh:Noun+A3sg
 etmiş	etmek	Verb		Verb+Evid	Verb	[etmek:Verb] et:Verb+miş:Narr+A3sg
 suçun	suç	Noun		Noun+Gen	Noun	[suç:Noun] suç:Noun+A3sg+un:Gen
@@ -2138,7 +2138,7 @@ menfi	menfi	Adj		Adj	Adj	[menfi:Adj] menfi:Adj
 sınır	sınır	Noun		Noun+A3sg+Nom	Noun	[sınır:Noun] sınır:Noun+A3sg
 yararlanma	yararlanmak	Verb		Verb+ActN	Noun	[yararlanmak:Verb] yararlan:Verb|ma:Inf2→Noun+A3sg
 Aydın	aydın	Noun	Prop	Noun+A3sg+Nom	Noun	[Aydın:Noun,Prop] aydın:Noun+A3sg
-Hâkimliği	hakim	Adj		Adj+Ness+P3sg	Noun	[hakim:Adj] hakim:Adj|liğ:Ness→Noun+A3sg+i:P3sg
+Hâkimliği	hakim	Noun		Noun+Ness+P3sg	Noun	[hâkim:Noun] hakim:Noun+A3sg|liğ:Ness→Noun+A3sg+i:P3sg
 amacına	amaç	Noun		Noun+P3sg+Dat	Noun	[amaç:Noun] amac:Noun+A3sg+ı:P3sg+na:Dat
 değişikliği	değişik	Adj		Adj+Ness+P3sg	Noun	[değişik:Adj] değişik:Adj|liğ:Ness→Noun+A3sg+i:P3sg
 görüşü	görüş	Noun		Noun+P3sg	Noun	[görüş:Noun] görüş:Noun+A3sg+ü:P3sg
@@ -3709,7 +3709,7 @@ yapılmaması	yapmak	Verb		Verb+Pass+Neg+ActN+P3sg	Noun	[yapmak:Verb] yap:Verb|�
 İnş	inş	Noun	Abbrv	Noun+A3sg+Nom	Noun	[İNŞ:Noun,Abbrv] inş:Noun+A3sg
 Alınan	almak	Verb		Verb+Pass+PresPart	Adj	[almak:Verb] al:Verb|ın:Pass→Verb|an:PresPart→Adj
 Asıl	asıl	Adj		Adj	Adj	[asıl:Adj] asıl:Adj
-Hâkim	hakim	Noun	Prop	Noun+A3sg+Nom	Noun	[Hakim:Noun,Prop] hakim:Noun+A3sg
+Hâkim	hakim	Noun		Noun+A3sg+Nom	Noun	[hâkim:Noun] hakim:Noun+A3sg
 Petrol	petrol	Noun		Noun+A3sg+Nom	Noun	[petrol:Noun] petrol:Noun+A3sg
 değerlendirilmesine	değerlendirmek	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[değerlendirmek:Verb] değerlendir:Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg+ne:Dat
 dolandırıcılık	dolandırıcı	Noun		Noun+Ness	Noun	[dolandırıcı:Noun] dolandırıcı:Noun+A3sg|lık:Ness→Noun+A3sg
@@ -3797,7 +3797,7 @@ yılın	yıl	Noun	Time	Noun+Gen	Noun	[yıl:Noun,Time] yıl:Noun+A3sg+ın:Gen
 öngörülmektedir	öngörmek	Verb		Verb+Pass+Prog+CopPres3sg	Verb	[öngörmek:Verb] öngör:Verb|ül:Pass→Verb+mekte:Prog2+A3sg+dir:Cop
 özen	özen	Noun		Noun+A3sg+Nom	Noun	[özen:Noun] özen:Noun+A3sg
 Bakan	bakan	Noun		Noun+A3sg+Nom	Noun	[bakan:Noun] bakan:Noun+A3sg
-Hâkimlik	hakim	Adj		Adj+Ness	Noun	[hakim:Adj] hakim:Adj|lik:Ness→Noun+A3sg
+Hâkimlik	hakim	Noun		Noun+Ness	Noun	[hâkim:Noun] hakim:Noun+A3sg|lik:Ness→Noun+A3sg
 Uygulanacak	uygulamak	Verb		Verb+Pass+FutPart	Adj	[uygulamak:Verb] uygula:Verb|n:Pass→Verb|acak:FutPart→Adj
 Uzmanı	uzman	Noun		Noun+P3sg	Noun	[uzman:Noun] uzman:Noun+A3sg+ı:P3sg
 alanlar	alan	Noun		Noun+A3pl	Noun	[alan:Noun] alan:Noun+lar:A3pl
@@ -3975,7 +3975,7 @@ edilemeyen	etmek	Verb		Verb+Pass+NegAbil+PresPart	Adj	[etmek:Verb] ed:Verb|il:Pa
 eyleminin	eylem	Noun		Noun+P3sg+Gen	Noun	[eylem:Noun] eylem:Noun+A3sg+i:P3sg+nin:Gen
 gösterilmiştir	göstermek	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[göstermek:Verb] göster:Verb|il:Pass→Verb+miş:Narr+A3sg+tir:Cop
 güne	gün	Noun	Time	Noun+Dat	Noun	[gün:Noun,Time] gün:Noun+A3sg+e:Dat
-hâkimlik	hakim	Adj		Adj+Ness	Noun	[hakim:Adj] hakim:Adj|lik:Ness→Noun+A3sg
+hâkimlik	hakim	Noun		Noun+Ness	Noun	[hâkim:Noun] hakim:Noun+A3sg|lik:Ness→Noun+A3sg
 ibarettir	ibaret	Adj		Adj+CopPres3sg	Adj	[ibaret:Adj] ibaret:Adj|Zero→Verb+Pres+A3sg+tir:Cop
 ilgililer	ilgili	Adj		Adj+A3pl	Noun	[ilgili:Adj] ilgili:Adj|Zero→Noun+ler:A3pl
 kayıtların	kayıt	Noun		Noun+A3pl+Gen	Noun	[kayıt:Noun] kayıt:Noun+lar:A3pl+ın:Gen
@@ -4762,7 +4762,7 @@ TBK	tbk	Noun	Abbrv	Noun+A3sg+Nom	Noun	[TBK:Noun,Abbrv] tbk:Noun+A3sg
 adresinde	adres	Noun		Noun+P3sg+Loc	Noun	[adres:Noun] adres:Noun+A3sg+i:P3sg+nde:Loc
 bağdaşmayacak	bağdaşmak	Verb		Verb+Neg+Fut	Verb	[bağdaşmak:Verb] bağdaş:Verb+ma:Neg+yacak:Fut+A3sg
 belirleneceği	belirlemek	Verb		Verb+Pass+FutPart+P3sg	Noun	[belirlemek:Verb] belirle:Verb|n:Pass→Verb|eceğ:FutPart→Noun+A3sg+i:P3sg
-benzerlik	benzer	Adj		Adj+Ness	Noun	[benzer:Adj] benzer:Adj|lik:Ness→Noun+A3sg
+benzerlik	benzerlik	Noun		Noun+A3sg+Nom	Noun	[benzerlik:Noun] benzerlik:Noun+A3sg
 borçlarını	borç	Noun		Noun+A3pl+P3sg+Acc	Noun	[borç:Noun] borç:Noun+lar:A3pl+ı:P3sg+nı:Acc
 bölgede	bölge	Noun		Noun+Loc	Noun	[bölge:Noun] bölge:Noun+A3sg+de:Loc
 bütünlüğü	bütün	Adj		Adj+Ness+P3sg	Noun	[bütün:Adj] bütün:Adj|lüğ:Ness→Noun+A3sg+ü:P3sg

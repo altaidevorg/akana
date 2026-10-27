@@ -60,7 +60,9 @@
 //!
 //! One factor is the lexicon's: where two readings are in every word that has one (kat-ıl-dı and
 //! katıl-dı, bula-ma-dığı and bul-ama-dığı), the counts cannot separate them; the lexicon's
-//! attributes decide, and the other reading takes `LEXICAL_PREFERENCE` (`prior_yields`).
+//! attributes decide, and the other reading takes `LEXICAL_PREFERENCE` (`prior_yields`). And one
+//! is the spelling's: in a word written with a circumflex, a reading whose dictionary spelling
+//! has none takes `CIRCUMFLEX_EVIDENCE` (`prior_respelled`: Hâkimliği is hâkim's, not hakim's).
 //!
 //! The output is the model as the analyzer uses it, gzipped for `analyzer.rs` to embed: every
 //! item's and shape's log probability in integer rank units (`rank_units`), with its count, the
@@ -71,9 +73,9 @@
 
 use akana_core::morphology::{
     prior_capitalised, prior_class, prior_inventory, prior_is_name, prior_item_key,
-    prior_negative_imperative, prior_second_person, prior_shape_group, prior_shape_key,
-    prior_yields, rank_units, TurkishMorphology, LEXICAL_PREFERENCE, PRIOR_CLASSES,
-    RANK_UNITS_PER_NAT, RANK_UNITS_PER_STEP,
+    prior_negative_imperative, prior_respelled, prior_second_person, prior_shape_group,
+    prior_shape_key, prior_yields, rank_units, TurkishMorphology, CIRCUMFLEX_EVIDENCE,
+    LEXICAL_PREFERENCE, PRIOR_CLASSES, RANK_UNITS_PER_NAT, RANK_UNITS_PER_STEP,
 };
 use std::collections::HashMap;
 use std::io::Write;
@@ -196,6 +198,7 @@ struct Reading {
     second: bool,
     negative: bool,
     yields: bool,
+    respelled: bool,
     classes: u32,
 }
 
@@ -209,6 +212,7 @@ impl Reading {
             self.second,
             self.negative,
             self.yields,
+            self.respelled,
         ) == (
             other.item,
             other.shape,
@@ -216,6 +220,7 @@ impl Reading {
             other.second,
             other.negative,
             other.yields,
+            other.respelled,
         )
     }
 }
@@ -356,7 +361,7 @@ fn main() {
         }
         let mut readings = Vec::new();
         let mut copies = Vec::new();
-        for p in &parses {
+        for (p, respelled) in parses.iter().zip(prior_respelled(w, &parses)) {
             let n = items.len();
             let item = *items.entry(prior_item_key(p)).or_insert(n);
             let key = prior_shape_key(p);
@@ -380,6 +385,7 @@ fn main() {
                 second: prior_second_person(p),
                 negative: prior_negative_imperative(p),
                 yields: prior_yields(p),
+                respelled,
                 classes: 1 << prior_class(p),
             };
             match readings.iter().position(|r: &Reading| r.same(&reading)) {
@@ -446,7 +452,12 @@ fn main() {
         } else {
             1.0
         };
-        case * lexical * register_of(r)
+        let spelling = if r.respelled {
+            f64::from(CIRCUMFLEX_EVIDENCE)
+        } else {
+            1.0
+        };
+        case * lexical * spelling * register_of(r)
     };
 
     let item_probs = |counts: &[f64]| -> Vec<f64> {
@@ -553,6 +564,7 @@ fn main() {
         ("second-person", register_floored),
         ("second-person-negative-imperative", 1.0),
         ("lexical-preference", f64::from(LEXICAL_PREFERENCE)),
+        ("circumflex", f64::from(CIRCUMFLEX_EVIDENCE)),
     ] {
         rows.push(format!("R\t{key}\t{}\t{p:.6}", units(p)));
     }
@@ -596,6 +608,11 @@ fn main() {
                     + units(register_of(r))
                     + if r.yields {
                         units(f64::from(LEXICAL_PREFERENCE))
+                    } else {
+                        0
+                    }
+                    + if r.respelled {
+                        units(f64::from(CIRCUMFLEX_EVIDENCE))
                     } else {
                         0
                     }

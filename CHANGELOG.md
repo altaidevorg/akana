@@ -124,7 +124,8 @@ different results.
     disambiguator prefers them in a sentence that addresses someone (`!`, a question
     particle, a second-person verb). A capital at the start of a sentence or in a word
     written in capitals no longer makes a common word a name (`Kanun , ...`), nor does a
-    title make a derived word one (`İnfaz Hâkimliğinin`).
+    title make a derived word one (`İnfaz Hâkimliğinin`). A circumflex in a word is
+    evidence for the reading spelled with it (`Resmî`, `şeklî`, `hâkimlik`).
   - The prior records the lexicon and morphotactic graph it was estimated for, and a test
     fails when they no longer match.
   - Real-world input reads: a name written with its capital but without the apostrophe

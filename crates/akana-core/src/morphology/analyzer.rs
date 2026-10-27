@@ -379,6 +379,29 @@ pub fn prior_yields(p: &MorphParse) -> bool {
     p.yields
 }
 
+/// The prior's factor for a reading [`prior_respelled`] in a word written with a circumflex:
+/// the mark is written to tell the word apart (hâkim "judge" from hakim "dominant", resmî
+/// "official" from the name Resmi, şeklî "formal" from şekl-i "its form"), so a reading whose
+/// dictionary spelling lacks it is a hundred times less likely.
+pub const CIRCUMFLEX_EVIDENCE: f32 = 0.01;
+
+/// Which readings of a word the circumflex it is written with speaks against
+/// ([`CIRCUMFLEX_EVIDENCE`]): those whose dictionary spelling has none, where a reading that is
+/// not a name has one. A word without a circumflex says nothing (hakim, hala): the mark is
+/// often left out. A name spelled with one (Lâzım) does not count against the adjective the
+/// dictionary spells without (lazım).
+pub fn prior_respelled(word: &str, parses: &[MorphParse]) -> Vec<bool> {
+    let circumflex = |s: &str| s.contains(['â', 'î', 'û', 'Â', 'Î', 'Û']);
+    let evidence = circumflex(word)
+        && parses
+            .iter()
+            .any(|p| !prior_is_name(p) && circumflex(p.display_lemma()));
+    parses
+        .iter()
+        .map(|p| evidence && !circumflex(p.display_lemma()))
+        .collect()
+}
+
 /// Rank units in one 2% step of a reading's prior relative to its word's best reading. Ranking
 /// is done in integers of 1.02^(1/16): the prior file stores them, and the analyzer and the
 /// disambiguator add them, so a word's readings rank alike on every platform (no `ln`, `exp` or
@@ -442,6 +465,8 @@ pub(super) struct Prior {
     negative_imperative: i32,
     /// [`LEXICAL_PREFERENCE`].
     lexical: i32,
+    /// [`CIRCUMFLEX_EVIDENCE`].
+    circumflex: i32,
     /// log P(case as written | reading): name capitalised, name lower-case, other word
     /// capitalised, other word lower-case.
     case: [i32; 4],
@@ -479,6 +504,7 @@ impl Prior {
             second_person: 0,
             negative_imperative: 0,
             lexical: 0,
+            circumflex: 0,
             case: [0; 4],
             forms: HashMap::default(),
             inventory: String::new(),
@@ -514,6 +540,7 @@ impl Prior {
                 ("R", "second-person") => prior.second_person = units,
                 ("R", "second-person-negative-imperative") => prior.negative_imperative = units,
                 ("R", "lexical-preference") => prior.lexical = units,
+                ("R", "circumflex") => prior.circumflex = units,
                 ("R", "case-name-capitalised") => prior.case[0] = units,
                 ("R", "case-name-lower") => prior.case[1] = units,
                 ("R", "case-other-capitalised") => prior.case[2] = units,
@@ -921,6 +948,11 @@ impl TurkishMorphology {
             let prior = &*PRIOR;
             let capitalised = prior_capitalised(word);
             let mut logs: Vec<i32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
+            for (log, respelled) in logs.iter_mut().zip(prior_respelled(word, &parses)) {
+                if respelled {
+                    *log += prior.circumflex;
+                }
+            }
             // A form the treebanks tag: each lemma's readings take their classes' share there
             // (değil the verb, not the conjunction); the lemmas' shares, and the names', stay
             // the prior's (alacak "receivable" in court decisions, al-acak elsewhere).
