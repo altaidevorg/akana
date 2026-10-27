@@ -107,8 +107,8 @@ different results.
   keys `analysis`, `pos`, `display_lemma` and `nonstandard`.
 - Grammar rule selection (`rules`, `enable`, `disable`, `experimental`) and `grammar_rules()`.
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
-  Zemberek dictionaries and morphotactics (Apache 2.0) and the UD-derived function-lemma table
-  (CC BY-SA 4.0).
+  Zemberek dictionaries and morphotactics (Apache 2.0), and the UD-derived function-lemma table
+  and morphology prior (CC BY-SA 4.0).
 
 ### Changed
 
@@ -117,7 +117,8 @@ different results.
   - Its lexicon is built from Zemberek's dictionaries with their pronunciations, aorist
     classes and compounds, plus akana's legal supplement.
   - Analyses are ranked by a corpus prior, in integer arithmetic, so that every platform
-    ranks alike.
+    ranks alike. A word with readings in more than one part of speech (`değil`, `ile`, `ilk`,
+    `insan`) is split among them as the UD Turkish treebanks tag it.
   - The prior records the lexicon and morphotactic graph it was estimated for, and a test
     fails when they no longer match.
   - Real-world input reads: a name written with its capital but without the apostrophe

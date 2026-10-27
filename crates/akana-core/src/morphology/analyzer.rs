@@ -437,14 +437,19 @@ pub(super) struct Prior {
     /// log P(case as written | reading): name capitalised, name lower-case, other word
     /// capitalised, other word lower-case.
     case: [i32; 4],
+    /// Word forms whose classes the treebanks tag in other shares than items and shapes give
+    /// them (değil, ne): the form in lower case ([`KeyHash`]) -> what the readings of each
+    /// lemma ([`KeyHash`]) and class ([`prior_class`]) that are not names add.
+    forms: HashMap<u64, Vec<(u64, usize, i32)>, std::hash::BuildHasherDefault<IdentityHasher>>,
     /// [`prior_inventory`] of the lexicon and graph the file was estimated for.
     inventory: String,
 }
 
 impl Prior {
     /// Reads the rows `examples/morph_prior.rs` writes: `I`tems, `S`hapes, `T`ag penalties,
-    /// `U`nseen values and fixed facto`R`s, each `kind<TAB>key<TAB>rank units[<TAB>...]`. A
-    /// damaged file, or one of another format, only loses the ranking.
+    /// `U`nseen values, fixed facto`R`s and `W`ord-form corrections (`form/Class`), each
+    /// `kind<TAB>key<TAB>rank units[<TAB>...]`. A damaged file, or one of another format, only
+    /// loses the ranking.
     fn parse(gz: &[u8]) -> Self {
         use std::io::Read;
         let mut text = String::new();
@@ -466,6 +471,7 @@ impl Prior {
             second_person: 0,
             lexical: 0,
             case: [0; 4],
+            forms: HashMap::default(),
             inventory: String::new(),
         };
         for line in text.lines() {
@@ -502,6 +508,20 @@ impl Prior {
                 ("R", "case-name-lower") => prior.case[1] = units,
                 ("R", "case-other-capitalised") => prior.case[2] = units,
                 ("R", "case-other-lower") => prior.case[3] = units,
+                ("W", _) => {
+                    // form/lemma/Class
+                    let parts = key.rsplit_once('/').and_then(|(rest, class)| {
+                        let (form, lemma) = rest.rsplit_once('/')?;
+                        Some((form, lemma, PRIOR_CLASSES.iter().position(|c| *c == class)?))
+                    });
+                    if let Some((form, lemma, class)) = parts {
+                        prior.forms.entry(KeyHash::of(form)).or_default().push((
+                            KeyHash::of(lemma),
+                            class,
+                            units,
+                        ));
+                    }
+                }
                 _ => {}
             }
         }
@@ -580,6 +600,40 @@ impl Prior {
         }];
         item + shape + register + lexical + case
     }
+}
+
+/// The classes of readings the prior's word-form corrections apply to ([`prior_class`]): the
+/// POS after derivation, with a verb's participles, verbal nouns and converbs apart
+/// (`VerbAdj`, `VerbNoun`, `VerbAdv`), which the treebanks tag VERB or, lexicalised (koruma,
+/// geçen), NOUN, ADJ or ADV.
+pub const PRIOR_CLASSES: [&str; 15] = [
+    "Noun", "Adj", "Adv", "Verb", "VerbNoun", "VerbAdj", "VerbAdv", "Pron", "Det", "Num", "Conj",
+    "Postp", "Interj", "Part", "Other",
+];
+
+/// A reading's class in [`PRIOR_CLASSES`]; the question particle is Part. A bare time noun is
+/// an adverb here: the treebanks tag yarın, dün and sabah NOUN where Zemberek (and akana) read
+/// them first as adverbs, so their tags do not choose between the two.
+pub fn prior_class(p: &MorphParse) -> usize {
+    let bare_time = p.secondary_pos == SecondaryPos::Time
+        && p.morpheme_tags
+            .get(1..)
+            .unwrap_or_default()
+            .iter()
+            .all(|t| matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"));
+    let name = match (p.primary_pos, p.pos) {
+        _ if bare_time => "Adv",
+        (PrimaryPos::Verb, PrimaryPos::Noun) => "VerbNoun",
+        (PrimaryPos::Verb, PrimaryPos::Adj) => "VerbAdj",
+        (PrimaryPos::Verb, PrimaryPos::Adv) => "VerbAdv",
+        (PrimaryPos::Verb, _) => "Verb",
+        (_, PrimaryPos::Q) => "Part",
+        (_, pos) => pos.as_str(),
+    };
+    PRIOR_CLASSES
+        .iter()
+        .position(|c| *c == name)
+        .unwrap_or(PRIOR_CLASSES.len() - 1)
 }
 
 /// Whether the prior's case model counts a reading as a name (a proper noun or an
@@ -840,7 +894,26 @@ impl TurkishMorphology {
         if self.prior && parses.len() > 1 {
             let prior = &*PRIOR;
             let capitalised = prior_capitalised(word);
-            let logs: Vec<i32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
+            let mut logs: Vec<i32> = parses.iter().map(|p| prior.log_p(p, capitalised)).collect();
+            // A form the treebanks tag: each lemma's readings take their classes' share there
+            // (değil the verb, not the conjunction); the lemmas' shares, and the names', stay
+            // the prior's (alacak "receivable" in court decisions, al-acak elsewhere).
+            if !prior.forms.is_empty() {
+                let lower = super::super::phonology::to_turkish_lower(word.trim());
+                if let Some(adds) = prior.forms.get(&KeyHash::of(&lower)) {
+                    for (log, p) in logs.iter_mut().zip(&parses) {
+                        if prior_is_name(p) {
+                            continue;
+                        }
+                        let (lemma, class) = (KeyHash::of(&p.lemma), prior_class(p));
+                        if let Some(&(_, _, add)) =
+                            adds.iter().find(|&&(l, c, _)| l == lemma && c == class)
+                        {
+                            *log += add;
+                        }
+                    }
+                }
+            }
             let best = logs.iter().copied().max().unwrap_or(0);
             // Each reading's prior relative to the best, in steps of 2% (rounded half up):
             // readings the corpus cannot tell apart (A3pl+Gen and A3pl+P2sg always compete in

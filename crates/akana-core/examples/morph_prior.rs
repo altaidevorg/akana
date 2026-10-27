@@ -32,6 +32,22 @@
 //!   of words that can only be second person over those that can only be a third-person
 //!   possessive.
 //!
+//! Where the words are written alike, EM cannot tell a word's POS twins apart: the one shape
+//! that explains every bare token wins, so ilk, tek and yeni went to the adverb and insan to
+//! the adjective. The treebanks tagged them by hand: for a word written in lower case that
+//! `--twins` lists (data/morphology/pos_twins.tsv, how often the Universal Dependencies train
+//! and dev splits tag each form as each class, a verb by its VerbForm; scripts/pos_twins.py),
+//! the count of its readings that are not names is split among their classes as tagged there,
+//! smoothed toward the model's own split by `TWIN_WEIGHT` tokens, and within a class as the
+//! model splits it (`twin_factors`). That also separates readings that are in every word that
+//! has one, which EM leaves where it started (git-tik the past 1pl or the participle). Items
+//! and shapes cannot always carry such a split back to the word: a
+//! verb's or a pronoun's bare shape is rare among the shapes of its POS, a conjunction's is
+//! its only one, so değil came out the conjunction and ne the adverb however the counts were
+//! split. The file therefore also holds, for each such word of the sample, what each class of
+//! its readings adds in the analyzer to take its treebank share (`W` rows). The table is
+//! DERIVED FROM CC BY-SA DATA, and so is the prior (THIRD_PARTY_NOTICES).
+//!
 //! One factor is the lexicon's: where two readings are in every word that has one (kat-ıl-dı and
 //! katıl-dı, bula-ma-dığı and bul-ama-dığı), the counts cannot separate them; the lexicon's
 //! attributes decide, and the other reading takes `LEXICAL_PREFERENCE` (`prior_yields`).
@@ -44,40 +60,170 @@
 //! bit for bit.
 
 use akana_core::morphology::{
-    prior_capitalised, prior_inventory, prior_is_name, prior_item_key, prior_second_person,
-    prior_shape_group, prior_shape_key, prior_yields, rank_units, TurkishMorphology,
-    LEXICAL_PREFERENCE,
+    prior_capitalised, prior_class, prior_inventory, prior_is_name, prior_item_key,
+    prior_second_person, prior_shape_group, prior_shape_key, prior_yields, rank_units,
+    TurkishMorphology, LEXICAL_PREFERENCE, PRIOR_CLASSES, RANK_UNITS_PER_NAT, RANK_UNITS_PER_STEP,
 };
 use std::collections::HashMap;
 use std::io::Write;
 
-/// One reading of a word type: item id, shape id, whether it names something, whether the
-/// register factor applies to it, whether the lexicon ranks it below its twin.
-#[derive(Clone, Copy, PartialEq)]
+/// The reading classes ([`prior_class`]).
+const CLASSES: usize = PRIOR_CLASSES.len();
+
+/// How many tokens' weight the model's own split of a tagged word's readings has against the
+/// treebanks' counts (`--twin-weight`).
+const TWIN_WEIGHT: f64 = 5.0;
+
+/// How many of a word's tokens the treebanks must tag in the classes of its readings before
+/// they split it: fewer say little (sözlü: four adjectives, two nouns).
+const MIN_TWIN_TOKENS: f64 = 10.0;
+
+/// The classes the twin table counts the treebanks' tags in (scripts/pos_twins.py), and the
+/// reading classes each one can be: a participle (VerbPart) is the analyzer's participle, as an
+/// adjective or a noun; a word the treebank takes as lexicalised (koruma, geçen) is a NOUN, ADJ
+/// or ADV, which the analyzer may read as a verb's.
+const TAGGED: [(&str, &[&str]); 14] = [
+    ("Noun", &["Noun", "VerbNoun"]),
+    ("Adj", &["Adj", "VerbAdj"]),
+    ("Adv", &["Adv", "VerbAdv"]),
+    ("Verb", &["Verb"]),
+    ("VerbPart", &["VerbAdj", "VerbNoun"]),
+    ("VerbNoun", &["VerbNoun"]),
+    ("VerbAdv", &["VerbAdv"]),
+    ("Pron", &["Pron"]),
+    ("Det", &["Det"]),
+    ("Num", &["Num"]),
+    ("Conj", &["Conj"]),
+    ("Postp", &["Postp"]),
+    ("Interj", &["Interj"]),
+    ("Part", &["Part"]),
+];
+
+/// Whether a reading can be what the treebanks tag as `TAGGED[tag]`.
+fn tagged_as(tag: usize, r: &Reading) -> bool {
+    (0..CLASSES).any(|c| r.classes & (1 << c) != 0 && TAGGED[tag].1.contains(&PRIOR_CLASSES[c]))
+}
+
+/// What each of a tagged word's readings is multiplied by, given their weights. The treebanks
+/// split a word among the classes of one lemma (değil the verb or the conjunction, ilk the
+/// adjective or the adverb); which lemma it is (alacak "receivable" or al-acak "will take")
+/// depends on the text, and the model, which counts the lemma's every form in the sample, keeps
+/// it. So each lemma's readings that are not names keep their weight together; each token the
+/// treebanks tag the word with (`seen`, per `TAGGED` class) goes to the lemma's readings it can
+/// be in proportion to their weight, and `weight` more tokens go to all of them so (the
+/// model's own split, which a word tagged a few times keeps close to). The names' weights, and
+/// those of a lemma whose classes the treebanks tag fewer than `MIN_TWIN_TOKENS` times, stand.
+fn twin_factors(
+    readings: &[Reading],
+    weights: &[f64],
+    seen: &[f64; TAGGED.len()],
+    weight: f64,
+) -> Vec<f64> {
+    let mut factors = vec![1.0f64; readings.len()];
+    let mut lemmas: Vec<usize> = readings
+        .iter()
+        .filter(|r| !r.name)
+        .map(|r| r.lemma)
+        .collect();
+    lemmas.sort_unstable();
+    lemmas.dedup();
+    for lemma in lemmas {
+        let member = |r: &Reading| !r.name && r.lemma == lemma;
+        let common: f64 = readings
+            .iter()
+            .zip(weights)
+            .filter(|(r, _)| member(r))
+            .map(|(_, w)| w)
+            .sum();
+        let tag_mass: Vec<f64> = (0..TAGGED.len())
+            .map(|t| {
+                readings
+                    .iter()
+                    .zip(weights)
+                    .filter(|(r, _)| member(r) && tagged_as(t, r))
+                    .map(|(_, w)| w)
+                    .sum()
+            })
+            .collect();
+        let read = |t: &usize| tag_mass[*t] > 0.0;
+        let tagged: f64 = (0..TAGGED.len()).filter(read).map(|t| seen[t]).sum();
+        if tagged < MIN_TWIN_TOKENS {
+            continue;
+        }
+        for (r, f) in readings.iter().zip(factors.iter_mut()) {
+            if !member(r) {
+                continue;
+            }
+            let per_weight: f64 = (0..TAGGED.len())
+                .filter(read)
+                .filter(|&t| tagged_as(t, r))
+                .map(|t| seen[t] / tag_mass[t])
+                .sum();
+            *f = (per_weight * common + weight) / (tagged + weight);
+        }
+    }
+    factors
+}
+
+/// One reading of a word type: item id, shape id, lemma id, whether it names something, whether
+/// the register factor applies to it, whether the lexicon ranks it below its twin; and the
+/// classes ([`prior_class`]) of the analyzer's readings it stands for, as bits (a participle's
+/// adjective and noun twins have one item and shape, and are one reading).
+#[derive(Clone, Copy)]
 struct Reading {
     item: usize,
     shape: usize,
+    lemma: usize,
     name: bool,
     second: bool,
     yields: bool,
+    classes: u32,
 }
 
-/// One word type: its count, whether it is capitalised, its readings.
+impl Reading {
+    /// The same reading but for its classes.
+    fn same(&self, other: &Reading) -> bool {
+        (self.item, self.shape, self.name, self.second, self.yields)
+            == (
+                other.item,
+                other.shape,
+                other.name,
+                other.second,
+                other.yields,
+            )
+    }
+}
+
+/// One word type: its count, whether it is capitalised, its readings (and how many of the
+/// analyzer's readings each stands for), and how often the treebanks tag it as each class, if
+/// they do.
 struct Word {
+    word: String,
     count: f64,
     capitalised: bool,
     readings: Vec<Reading>,
+    copies: Vec<f64>,
+    twins: Option<[f64; TAGGED.len()]>,
 }
 
 fn main() {
     let mut types_dir = String::from(".cache/morph_sample/train");
     let mut out = String::from("crates/akana-core/src/morphology/prior.tsv.gz");
+    let mut twins_file = String::from("data/morphology/pos_twins.tsv");
     let mut iterations = 10usize;
+    let mut twin_weight = TWIN_WEIGHT;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
             "--types" => types_dir = args.next().expect("--types DIR|FILE.gz"),
             "--out" => out = args.next().expect("--out FILE"),
+            "--twins" => twins_file = args.next().expect("--twins FILE"),
+            "--twin-weight" => {
+                twin_weight = args
+                    .next()
+                    .and_then(|v| v.parse().ok())
+                    .expect("--twin-weight TOKENS")
+            }
             "--iterations" => {
                 iterations = args
                     .next()
@@ -118,11 +264,27 @@ fn main() {
             }
         }
     }
+    // form -> tokens per class, as the treebanks tag it.
+    let mut twins: HashMap<String, [f64; TAGGED.len()]> = HashMap::new();
+    let twin_text = std::fs::read_to_string(&twins_file).expect("twins file");
+    for line in twin_text.lines().filter(|l| !l.starts_with('#')) {
+        let (form, seen) = line.split_once('\t').expect("form<TAB>counts");
+        let mut row = [0.0; TAGGED.len()];
+        for pair in seen.split(' ') {
+            let (class, n) = pair.split_once(':').expect("Class:count");
+            let c = TAGGED.iter().position(|(t, _)| *t == class).expect("class");
+            row[c] = n.parse().expect("count");
+        }
+        twins.insert(form.to_string(), row);
+    }
+
     let mut types: Vec<(&String, f64)> = counts.iter().map(|(w, &c)| (w, c)).collect();
     types.sort_by(|a, b| a.0.cmp(b.0));
 
     // Each shape's POS (its first tag) as an id, for P(shape | POS).
     let mut items: HashMap<String, usize> = HashMap::new();
+    let mut lemmas: HashMap<String, usize> = HashMap::new();
+    let mut lemma_names: Vec<String> = Vec::new();
     let mut shapes: HashMap<String, usize> = HashMap::new();
     let mut pos_ids: HashMap<String, usize> = HashMap::new();
     let mut shape_pos: Vec<usize> = Vec::new();
@@ -134,6 +296,7 @@ fn main() {
             continue;
         }
         let mut readings = Vec::new();
+        let mut copies = Vec::new();
         for p in &parses {
             let n = items.len();
             let item = *items.entry(prior_item_key(p)).or_insert(n);
@@ -146,21 +309,42 @@ fn main() {
                 shape_pos.push(*pos_ids.entry(pos).or_insert(n));
                 third_shape.push(key.split('+').any(|t| matches!(t, "P3sg" | "P3pl")));
             }
+            let lemma = *lemmas.entry(p.lemma.clone()).or_insert_with(|| {
+                lemma_names.push(p.lemma.clone());
+                lemma_names.len() - 1
+            });
             let reading = Reading {
                 item,
                 shape,
+                lemma,
                 name: prior_is_name(p),
                 second: prior_second_person(p),
                 yields: prior_yields(p),
+                classes: 1 << prior_class(p),
             };
-            if !readings.contains(&reading) {
-                readings.push(reading);
+            match readings.iter().position(|r: &Reading| r.same(&reading)) {
+                Some(i) => {
+                    readings[i].classes |= reading.classes;
+                    copies[i] += 1.0;
+                }
+                None => {
+                    readings.push(reading);
+                    copies.push(1.0);
+                }
             }
         }
+        let lower = !w.chars().any(char::is_uppercase);
         words.push(Word {
+            word: w.to_string(),
             count,
             capitalised: prior_capitalised(w),
             readings,
+            copies,
+            twins: if lower {
+                twins.get(w.as_str()).copied()
+            } else {
+                None
+            },
         });
     }
 
@@ -227,9 +411,16 @@ fn main() {
         shape_c.iter_mut().for_each(|x| *x = 0.0);
         for w in &words {
             let weight = |r: &Reading| item_p[r.item] * shape_p[r.shape] * factor(w, r);
-            let z: f64 = w.readings.iter().map(weight).sum();
-            for r in &w.readings {
-                let share = weight(r) / z;
+            let mut weights: Vec<f64> = w.readings.iter().map(weight).collect();
+            if let Some(seen) = &w.twins {
+                let factors = twin_factors(&w.readings, &weights, seen, twin_weight);
+                for (x, f) in weights.iter_mut().zip(factors) {
+                    *x *= f;
+                }
+            }
+            let z: f64 = weights.iter().sum();
+            for (r, x) in w.readings.iter().zip(&weights) {
+                let share = x / z;
                 item_c[r.item] += w.count * share;
                 shape_c[r.shape] += w.count * share;
             }
@@ -285,6 +476,9 @@ fn main() {
         "#akana-prior\t2\tlog probabilities in rank units of 1.02^(1/16) (examples/morph_prior.rs)"
             .to_string(),
         format!("#inventory\t{}", prior_inventory()),
+        "#licence\tDERIVED FROM CC BY-SA DATA: the Universal Dependencies Turkish treebanks' \
+         tags (CC BY-SA 4.0); see THIRD_PARTY_NOTICES"
+            .to_string(),
     ];
     for (key, p) in [
         ("case-name-capitalised", capitalised_name),
@@ -312,6 +506,61 @@ fn main() {
             units((c + 0.5) / tag_total(pos))
         ));
     }
+    // The word-form corrections: what the analyzer adds to the readings of each lemma and class
+    // of a tagged word (not to its names) so that they take the treebanks' shares, from the
+    // logs it will compute for them out of the rows above. A form whose readings move by less
+    // than one 2% step is left out.
+    let case_units = |name: bool| {
+        units(if name {
+            1.0 - capitalised_name
+        } else {
+            1.0 - capitalised_other
+        })
+    };
+    let mut form_rows = 0usize;
+    for w in &words {
+        let Some(seen) = &w.twins else { continue };
+        let logs: Vec<i32> = w
+            .readings
+            .iter()
+            .map(|r| {
+                units(item_p[r.item])
+                    + units(shape_p[r.shape])
+                    + case_units(r.name)
+                    + if r.second { units(register) } else { 0 }
+                    + if r.yields {
+                        units(f64::from(LEXICAL_PREFERENCE))
+                    } else {
+                        0
+                    }
+            })
+            .collect();
+        let best = logs.iter().copied().max().unwrap_or(0);
+        let weights: Vec<f64> = logs
+            .iter()
+            .zip(&w.copies)
+            .map(|(&log, copies)| copies * (f64::from(log - best) / RANK_UNITS_PER_NAT).exp())
+            .collect();
+        let factors = twin_factors(&w.readings, &weights, seen, twin_weight);
+        // Each lemma and class once: the first of its readings decides.
+        let mut adds: Vec<(&str, usize, i32)> = Vec::new();
+        for (r, f) in w.readings.iter().zip(factors) {
+            for c in (0..CLASSES).filter(|c| r.classes & (1 << c) != 0) {
+                let lemma = lemma_names[r.lemma].as_str();
+                if !r.name && !adds.iter().any(|&(l, k, _)| l == lemma && k == c) {
+                    adds.push((lemma, c, units(f)));
+                }
+            }
+        }
+        adds.sort_unstable();
+        if adds.iter().any(|&(_, _, a)| a.abs() >= RANK_UNITS_PER_STEP) {
+            for (lemma, c, add) in adds {
+                rows.push(format!("W\t{}/{lemma}/{}\t{add}", w.word, PRIOR_CLASSES[c]));
+            }
+            form_rows += 1;
+        }
+    }
+
     let mut item_rows: Vec<(&String, f64)> = items.iter().map(|(k, &i)| (k, item_c[i])).collect();
     item_rows.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(b.0)));
     for (key, c) in item_rows {
@@ -333,11 +582,14 @@ fn main() {
         writeln!(gz, "{row}").expect("write");
     }
     gz.finish().expect("finish");
+    let tagged = words.iter().filter(|w| w.twins.is_some());
     println!(
-        "{} word types, {} items, {} shapes; capitalised: names {capitalised_name:.3}, \
-         other words {capitalised_other:.3}; second-person factor {register:.6} \
-         ({only_second:.0} / {only_third:.0} tokens); {} rows written to {out}",
+        "{} word types ({} tagged in the treebanks, {form_rows} corrected), {} items, {} \
+         shapes; capitalised: names {capitalised_name:.3}, other words {capitalised_other:.3}; \
+         second-person factor {register:.6} ({only_second:.0} / {only_third:.0} tokens); {} \
+         rows written to {out}",
         words.len(),
+        tagged.count(),
         items.len(),
         shapes.len(),
         rows.len()

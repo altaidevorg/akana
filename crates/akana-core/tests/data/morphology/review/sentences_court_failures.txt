@@ -1,33 +1,25 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 797 tokens in context: exact 96.5 %, lemma 99.1 %, POS 97.5 %
+# 797 tokens in context: exact 97.5 %, lemma 99.1 %, POS 98.6 %
 # a gold reading is among the analyses for 99.7 %
 10:2	açıkça	tags	açık|Adj|Adj+AsIf|
 12:8	esas	pos	esas|Adj|Adj|
-16:11	sona	pos	son|Num|Num+Dat|
 17:4	bulunan	lemma	bulunmak|Verb|Verb+PresPart|
 19:3	AT	tags	at|Noun|Noun+A3sg+Nom|P
 20:0	Kanun	tags	kanun|Noun|Noun+A3sg+Nom|P
+20:8	hariç	pos	hariç|Noun|Noun+A3sg+Nom|
 21:6	varsa	lemma+pos	varmak|Verb|Verb+Cond|
 24:2	yerinde	lemma+pos	yerinde|Adv|Adv|
 28:9	ile	pos	ile|Conj|Conj|
-29:11	dayalı	pos	dayalı|Adv|Adv|
-2:6	karşı	pos	karşı|Noun|Noun+A3sg+Nom|
 30:5	fiili	lemma+pos	fiil|Noun|Noun+P3sg|
-35:7	tek	pos	tek|Adv|Adv|
 38:2	haklarında	tags	hak|Noun|Noun+A3pl+P3sg+Loc|
-39:3	uzun	pos	uzun|Adv|Adv|
-3:0	İlk	pos	ilk|Adv|Adv|
-3:6	karşı	pos	karşı|Noun|Noun+A3sg+Nom|
 40:3	Pel	lemma+pos	|Unk||
 41:6	Hâkimliğinin	tags	hakim|Noun|Noun+Ness+P3sg+Gen|P
-42:3	yerine	lemma+pos	yerine|Adv|Adv|
+42:3	yerine	lemma	yerine|Noun|Noun+A3sg+Nom|
 45:4	işvereni	tags	işveren|Noun|Noun+P3sg|
 46:15	bulunmuştur	lemma	bulunmak|Verb|Verb+Evid+CopPres3sg|
 50:4	mutlak	pos	mutlak|Adv|Adv|
 52:2	ancak	pos	ancak|Conj|Conj|
-59:0	Bir	pos	bir|Adv|Adv|
 5:6	ile	pos	ile|Conj|Conj|
 6:6	rahatsız	pos	rahat|Noun|Noun+Without|
-7:5	dayalı	pos	dayalı|Adv|Adv|
 missing	19:3	AT
 missing	40:3	Pel

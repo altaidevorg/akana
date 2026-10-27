@@ -39,26 +39,45 @@ converted to one check per line, and their dictionary lines were rewritten in ak
 lexicon format.
 
 -------------------------------------------------------------------------------------------------
-2. Universal Dependencies Turkish treebanks BOUN and Kenet
+2. Universal Dependencies Turkish treebanks BOUN, Kenet, Penn, Tourism, Atis and FrameNet
 -------------------------------------------------------------------------------------------------
 
-Source:     https://github.com/UniversalDependencies/UD_Turkish-BOUN and UD_Turkish-Kenet,
-            release r2.18: the sentences of the train and dev splits.
+Source:     https://github.com/UniversalDependencies/UD_Turkish-BOUN, UD_Turkish-Kenet,
+            UD_Turkish-Penn, UD_Turkish-Tourism, UD_Turkish-Atis and UD_Turkish-FrameNet,
+            release r2.18: the train and dev splits (no test split).
 Authors:    BOUN: Büşra Marşan, Furkan Akkurt, Utku Türk, Furkan Atmaca, Şaziye Betül Özateş,
             Gözde Berk, Seyyit Talha Bedir, Abdullatif Köksal, Balkız Öztürk Başaran, Tunga
             Güngör, Arzucan Özgür (Türk et al. 2022, "Resources for Turkish Dependency Parsing:
             Introducing the BOUN Treebank and the BoAT Annotation Tool", Language Resources and
             Evaluation 56(1), doi:10.1007/s10579-021-09558-0; Marşan et al. 2022,
             arXiv:2207.11782). Kenet: Aslı Kuzgun, Neslihan Cesur, Olcay Taner Yıldız, Oğuzhan
-            Kuyrukçu, Arife Betül Yenice, Bilge Nas Arıcan, Ezgi Sanıyar.
+            Kuyrukçu, Arife Betül Yenice, Bilge Nas Arıcan, Ezgi Sanıyar. Penn: Neslihan Cesur,
+            Aslı Kuzgun, Olcay Taner Yıldız, Büşra Marşan, Neslihan Kara, Bilge Nas Arıcan, Merve
+            Özçelik, Deniz Baran Aslan. Tourism: Aslı Kuzgun, Neslihan Cesur, Olcay Taner Yıldız,
+            Oğuzhan Kuyrukçu, Büşra Marşan, Bilge Nas Arıcan, Neslihan Kara, Deniz Baran Aslan,
+            Ezgi Sanıyar, Cengiz Asmazoğlu. Atis: Mehmet Köse, Olcay Taner Yıldız. FrameNet:
+            Neslihan Cesur, Aslı Kuzgun, Olcay Taner Yıldız, Büşra Marşan, Oğuzhan Kuyrukçu,
+            Bilge Nas Arıcan, Ezgi Sanıyar, Neslihan Kara, Merve Özçelik (Marşan et al. 2021,
+            "Building the Turkish FrameNet", Proceedings of the 11th Global Wordnet Conference,
+            118-125).
 Licence:    Creative Commons Attribution-ShareAlike 4.0 International,
             https://creativecommons.org/licenses/by-sa/4.0/legalcode
 
 Shipped as: crates/akana-core/src/embeddings/function_lemmas.tsv, compiled into the library.
             DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
 Changes:    no text is shipped. The table holds, for 20 lemmas, the number of 256-token chunks
-            of the treebanks' sentences (and of a court-decision sample) each occurs in, and
+            of the BOUN and Kenet sentences (and of a court-decision sample) each occurs in, and
             the weight akana gives it (examples/sparse_idf.rs).
+
+Shipped as: crates/akana-core/src/morphology/prior.tsv.gz, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no text is shipped. The analyzer's frequency prior is estimated from a court-
+            decision and RagTurk word list (examples/morph_prior.rs), with the words the
+            analyzer reads in more than one part of speech split among them as the six
+            treebanks tag them, and per-word corrections that keep those shares. The tags are
+            counted in data/morphology/pos_twins.tsv (scripts/pos_twins.py; part of the source
+            repository, also DERIVED FROM CC BY-SA DATA): for each such word form, how many
+            times its tokens are tagged in each of eleven part-of-speech classes.
 
 -------------------------------------------------------------------------------------------------
 3. Sources approved for use, from which nothing ships yet
@@ -67,10 +86,6 @@ Changes:    no text is shipped. The table holds, for 20 lemmas, the number of 25
 - Google Research turkish-morphology lexicon (Apache License 2.0), commit 83d4b967.
 - TRmorph lexicon by Çağrı Çöltekin (MIT License, copyright (c) 2011-2015 Çağrı Çöltekin),
   commit fbceb113.
-- Universal Dependencies Turkish treebanks Penn, Tourism, Atis and FrameNet, and the BOUN and
-  Kenet annotations beyond their sentences (CC BY-SA 4.0), release r2.18. A prior or
-  disambiguator estimated from their train and dev splits would ship as DERIVED FROM CC BY-SA
-  DATA.
 - Universal Dependencies Turkish IMST (CC BY-NC-SA 3.0), release r2.18: evaluation only;
   nothing akana ships is derived from it, nor from any UD test split.
 - Turkish Wiktionary, as extracted by kaikki.org (Wiktionary content: CC BY-SA 4.0 and GFDL):

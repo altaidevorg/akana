@@ -120,8 +120,15 @@ impl MorphologicalDisambiguator {
                 .get(i + 1)
                 .is_some_and(|t| to_turkish_lower(t) == "bir")
                 && noun_ahead(following.get(1..).unwrap_or_default());
+            // Before olmak a word that is also an adjective is its predicate ("yazılı olmayan",
+            // "sözlü olarak"), not the first half of a compound verb.
             let before_light_verb = next_parses.iter().any(|p| {
-                p.primary_pos == PrimaryPos::Verb && matches!(p.root.as_str(), "et" | "ol" | "eyle")
+                p.primary_pos == PrimaryPos::Verb
+                    && match p.root.as_str() {
+                        "et" | "eyle" => true,
+                        "ol" => !parses.iter().any(|q| q.pos == PrimaryPos::Adj),
+                        _ => false,
+                    }
             });
             let before_possessed = next_parses.iter().any(|p| {
                 p.pos == PrimaryPos::Noun
@@ -135,6 +142,21 @@ impl MorphologicalDisambiguator {
                 .iter()
                 .any(|p| p.secondary_pos != SecondaryPos::ProperNoun);
             let has_determiner_reading = parses.iter().any(|p| p.pos == PrimaryPos::Det);
+            let has_pronoun_reading = parses.iter().any(|p| p.primary_pos == PrimaryPos::Pron);
+            let has_adjective_reading = parses.iter().any(|p| p.pos == PrimaryPos::Adj);
+            // An adjective with an adverb twin before a verb other than olmak, imek or değil,
+            // after which an adjective is the predicate (iyi oldu, az ise, doğru değil). A word
+            // with a pronoun twin is a question word or a determiner (ne yiyelim).
+            let adverb_before_verb = has_adjective_reading
+                && !has_pronoun_reading
+                && parses.iter().any(|p| p.pos == PrimaryPos::Adv)
+                && next_parses.first().is_some_and(|p| {
+                    p.primary_pos == PrimaryPos::Verb
+                        && !matches!(p.root.as_str(), "ol" | "i" | "değil")
+                });
+            // What a postposition could govern: the case of the word before it, if a noun or
+            // a pronoun.
+            let previous_case = previous.and_then(case_of);
             // A sentence that ends in "!" addresses someone, so its second-person readings (anla
             // "understand!", gel-in) lose the register factor the corpus prior gives them.
             let exclaims = tokens[i + 1..]
@@ -210,9 +232,10 @@ impl MorphologicalDisambiguator {
                 }
 
                 // 3. A modifier comes before its noun (Adj, Det, Num: "bu kitap", "yüz kişi").
-                // Determiners (bu, o, bir, her) also have Pron entries: with no noun after them
-                // they stand for one ("Bu doğru", "O gelmedi"). The adjective twin of a
-                // determiner (o, her) is one too, and needs the noun as much.
+                // Determiners with a Pron twin (bu, şu, o) stand for one with no noun after
+                // them ("Bu doğru", "O gelmedi"). The adjective twin of a determiner (o, her)
+                // is one too, and needs the noun as much. Without a pronoun twin, the determiner
+                // stays (bir: "yeni bir kazak ördü", whose noun is also an adjective).
                 // A participle modifies its noun phrase past a determiner or a number ("olabilecek
                 // bir işlem", "yapılacak bir şey"), as `participle_head` reads it; its finite twin
                 // (Fut, Narr, Aor) has no help but at the end of a sentence.
@@ -223,11 +246,17 @@ impl MorphologicalDisambiguator {
                     || participle && participle_head(following, possessive(parse));
                 if !is_predicate(parse) {
                     match parse.pos {
-                        PrimaryPos::Adj if modifies => bonus += const { rank_units(0.7) },
+                        // Before a verb its adverb twin is meant (12), even with a noun after
+                        // the verb's participle ("ileri sürülen temyiz nedenleri").
+                        PrimaryPos::Adj if modifies && !adverb_before_verb => {
+                            bonus += const { rank_units(0.7) }
+                        }
                         PrimaryPos::Det | PrimaryPos::Num if modifies_noun => {
                             bonus += const { rank_units(1.0) }
                         }
-                        PrimaryPos::Det if !modifies_noun => bonus -= const { rank_units(2.0) },
+                        PrimaryPos::Det if !modifies_noun && has_pronoun_reading => {
+                            bonus -= const { rank_units(2.0) }
+                        }
                         PrimaryPos::Adj if !modifies_noun && has_determiner_reading => {
                             bonus -= const { rank_units(2.0) }
                         }
@@ -244,12 +273,15 @@ impl MorphologicalDisambiguator {
                 if let Some(prev) = previous {
                     // 5. An attributive adjective before a noun phrase head. Neither may be a
                     // predicate: after "yoğundu" the next word is a new clause (ki), and
-                    // "geç kal-dı-m" is a verb, not an adjective + copular noun.
+                    // "geç kal-dı-m" is a verb, not an adjective + copular noun. At the end of
+                    // the sentence a word that can be a finite verb is its predicate ("Uzun
+                    // yaşa !").
                     if prev.pos == PrimaryPos::Adj
                         && parse.pos == PrimaryPos::Noun
                         && !is_predicate(prev)
                         && !is_predicate(parse)
                         && !is_function_word(parses)
+                        && !(is_sentence_final && parses.iter().any(|p| p.pos == PrimaryPos::Verb))
                     {
                         bonus += const { rank_units(0.5) };
                     }
@@ -270,17 +302,33 @@ impl MorphologicalDisambiguator {
                             bonus += const { rank_units(1.5) };
                         }
                     }
-                    // 8. A postposition after the case it governs ("öğleden sonra", "yaşa
-                    // kadar").
-                    if parse.primary_pos == PrimaryPos::Postp
-                        && case_of(prev).is_some_and(|case| {
-                            self.morphology.root_items(&parse.root).iter().any(|item| {
-                                item.primary_pos == PrimaryPos::Postp
-                                    && item.governed_case.as_deref() == Some(case)
-                            })
-                        })
-                    {
-                        bonus += const { rank_units(1.0) };
+                }
+
+                // 8. A postposition after the case it governs ("öğleden sonra", "yaşa kadar").
+                // A bare noun stands before every word, so the nominative says nothing (Ali ile
+                // Veli). One that governs the ablative or the dative has nothing to govern after
+                // a word that is no noun or pronoun ("daha sonra", ", sonra da", at the start of
+                // a sentence) or after another case ("Bu doğru"), and is its adverb, adjective or
+                // noun twin; but a time takes sonra and önce bare ("iki yıl sonra"), and bu, şu,
+                // o and ne take kadar.
+                if parse.primary_pos == PrimaryPos::Postp {
+                    let governed = || {
+                        self.morphology
+                            .root_items(&parse.root)
+                            .iter()
+                            .filter(|item| item.primary_pos == PrimaryPos::Postp)
+                            .filter_map(|item| item.governed_case.as_deref())
+                    };
+                    let marked = governed().next().is_some()
+                        && governed().all(|c| matches!(c, "Abl" | "Dat"))
+                        && parse.root != "kadar";
+                    match previous_case {
+                        Some(case) if case != "Nom" && governed().any(|c| c == case) => {
+                            bonus += const { rank_units(1.0) }
+                        }
+                        Some("Nom") if marked && governed().any(|c| c == "Abl") => {}
+                        _ if marked => bonus -= const { rank_units(1.0) },
+                        _ => {}
                     }
                 }
 
@@ -305,6 +353,12 @@ impl MorphologicalDisambiguator {
                         && matches!(parse.primary_pos, PrimaryPos::Conj | PrimaryPos::Pron))
                 {
                     bonus += const { rank_units(0.1) };
+                }
+
+                // 12. An adjective's adverb twin before a verb: "yeni yapılan", "ileri sürülen",
+                // "uzun sürdü".
+                if parse.pos == PrimaryPos::Adv && marked == 1 && adverb_before_verb {
+                    bonus += const { rank_units(1.0) };
                 }
 
                 // Fewer derivation layers on a tie, counting overt morphemes: otherwise "Ali"
