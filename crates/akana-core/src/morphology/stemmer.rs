@@ -24,16 +24,15 @@ impl TurkishStemmer {
         Self { morphology }
     }
 
-    /// Finds the linguistic root/stem of a word using morphological analysis.
-    /// If multiple parses exist, returns the best-scoring root.
-    /// Falls back to lowercase surface form if unknown.
+    /// The root of the word's best-scoring analysis, or the word in lower case when it has
+    /// none. The word is analysed as written, so its capital still tells a name from a common
+    /// word (Buhara, not buhar) and a Roman numeral keeps its root (XIX., not xıx.; review 2
+    /// MORPH2-11, RANK2-10); a root from the lexicon is in lower case either way.
     pub fn stem(&self, word: &str) -> String {
-        let lower = to_turkish_lower(word);
-        let parses = self.morphology.analyze(&lower);
-        if let Some(top) = parses.first() {
-            top.root.clone()
-        } else {
-            lower
+        let word = word.trim();
+        match self.morphology.analyze(word).into_iter().next() {
+            Some(top) => top.root,
+            None => to_turkish_lower(word),
         }
     }
 

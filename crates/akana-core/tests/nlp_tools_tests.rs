@@ -27,6 +27,13 @@ fn test_stopwords_and_stemmer_unit() {
     let stemmer = TurkishStemmer::new();
     let root = stemmer.stem("kitaplarımızda");
     assert!(root == "kitap" || root == "kitab");
+
+    // The word is analysed as written (review 2 MORPH2-11, RANK2-10): the capital keeps the
+    // name (Miller, not mil-ler), and a Roman numeral keeps its root.
+    assert_eq!(stemmer.stem("Miller"), "miller");
+    assert_eq!(stemmer.stem("miller"), "mil");
+    assert_eq!(stemmer.stem("XIX."), "XIX.");
+    assert_eq!(stemmer.stem("II'nci"), "II");
 }
 
 #[test]

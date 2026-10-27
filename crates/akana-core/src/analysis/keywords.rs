@@ -57,7 +57,8 @@ impl TurkishKeywordExtractor {
                     candidate_phrases.push(std::mem::take(&mut current_phrase));
                 }
             } else {
-                let stem = self.stemmer.stem(&lower);
+                // As written: the capital tells a name from a common word.
+                let stem = self.stemmer.stem(clean);
                 current_phrase.push(stem);
             }
         }

@@ -49,7 +49,8 @@ impl TurkishSummarizer {
                 }
                 let lower = to_turkish_lower(clean);
                 if !self.stopwords.is_stopword(&lower) {
-                    let stem = self.stemmer.stem(&lower);
+                    // As written: the capital tells a name from a common word.
+                    let stem = self.stemmer.stem(clean);
                     bag.insert(stem);
                 }
             }

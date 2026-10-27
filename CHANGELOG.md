@@ -190,3 +190,6 @@ different results.
 - A CompoundP3sg noun derives on its stem without the possessive only: `cumhurbaşkanılık` and
   `cumhurbaşkanılığı` no longer analyse (`cumhurbaşkanlık` does; -(I)msI takes either,
   `zeytinyağımsı`).
+- `stem`, keyword extraction and the summarizer analyse a word as written, where they
+  lower-cased it first: a capital keeps a name (`Miller`, not `mil`), and a Roman numeral its
+  root (`XIX.`, `II'nci` → `II`, not `xıx.`, `ıı'nci`).
