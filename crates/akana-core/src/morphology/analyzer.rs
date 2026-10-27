@@ -682,17 +682,14 @@ pub fn prior_class(p: &MorphParse) -> usize {
 
 /// Whether the prior's case model counts a reading as a name (a proper noun or an
 /// abbreviation), which is written capitalised. A name takes inflections (and -ki: Ankara'daki);
-/// a word-forming derivation ([`WORD_FORMING`]) makes a common word (Hakim-lik), whose capital is
+/// a word-forming derivation ([`forms_word`]) makes a common word (Hakim-lik), whose capital is
 /// a title's or a sentence's ("İnfaz Hâkimliğinin"), so a name reading through one counts as any
 /// other word.
 pub fn prior_is_name(p: &MorphParse) -> bool {
     matches!(
         p.secondary_pos,
         SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-    ) && !p
-        .morpheme_tags
-        .iter()
-        .any(|t| WORD_FORMING.contains(&t.as_str()))
+    ) && !p.morpheme_tags.iter().any(|t| forms_word(t))
 }
 
 /// The case factor a reading takes when its word is capitalised, in rank units: what the
@@ -1873,7 +1870,7 @@ impl TurkishMorphology {
 }
 
 impl TurkishMorphology {
-    /// A reading through a word-forming derivation ([`WORD_FORMING`]) yields to the word it
+    /// A reading through a word-forming derivation ([`forms_word`]) yields to the word it
     /// spells when the dictionary lists that word: its reading of the derived POS, with the same
     /// inflections after it (göz-lüğ-ü and gözlüğ-ü, de-yiş-le and deyiş-le, yer-siz and yersiz,
     /// başvur-ucu and başvurucu, kaynak-ça and kaynakça), as a verb the dictionary lists outranks
@@ -1882,6 +1879,15 @@ impl TurkishMorphology {
     /// the word's lemma, its sparse term (review 2 RANK2-04). The dictionary's word wins unless it
     /// is `NotLexicalized`; a name does not count.
     fn lexicalised_derivations(&self, results: &mut [MorphParse]) {
+        // Most words have no reading through such a derivation, or no other reading.
+        let candidate = |t: &String| forms_word(t) || matches!(t.as_str(), "Equ" | "ActN");
+        if results.len() < 2
+            || !results
+                .iter()
+                .any(|d| d.morpheme_tags.iter().any(candidate))
+        {
+            return;
+        }
         let inflections = |tags: &[String]| -> Vec<String> {
             tags.iter()
                 .filter(|t| !matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"))
@@ -1898,7 +1904,7 @@ impl TurkishMorphology {
             // A verbal noun in -mA yields only to a noun the lexicon marks Lexicalized
             // (açıklama): most such nouns are other words (açma "pastry", dolma "stuffed dish").
             let verbal_noun = tag == "ActN";
-            if !(WORD_FORMING.contains(&tag) || tag == "Equ" || verbal_noun) {
+            if !(forms_word(tag) || tag == "Equ" || verbal_noun) {
                 continue;
             }
             let rest = inflections(&d.morpheme_tags[k + 1..]);
@@ -1935,13 +1941,26 @@ impl TurkishMorphology {
     }
 }
 
-/// The derivations that make a word of their own, which the dictionary may list (gözlük,
-/// deyiş, yersiz, sözlü, başvurucu, iyice, uyuşmazlık), and which a name does not take and
-/// stay a name ([`prior_is_name`]). Not the productive syntax of verbal nouns, participles and
-/// converbs (aç-ma "opening" is no açma "pastry", al-an no alan "field"), nor a verb's voice.
-const WORD_FORMING: &[&str] = &[
-    "Dim", "Ness", "With", "Without", "Related", "JustLike", "Agt", "Manner", "Ly", "NotState",
-];
+/// Whether a tag is a derivation that makes a word of its own, which the dictionary may list
+/// (gözlük, deyiş, yersiz, sözlü, başvurucu, iyice, uyuşmazlık), and which a name does not
+/// take and stay a name ([`prior_is_name`]). Not the productive syntax of verbal nouns,
+/// participles and converbs (aç-ma "opening" is no açma "pastry", al-an no alan "field"), nor a
+/// verb's voice.
+fn forms_word(tag: &str) -> bool {
+    matches!(
+        tag,
+        "Dim"
+            | "Ness"
+            | "With"
+            | "Without"
+            | "Related"
+            | "JustLike"
+            | "Agt"
+            | "Manner"
+            | "Ly"
+            | "NotState"
+    )
+}
 
 /// The ends (byte offsets into the input) of the verb stems a path's leading derivations spell:
 /// voice suffixes on a verb (kat-ıl-dı has katıl, bul-un-dur-ul-du has bulun and bulundur) and

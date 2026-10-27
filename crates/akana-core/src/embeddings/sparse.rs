@@ -3,7 +3,9 @@
 //! Converts Turkish text into sparse lexical vectors. The text is split into sentences and each
 //! sentence is disambiguated, so every word occurrence counts once, as the lemma of the reading
 //! its context picks (kanunu -> kanun, bıraktım -> bırakmak), plus the parts of its root when
-//! the root is a compound (denizaltı -> deniz + alt). A term's value is
+//! the root is a compound (denizaltı -> deniz + alt). A word the dictionary lists as a
+//! postposition or an adverb has a fixed term instead, whatever reading its context picks
+//! (tarafından, içinde; bilerek -> bilmek: `frozen_form`). A term's value is
 //!
 //! - its BM25-saturated occurrence count, `tf * (k1 + 1) / (tf + k1)` with `k1 = 1.2`,
 //! - times a part-of-speech weight (proper nouns and numbers > nouns > verbs > adverbs): the
@@ -144,6 +146,8 @@ impl MorphologicalSparseEncoder {
         let mut splits: HashMap<String, Option<(String, String)>> = HashMap::new();
         // The terms of the unknown words seen so far, whose backoff tries every split.
         let mut backoff: HashMap<String, String> = HashMap::new();
+        // The fixed terms of the adverbs and postpositions seen so far ([`frozen_form`]).
+        let mut frozen: HashMap<String, Option<(String, f32)>> = HashMap::new();
         for sentence in SentenceSegmenter::segment(text) {
             let tokens = TurkishTokenizer::tokenize_words(sentence.text);
             let parses = self.disambiguator.disambiguate(&tokens);
@@ -162,6 +166,15 @@ impl MorphologicalSparseEncoder {
                     });
                     if self.is_term(term) {
                         out.push((term.clone(), pos_weight(parse)));
+                    }
+                    continue;
+                }
+                let fixed = frozen
+                    .entry(surface.clone())
+                    .or_insert_with_key(|w| frozen_form(&self.morphology, w));
+                if let Some((term, weight)) = fixed {
+                    if self.is_term(term) {
+                        out.push((term.clone(), *weight));
                     }
                     continue;
                 }
@@ -348,6 +361,59 @@ static LEMMA_WEIGHTS: LazyLock<HashMap<String, f32>> = LazyLock::new(|| {
         })
         .collect()
 });
+
+/// The term of a word the dictionary lists as an adverb or a postposition, written as that word,
+/// whichever reading its context picks: the readings are in every such word, and their order
+/// turned with every re-estimation of the prior, and the term with it (review 2 RANK2-04).
+/// - A postposition is itself (göre, kadar, üzere), never the verb some spell (gör-e).
+/// - An adverb that is also a verb's converb or participle is that verb (bil-erek
+///   "knowingly", anlaş-ıl-an "apparently", which court decisions write as the participle):
+///   the best such reading's lemma, as the verb's other forms are indexed. A finite form the
+///   adverb happens to spell (kes-in "cut!", yerin-e, bil-e) does not count.
+/// - Any other adverb is itself, over the noun's case form it spells (tarafından, içinde,
+///   yerine, yanında, zamanında, başta for taraf-ı-ndan, iç-i-nde, yer-i-ne ...).
+///
+/// Each with its lexicon class's weight.
+fn frozen_form(morphology: &TurkishMorphology, surface: &str) -> Option<(String, f32)> {
+    let folded: String = surface
+        .chars()
+        .map(|c| match c {
+            'â' => 'a',
+            'î' => 'i',
+            'û' => 'u',
+            c => c,
+        })
+        .collect();
+    let items = morphology.root_items(&folded);
+    let item = items
+        .iter()
+        .find(|item| item.primary_pos == PrimaryPos::Postp)
+        .or_else(|| {
+            items
+                .iter()
+                .find(|item| item.primary_pos == PrimaryPos::Adv)
+        })?;
+    let weigh = |term: &str, pos, secondary| {
+        LEMMA_WEIGHTS
+            .get(term)
+            .copied()
+            .unwrap_or_else(|| class_weight(pos, secondary))
+    };
+    if item.primary_pos == PrimaryPos::Adv {
+        if let Some(verb) = morphology
+            .analyze(surface)
+            .into_iter()
+            .find(|p| p.primary_pos == PrimaryPos::Verb && p.pos != PrimaryPos::Verb)
+        {
+            let term = to_turkish_lower(&verb.lemma);
+            let weight = weigh(&term, verb.primary_pos, verb.secondary_pos);
+            return Some((term, weight));
+        }
+    }
+    let term = to_turkish_lower(&item.lemma);
+    let weight = weigh(&term, item.primary_pos, item.secondary_pos);
+    Some((term, weight))
+}
 
 /// The POS weight of a lemma's term: its lexicon class when its items differ in class
 /// ([`LEMMA_WEIGHTS`]), else the reading's.

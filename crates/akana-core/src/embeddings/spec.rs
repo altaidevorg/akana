@@ -20,7 +20,9 @@
 //!
 //! Spec 1 of the sparse encoder: text is split into sentences and words (the akana tokenizer);
 //! each word is analysed and disambiguated in its sentence; its term is the reading's lemma
-//! (lower-case, no circumflex), plus the parts of a lexicon compound; stopword lemmas are
+//! (lower-case, no circumflex), plus the parts of a lexicon compound, but for a word the
+//! dictionary lists as a postposition or an adverb, whose term is fixed (that word, or the
+//! verb an adverb is a form of: `sparse::frozen_form`); stopword lemmas are
 //! dropped; a term's id is the 32-bit FNV-1a of its string ([`super::hash_term_32bit`]); its
 //! value is BM25-saturated term frequency (k1 = 1.2) times its POS weight times its
 //! function-lemma weight. The hybrid vector packs the 2-bit dense embedding (64 bytes) with the
