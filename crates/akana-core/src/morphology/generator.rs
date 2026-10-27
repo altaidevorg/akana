@@ -5,15 +5,41 @@
 //! conditions, and keeps a path that renders the tags asked for. The word it returns is one the
 //! analyzer reads back with those tags.
 
-use super::analyzer::{render, tag_of, Step, TurkishMorphology, ENGINE, MAX_STATE_REPEAT, PRIOR};
+use super::analyzer::{
+    render, suffixes_without_apostrophe, tag_of, Step, TurkishMorphology, ENGINE, MAX_STATE_REPEAT,
+    PRIOR,
+};
 use super::dictionary::DictionaryItem;
 use super::morphotactics::{Context, Morpheme as M, PathView};
 use super::phonetics::{attributes_of, PhoneticAttrs as P};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::stems::{self, StemTransition};
+use std::sync::LazyLock;
 
 /// Tags a request may spell out that the analyzer leaves unshown after a suffix.
 const DEFAULT_TAGS: [&str; 3] = ["A3sg", "Pnon", "Nom"];
+/// The possessives, which a CompoundP3sg noun's plural always shows (cumhurbaşkan-lar-ı).
+const POSSESSIVES: [&str; 6] = ["P1sg", "P2sg", "P3sg", "P1pl", "P2pl", "P3pl"];
+
+/// Every tag the analyzer shows, and Prog1 and Prog2, which a request may use to tell the
+/// two progressives apart (both are shown as Prog).
+static TAGS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    let mut tags: Vec<&'static str> = DEFAULT_TAGS.to_vec();
+    tags.extend(["Prog1", "Prog2"]);
+    for &m in M::ALL {
+        tags.extend(tag_of(m));
+        tags.extend(shown_as(m));
+    }
+    tags.sort_unstable();
+    tags.dedup();
+    tags
+});
+
+/// A requested tag as the analyzer spells it, whatever its case (p1sg, DAT); `None` for a tag
+/// it never shows.
+fn canonical_tag(tag: &str) -> Option<&'static str> {
+    TAGS.iter().copied().find(|t| t.eq_ignore_ascii_case(tag))
+}
 /// Search steps one generation may take before it gives up.
 const MAX_WORK: usize = 200_000;
 /// Candidate words collected before they are checked against the analyzer.
@@ -51,20 +77,45 @@ impl TurkishGenerator {
 }
 
 impl TurkishMorphology {
-    /// Generates the word with akana's tags (`["Noun", "P1sg", "Dat"]`; the first tag is the
-    /// POS, and the defaults A3sg, Pnon and Nom may be spelled out) from a root or a lemma
-    /// (kitap; gel or gelmek). Among homographs of that POS it takes a common word before a
-    /// name, then the item the corpus prior finds most frequent (hak the noun: hakkım), then
-    /// the shortest word (hal "state": halinde, not hal "solution": hallinde). `None` for an
-    /// unknown word, POS or tag, or when no path of the graph renders the tags.
+    /// Generates the word with akana's tags (`["Noun", "P1sg", "Dat"]`, in any case; the first
+    /// tag is the POS, and the defaults A3sg, Pnon and Nom may be spelled out) from a root or a
+    /// lemma (kitap; gel or gelmek).
+    ///
+    /// - Prog is the -Iyor progressive (gidiyorum); Prog2 asks for the -mAktA one
+    ///   (bulunmaktadır), and Prog1 for -Iyor only.
+    /// - A name or an abbreviation is written as the lexicon spells it, with an apostrophe
+    ///   before its case, possessive and copula (Türkiye'de, Ali'nin, ABD'nin, TBMM'de), and
+    ///   its suffixes follow its pronunciation.
+    /// - A CompoundP3sg noun's plural keeps its own possessive (cumhurbaşkanı with A3pl and Dat
+    ///   is cumhurbaşkanlarına).
+    ///
+    /// Among homographs of that POS it takes a common word before a name, or a name before a
+    /// common word when the request is written with a capital (Ali, ABD); then the item the
+    /// corpus prior finds most frequent (hak the noun: hakkım), then the shortest word (hal
+    /// "state": halinde, not hal "solution": hallinde). `None` for an unknown word, POS or tag,
+    /// or when no path of the graph renders the tags.
     pub fn generate(&self, word: &str, tags: &[&str]) -> Option<String> {
-        let lower = crate::phonology::to_turkish_lower(word.trim());
-        let wanted: Vec<&str> = tags
-            .iter()
-            .copied()
-            .filter(|t| !DEFAULT_TAGS.contains(t))
-            .collect();
-        let pos = wanted.first().and_then(|t| PrimaryPos::from_name(t))?;
+        let written = word.trim();
+        let lower = crate::phonology::to_turkish_lower(written);
+        let capitalised = written != lower;
+        let (first, rest) = tags.split_first()?;
+        let pos = PrimaryPos::from_name(first)?;
+        let mut wanted: Vec<&str> = vec![pos.as_str()];
+        let mut progressive = None;
+        for tag in rest {
+            match canonical_tag(tag)? {
+                "Prog1" => {
+                    progressive = Some(M::Prog1);
+                    wanted.push("Prog");
+                }
+                "Prog2" => {
+                    progressive = Some(M::Prog2);
+                    wanted.push("Prog");
+                }
+                t if DEFAULT_TAGS.contains(&t) => {}
+                t => wanted.push(t),
+            }
+        }
         let infinitive_root = lower
             .strip_suffix("mek")
             .or_else(|| lower.strip_suffix("mak"));
@@ -79,44 +130,27 @@ impl TurkishMorphology {
             )
             .filter(|i| i.primary_pos == pos);
         let prior = &*PRIOR;
-        let mut best: Option<((bool, i32, usize), String)> = None;
+        let mut best: Option<((bool, bool, i32, usize), String)> = None;
         for item in items {
-            let mut search = Generation {
-                wanted: &wanted,
-                surface: String::new(),
-                steps: Vec::new(),
-                work: 0,
-                special: false,
-                candidates: Vec::new(),
-            };
-            for (stem, owner) in stems::item_stems(item, self.lexicon(), &ENGINE.roots) {
-                let root_morpheme = ENGINE.graph.states[stem.to.0 as usize].morpheme;
-                search.surface = stem.surface.to_string();
-                search.special = stem.surface.as_ref() != owner.root;
-                let ctx = Context::at_root(stem.to, root_morpheme);
-                search.walk(&owner, &stem, ctx, stem.attrs, 1);
+            let name = matches!(
+                item.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            );
+            let mut found = self.generate_item(item, &wanted, progressive);
+            if found.is_none()
+                && item.attributes.contains(RootAttr::COMPOUND_P3SG)
+                && wanted.contains(&"A3pl")
+                && !wanted.iter().any(|t| POSSESSIVES.contains(t))
+            {
+                let mut own = wanted.clone();
+                let at = own.iter().position(|t| *t == "A3pl").map_or(1, |i| i + 1);
+                own.insert(at, "P3sg");
+                found = self.generate_item(item, &own, progressive);
             }
-            // The analyzer must read the word back with the same item and tags. Of several
-            // spellings of the reading, one on the root as spelt comes before one on a special
-            // stem (yukarıda, not yukarda), then the shortest is the unmarked one (okuyor, not
-            // okumakta; gidin, not gitsenize).
-            let mut candidates = search.candidates;
-            candidates.sort_by_key(|(s, special)| (*special, s.chars().count()));
-            let found = candidates.into_iter().map(|(s, _)| s).find(|surface| {
-                self.analyze_unranked(surface).iter().any(|p| {
-                    p.lemma == item.lemma
-                        && p.root == item.root
-                        && p.primary_pos == item.primary_pos
-                        && p.morpheme_tags
-                            .iter()
-                            .map(String::as_str)
-                            .filter(|t| !DEFAULT_TAGS.contains(t))
-                            .eq(wanted.iter().copied())
-                })
-            });
             if let Some(surface) = found {
                 let key = (
-                    item.secondary_pos == SecondaryPos::ProperNoun,
+                    capitalised != name,
+                    name && item.display_lemma() != written,
                     -prior.item_log_p(item),
                     surface.chars().count(),
                 );
@@ -127,17 +161,80 @@ impl TurkishMorphology {
         }
         best.map(|(_, surface)| surface)
     }
+
+    /// The word one item makes with the tags, if any path renders them.
+    fn generate_item(
+        &self,
+        item: &DictionaryItem,
+        wanted: &[&str],
+        progressive: Option<M>,
+    ) -> Option<String> {
+        let roots = &ENGINE.roots;
+        let mut search = Generation {
+            wanted,
+            progressive,
+            surface: String::new(),
+            steps: Vec::new(),
+            work: 0,
+            special: false,
+            candidates: Vec::new(),
+        };
+        for (stem, owner) in stems::item_stems(item, self.lexicon(), roots) {
+            let root_morpheme = ENGINE.graph.states[stem.to.0 as usize].morpheme;
+            search.surface = stem.surface.to_string();
+            // A special root's other stem (içer- of içeri, bur- of bura, di- of de), not a
+            // regular alternation (kitab- of kitap, gid- of git).
+            search.special = [
+                roots.noun_last_vowel_drop,
+                roots.adj_last_vowel_drop,
+                roots.pron_pers_mod,
+                roots.pron_quant_modified,
+            ]
+            .contains(&stem.to)
+                || (stem.to == roots.verb_de_ye && stem.surface.as_ref() != owner.root);
+            let ctx = Context::at_root(stem.to, root_morpheme);
+            search.walk(&owner, &stem, ctx, stem.attrs, 1);
+        }
+        // The analyzer must read the word back with the same item and tags. Of several
+        // spellings of the reading, one on the root as spelt comes before one on a special
+        // stem (yukarıda, not yukarda), -Iyor before -mAktA (gidiyorum, not gitmekteyim), then
+        // the shortest is the unmarked one (gidin, not gitsenize).
+        let mut candidates = search.candidates;
+        candidates.sort_by_key(|c| (c.special, c.prog2, c.text.chars().count()));
+        candidates.into_iter().map(|c| c.text).find(|text| {
+            self.analyze_unranked(text).iter().any(|p| {
+                p.lemma == item.lemma
+                    && p.root == item.root
+                    && p.primary_pos == item.primary_pos
+                    && p.morpheme_tags
+                        .iter()
+                        .map(String::as_str)
+                        .filter(|t| !DEFAULT_TAGS.contains(t))
+                        .eq(wanted.iter().copied())
+            })
+        })
+    }
 }
 
 struct Generation<'a> {
     wanted: &'a [&'a str],
+    /// The progressive asked for by name (Prog1 or Prog2), if any.
+    progressive: Option<M>,
     surface: String,
     steps: Vec<Step>,
     work: usize,
-    /// The current stem is not the root as spelt (yukar- of yukarı, kitab- of kitap).
+    /// The current stem is a special root's other stem (yukar- of yukarı).
     special: bool,
-    /// Words found, with whether they come from a special stem.
-    candidates: Vec<(String, bool)>,
+    candidates: Vec<Candidate>,
+}
+
+/// A word found, as written.
+struct Candidate {
+    text: String,
+    /// It comes from a special root's other stem.
+    special: bool,
+    /// Its progressive is -mAktA.
+    prog2: bool,
 }
 
 impl Generation<'_> {
@@ -172,10 +269,19 @@ impl Generation<'_> {
                 .iter()
                 .map(String::as_str)
                 .filter(|t| !DEFAULT_TAGS.contains(t));
-            if rendered.eq(self.wanted.iter().copied())
-                && !self.candidates.iter().any(|(s, _)| *s == self.surface)
-            {
-                self.candidates.push((self.surface.clone(), self.special));
+            if rendered.eq(self.wanted.iter().copied()) {
+                let text = self.written(item, stem);
+                if !self.candidates.iter().any(|c| c.text == text) {
+                    let prog2 = self.steps.iter().any(|s| {
+                        let to = graph.transitions[s.transition as usize].to;
+                        graph.states[to.0 as usize].morpheme == M::Prog2
+                    });
+                    self.candidates.push(Candidate {
+                        text,
+                        special: self.special,
+                        prog2,
+                    });
+                }
             }
         }
         // Silent steps (zero derivations, defaults) come at most a few per requested tag.
@@ -200,6 +306,9 @@ impl Generation<'_> {
                 continue;
             }
             let m = graph.states[t.to.0 as usize].morpheme;
+            if matches!(m, M::Prog1 | M::Prog2) && self.progressive.is_some_and(|p| p != m) {
+                continue;
+            }
             // A suffix that is always shown must be the next requested tag still to come, and
             // one shown only with a surface must be requested at all.
             let next = match tag_of(m) {
@@ -248,6 +357,25 @@ impl Generation<'_> {
             self.steps.pop();
             self.surface.truncate(start);
         }
+    }
+
+    /// The word as written: a name or an abbreviation on its root as the lexicon spells it,
+    /// with an apostrophe before the suffixes that take one (Ankara'ya, TBMM'de, but
+    /// Ankaralı, Türkçenin).
+    fn written(&self, item: &DictionaryItem, stem: &StemTransition) -> String {
+        let name = matches!(
+            item.secondary_pos,
+            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+        );
+        if !name || stem.surface.as_ref() != item.root {
+            return self.surface.clone();
+        }
+        let mut text = item.display_lemma().into_owned();
+        if !suffixes_without_apostrophe(&ENGINE.graph, item, &self.steps) {
+            text.push('\'');
+        }
+        text.push_str(&self.surface[stem.surface.len()..]);
+        text
     }
 }
 

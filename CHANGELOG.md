@@ -80,6 +80,16 @@ own (`google_lexicon.txt` was removed).
 
 **Generation.** `Morphology.generate` uses the instance's own lexicon. It returns `None` for
 an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the lemma.
+- Tags match in any case (`noun`, `P1SG`).
+- A name or an abbreviation comes back as the dictionary spells it, with the apostrophe
+  before its case, possessive and copula, and suffixes that follow its pronunciation
+  (`Türkiye'de`, `Ali'nin`, `ABD'nin`, `TBMM'de`, but `Ankaralı`). A request written with a
+  capital prefers the name (`ABD` the abbreviation, `abd` the common noun).
+- `Prog` is the -Iyor progressive, also on a stem that changes (`gidiyorum`, `ediyor`), where
+  it gave -mAktA (`gitmekteyim`). The request tags `Prog1` and `Prog2` ask for one of the two
+  (`Prog2`: `bulunmaktadır`); both still analyse as `Prog`.
+- A CompoundP3sg noun's plural keeps its own possessive (`cumhurbaşkanı` with `A3pl+Dat` is
+  `cumhurbaşkanlarına`).
 
 **Errors (Python).**
 - A panic in the native code raises `RuntimeError`, where it raised
@@ -177,3 +187,6 @@ different results.
   the name; a sentence without a verb (`Hava çok soğuk .`, `Evde kimse yok .`) has its predicate
   as the dependency root, never the punctuation, and a postposition attaches to its noun
   (`case`); the de/da rule no longer splits a misspelt locative as a genitive (`aranında`).
+- A CompoundP3sg noun derives on its stem without the possessive only: `cumhurbaşkanılık` and
+  `cumhurbaşkanılığı` no longer analyse (`cumhurbaşkanlık` does; -(I)msI takes either,
+  `zeytinyağımsı`).

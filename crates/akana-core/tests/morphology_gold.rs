@@ -6,7 +6,8 @@
 //! of a sentence, and `data/morphology/participles.tsv` the POS it should give a participle or
 //! -IcI form in context (Adj before the noun it describes, Noun in a noun clause). Every analysis of a dictionary word in `paradigms.tsv` and
 //! `frequent_types.tsv`, and every analysis of the 800 frequent court words of
-//! `roundtrip_words.txt`, must also generate back from its root (or lemma) and tags. The
+//! `roundtrip_words.txt`, must also generate back from its root (or lemma) and tags, a name's
+//! suffixes after its apostrophe. The
 //! analyzer does not meet all of them yet:
 //! `data/morphology/known_failures.txt` lists the ones it gets wrong, and this test fails when
 //! that list is not exactly the current failures, so it shrinks as fixes land and grows only on
@@ -14,6 +15,7 @@
 
 use akana_core::morphology::{MorphologicalDisambiguator, SecondaryPos, TurkishMorphology};
 use std::collections::BTreeSet;
+use unicode_normalization::UnicodeNormalization;
 
 const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
 const REJECT: &str = include_str!("data/morphology/reject.txt");
@@ -29,27 +31,15 @@ fn data_lines(text: &str) -> impl Iterator<Item = &str> {
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
 }
 
-/// Whether a gold word is a dictionary word written as the generator writes it: its root (or
-/// infinitive) is in the lexicon (not a number or Roman numeral), it has no apostrophe
-/// (Ankara'ya), and it is no name's case or copula, which takes one (Ankarada, which the
-/// analyzer reads since plan step D1, is written Ankara'da).
-fn generable(morphology: &TurkishMorphology, word: &str, root: &str, tags: &str) -> bool {
+/// Whether a gold word is a dictionary word the generator starts from: its root (or
+/// infinitive) is in the lexicon, not a number or Roman numeral.
+fn generable(morphology: &TurkishMorphology, root: &str) -> bool {
     let in_lexicon = |r: &str| !morphology.root_items(r).is_empty();
-    let name_case = morphology.root_items(root).iter().all(|i| {
-        matches!(
-            i.secondary_pos,
-            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-        )
-    }) && tags.split('+').any(|t| {
-        ["Dat", "Loc", "Abl", "Gen", "Acc", "Ins"].contains(&t) || t.starts_with("CopPres")
-    });
-    !word.contains(['\'', '’', '`'])
-        && !name_case
-        && (in_lexicon(root)
-            || root
-                .strip_suffix("mek")
-                .or_else(|| root.strip_suffix("mak"))
-                .is_some_and(in_lexicon))
+    in_lexicon(root)
+        || root
+            .strip_suffix("mek")
+            .or_else(|| root.strip_suffix("mak"))
+            .is_some_and(in_lexicon)
 }
 
 /// Every gold item the analyzer currently gets wrong, as `accept<TAB>word<TAB>root<TAB>tags`,
@@ -60,10 +50,28 @@ fn current_failures() -> BTreeSet<String> {
     let morphology = TurkishMorphology::new();
     let mut failures = BTreeSet::new();
     // The generator returns a word the analyzer reads back with the same item and tags; another
-    // spelling of the reading (gelin and geliniz) counts as a round trip.
-    let generates = |root: &str, tags: &str| {
+    // spelling of the reading (gelin and geliniz, İİK'nin and İİK'nın) counts as a round trip.
+    // A name's or abbreviation's suffixes follow an apostrophe (Ankara'ya, TBMM'de): asked for
+    // by the name as the word writes it, the generator writes the name and the apostrophe.
+    let generates = |word: &str, root: &str, tags: &str| {
         let tags: Vec<&str> = tags.split('+').collect();
-        morphology.generate(root, &tags).is_some()
+        let apostrophes = ['\'', '’', '`'];
+        let name = morphology.root_items(root).iter().any(|i| {
+            matches!(
+                i.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            )
+        });
+        match word.rsplit_once(apostrophes).filter(|_| name) {
+            Some((name, _)) => {
+                let name: String = name.nfc().filter(|c| !apostrophes.contains(c)).collect();
+                morphology.generate(&name, &tags).is_some_and(|g| {
+                    g.rsplit_once('\'')
+                        .is_some_and(|(n, _)| n.replace('\'', "") == name)
+                })
+            }
+            None => morphology.generate(root, &tags).is_some(),
+        }
     };
     for line in data_lines(PARADIGMS) {
         let fields: Vec<&str> = line.split('\t').collect();
@@ -78,7 +86,7 @@ fn current_failures() -> BTreeSet<String> {
             .any(|p| p.root == root && p.morpheme_tags.join("+") == tags);
         if !found {
             failures.insert(format!("accept\t{word}\t{root}\t{tags}"));
-        } else if generable(&morphology, word, root, tags) && !generates(root, tags) {
+        } else if generable(&morphology, root) && !generates(word, root, tags) {
             failures.insert(format!("generate\t{word}\t{root}\t{tags}"));
         }
     }
@@ -87,14 +95,14 @@ fn current_failures() -> BTreeSet<String> {
         let [word, lemma, _, tags] = fields[..] else {
             panic!("malformed frequent_types.tsv line: {line:?}");
         };
-        if generable(&morphology, word, lemma, tags) && !generates(lemma, tags) {
+        if generable(&morphology, lemma) && !generates(word, lemma, tags) {
             failures.insert(format!("generate\t{word}\t{lemma}\t{tags}"));
         }
     }
     for word in data_lines(ROUNDTRIP_WORDS) {
         for p in morphology.analyze(word) {
             let tags = p.morpheme_tags.join("+");
-            if generable(&morphology, word, &p.root, &tags) && !generates(&p.root, &tags) {
+            if generable(&morphology, &p.root) && !generates(word, &p.root, &tags) {
                 failures.insert(format!("generate\t{word}\t{}\t{tags}", p.root));
             }
         }

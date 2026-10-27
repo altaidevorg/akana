@@ -2047,7 +2047,11 @@ fn dotted_suffix(word: &str) -> Option<(String, &str)> {
 /// plural or derivations (Ahmetler, Ankaralı, Atatürkçü), and every suffix of an abbreviation
 /// (TBMM'de). Without the rule a misspelled common word read as a name plus a suffix: kitap-ı
 /// through the proper noun Kitap.
-fn suffixes_without_apostrophe(graph: &Graph, item: &DictionaryItem, steps: &[Step]) -> bool {
+pub(super) fn suffixes_without_apostrophe(
+    graph: &Graph,
+    item: &DictionaryItem,
+    steps: &[Step],
+) -> bool {
     match item.secondary_pos {
         SecondaryPos::Abbreviation => steps.iter().all(|s| s.end == s.start),
         // Language names are -CA derivations, which take their suffixes without an

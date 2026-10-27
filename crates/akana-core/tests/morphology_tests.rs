@@ -229,6 +229,67 @@ fn test_morphology_generation() {
     assert_eq!(surface_git, Some("gideceğim".to_string()));
 }
 
+/// Review 2 RANK2-06 and MORPH2-10: names and abbreviations, the two progressives, the stems
+/// that change, compounds and the spelling of tags.
+#[test]
+fn generation_writes_names_progressives_and_compounds() {
+    let morph = TurkishMorphology::new();
+    let generate = |word: &str, tags: &str| {
+        let tags: Vec<&str> = tags.split('+').collect();
+        morph.generate(word, &tags)
+    };
+    for (word, tags, expected) in [
+        // A name's case, possessive and copula after an apostrophe, its plural and
+        // derivations without one; an abbreviation's suffixes follow its pronunciation.
+        ("Türkiye", "Noun+Loc", Some("Türkiye'de")),
+        ("türkiye", "Noun+Loc", Some("Türkiye'de")),
+        ("Ankara", "Noun+Dat", Some("Ankara'ya")),
+        ("Ali", "Noun+Gen", Some("Ali'nin")),
+        ("Ali", "Noun+P3sg", Some("Ali'si")),
+        ("Ali", "Noun+CopPres3sg", Some("Ali'dir")),
+        ("Ahmet", "Noun+A3pl+Dat", Some("Ahmetlere")),
+        ("Ankara", "Noun+With", Some("Ankaralı")),
+        ("Türkçe", "Noun+Gen", Some("Türkçenin")),
+        ("Türkiye", "Noun", Some("Türkiye")),
+        ("TBMM", "Noun+Loc", Some("TBMM'de")),
+        ("TL", "Noun+P3sg", Some("TL'si")),
+        ("HMK", "Noun+Gen", Some("HMK'nın")),
+        // The abbreviation when it is asked for in capitals, the common noun otherwise.
+        ("ABD", "Noun+Gen", Some("ABD'nin")),
+        ("abd", "Noun+Gen", Some("abdın")),
+        // Prog is -Iyor, also on a stem that changes; Prog2 is -mAktA.
+        ("git", "Verb+Prog+A1sg", Some("gidiyorum")),
+        ("et", "Verb+Prog", Some("ediyor")),
+        ("tat", "Verb+Prog", Some("tadıyor")),
+        ("git", "Verb+Prog2+A1sg", Some("gitmekteyim")),
+        ("bulunmak", "Verb+Prog+CopPres3sg", Some("bulunuyordur")),
+        ("bulunmak", "Verb+Prog2+CopPres3sg", Some("bulunmaktadır")),
+        ("gerekmek", "Verb+Prog2+CopPres3sg", Some("gerekmektedir")),
+        ("gel", "Verb+Prog1+A1sg", Some("geliyorum")),
+        // The special stems: de/ye, and the root as spelt before içer-/bur-.
+        ("de", "Verb+AdvIp", Some("deyip")),
+        ("de", "Verb+AdvInce", Some("deyince")),
+        ("ye", "Verb+AdvInce", Some("yiyince")),
+        ("yukarı", "Noun+Loc", Some("yukarıda")),
+        ("ben", "Pron+A1sg+Dat", Some("bana")),
+        // A CompoundP3sg noun derives and pluralises on its stem without the possessive.
+        ("cumhurbaşkanı", "Noun+Ness", Some("cumhurbaşkanlık")),
+        ("cumhurbaşkanı", "Noun+A3pl+Dat", Some("cumhurbaşkanlarına")),
+        ("cumhurbaşkanı", "Noun+Dat", Some("cumhurbaşkanına")),
+        ("zeytinyağı", "Noun+With", Some("zeytinyağlı")),
+        // Tags in any case; an unknown tag is no word.
+        ("kitap", "noun+a3sg+p1sg+dat", Some("kitabıma")),
+        ("kitap", "NOUN+P1SG+DAT", Some("kitabıma")),
+        ("kitap", "Noun+Foo", None),
+    ] {
+        assert_eq!(generate(word, tags).as_deref(), expected, "{word} {tags}");
+    }
+    // The full stem of a compound takes no derivation.
+    for word in ["cumhurbaşkanılık", "cumhurbaşkanılığı", "zeytinyağılı"] {
+        assert!(morph.analyze(word).is_empty(), "{word}");
+    }
+}
+
 #[test]
 fn test_morphology_disambiguation() {
     let disambiguator = MorphologicalDisambiguator::new();

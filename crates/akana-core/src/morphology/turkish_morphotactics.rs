@@ -691,21 +691,36 @@ pub fn build() -> (Graph, RootStates) {
     g.add(p3pl_S, equ_ST, "+ncA", T);
     g.add(p3pl_S, acc_ST, "nI", T);
 
-    // Derivations from the nominative.
-    g.add(nom_ST, dim_S, ">cI~k", Cond::HasAnySuffixSurface.not());
-    g.add(nom_ST, dim_S, ">cI!ğ", Cond::HasAnySuffixSurface.not());
-    g.add(nom_ST, dim_S, "cAğIz", Cond::HasAnySuffixSurface.not());
+    // Derivations from the nominative. Not on the full stem of a CompoundP3sg noun: they take
+    // the stem without its possessive (cumhurbaşkan-lık, zeytinyağ-lı; cumhurbaşkanı-lık is no
+    // word, review 2 RANK2-06). -(I)msI takes either, as in Zemberek (zeytinyağ-sı,
+    // zeytinyağı-msı).
+    let full_compound = || has(R::COMPOUND_P3SG).and(Cond::HasAnySuffixSurface.not());
+    let nom_deriv = || nsad().and_not(full_compound());
+    let dim_cond = || {
+        Cond::HasAnySuffixSurface
+            .not()
+            .and_not(has(R::COMPOUND_P3SG))
+    };
+    g.add(nom_ST, dim_S, ">cI~k", dim_cond());
+    g.add(nom_ST, dim_S, ">cI!ğ", dim_cond());
+    g.add(nom_ST, dim_S, "cAğIz", dim_cond());
     g.add(dim_S, noun_S, "", T);
     let empty_adj_noun = g.sequence(&[M::Adj, M::Zero, M::Noun, M::A3sg, M::Pnon, M::Nom]);
     let ness_cond = || {
-        nsad()
+        nom_deriv()
             .and_not(cm(&[M::Ness]))
             .and_not(Cond::ContainsSequence(empty_adj_noun))
     };
     g.add(nom_ST, ness_S, "lI~k", ness_cond());
     g.add(nom_ST, ness_S, "lI!ğ", ness_cond());
     g.add(ness_S, noun_S, "", T);
-    g.add(nom_ST, agt_S, ">cI", nsad().and_not(cm(&[M::Adj, M::Agt])));
+    g.add(
+        nom_ST,
+        agt_S,
+        ">cI",
+        nom_deriv().and_not(cm(&[M::Adj, M::Agt])),
+    );
     g.add(agt_S, noun_S, "", T);
     let noun_to_verb = || Cond::HasTail.and_not(nsad().and(ld(&[adjZeroDeriv_S])));
     for c in [nom_ST, dat_ST, abl_ST, loc_ST, ins_ST, gen_ST] {
@@ -716,13 +731,13 @@ pub fn build() -> (Graph, RootStates) {
         nom_ST,
         with_S,
         "lI",
-        nsad().and_not(cm(&[M::With, M::Without])),
+        nom_deriv().and_not(cm(&[M::With, M::Without])),
     );
     g.add(
         nom_ST,
         without_S,
         "sIz",
-        nsad().and_not(cm(&[M::With, M::Without, M::Inf1])),
+        nom_deriv().and_not(cm(&[M::With, M::Without, M::Inf1])),
     );
     let just_like_block = || cm(&[M::JustLike, M::FutPart, M::PastPart, M::PresPart, M::Adj]);
     g.add(
@@ -746,7 +761,7 @@ pub fn build() -> (Graph, RootStates) {
         nom_ST,
         related_S,
         "sAl",
-        nsad().and_not(cm(&[M::With, M::Without, M::Related])),
+        nom_deriv().and_not(cm(&[M::With, M::Without, M::Related])),
     );
     for s in [with_S, without_S, related_S, justLike_S] {
         g.add(s, adjectiveRoot_ST, "", T);
@@ -779,14 +794,14 @@ pub fn build() -> (Graph, RootStates) {
         nom_ST,
         become_S,
         "lAş",
-        nsad().and_not(cm(&[M::Adj])).and_not(verb_deriv()),
+        nom_deriv().and_not(cm(&[M::Adj])).and_not(verb_deriv()),
     );
     g.add(become_S, verbRoot_S, "", T);
     g.add(
         nom_ST,
         acquire_S,
         "lAn",
-        nsad().and_not(cm(&[M::Adj])).and_not(verb_deriv()),
+        nom_deriv().and_not(cm(&[M::Adj])).and_not(verb_deriv()),
     );
     g.add(acquire_S, verbRoot_S, "", T);
 

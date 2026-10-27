@@ -7,6 +7,7 @@
 //!
 //! With `--backoff`, the stem search indexes an unknown word by (`backoff_stem`) instead. With
 //! `--time FILE`, the words analysed per second over FILE's words (one per line), best of three.
+//! With `--generate WORD TAGS ...`, the word each root or lemma and `+`-joined tags generate.
 
 use akana_core::morphology::TurkishMorphology;
 use std::io::BufRead;
@@ -31,6 +32,20 @@ fn main() {
             println!(
                 "{word}: {n} analyses, {:.3} ms",
                 start.elapsed().as_secs_f64() * 1000.0 / 20.0
+            );
+        }
+        return;
+    }
+    if words.first().is_some_and(|w| w == "--generate") {
+        for pair in words[1..].chunks(2) {
+            let [word, tags] = pair else {
+                panic!("--generate takes word and Tag+Tag pairs");
+            };
+            let tags: Vec<&str> = tags.split('+').collect();
+            println!(
+                "{word} {}: {:?}",
+                tags.join("+"),
+                morphology.generate(word, &tags)
             );
         }
         return;
