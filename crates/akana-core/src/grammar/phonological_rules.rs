@@ -49,18 +49,18 @@ lazy_static! {
     };
 }
 
-/// Whether `lower` is a misspelling of `fixed`: the analyser knows no word `lower` (it rejects
-/// the forms a sound change rules out: kitap-da, akıl-ı, kitap-ı) and reads `fixed` through
-/// `root` (with that POS, when given). A word with a reading of its own is left alone: takdir
-/// and nakden are roots, akılı is akı-lı, kalpak and hükümet have other roots.
+/// Whether `word` (as written) is a misspelling of `fixed`: the analyser knows no word `word`
+/// (it rejects the forms a sound change rules out: kitap-da, akıl-ı, kitap-ı) and reads
+/// `fixed` through `root` (with that POS, when given). A word with a reading of its own is left
+/// alone: takdir and nakden are roots, akılı is akı-lı, kalpak and hükümet have other roots.
 fn misspelling_of(
     morphology: &TurkishMorphology,
-    lower: &str,
+    word: &str,
     fixed: &str,
     root: &str,
     pos: Option<PrimaryPos>,
 ) -> bool {
-    morphology.analyze_standard(lower).is_empty()
+    morphology.analyze_standard(word).is_empty()
         && morphology
             .analyze_standard(fixed)
             .iter()
@@ -164,7 +164,7 @@ impl PhonologicalRuleEngine {
                         // Not a word, and the hardened form is the stem plus the suffix: not
                         // takdir, nakden or akdi, whose roots are takdir, nakit and akit.
                         let fixed_lower = format!("{stem}{good_suf}");
-                        if misspelling_of(morphology, lower, &fixed_lower, stem, None) {
+                        if misspelling_of(morphology, original, &fixed_lower, stem, None) {
                             let replacement = match_case(original, &fixed_lower);
 
                             findings.push(GrammarFinding::new(
@@ -202,7 +202,7 @@ impl PhonologicalRuleEngine {
                 if suf.chars().next().is_some_and(is_turkish_vowel)
                     && misspelling_of(
                         morphology,
-                        lower,
+                        original,
                         &fixed_lower,
                         root,
                         Some(PrimaryPos::Noun),
@@ -310,7 +310,7 @@ impl PhonologicalRuleEngine {
                 let fixed_lower = format!("{stem}{corrected}");
                 // a verb form: not the nouns and numerals that end alike (ekonomiye, yevmiye,
                 // yirmiye, ikramiye), and the corrected form is a word
-                let parses = morphology.analyze_standard(lower);
+                let parses = morphology.analyze_standard(original);
                 if parses.iter().any(|p| p.primary_pos != PrimaryPos::Verb)
                     || morphology.analyze_standard(&fixed_lower).is_empty()
                 {
@@ -412,7 +412,7 @@ impl PhonologicalRuleEngine {
                 let fixed_lower = format!("{mutated}{suf}");
                 // not kalpak, ayaküstü: words with another root
                 if suf.chars().next().is_some_and(is_turkish_vowel)
-                    && misspelling_of(morphology, lower, &fixed_lower, unmutated, None)
+                    && misspelling_of(morphology, original, &fixed_lower, unmutated, None)
                 {
                     {
                         let replacement = match_case(original, &fixed_lower);
@@ -446,7 +446,7 @@ impl PhonologicalRuleEngine {
     ) {
         // Only check words unrecognized by morphology (potential harmony typo), and not a
         // name or abbreviation with a suffix after an apostrophe (SoC'ler, Beat'ler)
-        if lower.contains(['\'', '’']) || !morphology.analyze_standard(lower).is_empty() {
+        if lower.contains(['\'', '’']) || !morphology.analyze_standard(original).is_empty() {
             return;
         }
 

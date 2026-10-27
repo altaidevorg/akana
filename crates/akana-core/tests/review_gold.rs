@@ -298,8 +298,11 @@ fn zemberek_tests_keep_their_known_failures() {
                         continue;
                     }
                     // Zemberek's expectations are of standard spellings: a nonstandard
-                    // reading (okumağı) neither passes nor counts.
-                    let parses = m.analyze_standard(word);
+                    // reading (okumağı) neither passes nor counts. They are of its morphology,
+                    // which ignores case (ankara reads as the name), so akana's spelling check
+                    // of case (analyze_standard) does not apply.
+                    let mut parses = m.analyze(word);
+                    parses.retain(|p| !p.nonstandard);
                     let own: Vec<&MorphParse> = parses
                         .iter()
                         .filter(|p| mode == "tiny" || lemmas.contains(&p.lemma))

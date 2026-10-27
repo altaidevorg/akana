@@ -975,12 +975,27 @@ impl TurkishMorphology {
         out
     }
 
-    /// The readings of a word as TDK spells it: [`analyze`](Self::analyze) without the
-    /// [`nonstandard`](MorphParse::nonstandard) ones. What the spell checker, the grammar rules
-    /// and the deasciifier judge a spelling by.
+    /// The readings of a word as TDK spells it, in the case it is written in:
+    /// [`analyze`](Self::analyze) without the [`nonstandard`](MorphParse::nonstandard) ones,
+    /// and, for a word written all in lower case, without a name's reading or an
+    /// abbreviation's the dictionary spells in capitals (ankara is no spelling of Ankara, bü
+    /// none of BÜ; km, and vb. with its period, are). What the spell checker, the grammar rules
+    /// and the deasciifier judge a spelling by, so they pass the word as it is written.
     pub fn analyze_standard(&self, word: &str) -> Vec<MorphParse> {
+        let lower_case = !word.chars().any(char::is_uppercase);
+        let dotted = word.contains('.');
         let mut parses = self.analyze(word);
-        parses.retain(|p| !p.nonstandard);
+        parses.retain(|p| {
+            !p.nonstandard
+                && !(lower_case
+                    && match p.secondary_pos {
+                        SecondaryPos::ProperNoun => true,
+                        SecondaryPos::Abbreviation => {
+                            !dotted && p.display_lemma().chars().any(char::is_uppercase)
+                        }
+                        _ => false,
+                    })
+        });
         parses
     }
 
@@ -1123,6 +1138,8 @@ impl TurkishMorphology {
                         RootAttr::NONE,
                     );
                     letter.pronunciation = Some(super::pronunciation::letter_pronunciation(&word));
+                    // spelled as written: a list's letter is a spelling in lower case too
+                    letter.display = Some(clean.to_string());
                     parses = self.analyze_guessed(&letter, &word, clean);
                 }
                 // A list's numerals in lower case (ii, iii, xiv).

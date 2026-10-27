@@ -338,7 +338,7 @@ mahkemeye	mahkeme	Noun		Noun+Dat	Noun	[mahkeme:Noun] mahkeme:Noun+A3sg+ye:Dat
 ek	ek	Adj		Adj	Adj	[ek:Adj] ek:Adj
 hükmün	hüküm	Noun		Noun+Gen	Noun	[hüküm:Noun] hükm:Noun+A3sg+ün:Gen
 hükmü	hüküm	Noun		Noun+P3sg	Noun	[hüküm:Noun] hükm:Noun+A3sg+ü:P3sg
-bkz	bkz	Noun	Abbrv	Noun+A3sg+Nom	Noun	[BKZ:Noun,Abbrv] bkz:Noun+A3sg
+bkz	bkz	Noun	Abbrv	Noun+A3sg+Nom	Noun	[bkz:Noun,Abbrv] bkz:Noun+A3sg
 yukarıda	yukarı	Noun		Noun+Loc	Noun	[yukarı:Noun] yukarı:Noun+A3sg+da:Loc
 ay	ay	Noun	Time	Noun+A3sg+Nom	Noun	[ay:Noun,Time] ay:Noun+A3sg
 yoluna	yol	Noun		Noun+P3sg+Dat	Noun	[yol:Noun] yol:Noun+A3sg+u:P3sg+na:Dat
@@ -617,7 +617,7 @@ doğrultusunda	doğrultu	Noun		Noun+P3sg+Loc	Noun	[doğrultu:Noun] doğrultu:Nou
 incelenerek	incelemek	Verb		Verb+Pass+AdvErek	Adv	[incelemek:Verb] incele:Verb|n:Pass→Verb|erek:ByDoingSo→Adv
 Tarihi	tarih	Noun		Noun+P3sg	Noun	[tarih:Noun] tarih:Noun+A3sg+i:P3sg
 erişim	erişim	Noun		Noun+A3sg+Nom	Noun	[erişim:Noun] erişim:Noun+A3sg
-md	md	Noun	Abbrv	Noun+A3sg+Nom	Noun	[MD:Noun,Abbrv] md:Noun+A3sg
+md	md	Noun	Abbrv	Noun+A3sg+Nom	Noun	[md:Noun,Abbrv] md:Noun+A3sg
 sınırlı	sınır	Noun		Noun+With	Adj	[sınır:Noun] sınır:Noun+A3sg|lı:With→Adj
 belge	belge	Noun		Noun+A3sg+Nom	Noun	[belge:Noun] belge:Noun+A3sg
 kanuni	kanuni	Adj		Adj	Adj	[kanunî:Adj] kanuni:Adj
@@ -1336,7 +1336,7 @@ olmamak	olmak	Verb		Verb+Neg+Inf	Noun	[olmak:Verb] ol:Verb+ma:Neg|mak:Inf1→Nou
 sonucunu	sonuç	Noun		Noun+P3sg+Acc	Noun	[sonuç:Noun] sonuc:Noun+A3sg+u:P3sg+nu:Acc
 aksi	aksi	Adj		Adj	Adj	[aksi:Adj] aksi:Adj
 harcı	harç	Noun		Noun+P3sg	Noun	[harç:Noun] harc:Noun+A3sg+ı:P3sg
-i	i	Noun	Abbrv	Noun+A3sg+Nom	Noun	[İ:Noun,Abbrv] i:Noun+A3sg
+i	i	Noun	Abbrv	Noun+A3sg+Nom	Noun	[i:Noun,Abbrv] i:Noun+A3sg
 kısım	kısım	Noun		Noun+A3sg+Nom	Noun	[kısım:Noun] kısım:Noun+A3sg
 DÜŞÜNÜLDÜ	düşünmek	Verb		Verb+Pass+Past	Verb	[düşünmek:Verb] düşün:Verb|ül:Pass→Verb+dü:Past+A3sg
 borç	borç	Noun		Noun+A3sg+Nom	Noun	[borç:Noun] borç:Noun+A3sg
@@ -1959,7 +1959,7 @@ emekli	emekli	Adj		Adj	Adj	[emekli:Adj] emekli:Adj
 hizmetlerinin	hizmet	Noun		Noun+A3pl+P3sg+Gen	Noun	[hizmet:Noun] hizmet:Noun+ler:A3pl+i:P3sg+nin:Gen
 ihbar	ihbar	Noun		Noun+A3sg+Nom	Noun	[ihbar:Noun] ihbar:Noun+A3sg
 ilamı	ilam	Noun		Noun+P3sg	Noun	[ilâm:Noun] ilam:Noun+A3sg+ı:P3sg
-l	l	Noun	Abbrv	Noun+A3sg+Nom	Noun	[L:Noun,Abbrv] l:Noun+A3sg
+l	l	Noun	Abbrv	Noun+A3sg+Nom	Noun	[l:Noun,Abbrv] l:Noun+A3sg
 olacak	olmak	Verb		Verb+Fut	Verb	[olmak:Verb] ol:Verb+acak:Fut+A3sg
 reddini	ret	Noun		Noun+P3sg+Acc	Noun	[ret:Noun] redd:Noun+A3sg+i:P3sg+ni:Acc
 sebebi	sebep	Noun		Noun+P3sg	Noun	[sebep:Noun] sebeb:Noun+A3sg+i:P3sg
@@ -3032,7 +3032,7 @@ tarihe	tarih	Noun		Noun+Dat	Noun	[tarih:Noun] tarih:Noun+A3sg+e:Dat
 taşınmazı	taşınmaz	Noun		Noun+P3sg	Noun	[taşınmaz:Noun] taşınmaz:Noun+A3sg+ı:P3sg
 terfi	terfi	Noun		Noun+A3sg+Nom	Noun	[terfi:Noun] terfi:Noun+A3sg
 uyuşmazlıklara	uyuşmak	Verb		Verb+NotState+A3pl+Dat	Noun	[uyuşmak:Verb] uyuş:Verb|mazlık:NotState→Noun+lar:A3pl+a:Dat
-vb	vb	Noun	Abbrv	Noun+A3sg+Nom	Noun	[VB:Noun,Abbrv] vb:Noun+A3sg
+vb	vb	Noun	Abbrv	Noun+A3sg+Nom	Noun	[vb:Noun,Abbrv] vb:Noun+A3sg
 İPTALİNE	iptal	Noun		Noun+P3sg+Dat	Noun	[iptal:Noun] iptal:Noun+A3sg+i:P3sg+ne:Dat
 Kadastro	kadastro	Noun		Noun+A3sg+Nom	Noun	[kadastro:Noun] kadastro:Noun+A3sg
 Tarım	tarım	Noun		Noun+A3sg+Nom	Noun	[tarım:Noun] tarım:Noun+A3sg
@@ -4999,7 +4999,7 @@ kalmasının	kalmak	Verb		Verb+ActN+P3sg+Gen	Noun	[kalmak:Verb] kal:Verb|ma:Inf2
 kısıtlama	kısıtlamak	Verb		Verb+ActN	Noun	[kısıtlamak:Verb] kısıtla:Verb|ma:Inf2→Noun+A3sg
 müdahalelerin	müdahale	Noun		Noun+A3pl+Gen	Noun	[müdahale:Noun] müdahale:Noun+ler:A3pl+in:Gen
 Nehri	nehir	Noun		Noun+P3sg	Noun	[nehir:Noun] nehr:Noun+A3sg+i:P3sg
-km	km	Noun	Abbrv	Noun+A3sg+Nom	Noun	[KM:Noun,Abbrv] km:Noun+A3sg
+km	km	Noun	Abbrv	Noun+A3sg+Nom	Noun	[km:Noun,Abbrv] km:Noun+A3sg
 mil	mil	Noun		Noun+A3sg+Nom	Noun	[mil:Noun] mil:Noun+A3sg
 Amerikalı	amerika	Noun	Prop	Noun+With	Adj	[Amerika:Noun,Prop] amerika:Noun+A3sg|lı:With→Adj
 ö	ö	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Ö:Noun,Abbrv] ö:Noun+A3sg
@@ -5182,7 +5182,7 @@ sezonunda	sezon	Noun	Time	Noun+P3sg+Loc	Noun	[sezon:Noun,Time] sezon:Noun+A3sg+u
 Camii	cami	Noun		Noun+P3sg	Noun	[cami:Noun] cami:Noun+A3sg+i:P3sg
 Kıbrıs	kıbrıs	Noun	Prop	Noun+A3sg+Nom	Noun	[Kıbrıs:Noun,Prop] kıbrıs:Noun+A3sg
 MÖ	mö	Noun	Abbrv	Noun+A3sg+Nom	Noun	[MÖ:Noun,Abbrv] mö:Noun+A3sg
-mm	mm	Noun	Abbrv	Noun+A3sg+Nom	Noun	[MM:Noun,Abbrv] mm:Noun+A3sg
+mm	mm	Noun	Abbrv	Noun+A3sg+Nom	Noun	[mm:Noun,Abbrv] mm:Noun+A3sg
 söyledi	söylemek	Verb		Verb+Past	Verb	[söylemek:Verb] söyle:Verb+di:Past+A3sg
 yönetmen	yönetmen	Noun		Noun+A3sg+Nom	Noun	[yönetmen:Noun] yönetmen:Noun+A3sg
 Q	q	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Q:Noun,Abbrv] q:Noun+A3sg
@@ -5193,7 +5193,7 @@ kırmızı	kırmızı	Adj		Adj	Adj	[kırmızı:Adj] kırmızı:Adj
 sahne	sahne	Noun		Noun+A3sg+Nom	Noun	[sahne:Noun] sahne:Noun+A3sg
 seçildi	seçmek	Verb		Verb+Pass+Past	Verb	[seçmek:Verb] seç:Verb|il:Pass→Verb+di:Past+A3sg
 vardı	varmak	Verb		Verb+Past	Verb	[varmak:Verb] var:Verb+dı:Past+A3sg
-x	x	Noun	Abbrv	Noun+A3sg+Nom	Noun	[X:Noun,Abbrv] x:Noun+A3sg
+x	x	Noun	Abbrv	Noun+A3sg+Nom	Noun	[x:Noun,Abbrv] x:Noun+A3sg
 Çin	çin	Noun	Prop	Noun+A3sg+Nom	Noun	[Çin:Noun,Prop] çin:Noun+A3sg
 ülkeler	ülke	Noun		Noun+A3pl	Noun	[ülke:Noun] ülke:Noun+ler:A3pl
 Amerikan	amerikan	Adj	Prop	Adj	Adj	[Amerikan:Adj,Prop] amerikan:Adj
@@ -5691,7 +5691,7 @@ yüzyılın	yüzyıl	Noun	Time	Noun+Gen	Noun	[yüzyıl:Noun,Time] yüzyıl:Noun+
 Üç	üç	Num	Card	Num	Num	[üç:Num,Card] üç:Num
 çıkar	çıkar	Noun		Noun+A3sg+Nom	Noun	[çıkar:Noun] çıkar:Noun+A3sg
 ölümüne	ölümüne	Adv		Adv	Adv	[ölümüne:Adv] ölümüne:Adv
-ü	ü	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Ü:Noun,Abbrv] ü:Noun+A3sg
+ü	ü	Noun	Abbrv	Noun+A3sg+Nom	Noun	[ü:Noun,Abbrv] ü:Noun+A3sg
 şarkısı	şarkı	Noun		Noun+P3sg	Noun	[şarkı:Noun] şarkı:Noun+A3sg+sı:P3sg
 Aaron	aaron	Noun	Prop	Noun+A3sg+Nom	Noun	[Aaron:Noun,Prop] aaron:Noun+A3sg
 Abşeron	-	-	-	-	-	-
@@ -5948,7 +5948,7 @@ yüzücü	yüzmek	Verb		Verb+Agt	Noun	[yüzmek:Verb] yüz:Verb|ücü:Agt→Noun+
 şarkıları	şarkı	Noun		Noun+A3pl+P3sg	Noun	[şarkı:Noun] şarkı:Noun+lar:A3pl+ı:P3sg
 şehirde	şehir	Noun		Noun+Loc	Noun	[şehir:Noun] şehir:Noun+A3sg+de:Loc
 şehrin	şehir	Noun		Noun+Gen	Noun	[şehir:Noun] şehr:Noun+A3sg+in:Gen
-β	β	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Β:Noun,Abbrv] β:Noun+A3sg
+β	β	Noun	Abbrv	Noun+A3sg+Nom	Noun	[β:Noun,Abbrv] β:Noun+A3sg
 Adası	ada	Noun		Noun+P3sg	Noun	[ada:Noun] ada:Noun+A3sg+sı:P3sg
 Air	air	Noun	Abbrv	Noun+A3sg+Nom	Noun	[AİR:Noun,Abbrv] air:Noun+A3sg
 Alt	alt	Noun		Noun+A3sg+Nom	Noun	[alt:Noun] alt:Noun+A3sg
@@ -6290,7 +6290,7 @@ organizasyon	organizasyon	Noun		Noun+A3sg+Nom	Noun	[organizasyon:Noun] organizas
 otomatik	otomatik	Adj		Adj	Adj	[otomatik:Adj] otomatik:Adj
 oynadığı	oynamak	Verb		Verb+PastPart+P3sg	Noun	[oynamak:Verb] oyna:Verb|dığ:PastPart→Noun+A3sg+ı:P3sg
 popüler	popüler	Adj		Adj	Adj	[popüler:Adj] popüler:Adj
-q	q	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Q:Noun,Abbrv] q:Noun+A3sg
+q	q	Noun	Abbrv	Noun+A3sg+Nom	Noun	[q:Noun,Abbrv] q:Noun+A3sg
 sayıları	sayı	Noun		Noun+A3pl+P3sg	Noun	[sayı:Noun] sayı:Noun+lar:A3pl+ı:P3sg
 seferleri	sefer	Noun		Noun+A3pl+P3sg	Noun	[sefer:Noun] sefer:Noun+ler:A3pl+i:P3sg
 sene	sene	Noun	Time	Noun+A3sg+Nom	Noun	[sene:Noun,Time] sene:Noun+A3sg

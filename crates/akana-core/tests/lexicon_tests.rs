@@ -218,6 +218,21 @@ fn an_unknown_word_backs_off_to_a_guessed_noun_stem() {
 }
 
 #[test]
+fn spellings_are_judged_in_the_case_they_are_written_in() {
+    // Plan step D7: a name's reading does not make a word written in lower case a spelling,
+    // nor an abbreviation's the dictionary spells in capitals; analyze() still reads them.
+    let morph = TurkishMorphology::new();
+    let standard = |w: &str| !morph.analyze_standard(w).is_empty();
+    assert!(standard("Ankara'da") && !standard("ankara'da"));
+    assert!(standard("Türkiyede") && !morph.analyze("Türkiyede").is_empty());
+    assert!(!morph.analyze("varmı").is_empty() && !standard("varmı"));
+    // Abbreviations the dictionary spells in lower case, and dotted ones, are spellings.
+    for word in ["km", "vb", "bkz", "vb.", "TBMM'de"] {
+        assert!(standard(word), "{word}");
+    }
+}
+
+#[test]
 fn abbreviations_are_not_common_nouns() {
     // Zemberek's `K [P:Abbrv]` became the common noun `k`, so `ki` read as k-ı (Acc).
     let morph = TurkishMorphology::new();

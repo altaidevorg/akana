@@ -20,11 +20,13 @@ use crate::phonology::{
     to_turkish_lower_with_origin,
 };
 
-/// Whether the analyser has a reading of `lower`, a lower-cased word. The rules that split a
-/// clitic off a word fire only on a word it does not know: "hükmü", "yetki" and "kararda"
-/// end like a merged particle but are words.
-pub(crate) fn is_known(morphology: &TurkishMorphology, lower: &str) -> bool {
-    !morphology.analyze_standard(lower).is_empty()
+/// Whether the analyser has a reading of `word`, as written: a token with its case (Ankarada
+/// is a name's spelling, a lower-cased one is none; see `analyze_standard`), or a lower-cased
+/// stem. The rules that split a clitic off a word fire only on a word it does not know:
+/// "hükmü", "yetki" and "kararda" end like a merged particle but are words, and "varmı"
+/// has no reading but the name Varmı's, which does not count in lower case.
+pub(crate) fn is_known(morphology: &TurkishMorphology, word: &str) -> bool {
+    !morphology.analyze_standard(word).is_empty()
 }
 
 /// Whether `lower` reads as a finite verb (gitti, yapar, gelmiş, bilse): a verb after its
@@ -284,7 +286,7 @@ impl OrthographyRuleEngine {
                                 || stem.ends_with('ş')
                                 || stem.ends_with('l'))
                             // a word that ends like it is no merged particle: hükmü, filmi, yirmi
-                            && !is_known(morphology, lower)
+                            && !is_known(morphology, trimmed_tok)
                             && is_known(morphology, stem)
                         {
                             // the particle as written (Mİ in GELDİNMİ), which is `expected_p`
@@ -310,7 +312,7 @@ impl OrthographyRuleEngine {
                 if rules.contains(GrammarRule::MiMergedPerson)
                     && lower.ends_with(suf)
                     && lower.len() > suf.len() + 2
-                    && !is_known(morphology, lower)
+                    && !is_known(morphology, trimmed_tok)
                     && is_known(morphology, &lower[..lower.len() - suf.len()])
                 {
                     let (original_stem, original_suf) = split_lower_suffix(trimmed_tok, suf.len());
@@ -522,7 +524,7 @@ impl OrthographyRuleEngine {
             {
                 let stem = &lower[..lower.len() - 2];
                 // (not -te/-ta after a case: "modernite" is no moderni-te)
-                if !is_known(morphology, &lower)
+                if !is_known(morphology, tok)
                     && (is_finite_verb(morphology, stem)
                         || (lower.ends_with("de") || lower.ends_with("da"))
                             && is_case_marked(morphology, stem))
@@ -618,7 +620,7 @@ impl OrthographyRuleEngine {
                 && !SOMBAHCEMI_EXCEPTIONS.contains(lower.as_str())
             {
                 let stem = &lower[..lower.len() - 2];
-                if !is_known(morphology, &lower) && is_finite_verb(morphology, stem) {
+                if !is_known(morphology, tok) && is_finite_verb(morphology, stem) {
                     // DUYDUMKİ: the İ is two bytes, "ki" in the lower-cased token one each
                     let (original_stem, original_ki) = split_lower_suffix(tok, 2);
                     let replacement = format!("{original_stem} {original_ki}");

@@ -96,8 +96,20 @@ impl TurkishDeasciifier {
             };
         }
 
+        // A candidate is judged as the word is written: lower-case bü is no spelling of the
+        // abbreviation BÜ, while Istanbul's İstanbul is a name.
+        let cased = |w: &str| {
+            if is_all_upper {
+                to_turkish_upper(w)
+            } else if is_upper {
+                to_turkish_title(w)
+            } else {
+                w.to_string()
+            }
+        };
+
         // Check if the word as-is is already a valid Turkish word
-        let direct_parses = GLOBAL_MORPHOLOGY.analyze_standard(&lower);
+        let direct_parses = GLOBAL_MORPHOLOGY.analyze_standard(word);
 
         // Find candidate letter substitutions: c->ç, g->ğ, s->ş, o->ö, u->ü, i->ı
         let mut ambiguous_positions: Vec<(usize, Vec<char>)> = Vec::new();
@@ -145,7 +157,7 @@ impl TurkishDeasciifier {
             if cand == lower && !direct_parses.is_empty() {
                 continue;
             }
-            let parses = GLOBAL_MORPHOLOGY.analyze_standard(&cand);
+            let parses = GLOBAL_MORPHOLOGY.analyze_standard(&cased(&cand));
             if !parses.is_empty() {
                 let diacritic_count = cand
                     .chars()

@@ -8374,7 +8374,7 @@ bk bk Noun Abbrv pr=kanunu idx=1
 bkar bkar Noun ProperNoun NoVoicing ProperNoun
 bkm bkm Noun Abbrv pr=bekeme
 bknz bknz Noun Abbrv pr=bekeneze
-bkz bkz Noun Abbrv pr=bekeze
+bkz bkz Noun Abbrv pr=bekeze display=bkz
 black black Noun ProperNoun NoVoicing ProperNoun
 blackberry blackberry Noun ProperNoun ProperNoun
 blackburn blackburn Noun ProperNoun ProperNoun
@@ -11441,7 +11441,7 @@ clup clup Noun ProperNoun NoVoicing ProperNoun
 cluzel cluzel Noun ProperNoun ProperNoun
 clyde clyde Noun ProperNoun NoVoicing ProperNoun
 clınton clınton Noun ProperNoun ProperNoun
-cm cm Noun Abbrv pr=ceme
+cm cm Noun Abbrv pr=ceme display=cm
 cmas cmas Noun ProperNoun NoVoicing ProperNoun
 cmk cmk Noun Abbrv pr=cemeka
 cmk cmk Noun Abbrv pr=kanunu idx=1
@@ -30708,7 +30708,7 @@ keşmir keşmir Noun ProperNoun ProperNoun
 keşşaf keşşaf Noun None
 kfar kfar Noun ProperNoun NoVoicing ProperNoun
 kfor kfor Noun ProperNoun NoVoicing ProperNoun
-kg kg Noun Abbrv pr=kege
+kg kg Noun Abbrv pr=kege display=kg
 kg kg Noun None pr=kege
 kgaö kgaö Noun ProperNoun ProperNoun
 kgb kgb Noun Abbrv pr=kegebe
@@ -31127,7 +31127,7 @@ klux klux Noun ProperNoun NoVoicing ProperNoun
 klüp klüp Noun None NoVoicing
 klüp klüp Noun ProperNoun NoVoicing ProperNoun
 klüz klüz Noun None NoVoicing
-km km Noun Abbrv pr=keme
+km km Noun Abbrv pr=keme display=km
 kmerler kmerler Noun ProperNoun ProperNoun
 kmtp kmtp Noun Abbrv pr=kemetepe
 kmtso kmtso Noun Abbrv pr=kemeteseo
@@ -32014,7 +32014,7 @@ kpaşa kpaşa Noun ProperNoun ProperNoun
 kpds kpds Noun Abbrv pr=kapedese
 kpmg kpmg Noun Abbrv pr=kepemege
 kpss kpss Noun Abbrv pr=kapesese
-kr kr Noun Abbrv pr=kere
+kr kr Noun Abbrv pr=kere display=kr
 kraang kraang Noun ProperNoun ProperNoun
 kraft kraft Noun ProperNoun NoVoicing ProperNoun
 kraftwerk kraftwerk Noun ProperNoun ProperNoun
@@ -34926,7 +34926,7 @@ lp lp Noun Abbrv pr=lepe
 lpg lpg Noun Abbrv pr=lepege
 lr lr Noun Abbrv pr=lere
 lrt lrt Noun Abbrv pr=lerete
-lt lt Noun Abbrv pr=lete
+lt lt Noun Abbrv pr=lete display=lt
 lt lt Noun None pr=lete
 ltd ltd Noun Abbrv pr=letede
 lte lte Noun Abbrv pr=letee
@@ -35221,7 +35221,7 @@ macunlamak macunla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 macvan macvan Noun ProperNoun ProperNoun
 macy macy Noun ProperNoun NoVoicing ProperNoun
 macys macys Noun ProperNoun NoVoicing ProperNoun
-mad mad Noun Abbrv NoVoicing pr=mad
+mad mad Noun Abbrv pr=madde display=mad
 madagascar madagascar Noun ProperNoun ProperNoun
 madagaskar madagaskar Noun ProperNoun ProperNoun
 madak madak Noun ProperNoun ProperNoun
@@ -36675,7 +36675,7 @@ mcqueen mcqueen Noun ProperNoun ProperNoun
 mcrae mcrae Noun ProperNoun ProperNoun
 mcveigh mcveigh Noun ProperNoun ProperNoun
 mcıntyre mcıntyre Noun ProperNoun ProperNoun
-md md Noun Abbrv pr=mede
+md md Noun Abbrv pr=madde display=md
 mdob mdob Noun ProperNoun NoVoicing ProperNoun
 mead mead Noun ProperNoun ProperNoun
 meade meade Noun ProperNoun ProperNoun
@@ -37781,7 +37781,7 @@ meşum meşum Adj None
 meşveret meşveret Noun None NoVoicing
 mf mf Noun Abbrv pr=mefe
 mfö mfö Noun Abbrv pr=emefö
-mg mg Noun Abbrv pr=mege
+mg mg Noun Abbrv pr=mege display=mg
 mgane mgane Noun ProperNoun ProperNoun
 mgk mgk Noun Abbrv pr=megeka
 mgladbach mgladbach Noun ProperNoun ProperNoun
@@ -38384,12 +38384,12 @@ mke mke Noun Abbrv pr=mekee
 mkek mkek Noun ProperNoun NoVoicing ProperNoun
 mkhitaryan mkhitaryan Noun ProperNoun ProperNoun
 mkyk mkyk Noun Abbrv pr=mekayeka
-ml ml Noun Abbrv pr=mele
+ml ml Noun Abbrv pr=mele display=ml
 mladen mladen Noun ProperNoun ProperNoun
 mladenov mladenov Noun ProperNoun ProperNoun
 mladiç mladiç Noun ProperNoun ProperNoun
 mlkp mlkp Noun Abbrv pr=melekepe
-mm mm Noun Abbrv pr=meme
+mm mm Noun Abbrv pr=meme display=mm
 mmeka mmeka Noun ProperNoun ProperNoun
 mmhk mmhk Noun Abbrv pr=memeheka
 mmorpg mmorpg Noun ProperNoun NoVoicing ProperNoun
@@ -43455,7 +43455,7 @@ papura papura Noun None
 papy papy Noun ProperNoun NoVoicing ProperNoun
 papyekuşe papyekuşe Noun None
 papyon papyon Noun None
-par par Noun Abbrv NoVoicing pr=par
+par par Noun Abbrv NoVoicing pr=par display=par
 par par Noun None NoVoicing
 para para Noun None
 parabellum parabellum Noun None
@@ -50841,7 +50841,7 @@ smolensk smolensk Noun ProperNoun ProperNoun
 smooth smooth Noun ProperNoun ProperNoun
 sms sms Noun Abbrv pr=semese
 smyrna smyrna Noun ProperNoun NoVoicing ProperNoun
-sn sn Noun Abbrv pr=sene
+sn sn Noun Abbrv pr=sene display=sn
 snackbar snackbar Noun None display=snack-bar
 snake snake Noun ProperNoun ProperNoun
 snapchat snapchat Noun ProperNoun ProperNoun
@@ -52193,7 +52193,7 @@ switch switch Noun ProperNoun NoVoicing ProperNoun
 swoboda swoboda Noun ProperNoun ProperNoun
 sword sword Noun ProperNoun NoVoicing ProperNoun
 swıft swıft Noun ProperNoun NoVoicing ProperNoun
-sy sy Noun Abbrv pr=seye
+sy sy Noun Abbrv pr=seye display=sy
 sybil sybil Noun ProperNoun NoVoicing ProperNoun
 sydney sydney Noun ProperNoun NoVoicing ProperNoun
 sydv sydv Noun Abbrv pr=seyedeve
@@ -58430,7 +58430,7 @@ vazııkanun vazııkanun Adj None
 vaşadze vaşadze Noun ProperNoun ProperNoun
 vaşak vaşak Noun None Voicing
 vaşington vaşington Noun ProperNoun ProperNoun
-vb vb Noun Abbrv pr=vebe
+vb vb Noun Abbrv pr=vebe display=vb
 vbulletin vbulletin Noun ProperNoun ProperNoun
 vcd vcd Noun Abbrv pr=vecede
 vd vd Noun Abbrv pr=vede display=vd
@@ -59074,7 +59074,7 @@ vrba vrba Noun ProperNoun NoVoicing ProperNoun
 vries vries Noun ProperNoun ProperNoun
 vrij vrij Noun ProperNoun NoVoicing ProperNoun
 vronsky vronsky Noun ProperNoun NoVoicing ProperNoun
-vs vs Noun Abbrv pr=vese
+vs vs Noun Abbrv pr=vese display=vs
 vs vs Noun None pr=vese
 vtec vtec Noun ProperNoun NoVoicing ProperNoun
 vucinic vucinic Noun ProperNoun ProperNoun

@@ -174,3 +174,24 @@ XS [P:Abbrv]
 XL [P:Abbrv; Pr:iksel; Index:1]
 XXL [P:Abbrv]
 TL [P:Abbrv; Pr:lira; Index:1]
+
+## Abbreviations written in lower case (bkz 4,100 training tokens against 140 capitalised, md
+## 2,269, vb 651, vs 371, cm 277, kg 217, km 185, mm 87): their dictionary spelling, which a word
+## written in lower case is checked against (plan step D7; the readings of bü, si or la, junk
+## abbreviations in capitals, do not count for one). md and mad read as madde.
+bkz [P:Abbrv; Pr:bekeze]
+md [P:Abbrv; Pr:madde]
+mad [P:Abbrv; Pr:madde]
+vb [P:Abbrv; Pr:vebe]
+vs [P:Abbrv; Pr:vese]
+sy [P:Abbrv; Pr:seye]
+par [P:Abbrv]
+cm [P:Abbrv; Pr:ceme]
+mm [P:Abbrv; Pr:meme]
+km [P:Abbrv; Pr:keme]
+kg [P:Abbrv; Pr:kege]
+mg [P:Abbrv; Pr:mege]
+ml [P:Abbrv; Pr:mele]
+lt [P:Abbrv; Pr:lete]
+sn [P:Abbrv; Pr:sene]
+kr [P:Abbrv; Pr:kere]
