@@ -9,7 +9,7 @@
 //! ([`rank_units`]), so a sentence disambiguates alike on every platform.
 
 use super::analyzer::{
-    co_occurring_extra_tags, prior_second_person, prior_second_person_units, rank_units,
+    co_occurring_extra_tags, prior_negative_imperative, prior_register_units, rank_units,
     MorphParse, TurkishMorphology,
 };
 use super::pos::{PrimaryPos, SecondaryPos};
@@ -57,7 +57,29 @@ impl MorphologicalDisambiguator {
         // The previous word's reading as the rules saw it: a participle's noun reading even
         // where its adjective twin was output, so the twin never changes another word's choice.
         let mut context: Option<usize> = None;
-        let register = prior_second_person_units();
+        // A sentence that addresses someone: one that ends in "!", or has a question particle
+        // (gelecek misin) or a word whose best reading is a second-person verb (biliyorsun,
+        // gel). Its other words' second-person readings (anla "understand!", gel-in, yıka) lose
+        // the register factor the corpus prior gives them. Sentences end at . ! ? and …
+        let ends = |t: &str| matches!(t, "." | "!" | "?" | "…");
+        let mut sentence = vec![0usize; n];
+        for i in 1..n {
+            sentence[i] = sentence[i - 1] + usize::from(ends(tokens[i - 1]));
+        }
+        let addressing: Vec<bool> = analyses_per_token
+            .iter()
+            .map(|parses| {
+                parses.first().is_some_and(|p| {
+                    p.primary_pos == PrimaryPos::Q
+                        || (p.pos == PrimaryPos::Verb
+                            && p.morpheme_tags.iter().any(|t| t == "A2sg" || t == "A2pl"))
+                })
+            })
+            .collect();
+        let mut addressing_in = vec![0usize; sentence.last().map_or(0, |s| s + 1)];
+        for (s, a) in sentence.iter().zip(&addressing) {
+            addressing_in[*s] += usize::from(*a);
+        }
 
         for i in 0..n {
             let parses = &analyses_per_token[i];
@@ -157,12 +179,11 @@ impl MorphologicalDisambiguator {
             // What a postposition could govern: the case of the word before it, if a noun or
             // a pronoun.
             let previous_case = previous.and_then(case_of);
-            // A sentence that ends in "!" addresses someone, so its second-person readings (anla
-            // "understand!", gel-in) lose the register factor the corpus prior gives them.
             let exclaims = tokens[i + 1..]
                 .iter()
                 .find(|t| matches!(**t, "." | "!" | "?"))
                 .is_some_and(|t| *t == "!");
+            let addresses = exclaims || addressing_in[sentence[i]] > usize::from(addressing[i]);
             // A correlative conjunction comes twice in its clause (ister ... ister(se), ya ...
             // ya, hem ... hem, ne ... ne, gerek ... gerek(se)): the word, or the word with -sA,
             // again before or after it in the sentence.
@@ -210,13 +231,18 @@ impl MorphologicalDisambiguator {
 
                 // 1. The predicate comes last (SOV), in the sentence and less surely in a
                 // clause: a finite verb before a comma or "ve" (gelecek, ...) over its participle.
+                // Not a negative imperative there: before "ve" its twin, the verbal noun in -mA,
+                // is far likelier ("belgelendirme ve bilgilendirme").
                 if is_sentence_final {
                     if parse.pos == PrimaryPos::Verb {
                         bonus += const { rank_units(2.0) };
                     } else if is_predicate(parse) {
                         bonus += const { rank_units(1.0) };
                     }
-                } else if is_clause_final && parse.pos == PrimaryPos::Verb {
+                } else if is_clause_final
+                    && parse.pos == PrimaryPos::Verb
+                    && !prior_negative_imperative(parse)
+                {
                     bonus += const { rank_units(1.0) };
                 }
 
@@ -360,11 +386,10 @@ impl MorphologicalDisambiguator {
                 if parse.pos == PrimaryPos::Adv && marked == 1 && adverb_before_verb {
                     bonus += const { rank_units(1.0) };
                 }
-
                 // Fewer derivation layers on a tie, counting overt morphemes: otherwise "Ali"
                 // (Noun+A3sg+Nom) loses to "Al-i" (Noun+Acc).
-                let rank = if exclaims && prior_second_person(parse) {
-                    parse.rank - register
+                let rank = if addresses {
+                    parse.rank - prior_register_units(parse)
                 } else {
                     parse.rank
                 };

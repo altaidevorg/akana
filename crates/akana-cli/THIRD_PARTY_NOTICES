@@ -71,13 +71,16 @@ Changes:    no text is shipped. The table holds, for 20 lemmas, the number of 25
 
 Shipped as: crates/akana-core/src/morphology/prior.tsv.gz, compiled into the library.
             DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
-Changes:    no text is shipped. The analyzer's frequency prior is estimated from a court-
-            decision and RagTurk word list (examples/morph_prior.rs), with the words the
-            analyzer reads in more than one part of speech split among them as the six
-            treebanks tag them, and per-word corrections that keep those shares. The tags are
-            counted in data/morphology/pos_twins.tsv (scripts/pos_twins.py; part of the source
-            repository, also DERIVED FROM CC BY-SA DATA): for each such word form, how many
-            times its tokens are tagged in each of eleven part-of-speech classes.
+Changes:    no text is shipped. The analyzer's frequency prior is estimated
+            (examples/morph_prior.rs) from a court-decision word list mixed with the word
+            counts of the six treebanks' sentences, with the words the analyzer reads in more
+            than one part of speech split among them as the treebanks tag them, and per-word
+            corrections that keep those shares. Both inputs are part of the source repository
+            and also DERIVED FROM CC BY-SA DATA: data/morphology/prior_general_types.tsv.gz
+            (scripts/prior_general_types.py: each word of the sentences and how often it
+            occurs) and data/morphology/pos_twins.tsv (scripts/pos_twins.py: for each word form
+            read in more than one part of speech, how many times its tokens are tagged in each
+            of fourteen part-of-speech classes).
 
 -------------------------------------------------------------------------------------------------
 3. Sources approved for use, from which nothing ships yet

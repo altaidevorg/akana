@@ -117,8 +117,12 @@ different results.
   - Its lexicon is built from Zemberek's dictionaries with their pronunciations, aorist
     classes and compounds, plus akana's legal supplement.
   - Analyses are ranked by a corpus prior, in integer arithmetic, so that every platform
-    ranks alike. A word with readings in more than one part of speech (`değil`, `ile`, `ilk`,
-    `insan`) is split among them as the UD Turkish treebanks tag it.
+    ranks alike. The prior is estimated on court decisions mixed with general text (the UD
+    Turkish treebanks' sentences), and a word with readings in more than one part of speech
+    (`değil`, `ile`, `ilk`, `insan`) is split among them as the treebanks tag it. Imperatives
+    and other second-person readings are no longer ruled out by court style; the
+    disambiguator prefers them in a sentence that addresses someone (`!`, a question
+    particle, a second-person verb).
   - The prior records the lexicon and morphotactic graph it was estimated for, and a test
     fails when they no longer match.
   - Real-world input reads: a name written with its capital but without the apostrophe

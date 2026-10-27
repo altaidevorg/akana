@@ -11,6 +11,12 @@
 //! corpus, and CI checks that the committed prior is what they give. `--types` also takes a
 //! directory of `*.types.tsv` files, as the sampler writes them.
 //!
+//! The court sample is mixed with general text (decision 3: one prior for legal and general
+//! text): `--general` (`data/morphology/prior_general_types.tsv.gz`, the Universal Dependencies
+//! treebanks' sentences; scripts/prior_general_types.py) is weighed up to `GENERAL_SHARE` of the
+//! mixed counts (`--general-share`), so that general usage (a question, an address, a story)
+//! counts beside court style.
+//!
 //! Every word type of the training sample is analysed without the prior. A reading's
 //! probability is P(item) * P(shape | group): how often its dictionary item (lemma, root, POS,
 //! secondary POS) is meant, times how often a word of that group takes its shape (the tag
@@ -30,7 +36,11 @@
 //!   alternative (karar-ın-ın is P3sg+Gen or P2sg+Gen, gel-me the verbal noun or "don't come",
 //!   et the noun or "do!"), so EM would credit it from every word it could explain: the count
 //!   of words that can only be second person over those that can only be a third-person
-//!   possessive.
+//!   possessive. Court text all but never addresses its reader, which put the factor near
+//!   1/100 and made a bare imperative unreadable in a sentence that does (yıka, bekle); it is
+//!   floored at `SECOND_PERSON_FLOOR`. The negative imperative, which every verbal noun in -mA
+//!   spells (`prior_negative_imperative`), takes none: the factor had put "Unutma !" at 1e-16,
+//!   past any context, and the treebanks' tags now tell gel-me's readings apart.
 //!
 //! Where the words are written alike, EM cannot tell a word's POS twins apart: the one shape
 //! that explains every bare token wins, so ilk, tek and yeni went to the adverb and insan to
@@ -61,8 +71,9 @@
 
 use akana_core::morphology::{
     prior_capitalised, prior_class, prior_inventory, prior_is_name, prior_item_key,
-    prior_second_person, prior_shape_group, prior_shape_key, prior_yields, rank_units,
-    TurkishMorphology, LEXICAL_PREFERENCE, PRIOR_CLASSES, RANK_UNITS_PER_NAT, RANK_UNITS_PER_STEP,
+    prior_negative_imperative, prior_second_person, prior_shape_group, prior_shape_key,
+    prior_yields, rank_units, TurkishMorphology, LEXICAL_PREFERENCE, PRIOR_CLASSES,
+    RANK_UNITS_PER_NAT, RANK_UNITS_PER_STEP,
 };
 use std::collections::HashMap;
 use std::io::Write;
@@ -73,6 +84,12 @@ const CLASSES: usize = PRIOR_CLASSES.len();
 /// How many tokens' weight the model's own split of a tagged word's readings has against the
 /// treebanks' counts (`--twin-weight`).
 const TWIN_WEIGHT: f64 = 5.0;
+
+/// The general text's share of the mixed counts (`--general-share`).
+const GENERAL_SHARE: f64 = 0.1;
+
+/// The least register factor of a second-person reading other than a negative imperative.
+const SECOND_PERSON_FLOOR: f64 = 0.05;
 
 /// How many of a word's tokens the treebanks must tag in the classes of its readings before
 /// they split it: fewer say little (sözlü: four adjectives, two nouns).
@@ -166,9 +183,10 @@ fn twin_factors(
 }
 
 /// One reading of a word type: item id, shape id, lemma id, whether it names something, whether
-/// the register factor applies to it, whether the lexicon ranks it below its twin; and the
-/// classes ([`prior_class`]) of the analyzer's readings it stands for, as bits (a participle's
-/// adjective and noun twins have one item and shape, and are one reading).
+/// the register factor applies to it (and whether it is a negative imperative), whether the
+/// lexicon ranks it below its twin; and the classes ([`prior_class`]) of the analyzer's
+/// readings it stands for, as bits (a participle's adjective and noun twins have one item and
+/// shape, and are one reading).
 #[derive(Clone, Copy)]
 struct Reading {
     item: usize,
@@ -176,6 +194,7 @@ struct Reading {
     lemma: usize,
     name: bool,
     second: bool,
+    negative: bool,
     yields: bool,
     classes: u32,
 }
@@ -183,15 +202,52 @@ struct Reading {
 impl Reading {
     /// The same reading but for its classes.
     fn same(&self, other: &Reading) -> bool {
-        (self.item, self.shape, self.name, self.second, self.yields)
-            == (
-                other.item,
-                other.shape,
-                other.name,
-                other.second,
-                other.yields,
-            )
+        (
+            self.item,
+            self.shape,
+            self.name,
+            self.second,
+            self.negative,
+            self.yields,
+        ) == (
+            other.item,
+            other.shape,
+            other.name,
+            other.second,
+            other.negative,
+            other.yields,
+        )
     }
+}
+
+/// Word counts from a gzipped `word<TAB>count` list, or from every `*.types.tsv` file of a
+/// directory, in a fixed order. Lines without a tab (a header) are skipped.
+fn read_types(path: &str) -> Vec<(String, f64)> {
+    let texts: Vec<String> = if path.ends_with(".gz") {
+        use std::io::Read;
+        let mut text = String::new();
+        flate2::read::GzDecoder::new(std::fs::File::open(path).expect("types file"))
+            .read_to_string(&mut text)
+            .expect("read types file");
+        vec![text]
+    } else {
+        let mut files: Vec<_> = std::fs::read_dir(path)
+            .expect("types dir")
+            .map(|e| e.expect("entry").path())
+            .filter(|p| p.to_string_lossy().ends_with(".types.tsv"))
+            .collect();
+        files.sort();
+        files
+            .iter()
+            .map(|path| std::fs::read_to_string(path).expect("read"))
+            .collect()
+    };
+    texts
+        .iter()
+        .flat_map(|text| text.lines())
+        .filter_map(|line| line.split_once('\t'))
+        .map(|(w, c)| (w.to_string(), c.parse::<f64>().unwrap_or(0.0)))
+        .collect()
 }
 
 /// One word type: its count, whether it is capitalised, its readings (and how many of the
@@ -210,6 +266,8 @@ fn main() {
     let mut types_dir = String::from(".cache/morph_sample/train");
     let mut out = String::from("crates/akana-core/src/morphology/prior.tsv.gz");
     let mut twins_file = String::from("data/morphology/pos_twins.tsv");
+    let mut general_file = String::from("data/morphology/prior_general_types.tsv.gz");
+    let mut general_share = GENERAL_SHARE;
     let mut iterations = 10usize;
     let mut twin_weight = TWIN_WEIGHT;
     let mut args = std::env::args().skip(1);
@@ -218,6 +276,13 @@ fn main() {
             "--types" => types_dir = args.next().expect("--types DIR|FILE.gz"),
             "--out" => out = args.next().expect("--out FILE"),
             "--twins" => twins_file = args.next().expect("--twins FILE"),
+            "--general" => general_file = args.next().expect("--general FILE.gz"),
+            "--general-share" => {
+                general_share = args
+                    .next()
+                    .and_then(|v| v.parse().ok())
+                    .expect("--general-share SHARE")
+            }
             "--twin-weight" => {
                 twin_weight = args
                     .next()
@@ -236,33 +301,27 @@ fn main() {
     let morphology = TurkishMorphology::new().with_prior(false);
 
     // word -> count over every *.types.tsv file of the directory, or over the committed list
-    // (data/morphology/prior_train_types.tsv.gz, the same counts in one gzipped file).
+    // (data/morphology/prior_train_types.tsv.gz, the same counts in one gzipped file); then the
+    // general text's counts, weighed up to their share.
     let mut counts: HashMap<String, f64> = HashMap::new();
-    let texts: Vec<String> = if types_dir.ends_with(".gz") {
-        use std::io::Read;
-        let mut text = String::new();
-        flate2::read::GzDecoder::new(std::fs::File::open(&types_dir).expect("types file"))
-            .read_to_string(&mut text)
-            .expect("read types file");
-        vec![text]
+    let court = read_types(&types_dir);
+    let court_tokens: f64 = court.iter().map(|(_, c)| c).sum();
+    for (w, c) in court {
+        *counts.entry(w).or_default() += c;
+    }
+    let general = if general_share > 0.0 {
+        read_types(&general_file)
     } else {
-        let mut files: Vec<_> = std::fs::read_dir(&types_dir)
-            .expect("types dir")
-            .map(|e| e.expect("entry").path())
-            .filter(|p| p.to_string_lossy().ends_with(".types.tsv"))
-            .collect();
-        files.sort();
-        files
-            .iter()
-            .map(|path| std::fs::read_to_string(path).expect("read"))
-            .collect()
+        Vec::new()
     };
-    for text in &texts {
-        for line in text.lines() {
-            if let Some((w, c)) = line.split_once('\t') {
-                *counts.entry(w.to_string()).or_default() += c.parse::<f64>().unwrap_or(0.0);
-            }
-        }
+    let general_tokens: f64 = general.iter().map(|(_, c)| c).sum();
+    let scale = if general_tokens > 0.0 {
+        general_share / (1.0 - general_share) * court_tokens / general_tokens
+    } else {
+        0.0
+    };
+    for (w, c) in general {
+        *counts.entry(w).or_default() += scale * c;
     }
     // form -> tokens per class, as the treebanks tag it.
     let mut twins: HashMap<String, [f64; TAGGED.len()]> = HashMap::new();
@@ -319,6 +378,7 @@ fn main() {
                 lemma,
                 name: prior_is_name(p),
                 second: prior_second_person(p),
+                negative: prior_negative_imperative(p),
                 yields: prior_yields(p),
                 classes: 1 << prior_class(p),
             };
@@ -369,6 +429,11 @@ fn main() {
         )
     });
     let register = ((only_second + 0.5) / (only_third + 0.5)).min(1.0);
+    let register_floored = register.max(SECOND_PERSON_FLOOR);
+    let register_of = |r: &Reading| match (r.second, r.negative) {
+        (true, false) => register_floored,
+        _ => 1.0,
+    };
     let factor = |w: &Word, r: &Reading| -> f64 {
         let case = match (w.capitalised, r.name) {
             (true, true) => capitalised_name,
@@ -381,7 +446,7 @@ fn main() {
         } else {
             1.0
         };
-        case * lexical * if r.second { register } else { 1.0 }
+        case * lexical * register_of(r)
     };
 
     let item_probs = |counts: &[f64]| -> Vec<f64> {
@@ -485,7 +550,8 @@ fn main() {
         ("case-name-lower", 1.0 - capitalised_name),
         ("case-other-capitalised", capitalised_other),
         ("case-other-lower", 1.0 - capitalised_other),
-        ("second-person", register),
+        ("second-person", register_floored),
+        ("second-person-negative-imperative", 1.0),
         ("lexical-preference", f64::from(LEXICAL_PREFERENCE)),
     ] {
         rows.push(format!("R\t{key}\t{}\t{p:.6}", units(p)));
@@ -527,7 +593,7 @@ fn main() {
                 units(item_p[r.item])
                     + units(shape_p[r.shape])
                     + case_units(r.name)
-                    + if r.second { units(register) } else { 0 }
+                    + units(register_of(r))
                     + if r.yields {
                         units(f64::from(LEXICAL_PREFERENCE))
                     } else {
@@ -586,7 +652,8 @@ fn main() {
     println!(
         "{} word types ({} tagged in the treebanks, {form_rows} corrected), {} items, {} \
          shapes; capitalised: names {capitalised_name:.3}, other words {capitalised_other:.3}; \
-         second-person factor {register:.6} ({only_second:.0} / {only_third:.0} tokens); {} \
+         second-person factor {register:.6} ({only_second:.0} / {only_third:.0} tokens, \
+         floored {register_floored:.3}); general text {general_tokens:.0} tokens x {scale:.2}; {} \
          rows written to {out}",
         words.len(),
         tagged.count(),

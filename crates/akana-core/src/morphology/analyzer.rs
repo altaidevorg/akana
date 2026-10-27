@@ -346,9 +346,16 @@ pub fn prior_second_person(p: &MorphParse) -> bool {
             .any(|t| matches!(t.as_str(), "P2sg" | "P2pl" | "A2sg" | "A2pl"))
 }
 
-/// The register factor [`prior_second_person`] readings take, in rank units.
-pub(crate) fn prior_second_person_units() -> i32 {
-    PRIOR.second_person
+/// Whether a second-person reading is a negative imperative (gel-me "don't come", which every
+/// verbal noun in -mA spells): it takes no register factor, where the other second-person
+/// readings take one of at least `SECOND_PERSON_FLOOR` (examples/morph_prior.rs).
+pub fn prior_negative_imperative(p: &MorphParse) -> bool {
+    p.morpheme_tags.iter().any(|t| t == "Neg") && p.morpheme_tags.iter().any(|t| t == "Imp")
+}
+
+/// The register factor a reading takes, in rank units: 0 unless it is [`prior_second_person`].
+pub(crate) fn prior_register_units(p: &MorphParse) -> i32 {
+    PRIOR.register(p)
 }
 
 /// The prior's factor for a reading the lexicon ranks below another ([`prior_yields`]), where the
@@ -430,8 +437,9 @@ pub(super) struct Prior {
     tag_penalties: HashMap<String, i32>,
     /// The penalty of a tag a POS's shapes never show.
     unseen_tag_penalty: i32,
-    /// The register factor of second-person readings.
+    /// The register factor of second-person readings, and of negative imperatives.
     second_person: i32,
+    negative_imperative: i32,
     /// [`LEXICAL_PREFERENCE`].
     lexical: i32,
     /// log P(case as written | reading): name capitalised, name lower-case, other word
@@ -469,6 +477,7 @@ impl Prior {
             tag_penalties: HashMap::new(),
             unseen_tag_penalty: 0,
             second_person: 0,
+            negative_imperative: 0,
             lexical: 0,
             case: [0; 4],
             forms: HashMap::default(),
@@ -503,6 +512,7 @@ impl Prior {
                     }
                 }
                 ("R", "second-person") => prior.second_person = units,
+                ("R", "second-person-negative-imperative") => prior.negative_imperative = units,
                 ("R", "lexical-preference") => prior.lexical = units,
                 ("R", "case-name-capitalised") => prior.case[0] = units,
                 ("R", "case-name-lower") => prior.case[1] = units,
@@ -554,6 +564,17 @@ impl Prior {
             .unwrap_or(self.unseen_item)
     }
 
+    /// The register factor of a reading, in rank units ([`prior_register_units`]).
+    fn register(&self, p: &MorphParse) -> i32 {
+        if !prior_second_person(p) {
+            0
+        } else if prior_negative_imperative(p) {
+            self.negative_imperative
+        } else {
+            self.second_person
+        }
+    }
+
     /// A reading's log probability in rank units. `capitalised`: the word as written starts
     /// with a capital.
     fn log_p(&self, p: &MorphParse, capitalised: bool) -> i32 {
@@ -586,11 +607,7 @@ impl Prior {
                 .unwrap_or(self.unseen_shape)
                 + morphemes
         });
-        let register = if prior_second_person(p) {
-            self.second_person
-        } else {
-            0
-        };
+        let register = self.register(p);
         let lexical = if p.yields { self.lexical } else { 0 };
         let case = self.case[match (prior_is_name(p), capitalised) {
             (true, true) => 0,

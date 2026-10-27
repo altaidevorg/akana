@@ -13617,7 +13617,7 @@ değersiz değersiz Adj None
 değeç değeç Noun None Voicing
 değgin değgin Adj None
 değil değil Conj None
-değil değil Verb None AoristI CausativeT PassiveIn
+değil değil Verb None AoristI CausativeT Lexicalized PassiveIn
 değillemek değille Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 değim değim Noun None
 değin değin Postp None pc=Dat
