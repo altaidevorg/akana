@@ -5059,7 +5059,7 @@ açıkbaş açıkbaş Noun ProperNoun ProperNoun
 açıkdeniz açıkdeniz Noun ProperNoun ProperNoun
 açıkel açıkel Noun ProperNoun ProperNoun
 açıkgöz açıkgöz Adj None
-açıklama açıklama Noun None
+açıklama açıklama Noun None Lexicalized
 açıklamak açıkla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 açıklıkölçer açıklıkölçer Noun None
 açıktan açıktan Adv None
@@ -6701,6 +6701,7 @@ başvekalet başvekalet Noun None NoVoicing display=başvekâlet
 başvekil başvekil Noun None
 başvurmak başvur Verb None AoristI CausativeT
 başvuru başvuru Noun None
+başvurucu başvurucu Noun None
 başyapıt başyapıt Noun None NoVoicing
 başyardımcı başyardımcı Noun None
 başyargıcı başyargıcı Noun None
@@ -7919,6 +7920,7 @@ bilgeç bilgeç Noun ProperNoun ProperNoun
 bilgi bilgi Noun None
 bilgihan bilgihan Noun ProperNoun ProperNoun
 bilgiişlem bilgiişlem Noun None
+bilgilendirmek bilgilendir Verb None AoristI CausativeT Lexicalized
 bilgilenmek bilgilen Verb None AoristI
 bilgin bilgin Noun None
 bilginer bilginer Noun ProperNoun ProperNoun
@@ -8169,6 +8171,7 @@ birleşen birleşen Adj None
 birleşik birleşik Adj None Voicing
 birleşim birleşim Noun None
 birleşmek birleş Verb None AoristI
+birleştirmek birleştir Verb None AoristI CausativeT Lexicalized
 birlii birlii Noun ProperNoun ProperNoun
 birlik birlik Adj None Voicing
 birlik birlik Noun None Voicing
@@ -14405,7 +14408,7 @@ dollar dollar Noun ProperNoun ProperNoun
 dolls dolls Noun ProperNoun NoVoicing ProperNoun
 dolly dolly Noun ProperNoun NoVoicing ProperNoun
 dolma dolma Adj None
-dolma dolma Noun None
+dolma dolma Noun None Rare
 dolmabahçe dolmabahçe Noun ProperNoun ProperNoun
 dolmabiber dolmabiber Noun None
 dolmak dol Verb None AoristA PassiveIn
@@ -16210,7 +16213,6 @@ eliminasyon eliminasyon Noun None
 elimine elimine Adj None NoSuffix
 elina elina Noun ProperNoun ProperNoun
 elindelik elindelik Noun None Voicing
-elinden elinden Noun None
 elinor elinor Noun ProperNoun ProperNoun
 elio elio Noun ProperNoun ProperNoun
 eliot eliot Noun ProperNoun ProperNoun
@@ -21899,6 +21901,7 @@ göresel göresel Adj None
 göresimek göresi Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 görev görev Noun None
 görevdaş görevdaş Noun None
+görevlendirmek görevlendir Verb None AoristI CausativeT Lexicalized
 görevlenmek görevlen Verb None AoristI
 göreç göreç Noun ProperNoun ProperNoun
 görgen görgen Noun ProperNoun ProperNoun
@@ -21943,7 +21946,7 @@ görünüş görünüş Noun None
 görünüşte görünüşte Adv None
 görüş görüş Noun None
 görüşbirliği görüşbirliği Noun None CompoundP3sg roots=görüş-birlik
-görüşme görüşme Noun None
+görüşme görüşme Noun None Lexicalized
 görüşmek görüş Verb None AoristI
 gösterge gösterge Noun None
 göstergebilim göstergebilim Noun None
@@ -24323,7 +24326,6 @@ herşey herşey Noun None
 hes hes Noun Abbrv NoVoicing pr=hes
 hesaben hesaben Adv None
 hesabi hesabi Noun None display=hesabî
-hesabına hesabına Noun None
 hesap hesap Noun None Voicing
 hesaplamak hesapla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 hesaplaşmak hesaplaş Verb None AoristI
@@ -57844,6 +57846,7 @@ uyuz uyuz Adj None
 uyuz uyuz Noun None
 uyuşkan uyuşkan Adj None
 uyuşmak uyuş Verb None AoristI
+uyuşmazlık uyuşmazlık Noun None Voicing
 uyuşturmak uyuştur Verb None AoristI CausativeT
 uyuşturucu uyuşturucu Noun None
 uyuşuk uyuşuk Adj None Voicing
@@ -60649,7 +60652,6 @@ yeridir yeridir Noun None
 yerinde yerinde Adj None
 yerinde yerinde Adv None
 yerine yerine Adv None
-yerine yerine Noun None
 yerinmek yerin Verb None AoristI
 yerkabuğu yerkabuğu Noun None CompoundP3sg roots=yer-kabuk
 yerkel yerkel Noun ProperNoun ProperNoun
@@ -61269,6 +61271,7 @@ yücetürk yücetürk Noun ProperNoun ProperNoun
 yük yük Noun None NoVoicing
 yüklem yüklem Noun None
 yüklemek yükle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
+yüklenici yüklenici Noun None
 yüklenim yüklenim Noun None
 yüklük yüklük Noun None Voicing
 yüksek yüksek Adj None Voicing
@@ -62614,7 +62617,7 @@ zıypak zıypak Adj None Voicing
 çarmıh çarmıh Noun None
 çarmık çarmık Noun None Voicing
 çarnaçar çarnaçar Adv None
-çarpma çarpma Noun None
+çarpma çarpma Noun None Lexicalized
 çarpmak çarp Verb None AoristA
 çarpı çarpı Noun None
 çarpık çarpık Adj None Voicing

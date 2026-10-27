@@ -108,7 +108,7 @@
 > Taraflar arasındaki uyuşmazlık , İİK hükümleri uyarınca istihkak istemine ilişkindir .
 0	Taraflar	ok	taraf|Noun|Noun+A3pl|
 1	arasındaki	ok	ara|Noun|Noun+P3sg+Loc+RelClitic|
-2	uyuşmazlık	ok	uyuşmak|Verb|Verb+Neg+AorPart+Ness| || uyuşmak|Verb|Verb+NotState|
+2	uyuşmazlık	ok	uyuşmazlık|Noun|Noun+A3sg+Nom| || uyuşmak|Verb|Verb+Neg+AorPart+Ness| || uyuşmak|Verb|Verb+NotState|
 4	İİK	ok	iik|Noun|Noun+A3sg+Nom|A
 5	hükümleri	ok	hüküm|Noun|Noun+A3pl+P3sg|
 6	uyarınca	ok	uyarınca|Postp|Postp|
@@ -285,7 +285,7 @@
 1	tedarikçi	ok	tedarik|Noun|Noun+Agt|
 2	tarafından	ok	taraf|Noun|Noun+P3sg+Abl| || tarafından|Adv|Adv|
 3	AT	ok	at|Noun|Noun+A3sg+Nom|A
-4	yüklenicisine	ok	yüklemek|Verb|Verb+Pass+Agt+P3sg+Dat|
+4	yüklenicisine	ok	yüklenici|Noun|Noun+P3sg+Dat| || yüklemek|Verb|Verb+Pass+Agt+P3sg+Dat|
 5	temin	ok	temin|Noun|Noun+A3sg+Nom|
 6	edilen	ok	etmek|Verb|Verb+Pass+PresPart|
 7	mallar	ok	mal|Noun|Noun+A3pl|
@@ -458,7 +458,7 @@
 19	görülmüştür	ok	görmek|Verb|Verb+Pass+Evid+CopPres3sg|
 @ emsal
 > Uyuşmazlık , trafik kazasından kaynaklanan araçta oluşan hasar ve değer kaybına dayalı tazminat istemine ilişkindir .
-0	Uyuşmazlık	ok	uyuşmak|Verb|Verb+Neg+AorPart+Ness| || uyuşmak|Verb|Verb+NotState|
+0	Uyuşmazlık	ok	uyuşmazlık|Noun|Noun+A3sg+Nom| || uyuşmak|Verb|Verb+Neg+AorPart+Ness| || uyuşmak|Verb|Verb+NotState|
 2	trafik	ok	trafik|Noun|Noun+A3sg+Nom|
 3	kazasından	ok	kaza|Noun|Noun+P3sg+Abl|
 4	kaynaklanan	ok	kaynaklanmak|Verb|Verb+PresPart| || kaynak|Noun|Noun+Acquire+PresPart|
@@ -619,7 +619,7 @@
 13	ilişkindir	ok	ilişkin|Postp|Postp+CopPres3sg|
 @ aym_bb
 > Başvurucu , sorgusunda Pel Yapım şirketinde kameraman olarak çalıştığını ve örgütle bir iltisakının bulunmadığını ifade etmiştir .
-0	Başvurucu	ok	başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
+0	Başvurucu	ok	başvurucu|Noun|Noun+A3sg+Nom| || başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
 2	sorgusunda	ok	sorgu|Noun|Noun+P3sg+Loc|
 3	Pel	ok	pel|Noun|Noun+A3sg+Nom|P
 4	Yapım	ok	yapım|Noun|Noun+A3sg+Nom|
@@ -677,7 +677,7 @@
 3	tazminata	ok	tazminat|Noun|Noun+Dat|
 4	hükmedebilmesi	ok	hükmetmek|Verb|Verb+Abil+ActN+P3sg|
 5	için	ok	için|Postp|Postp|
-6	başvurucunun	ok	başvurmak|Verb|Verb+Agt+Gen| || başvuru|Noun|Noun+Agt+Gen|
+6	başvurucunun	ok	başvurucu|Noun|Noun+Gen| || başvurmak|Verb|Verb+Agt+Gen| || başvuru|Noun|Noun+Agt+Gen|
 7	uğradığını	ok	uğramak|Verb|Verb+PastPart+P3sg+Acc|
 8	iddia	ok	iddia|Noun|Noun+A3sg+Nom|
 9	ettiği	ok	etmek|Verb|Verb+PastPart+P3sg|
@@ -693,7 +693,7 @@
 19	bulunmalıdır	ok	bulunmak|Verb|Verb+Nec+CopPres3sg|
 @ aym_bb
 > Başvurucu , nakledildiği ceza infaz kurumunda da benzer disiplin cezaları almış ancak başvuruya konu olay itibarıyla bu cezalar henüz kesinleşmemiştir .
-0	Başvurucu	ok	başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
+0	Başvurucu	ok	başvurucu|Noun|Noun+A3sg+Nom| || başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
 2	nakledildiği	ok	nakletmek|Verb|Verb+Pass+PastPart+P3sg|
 3	ceza	ok	ceza|Noun|Noun+A3sg+Nom|
 4	infaz	ok	infaz|Noun|Noun+A3sg+Nom|
@@ -716,7 +716,7 @@
 > Somut olayda başvurucu hakkında işvereni şüphe feshine götüren olgulardan biri , başvurucunun ağabeyi hakkında soruşturma yürütüldüğü ve bu kapsamda tutuklandığı bilgisidir .
 0	Somut	ok	somut|Adj|Adj|
 1	olayda	ok	olay|Noun|Noun+Loc|
-2	başvurucu	ok	başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
+2	başvurucu	ok	başvurucu|Noun|Noun+A3sg+Nom| || başvurmak|Verb|Verb+Agt| || başvuru|Noun|Noun+Agt|
 3	hakkında	ok	hak|Noun|Noun+P3sg+Loc| || hakkında|Adv|Adv|
 4	işvereni	ok	işveren|Noun|Noun+Acc|
 5	şüphe	ok	şüphe|Noun|Noun+A3sg+Nom|
@@ -724,7 +724,7 @@
 7	götüren	ok	götürmek|Verb|Verb+PresPart|
 8	olgulardan	ok	olgu|Noun|Noun+A3pl+Abl|
 9	biri	ok	biri|Pron|Pron+A3sg+Nom| || bir|Num|Num+P3sg|
-11	başvurucunun	ok	başvurmak|Verb|Verb+Agt+Gen| || başvuru|Noun|Noun+Agt+Gen|
+11	başvurucunun	ok	başvurucu|Noun|Noun+Gen| || başvurmak|Verb|Verb+Agt+Gen| || başvuru|Noun|Noun+Agt+Gen|
 12	ağabeyi	ok	ağabey|Noun|Noun+P3sg|
 13	hakkında	ok	hak|Noun|Noun+P3sg+Loc| || hakkında|Adv|Adv|
 14	soruşturma	ok	soruşturmak|Verb|Verb+ActN|
@@ -753,7 +753,7 @@
 15	bulunmuştur	ok	bulmak|Verb|Verb+Pass+Evid+CopPres3sg|
 @ aym_bb
 > Başvurucuya göre bu belge , ülkesinin kamu makamlarının takibinde olduğunu , hakkında ceza soruşturması açıldığını göstermektedir .
-0	Başvurucuya	ok	başvurmak|Verb|Verb+Agt+Dat| || başvuru|Noun|Noun+Agt+Dat|
+0	Başvurucuya	ok	başvurucu|Noun|Noun+Dat| || başvurmak|Verb|Verb+Agt+Dat| || başvuru|Noun|Noun+Agt+Dat|
 1	göre	ok	göre|Postp|Postp|
 2	bu	ok	bu|Det|Det|
 3	belge	ok	belge|Noun|Noun+A3sg+Nom|
@@ -906,7 +906,7 @@
 6	unsurunu	ok	unsur|Noun|Noun+P3sg+Acc|
 7	belgelendirme	ok	belge|Noun|Noun+Acquire+Caus+ActN|
 8	ve	ok	ve|Conj|Conj|
-9	bilgilendirme	ok	bilgilenmek|Verb|Verb+Caus+ActN| || bilgi|Noun|Noun+Acquire+Caus+ActN|
+9	bilgilendirme	ok	bilgilendirmek|Verb|Verb+ActN| || bilgilenmek|Verb|Verb+Caus+ActN| || bilgi|Noun|Noun+Acquire+Caus+ActN|
 10	oluşturmaktadır	ok	oluşmak|Verb|Verb+Caus+Prog+CopPres3sg|
 @ aym_norm
 > Belirtilen nitelikleri itibarıyla kuralın belirsiz ve öngörülemez olduğundan söz edilemeyeceğinden kuralda belirlilik ilkesine aykırılık bulunmamaktadır .

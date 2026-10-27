@@ -145,6 +145,9 @@ different results.
   - A word the analyzer cannot read is indexed by its backoff stem (`hiperbariğe` and
     `hiperbarik` are one term), an abbreviation has one term however it is written (`Av.`,
     `Av`), and a suffix written apart (`1924 'te`, `TCK. nun`) is no term.
+  - A derived word the dictionary lists is its own lemma (`başvurucu`, `uyuşmazlık`,
+    `yüklenici`, `gözlük`, `deyiş`), so that its lemma no longer turns with a re-estimated
+    prior.
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'

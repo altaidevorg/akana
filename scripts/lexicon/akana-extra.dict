@@ -196,3 +196,23 @@ ml [P:Abbrv; Pr:mele]
 lt [P:Abbrv; Pr:lete]
 sn [P:Abbrv; Pr:sene]
 kr [P:Abbrv; Pr:kere]
+
+## Lexicalised derivations (plan step C6, review 2 RANK2-04). A derivation that spells a word the
+## dictionary lists yields to it (the analyzer's lexicalised_derivations), so that the word's lemma
+## no longer turns with every re-estimation of the prior: başvurucu was başvur-ucu or başvuru-cu
+## (0.36 / 0.30 / 0.30), uyuşmazlık uyuş-mazlık or uyuş-maz-lık, yüklenici yüklen-ici twice.
+başvurucu [P:Noun]
+uyuşmazlık [P:Noun]
+yüklenici [P:Noun]
+## Verbal nouns in -mA the dictionary lists as nouns: Lexicalized where the noun is the word meant
+## (görüşme "meeting", açıklama "statement", çarpma "collision"; açıklaması read 0.47 / 0.47),
+## Rare where it is another word (dolma "stuffed dish": sürenin dolması is dol-ma).
+görüşme [P:Noun; A:Lexicalized]
+açıklama [P:Noun; A:Lexicalized]
+çarpma [P:Noun; A:Lexicalized]
+dolma [P:Noun; A:Rare]
+## Causatives of -lAn and -lAş verbs that are words of their own (görevlendirmek "assign", not
+## görevlen-dir "make take up a post"), which Zemberek lacks.
+görevlendirmek [A:Lexicalized]
+birleştirmek [A:Lexicalized]
+bilgilendirmek [A:Lexicalized]
