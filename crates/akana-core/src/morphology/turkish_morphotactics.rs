@@ -638,19 +638,20 @@ pub fn build() -> (Graph, RootStates) {
         )
     };
     let not_cp3sg = || has(R::COMPOUND_P3SG).not();
-    // A -DIk or -(y)AcAk participle takes a possessive before a case (ol-duğ-u-nu,
-    // yap-acağ-ın-a); a bare case after it (ol-duğ-u as Acc) is a Zemberek reading akana
-    // leaves out, except the ablative and locative (gel-dik-ten sonra, bak-tık-ta).
+    // A -DIk or -(y)AcAk participle takes a possessive before the accusative and the genitive
+    // (ol-duğ-u-nu); a bare one (ol-duğ-u as Acc) is a Zemberek reading akana leaves out, as it
+    // spells the participle's P3sg. The other cases follow it bare (gel-dik-ten sonra,
+    // bak-tık-ta, ol-acağ-a benziyor, ol-acak-la, oku-yacak-lar-ca; review 2 MORPH2-08).
     let not_participle = || ld(&[vPastPart_S, vFutPart_S]).not();
     let case = |c: Cond| c.and(not_participle());
-    g.add(pnon_S, dat_ST, "+yA", case(not_cp3sg()));
+    g.add(pnon_S, dat_ST, "+yA", not_cp3sg());
     g.add(pnon_S, abl_ST, ">dAn", not_cp3sg());
     g.add(pnon_S, loc_ST, ">dA", not_cp3sg());
     g.add(pnon_S, acc_ST, "+yI", case(not_cp3sg()));
     g.add(pnon_S, gen_ST, "+nIn", case(Cond::PrevStateIsNot(a3sgSu_S)));
     g.add(pnon_S, gen_ST, "yIn", ps(&[a3sgSu_S]));
-    g.add(pnon_S, equ_ST, ">cA", case(not_cp3sg().and(equ_cond())));
-    g.add(pnon_S, ins_ST, "+ylA", case(T));
+    g.add(pnon_S, equ_ST, ">cA", not_cp3sg().and(equ_cond()));
+    g.add(pnon_S, ins_ST, "+ylA", T);
     g.add(pnon_S, dat_ST, "+nA", has(R::COMPOUND_P3SG));
     g.add(pnon_S, abl_ST, "+ndAn", has(R::COMPOUND_P3SG));
     g.add(pnon_S, loc_ST, "+ndA", has(R::COMPOUND_P3SG));
@@ -812,7 +813,14 @@ pub fn build() -> (Graph, RootStates) {
     g.add(nounPnonNoSuffix_S, nounNomNoSuffix_ST, "", T);
 
     // ======================= Adjectives =======================
-    g.add(adjectiveRoot_ST, adjZeroDeriv_S, "", Cond::HasTail);
+    // Not after -cA "-ish" (büyük-çe): its noun or copula readings were junk beside names
+    // (kor-ca-n for Korcan, dun-ca-n for Duncan; review 2 PII2-04).
+    g.add(
+        adjectiveRoot_ST,
+        adjZeroDeriv_S,
+        "",
+        Cond::HasTail.and(ld(&[aAsIf_S]).not()),
+    );
     g.add(adjZeroDeriv_S, noun_S, "", T);
     g.add(adjZeroDeriv_S, nVerb_S, "", T);
     g.add(adjectiveRoot_ST, aLy_S, ">cA", T);
@@ -896,6 +904,14 @@ pub fn build() -> (Graph, RootStates) {
     let p2pl_nom = g.sequence(&[M::P2pl, M::Nom]);
     let p1pl_nom = g.sequence(&[M::P1pl, M::Nom]);
     let no_family = || has(R::FAMILY_MEMBER).not();
+    // A person after the copula of a verbal noun or participle reads its possessive again
+    // (gel-diğ-im), unless a case stands between a participle and it (oku-duk-larımız-dan-
+    // sınız "you are among those we read"; review 2 MORPH2-09). Not after an infinitive's
+    // case: yaz-mak-ta-ymış-sınız is the progressive -mAktA.
+    let case_before = || pg(&[dat_ST, abl_ST, loc_ST, ins_ST, gen_ST, equ_ST]);
+    let verb_deriv = || {
+        cm(&[M::Inf1, M::Inf2, M::Inf3]).or(cm(&[M::PastPart, M::FutPart]).and_not(case_before()))
+    };
     let allow_a1sg = || {
         no_family()
             .and_not(Cond::ContainsSequence(p1sg_nom))
@@ -1846,7 +1862,14 @@ pub fn build() -> (Graph, RootStates) {
         (vSinceDoingSo_S, "yeli", di_yi()),
         (vByDoingSo_S, "yerek", di_yi()),
         (vFeelLike_S, "yesi", di_yi()),
-        (vAfterDoing_S, "yip", di_yi()),
+        // deyip and yiyip, as Zemberek and TDK write them (not diyip); and -(y)IncA, which
+        // Zemberek lacks for both (deyince, yiyince; review 2 MORPH2-06).
+        (
+            vAfterDoing_S,
+            "yip",
+            Cond::RootSurfaceIsAny(vec!["de", "yi"]),
+        ),
+        (vWhen_S, "yince", Cond::RootSurfaceIsAny(vec!["de", "yi"])),
         (vWithoutBeingAbleToHaveDoneSo_S, "yemeden", di_yi()),
         (vOpt_S, "ye", di_yi()),
         (vCausTir_S, "dir", de_ye()),
@@ -1971,6 +1994,10 @@ pub fn build() -> (Graph, RootStates) {
     }
     // Converbs.
     g.add(vA3sg_ST, vAsIf_S, ">cAsInA", pm(&[M::Aor, M::Narr]));
+    // And after the plural persons, which Zemberek lacks (gelmişlercesine,
+    // görmüşsünüzcesine; review 2 MORPH2-09).
+    g.add(vA3pl_ST, vAsIf_S, ">cAsInA", pm(&[M::Aor, M::Narr]));
+    g.add(vA2pl_ST, vAsIf_S, ">cAsInA", pm(&[M::Aor, M::Narr]));
     g.add(verbRoot_S, vWhen_S, "+yIncA", T);
     g.add(verbRoot_S, vSinceDoingSo_S, "+yAlI", T);
     g.add(verbRoot_S, vByDoingSo_S, "+yArAk", T);

@@ -177,3 +177,4 @@ kalbı
 # a distributive and a joined numeral keep the harmony of their last number word (üçer, onbeşe)
 3'ar
 onbeşa
+diyip

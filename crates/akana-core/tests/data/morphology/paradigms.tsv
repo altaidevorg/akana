@@ -549,3 +549,18 @@ xiv	XIV	Num
 ğ	ğ	Noun+A3sg+Nom
 XL'i	xl	Noun+Acc
 TL'nın	tl	Noun+Gen
+# Plan step F (review 2 MORPH2-06, -08, -09, -16): de-/ye- converbs, a participle's bare
+# dative, instrumental and equative, -cAsInA after the plural persons, a person after a
+# participle predicate with a case, dolayı's possessive.
+deyip	de	Verb+AdvIp
+yiyip	ye	Verb+AdvIp
+deyince	de	Verb+AdvInce
+yiyince	ye	Verb+AdvInce
+olacağa	ol	Verb+FutPart+Dat
+olacakla	ol	Verb+FutPart+Ins
+geldiğe	gel	Verb+PastPart+Dat
+okuyacaklarca	oku	Verb+FutPart+A3pl+Equ
+gelmişlercesine	gel	Verb+Evid+A3pl+AsIf
+görmüşsünüzcesine	gör	Verb+Evid+A2pl+AsIf
+okuduklarımızdansınız	oku	Verb+PastPart+A3pl+P1pl+Abl+CopPres2pl
+dolayısı	dolayı	Noun+P3sg

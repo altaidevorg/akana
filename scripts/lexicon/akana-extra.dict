@@ -216,3 +216,7 @@ dolma [P:Noun; A:Rare]
 görevlendirmek [A:Lexicalized]
 birleştirmek [A:Lexicalized]
 bilgilendirmek [A:Lexicalized]
+
+## dolayı as a noun, for its possessive forms (dolayısı ile, dolayısıyla): Zemberek has only the
+## postposition (plan step F, review 2 MORPH2-16).
+dolayı [P:Noun]

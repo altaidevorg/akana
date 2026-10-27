@@ -134,6 +134,9 @@ different results.
     (`17.00'ye`), distributives on digits (`3'er`), numerals written as one word (`onbeş`),
     lower-case Roman numerals and list letters, old orthography and usage variants of
     alternations (`temerrüte`, as `nonstandard` readings).
+  - Forms Zemberek's morphotactics lacked or the port got wrong now read: `deyip`, `deyince`,
+    `yiyince` (not `diyip`), a participle's bare dative and instrumental (`olacağa`, `olacakla`),
+    `gelmişlercesine`, `okuduklarımızdansınız`, `dolayısı`.
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
   court decisions write after its period (`TCK.nun`). NER entities still end with the number.

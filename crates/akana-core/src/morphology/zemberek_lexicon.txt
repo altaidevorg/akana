@@ -13592,7 +13592,6 @@ dexter dexter Noun ProperNoun ProperNoun
 deyi deyi Dup None NoSuffix
 deyi deyi Noun None
 deyim deyim Noun None
-deyip deyip Noun ProperNoun ProperNoun
 deyivermek deyiver Verb None AoristI CausativeT
 deyiş deyiş Noun None
 deyişbilim deyişbilim Noun None
@@ -14389,6 +14388,7 @@ dolarizasyon dolarizasyon Noun None
 dolay dolay Noun None
 dolaykutupsal dolaykutupsal Noun None
 dolaylamak dolayla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
+dolayı dolayı Noun None
 dolayı dolayı Postp None pc=Abl
 dolayısıyla dolayısıyla Adv None
 dolayısıyle dolayısıyle Noun ProperNoun ProperNoun
@@ -15633,7 +15633,6 @@ edgüalp edgüalp Noun ProperNoun ProperNoun
 edgüer edgüer Noun ProperNoun ProperNoun
 edgükan edgükan Noun ProperNoun ProperNoun
 edhem edhem Noun ProperNoun ProperNoun
-edi edi Noun None
 edi edi Noun ProperNoun ProperNoun
 edib edib Noun ProperNoun ProperNoun
 edibane edibane Adj None

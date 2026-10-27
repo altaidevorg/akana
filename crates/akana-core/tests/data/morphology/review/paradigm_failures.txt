@@ -1,8 +1,8 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 718 of 735 checks pass (97.7 %)
-#   ACC 593/598
+# 722 of 735 checks pass (98.2 %)
+#   ACC 596/598
 #   REJ 74/85
-#   REJL 51/52
+#   REJL 52/52
 nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	benimki	ben	*
 nouns: vowel drop / doubling / inverse harmony	REJ	akılı
 nouns: vowel drop / doubling / inverse harmony	REJ	burunu
@@ -16,7 +16,3 @@ pronouns	REJ	sene
 proper nouns and abbreviations	REJ	Ahmed'e
 question particle, değil, imek	ACC	iken	imek	*
 question particle, değil, imek	REJ	değilsiniz'
-verbs: converbs, participles, infinitives	ACC	deyince	demek	*
-verbs: converbs, participles, infinitives	ACC	deyip	demek	Verb + AfterDoingSo + Adv
-verbs: converbs, participles, infinitives	ACC	yiyince	yemek	*
-verbs: converbs, participles, infinitives	REJL	diyip	demek

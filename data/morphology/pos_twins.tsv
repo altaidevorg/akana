@@ -201,6 +201,7 @@ alaca	Noun:2
 alacak	Noun:2 Verb:22 VerbPart:7
 alacakken	VerbPart:1
 alacaklar	Verb:2
+alacaklara	Noun:1 VerbNoun:1
 alacaklarda	VerbNoun:1
 alacakları	Noun:2 VerbPart:1
 alacaklarım	Noun:1
@@ -219,6 +220,7 @@ alacaksınız	Noun:1
 alacaktı	Verb:1
 alacaktım	VerbPart:1
 alacaktır	Verb:3 VerbPart:1
+alacağa	Noun:1
 alacağı	Noun:1 VerbPart:1
 alacağım	Verb:6 VerbNoun:1 VerbPart:1
 alacağımı	Noun:3
@@ -657,6 +659,7 @@ anlaşıp	VerbAdv:2
 anlık	Noun:5
 anma	Noun:1 Verb:1 VerbNoun:1
 anmadan	Noun:1
+anmaktayım	Verb:1
 anmanız	Noun:1
 anması	VerbNoun:1
 ansızın	Adv:7 Noun:1
@@ -1087,7 +1090,6 @@ ayrılmış	Verb:5 VerbPart:4
 ayrılmışlardı	VerbPart:1
 ayrılmıştı	Verb:2
 ayrılmıştır	Verb:1
-ayrılmışçasına	Adv:1
 ayrılır	Verb:9
 ayrılış	Noun:1
 ayrılışa	Noun:1
@@ -1178,6 +1180,7 @@ aç	Adj:30 Adv:2 Noun:1 Verb:6
 açabilir	Verb:6
 açacak	Verb:3 VerbPart:5
 açacakken	VerbAdv:1
+açacakla	Noun:1
 açacaktı	Verb:1
 açacağı	Noun:1 VerbPart:1
 açacağım	Verb:1
@@ -1268,7 +1271,6 @@ açıktan	Adj:2 Adv:3
 açıktı	Adj:7
 açıktır	Adj:3
 açıkça	Adj:9 Adv:22
-açıkçası	Adv:7
 açıl	Verb:2
 açılacak	Verb:3 VerbPart:5
 açılacağı	VerbPart:1
@@ -1395,7 +1397,6 @@ aşırılmış	VerbPart:1
 aşırır	Verb:1
 baba	Noun:30
 babaca	Adj:1
-babacan	Adj:4
 babadır	Noun:1 Postp:1
 babalar	Noun:3
 babayiğit	Noun:3
@@ -2511,7 +2512,6 @@ budaklanma	VerbNoun:1
 budaklanmadan	VerbAdv:1
 budaklanmasına	VerbNoun:1
 budalaca	Adj:3
-budalacasına	Adv:1
 budar	Verb:1
 bugünden	Noun:8
 bugünküler	Adj:1
@@ -3473,6 +3473,7 @@ devrilmişti	Verb:1
 devrisi	Adj:1
 devşirilmiş	Verb:1
 devşirme	Adj:1 Noun:1
+deyince	Verb:1 VerbAdv:10
 deyiverir	Verb:1
 deyişine	Noun:1
 deyişiyle	Noun:1 VerbNoun:1
@@ -3865,6 +3866,7 @@ dolardır	Noun:14
 dolarlar	Noun:2
 dolarlık	Adj:3 Noun:135
 dolayı	Postp:244
+dolayısıyla	Adv:22 Noun:8
 dolaşacak	Verb:1 VerbPart:2
 dolaşacağıdır	Verb:1
 dolaşamadık	Verb:1
@@ -3955,7 +3957,6 @@ dondurmayı	Verb:1
 dondurmuştu	Verb:2
 dondurmuştum	Verb:1
 dondurulmuş	Adj:1
-dondurulmuşçasına	VerbAdv:1
 donmuş	Verb:4 VerbPart:2
 donuklaşacağı	Adj:1
 donunca	Noun:1
@@ -4523,6 +4524,7 @@ düşüneyim	Verb:1
 düşünme	Verb:4 VerbNoun:2
 düşünmeden	Noun:1 VerbAdv:4 VerbNoun:1
 düşünmekteydi	Verb:1
+düşünmekteyim	Verb:1
 düşünmeli	Verb:2
 düşünmem	Verb:3 VerbNoun:1
 düşünmemektedir	Verb:4
@@ -4628,7 +4630,6 @@ edenin	VerbNoun:2
 edenler	VerbNoun:6 VerbPart:5
 edepli	Adv:3
 edepsizce	Adv:1
-edepsizcesine	Adv:1
 eder	Noun:2 Verb:112 VerbPart:1
 ederdi	Verb:28 VerbPart:1
 ederdik	Verb:2
@@ -4682,19 +4683,15 @@ edilmiş	Verb:16 VerbPart:19
 edilmişlerdi	Verb:1
 edilmişti	Verb:14 VerbPart:6
 edilmiştir	Verb:11 VerbPart:1
-edin	Verb:28
 edince	Noun:1 VerbAdv:10
-edindi	Verb:6
 edindik	Verb:1
 edindikleri	VerbNoun:1 VerbPart:2
-edindim	Verb:2
 edindiği	VerbNoun:1 VerbPart:2
 edindiğim	VerbPart:1
 edindiğimiz	VerbPart:1
 edinebilmiş	VerbPart:1
 edinecekler	Verb:1
 edinilmiş	VerbPart:1
-ediniz	Verb:4
 edinme	Verb:1 VerbNoun:1
 edinmeden	Verb:1
 edinmeli	Verb:1
@@ -4846,7 +4843,6 @@ emmiş	VerbPart:1
 emrettiği	VerbPart:1
 emzirmeli	Verb:1
 en	Adj:1 Adv:1656 Noun:1
-enayicesine	Adv:1
 enayileşme	Adj:1
 endeksleme	Noun:3
 endekslenmesine	VerbNoun:1
@@ -5066,6 +5062,7 @@ etmediğim	VerbPart:1
 etmekte	Verb:11 VerbNoun:8
 etmektedir	Verb:26 VerbNoun:1
 etmekteydi	Verb:2
+etmekteydiler	Verb:1
 etmeli	Verb:12
 etmelidir	Verb:2
 etmeliydi	Verb:1
@@ -5430,6 +5427,7 @@ gelebilecek	VerbPart:1
 gelebilecekleri	VerbNoun:1
 gelebilir	Verb:8 VerbPart:1
 gelecek	Adj:4 Noun:40 Verb:34 VerbPart:58
+gelecekle	Noun:2
 gelecekler	Verb:8
 geleceklerdir	Verb:2
 geleceklerini	VerbNoun:1
@@ -5441,6 +5439,7 @@ gelecekteki	Adj:3 Noun:24
 gelecekten	Adv:1
 gelecekti	Verb:4 VerbPart:2
 gelecektir	Verb:4 VerbPart:1
+geleceğe	Noun:3
 geleceği	Noun:14 VerbNoun:1 VerbPart:1
 geleceğimiz	Noun:1
 geleceğimizin	VerbNoun:1
@@ -5542,6 +5541,7 @@ gelmeye	Noun:1 VerbNoun:8
 gelmeyebilir	Verb:1
 gelmeyecek	Verb:2 VerbPart:1
 gelmeyecektir	Verb:1
+gelmeyeyim	Verb:1
 gelmez	Verb:19 VerbPart:5
 gelmiş	Verb:44 VerbPart:22
 gelmişim	Verb:8
@@ -5612,7 +5612,6 @@ gerektirmez	VerbPart:1
 gerektiği	Verb:1 VerbNoun:3 VerbPart:8
 gerekçe	Noun:2
 gerekçeler	Noun:1
-gerekçeymiş	Noun:1
 gereğince	Adv:1
 gergin	Adj:19 Noun:1
 gerginiz	Adj:1
@@ -5781,7 +5780,6 @@ geçenlerde	Adv:10
 geçenleri	Adj:1 Noun:1 VerbNoun:2 VerbPart:2
 geçenlerin	VerbNoun:2
 geçer	Adj:4 Verb:28 VerbPart:5
-geçercesine	VerbAdv:1
 geçerdi	Verb:3
 geçerdim	Verb:1
 geçeriz	Verb:1
@@ -6199,7 +6197,6 @@ görmemiş	Adj:2 Verb:5 VerbPart:6
 görmemişler	Verb:2
 görmemişti	Verb:1
 görmemiştim	Verb:3 VerbPart:2
-görmemişçesine	VerbAdv:3
 görmeye	Noun:1 Verb:1 VerbNoun:17
 görmeyecek	Verb:2
 görmeyeceği	VerbPart:1
@@ -6872,6 +6869,7 @@ hissedilecektir	Verb:1
 hissedilmez	VerbPart:2
 hisseli	Adj:1 Noun:2
 hissetmektedir	Verb:1
+hissetmekteyim	Verb:1
 hissetmeli	Verb:1
 hissetmelidir	Verb:1
 hissetmeye	VerbNoun:1
@@ -7389,11 +7387,14 @@ izleyici	Noun:4
 iç	Adj:44 Noun:45 Verb:5
 içe	Adj:2 Noun:23
 içecek	Noun:35
+içecekle	Noun:1
 içecekler	Noun:44
 içeceklerden	Noun:8
+içeceklere	Noun:1
 içecekleri	Noun:29
 içeceklerin	Noun:1
 içeceklerinden	Noun:2
+içeceğe	Noun:1
 içeceğim	Verb:1
 içer	Verb:11
 içerdekiler	Noun:1
@@ -8193,7 +8194,6 @@ kavuşmalı	Verb:1
 kavuşmaya	VerbNoun:1
 kavuşmuş	Verb:2
 kavuşmuştu	Verb:1 VerbPart:1
-kavuşmuşçasına	Verb:1
 kavuşturma	VerbNoun:1
 kavuşturmuş	Verb:2
 kay	Noun:1
@@ -8517,7 +8517,6 @@ kesilmiştir	Verb:1
 kesimler	Noun:1
 kesin	Adj:34 Adv:3 Verb:5
 kesince	Verb:1
-kesinceye	VerbNoun:1
 kesindi	Adj:1 Noun:1
 kesindir	Adj:1
 kesinleşmeye	VerbNoun:1
@@ -8565,6 +8564,7 @@ keçe	Noun:4
 keçelenmiş	Verb:1
 keçeleşmiş	Noun:1 Verb:3
 keçi	Noun:8
+keşfedebilmekteyim	Verb:1
 keşfedeceği	VerbPart:1
 keşfedilmeden	VerbAdv:1
 keşfedilmiş	Verb:1 VerbPart:1
@@ -8735,6 +8735,7 @@ konuşacağımız	VerbPart:2
 konuşacağınız	VerbNoun:1
 konuşamadık	Verb:1
 konuşamaz	Verb:1
+konuşayım	Verb:1
 konuşlanmışlar	Verb:1
 konuşma	Noun:10 Verb:3 VerbNoun:8
 konuşmadan	Noun:1 VerbAdv:5 VerbNoun:1
@@ -8935,6 +8936,7 @@ koşarlar	Verb:2
 koşmaca	Noun:1
 koşmadan	VerbAdv:1
 koşmadığı	VerbPart:1
+koşmaktayız	Verb:2
 koşmaya	Noun:1 VerbNoun:4
 koşmayacak	Verb:2
 koşmuştu	Verb:1 VerbPart:1
@@ -9484,7 +9486,6 @@ kırıştı	Verb:1
 kırışık	Adj:1 Noun:1
 kısa	Adj:195
 kısaca	Adj:2 Adv:6
-kısacası	Adv:13 Noun:1
 kısaltmış	Verb:1
 kısaltıldığı	VerbNoun:1
 kısaltılmış	VerbPart:1
@@ -10071,7 +10072,6 @@ nüshalar	Noun:2
 o	Adv:12 Det:1071 Noun:2 Pron:462
 o'na	Noun:2
 objektif	Adj:4
-oburcasına	Adv:1
 odaklanacak	Verb:1
 odaklanacağına	VerbNoun:1
 odaklanan	VerbPart:2
@@ -10235,6 +10235,7 @@ olmadığıydı	Verb:1
 olmakta	Verb:2 VerbNoun:1
 olmaktadır	Verb:13
 olmaktadırlar	Verb:1
+olmaktayız	VerbNoun:1
 olmalı	Verb:34 VerbPart:2
 olmalıdır	Noun:1 Verb:18
 olmalıdırlar	Verb:1
@@ -10257,6 +10258,7 @@ olmayacaktı	Verb:1 VerbPart:1
 olmayacaktır	Verb:6 VerbPart:1
 olmayacağı	VerbNoun:3 VerbPart:1
 olmayacağım	Verb:2
+olmayayım	Verb:1
 olmaz	Adj:6 Verb:59 VerbPart:12
 olmazdı	Verb:8 VerbPart:1
 olmazlar	Verb:1
@@ -11024,6 +11026,7 @@ sandı	Verb:1
 sandık	Noun:9
 sandıkla	Noun:1
 sandıklar	VerbPart:1
+sandıklara	Noun:1
 sandıkları	Noun:1
 sandıklarım	Verb:1
 sandıklarımızın	Noun:1
@@ -11551,6 +11554,7 @@ sevinemez	Verb:1
 sevinilecek	VerbPart:1
 sevinir	Verb:1
 sevinmemişti	VerbPart:1
+sevinmeyeyim	Verb:1
 sevinmişti	Verb:1 VerbPart:1
 sevinmiştim	VerbPart:1
 sevişmeden	VerbNoun:1
@@ -11743,6 +11747,7 @@ soluduğum	VerbPart:1
 soluk	Adj:13 Adv:1 Noun:8
 soluklar	Noun:2
 solum	Adj:1
+solumaktasınızdır	Verb:1
 solumaya	VerbNoun:1
 solunun	Noun:1
 som	Noun:3
@@ -13456,7 +13461,6 @@ uğramayacak	Verb:3
 uğramayacaktı	Verb:1
 uğramış	Verb:3 VerbPart:4
 uğramıştım	Verb:3
-uğramışçasına	VerbAdv:1
 uğrar	Verb:4
 uğratabilir	Verb:2
 uğrattığı	VerbPart:1
@@ -13602,6 +13606,7 @@ verecekti	Verb:1 VerbPart:1
 verecektim	Noun:1
 verecektir	Verb:10
 verecektirler	Verb:1
+vereceğe	VerbNoun:1
 vereceği	Noun:1 VerbNoun:1 VerbPart:4
 vereceğim	Verb:7 VerbNoun:1 VerbPart:2
 vereceğimi	VerbNoun:1
@@ -13672,6 +13677,7 @@ vermeyecek	Verb:2 VerbPart:1
 vermeyecekti	Verb:1
 vermeyecektir	Verb:1
 vermeyeceğim	Verb:1
+vermeyeyim	Verb:2
 vermez	Verb:9 VerbPart:1
 vermiş	Verb:26 VerbPart:18
 vermişler	Verb:5
@@ -13934,6 +13940,7 @@ yansıtabilir	Verb:3
 yansıtacak	Verb:2 VerbPart:1
 yansıtma	Noun:1 VerbNoun:1
 yansıtmaktadır	Verb:3
+yansıtmaktayım	Verb:1
 yansıttığı	VerbPart:2
 yansıtılır	Verb:2
 yansıtır	Verb:2
@@ -14272,8 +14279,10 @@ yasta	Noun:1
 yastı	Noun:1
 yastık	Noun:10
 yastıklar	Noun:5
+yastıklara	Noun:3
 yastıkları	Noun:3
 yastıklı	Adj:1 Noun:1
+yastığa	Noun:3
 yastığı	Noun:3
 yastığın	Noun:1
 yastığının	Noun:1
@@ -14530,6 +14539,7 @@ yaşama	Noun:6 Verb:2 VerbNoun:10
 yaşamadık	Verb:31
 yaşamadıkları	VerbNoun:1
 yaşamaktadır	Verb:2
+yaşamaktayım	Verb:1
 yaşamamaktadır	Verb:1
 yaşamamışsak	Verb:1
 yaşamamıştı	Verb:1
@@ -14846,6 +14856,7 @@ yiyeceklerden	Noun:7
 yiyecekleri	Noun:12
 yiyeceklerin	Noun:12
 yiyeceklerinden	Noun:2
+yiyeceklerle	Noun:2
 yiyeceksiniz	Verb:1
 yiyecekti	Verb:1
 yiyeceği	Noun:1
@@ -15413,6 +15424,7 @@ zıttı	Noun:1
 çalma	Noun:1 VerbNoun:2
 çalmakta	Verb:1
 çalmaktaydı	Verb:1
+çalmaktaydılar	Verb:1
 çalmalar	VerbNoun:1
 çalmalıyım	Verb:1
 çalmaya	Verb:1 VerbNoun:10
@@ -16092,6 +16104,7 @@ zıttı	Noun:1
 ödeme	Noun:37 VerbNoun:6
 ödemeden	Noun:1 VerbAdv:1
 ödemediği	VerbNoun:1
+ödemekteyiz	Verb:1
 ödemeler	Noun:5 VerbNoun:1
 ödemeli	Adj:4
 ödemeye	Noun:4
