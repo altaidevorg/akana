@@ -34,7 +34,9 @@ use crate::fingerprint::Fingerprint;
 use serde::Serialize;
 use std::sync::LazyLock;
 
-/// The sparse encoder's spec version (major, minor); see the module docs.
+/// The sparse encoder's spec version (major, minor); see the module docs. 1.0 is frozen as
+/// released with akana 0.9.0: a later change that moves vectors follows the bump policy
+/// above, and the golden fixtures record each one.
 pub const SPARSE_SPEC: (u16, u16) = (1, 0);
 
 /// The hybrid vector's byte layout (64-byte 2-bit dense half, 16 slots of 24-bit id + 8-bit

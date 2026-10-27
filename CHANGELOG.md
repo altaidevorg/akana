@@ -19,6 +19,16 @@ results change, and indexes built with 0.8.0 must be rebuilt: see *Migrating fro
     the bump policy of `embeddings/spec.rs`, and no rebuild is needed.
   - `"rebuild"`.
 - An index without stored info should be treated as `"rebuild"`.
+- What the rebuild is worth, measured with `scripts/encoder_churn.py` and
+  `scripts/benchmark_rag_real_data.py` (0.8.0 against 0.9.0, the same texts): every sparse and
+  hybrid vector changes (court chunks, RagTurk and Turkuaz alike), and a 0.8.0 index queried
+  with 0.9.0 loses hybrid MRR@10 (RagTurk 0.738 against 0.790 rebuilt, Turkuaz 0.372 against
+  0.440). Rebuilt, retrieval improves: MRR@10 per question, paired, with 95 % intervals, BM25
+  +0.031 [+0.014, +0.048] on RagTurk and +0.024 [+0.010, +0.039] on Turkuaz, the 128-byte
+  hybrid +0.031 [+0.010, +0.051] and +0.042 [+0.017, +0.066]; dense vectors are unchanged and
+  RRF moves within noise (0.8.0's RRF was not deterministic).
+- Sparse spec 1.0 and analysis version 1.0 are frozen with this release: later releases
+  report their vector changes against them under the bump policy.
 
 **Offsets (Python).** NER `start`/`end`, grammar `start_offset`/`end_offset` and style
 `start`/`end` are character offsets now, where 0.8.0 gave byte offsets. Remove any byte-to-

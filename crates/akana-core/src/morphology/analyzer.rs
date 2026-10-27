@@ -190,7 +190,9 @@ pub(super) static PRIOR: LazyLock<Prior> = LazyLock::new(|| Prior::parse(PRIOR_G
 
 /// The version of the analyses: lexicon, morphotactics, prior and disambiguator together. It
 /// follows the encoders' bump policy (`embeddings::spec`): a minor version changes some
-/// analyses without changing what a lemma or tag means; a major one changes conventions.
+/// analyses without changing what a lemma or tag means; a major one changes conventions. 1.0
+/// is frozen as released with akana 0.9.0; the frequent-type snapshot, the review gold sets
+/// and the downstream snapshots record any later change.
 pub const ANALYSIS_VERSION: &str = "1.0";
 
 /// Words and sentences whose analyses [`analysis_fingerprint`] covers, so that a change in code

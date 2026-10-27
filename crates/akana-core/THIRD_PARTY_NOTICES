@@ -27,6 +27,11 @@ Changes:    duplicate entries merged; corpus-collected proper nouns that are inf
             akana-extra.dict, akana-remove.dict, which carry akana's own attributes
             Lexicalized, NotLexicalized and Rare); written in akana's one-line format.
 
+Shipped as: crates/akana-core/src/pii/person_names.txt, compiled into the library: the given
+            names of Zemberek's person-names.dict (morphology/src/main/resources/tr), which PII
+            masking reads as first names.
+Changes:    lower-cased with Turkish rules; forms without circumflexes added.
+
 The morphotactics (crates/akana-core/src/morphology/turkish_morphotactics.rs, stems.rs,
 analyzer.rs) port the design of zemberek-nlp's TurkishMorphotactics, StemTransitionsBase and
 RuleBasedAnalyzer (Apache License 2.0) to Rust.
