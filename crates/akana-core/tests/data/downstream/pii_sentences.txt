@@ -1,0 +1,42 @@
+# Synthetic sentences (no real people) that pin what PII masking makes of the analyzer's
+# readings (review 2 PII2-03, PII2-04): role plurals before names, surnames and first names
+# that are common words, names in no list, and words that look like names but are not.
+# --- role plurals before names
+Bu davada Davacılar Ahmet Yılmaz ve Ayşe Kaya haklıdır.
+Tanıklar Hasan Kara ve Mehmet Demir dinlendi.
+Avukatlar Selin Arslan ile Can Öztürk duruşmaya katıldı.
+Kardeşler Emre Kaya ve Zeynep Kaya mirası paylaştı.
+(2) Başvurucular Barış Karahan ve Erhan Özel itiraz etti.
+Müdürler Ahmet Yılmaz ile görüştü.
+Sanıklar Murat Çelik ve Burak Şahin tutuklandı.
+Davalılar Fatma Aydın ve Elif Doğan vekilleri aracılığıyla cevap verdi.
+# --- surnames and first names that are words
+Davacı Ali Şeker 15.03.2021 tarihinde dava açtı.
+Tanık Hüseyin Güneş ifade verdi.
+Sanık Kemal Demir'in savunması alındı.
+Mahkeme, davalı Ayşe Kara'nın itirazını reddetti.
+Bilirkişi Orhan Ak raporunu sundu.
+Davacı Cemile Arslan, davalı Kenan Aslan'a karşı tazminat talep etti.
+Sanık Gül Yıldız beraat etti.
+Tanık Umut Deniz olay yerindeydi.
+Başvurucu Barış Bulut hakkında karar verildi.
+# --- names in no list
+Başvurucu: Korcan Pulatsü
+7 Nisan - Duncan James, İngiliz şarkıcı
+Davacı Kutlucan Toprak ile davalı Oğuzcan Er anlaştı.
+Sanık Durucan Ateş ve Toycan Uz hakkında kovuşturma yapıldı.
+Tanık Sağcan Erdem dinlendi.
+# --- not names
+Danıştay 5. Dairesi kararı bozdu.
+Yargıtay Hukuk Genel Kurulu kararı onadı.
+KURULLARCA alınan kararlar kesindir.
+Askerî Yargıtay Daireler Kurulu toplandı.
+Anayasa Mahkemesi başvuruyu kabul etti.
+Savaş Anıtı ziyaretçilere açıldı.
+Hava çok soğuk ve rüzgarlı.
+Kanun koyucu bu hükmü değiştirdi.
+# --- other categories next to names
+Ahmet Bey 0532 123 45 67 numaralı telefondan aradı.
+Av. Mehmet Öz, Ankara Barosu'na kayıtlıdır.
+Dr. Selim Koç hastayı muayene etti.
+Prof. Dr. Nurten Aksoy konferans verdi.

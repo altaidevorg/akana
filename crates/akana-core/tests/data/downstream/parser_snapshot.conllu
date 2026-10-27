@@ -1,0 +1,182 @@
+# Ali güzel kitabı okudu .
+1	Ali	ali	PROPN	4	nsubj
+2	güzel	güzel	ADJ	3	amod
+3	kitabı	kitap	NOUN	4	obj
+4	okudu	okumak	VERB	0	root
+5	.	.	PUNCT	4	punct
+
+# Hava çok soğuk .
+1	Hava	hava	NOUN	3	nsubj
+2	çok	çok	ADV	3	advmod
+3	soğuk	soğuk	ADJ	0	root
+4	.	.	PUNCT	3	punct
+
+# Evde kimse yok .
+1	Evde	ev	NOUN	3	obl
+2	kimse	kimse	PRON	3	nsubj
+3	yok	yok	ADJ	0	root
+4	.	.	PUNCT	3	punct
+
+# Sen öğrenci misin ?
+1	Sen	sen	PRON	2	nsubj
+2	öğrenci	öğrenci	NOUN	0	root
+3	misin	mi	AUX	2	aux:q
+4	?	?	PUNCT	2	punct
+
+# Bu da mı gitti ?
+1	Bu	bu	PRON	4	nsubj
+2	da	da	CCONJ	4	cc
+3	mı	mı	AUX	2	aux:q
+4	gitti	gitmek	VERB	0	root
+5	?	?	PUNCT	4	punct
+
+# Güldükçe güzelleşiyor .
+1	Güldükçe	gülmek	VERB	2	advcl
+2	güzelleşiyor	güzel	VERB	0	root
+3	.	.	PUNCT	2	punct
+
+# Kırılmış camları topladı .
+1	Kırılmış	kırmak	VERB	2	acl
+2	camları	cam	NOUN	3	nsubj
+3	topladı	toplamak	VERB	0	root
+4	.	.	PUNCT	3	punct
+
+# Kaçarcasına gitti .
+1	Kaçarcasına	kaçmak	VERB	2	advcl
+2	gitti	gitmek	VERB	0	root
+3	.	.	PUNCT	2	punct
+
+# Okula gelince bana haber ver .
+1	Okula	okul	NOUN	5	obl
+2	gelince	gelmek	VERB	5	advcl
+3	bana	ben	PRON	5	obl
+4	haber	haber	NOUN	5	obj
+5	ver	vermek	VERB	0	root
+6	.	.	PUNCT	5	punct
+
+# Eve gelip yemek yedi .
+1	Eve	ev	NOUN	4	obl
+2	gelip	gelmek	VERB	4	advcl
+3	yemek	yemek	NOUN	4	obj
+4	yedi	yemek	VERB	0	root
+5	.	.	PUNCT	4	punct
+
+# Sınava çalışarak başarılı oldu .
+1	Sınava	sınav	NOUN	4	obl
+2	çalışarak	çalışmak	VERB	4	advcl
+3	başarılı	başarı	ADJ	4	amod
+4	oldu	olmak	VERB	0	root
+5	.	.	PUNCT	4	punct
+
+# Çocukken burada oturuyorduk .
+1	Çocukken	çocuk	ADV	3	advmod
+2	burada	bura	NOUN	3	obl
+3	oturuyorduk	oturmak	VERB	0	root
+4	.	.	PUNCT	3	punct
+
+# Kitabı okuyan öğrenci sınıfta .
+1	Kitabı	kitap	NOUN	4	nsubj
+2	okuyan	okumak	VERB	3	acl
+3	öğrenci	öğrenci	NOUN	4	obj
+4	sınıfta	sınıf	NOUN	0	root
+5	.	.	PUNCT	4	punct
+
+# Ödevini yapmadan dışarı çıkma !
+1	Ödevini	ödev	NOUN	4	obj
+2	yapmadan	yapmak	VERB	4	advcl
+3	dışarı	dışarı	ADV	4	advmod
+4	çıkma	çıkmak	VERB	0	root
+5	!	!	PUNCT	4	punct
+
+# Dilekçe ile başvurdu .
+1	Dilekçe	dilekçe	NOUN	3	obl
+2	ile	ile	ADP	1	case
+3	başvurdu	başvurmak	VERB	0	root
+4	.	.	PUNCT	3	punct
+
+# Onun için her şeyi yaptı .
+1	Onun	o	PRON	5	obl
+2	için	için	ADP	1	case
+3	her	her	DET	4	det
+4	şeyi	şey	NOUN	5	obj
+5	yaptı	yapmak	VERB	0	root
+6	.	.	PUNCT	5	punct
+
+# Ayşe ile Fatma okula gittiler .
+1	Ayşe	ayşe	PROPN	5	nsubj
+2	ile	ile	CCONJ	3	cc
+3	Fatma	fatma	PROPN	5	obj
+4	okula	okul	NOUN	5	obl
+5	gittiler	gitmek	VERB	0	root
+6	.	.	PUNCT	5	punct
+
+# Yarın Ankara'ya gideceğim .
+1	Yarın	yarın	ADV	3	advmod
+2	Ankara'ya	ankara	PROPN	3	obl
+3	gideceğim	gitmek	VERB	0	root
+4	.	.	PUNCT	3	punct
+
+# Bu karar kesindir .
+1	Bu	bu	PRON	3	nsubj
+2	karar	karar	NOUN	3	nsubj
+3	kesindir	kesin	ADJ	0	root
+4	.	.	PUNCT	3	punct
+
+# Mahkeme , davanın reddine karar verdi .
+1	Mahkeme	mahkeme	NOUN	6	nsubj
+2	,	,	PUNCT	6	punct
+3	davanın	dava	NOUN	4	nmod:poss
+4	reddine	ret	NOUN	6	obl
+5	karar	karar	NOUN	6	obj
+6	verdi	vermek	VERB	0	root
+7	.	.	PUNCT	6	punct
+
+# Davacı vekili temyiz isteminde bulunmuştur .
+1	Davacı	davacı	NOUN	5	nsubj
+2	vekili	vekil	NOUN	5	nsubj
+3	temyiz	temyiz	NOUN	5	obj
+4	isteminde	istem	NOUN	5	obl
+5	bulunmuştur	bulunmak	VERB	0	root
+6	.	.	PUNCT	5	punct
+
+# Bilirkişi raporu dosyaya sunuldu .
+1	Bilirkişi	bilirkişi	NOUN	4	nsubj
+2	raporu	rapor	NOUN	4	nsubj
+3	dosyaya	dosya	NOUN	4	obl
+4	sunuldu	sunmak	VERB	0	root
+5	.	.	PUNCT	4	punct
+
+# Dava dilekçesi davalıya tebliğ edildi .
+1	Dava	dava	NOUN	5	nsubj
+2	dilekçesi	dilekçe	NOUN	5	nsubj
+3	davalıya	davalı	NOUN	5	obl
+4	tebliğ	tebliğ	NOUN	5	obj
+5	edildi	etmek	VERB	0	root
+6	.	.	PUNCT	5	punct
+
+# Sanığın savunması alındıktan sonra karar açıklandı .
+1	Sanığın	sanık	NOUN	2	nmod:poss
+2	savunması	savunma	NOUN	6	nsubj
+3	alındıktan	almak	VERB	6	obl
+4	sonra	sonra	ADP	3	case
+5	karar	karar	NOUN	6	obj
+6	açıklandı	açıklamak	VERB	0	root
+7	.	.	PUNCT	6	punct
+
+# Hukuka aykırılık bulunmadığından istemin reddine oybirliğiyle karar verildi .
+1	Hukuka	hukuk	NOUN	8	obl
+2	aykırılık	aykırı	NOUN	8	nsubj
+3	bulunmadığından	bulunmak	VERB	8	obl
+4	istemin	istem	NOUN	5	nmod:poss
+5	reddine	ret	NOUN	8	obl
+6	oybirliğiyle	oybirliği	NOUN	8	obl
+7	karar	karar	NOUN	8	obj
+8	verildi	vermek	VERB	0	root
+9	.	.	PUNCT	8	punct
+
+# Gelmeyecekmişsiniz gibi davranmayın .
+1	Gelmeyecekmişsiniz	gelmek	VERB	3	dep
+2	gibi	gibi	ADP	1	case
+3	davranmayın	davranmak	VERB	0	root
+4	.	.	PUNCT	3	punct
+
