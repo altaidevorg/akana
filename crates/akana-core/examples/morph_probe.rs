@@ -8,8 +8,10 @@
 //! With `--backoff`, the stem search indexes an unknown word by (`backoff_stem`) instead. With
 //! `--time FILE`, the words analysed per second over FILE's words (one per line), best of three.
 //! With `--generate WORD TAGS ...`, the word each root or lemma and `+`-joined tags generate.
+//! With `--split`, the compound split of the root of each word's best analysis (one per stdin
+//! line, `word<TAB>count` allowed), for the words that split.
 
-use akana_core::morphology::TurkishMorphology;
+use akana_core::morphology::{CompoundDecomposer, TurkishMorphology};
 use std::io::BufRead;
 
 fn main() {
@@ -47,6 +49,20 @@ fn main() {
                 tags.join("+"),
                 morphology.generate(word, &tags)
             );
+        }
+        return;
+    }
+    if words.first().is_some_and(|w| w == "--split") {
+        for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+            let word = line.split('\t').next().unwrap_or_default().trim();
+            let Some(top) = morphology.analyze(word).into_iter().next() else {
+                continue;
+            };
+            if let Some((first, head)) =
+                CompoundDecomposer::split_lexical_compound(&morphology, &top.root)
+            {
+                println!("{line}\t{}\t{first}+{head}", top.root);
+            }
         }
         return;
     }

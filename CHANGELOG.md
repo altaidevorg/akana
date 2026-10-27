@@ -170,6 +170,11 @@ different results.
   - A word the dictionary lists as a postposition or an adverb has a fixed term, whichever
     reading its context picks: the word itself (`tarafından`, `içinde`, `yerine`, `göre`), or
     the verb an adverb is a form of (`bilerek`: `bilmek`).
+  - Compound parts: a compound that has become a word of its own is no longer split into
+    parts that mislead as terms (`anayasa` is no `ana` + `yasa`; `gözaltı`, `olağanüstü`,
+    `cephane`, `elbirliği`), and common compounds the lexicon does not mark are
+    (`bilgisayar`, `kahverengi`, `ayakkabı`, `bilirkişi`, `kötüniyet`). `decompose` follows
+    the same lists.
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'

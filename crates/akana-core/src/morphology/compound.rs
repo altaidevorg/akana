@@ -1,10 +1,12 @@
 //! Turkish Compound Word Analysis and Decomposition (Bileşik Sözcük Ayrıştırıcı).
 //!
 //! A word splits into two roots only when the lexicon says it is a compound (Zemberek's
-//! CompoundP3sg roots: cumhur+başkan-ı, zeytin+yağ-ı, deniz+alt-ı) or when it is a productive
-//! compound pattern (baş+bakan, ana+yasa, tebliğ+name, huzur+ev-i) on an open-class root.
-//! Splitting wherever both halves happen to be words split mahkeme into mah + keme and
-//! hareket into hare + ket.
+//! CompoundP3sg roots: cumhur+başkan-ı, zeytin+yağ-ı, deniz+alt-ı), when it is one of the
+//! compounds listed here (bilgi+sayar, kahve+reng-i, bilir+kişi), or when it is a productive
+//! compound pattern (baş+bakan, tebliğ+name, huzur+ev-i) on an open-class root. Splitting
+//! wherever both halves happen to be words split mahkeme into mah + keme and hareket into
+//! hare + ket. A compound that has become one word of its own, whose parts would mislead,
+//! is not split (anayasa, gözaltı, olağanüstü).
 
 use super::analyzer::{is_derivational_tag, MorphParse, TurkishMorphology};
 use super::dictionary::DictionaryItem;
@@ -20,7 +22,7 @@ pub struct CompoundAnalysis {
     pub parse2: MorphParse,
 }
 
-/// First parts that make compounds with a following noun (başbakan, anayasa, kuzeybatı,
+/// First parts that make compounds with a following noun (başbakan, anabilim, kuzeybatı,
 /// ortaokul, ilköğretim, tümgeneral, altyapı, büyükelçi, yüksekokul). The rest must be an
 /// open-class root of at least four letters: başkan is not baş + kan.
 const PRODUCTIVE_FIRST: &[&str] = &[
@@ -46,17 +48,65 @@ const PRODUCTIVE_HEADS: &[(&str, &str)] = &[
     ("yıl", "yıl"),
 ];
 
-/// The productive compound patterns, as text for the encoder fingerprint
+/// Compounds the lexicon does not mark, with their parts: the first as the word writes it, and
+/// the head's root (review 2 RANK2-12).
+const LISTED_COMPOUNDS: &[(&str, &str, &str)] = &[
+    ("akarsu", "akar", "su"),
+    ("alışveriş", "alış", "veriş"),
+    ("ateşkes", "ateş", "kes"),
+    ("ayakkabı", "ayak", "kap"),
+    ("bilgisayar", "bilgi", "sayar"),
+    ("bilirkişi", "bilir", "kişi"),
+    ("genelkurmay", "genel", "kurmay"),
+    ("gökdelen", "gök", "delen"),
+    ("hoşgörü", "hoş", "görü"),
+    ("kahverengi", "kahve", "renk"),
+    ("karabiber", "kara", "biber"),
+    ("kötüniyet", "kötü", "niyet"),
+    ("ortaçağ", "orta", "çağ"),
+    ("sivrisinek", "sivri", "sinek"),
+];
+
+/// Compounds that have become words of their own, whose parts would mislead as search terms:
+/// the constitution is no "mother" law, custody no "eye", the extraordinary not the ordinary
+/// (review 2 MSTAB-07). Ranks (yüzbaşı, binbaşı) and the lexicalised ana- words too.
+const NOT_SPLIT: &[&str] = &[
+    "anakara",
+    "anavatan",
+    "anayasa",
+    "anayurt",
+    "binbaşı",
+    "cephane",
+    "darphane",
+    "elbirliği",
+    "elebaşı",
+    "gözaltı",
+    "gözardı",
+    "gözönü",
+    "hanımeli",
+    "kuşbaşı",
+    "olağandışı",
+    "olağanüstü",
+    "yüzbaşı",
+];
+
+/// The listed and productive compound patterns, as text for the encoder fingerprint
 /// ([`crate::embeddings::encoder_info`]): their parts become sparse terms.
 pub fn compound_fingerprint_constants() -> String {
     let heads: Vec<String> = PRODUCTIVE_HEADS
         .iter()
         .map(|(head, root)| format!("{head}={root}"))
         .collect();
+    let listed: Vec<String> = LISTED_COMPOUNDS
+        .iter()
+        .map(|(word, first, head)| format!("{word}={first}+{head}"))
+        .collect();
     format!(
-        "first {} heads {}",
+        "first {} heads {} listed {} not-split {}",
         PRODUCTIVE_FIRST.join(" "),
-        heads.join(" ")
+        heads.join(" "),
+        listed.join(" "),
+        NOT_SPLIT.join(" ")
     )
 }
 
@@ -131,15 +181,22 @@ impl CompoundDecomposer {
 
     /// Splits a lexicon root into the roots of its two parts: from the lexicon's compound
     /// data (cumhurbaşkanı: cumhur, başkan; zeytinyağı: zeytin, yağ; denizaltı: deniz, alt),
+    /// from the compounds listed here (bilgisayar: bilgi, sayar; kahverengi: kahve, renk),
     /// else from a productive pattern on open-class lexicon roots (başbakan: baş, bakan;
-    /// anayasa: ana, yasa; tebliğname: tebliğ, name; huzurevi: huzur, ev). Names,
-    /// abbreviations and words the analyzer reads as a shorter root plus a derivation are not
-    /// split.
+    /// tebliğname: tebliğ, name; huzurevi: huzur, ev). Names, abbreviations, words the
+    /// analyzer reads as a shorter root plus a derivation, and compounds that are words of
+    /// their own (anayasa, gözaltı) are not split.
     pub fn split_lexical_compound(
         morphology: &TurkishMorphology,
         word: &str,
     ) -> Option<(String, String)> {
         let lower = crate::phonology::to_turkish_lower(word.trim());
+        if NOT_SPLIT.contains(&lower.as_str()) {
+            return None;
+        }
+        if let Some((_, first, head)) = LISTED_COMPOUNDS.iter().find(|(w, ..)| *w == lower) {
+            return Some((first.to_string(), head.to_string()));
+        }
         let items = morphology.root_items(&lower);
         if let Some((first, head)) = items
             .iter()

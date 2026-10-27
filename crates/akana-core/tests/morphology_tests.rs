@@ -103,6 +103,13 @@ fn test_compound_decomposition() {
         "temmuz",
         "kaybet",
         "başkan",
+        // Compounds that are words of their own, whose parts mislead (review 2 MSTAB-07).
+        "anayasa",
+        "anavatan",
+        "cephane",
+        "gözaltı",
+        "olağanüstü",
+        "hanımeli",
     ] {
         assert!(decomposer.decompose(word).is_empty(), "{word} decomposed");
         assert_eq!(
@@ -116,7 +123,13 @@ fn test_compound_decomposition() {
         ("zeytinyağı", "zeytin", "yağ"),
         ("denizaltı", "deniz", "alt"),
         ("başsavcı", "baş", "savcı"),
-        ("anayasa", "ana", "yasa"),
+        ("anabilim", "ana", "bilim"),
+        // Compounds the lexicon does not mark (review 2 RANK2-12).
+        ("bilgisayar", "bilgi", "sayar"),
+        ("kahverengi", "kahve", "renk"),
+        ("ayakkabı", "ayak", "kap"),
+        ("bilirkişi", "bilir", "kişi"),
+        ("ateşkes", "ateş", "kes"),
         ("tebliğname", "tebliğ", "name"),
         ("huzurevi", "huzur", "ev"),
     ] {
