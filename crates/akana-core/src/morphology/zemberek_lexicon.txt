@@ -1196,6 +1196,7 @@ akis akis Noun None VowelDrop
 akis akis Noun ProperNoun ProperNoun
 akit akit Adj None Voicing display=âkit
 akit akit Noun None Voicing VowelDrop
+akit akit Noun None NoVoicing Nonstandard VowelDrop idx=1
 akiş akiş Noun ProperNoun ProperNoun
 akk akk Noun Abbrv pr=akeka
 akka akka Noun ProperNoun ProperNoun
@@ -4418,6 +4419,7 @@ avadanlık avadanlık Noun None Voicing
 avakov avakov Noun ProperNoun ProperNoun
 aval aval Adj None InverseHarmony
 aval aval Noun None InverseHarmony
+aval aval Noun None Nonstandard idx=1
 avalon avalon Noun ProperNoun ProperNoun
 avam avam Noun None
 avan avan Noun ProperNoun ProperNoun
@@ -5837,6 +5839,7 @@ banotu banotu Noun None CompoundP3sg roots=ban-ot
 banque banque Noun ProperNoun ProperNoun
 banshee banshee Noun ProperNoun ProperNoun
 bant bant Noun None Voicing
+bant bant Noun None NoVoicing Nonstandard idx=1
 bantgenişliği bantgenişliği Noun None CompoundP3sg roots=bant-genişlik
 bantlamak bantla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 banu banu Noun ProperNoun ProperNoun
@@ -7253,6 +7256,7 @@ beppe beppe Noun ProperNoun ProperNoun
 bera bera Noun ProperNoun ProperNoun
 beraa beraa Noun ProperNoun ProperNoun
 beraat beraat Noun None InverseHarmony NoVoicing
+beraat beraat Noun None NoVoicing Nonstandard idx=1
 beraatızimmet beraatızimmet Noun None NoVoicing
 beraber beraber Adj None
 beraber beraber Adv None
@@ -16418,6 +16422,7 @@ emisyon emisyon Noun None
 emitt emitt Noun ProperNoun ProperNoun
 emişmek emiş Verb None AoristI
 emlak emlak Noun None NoVoicing
+emlak emlak Noun None InverseHarmony NoVoicing Nonstandard idx=1
 emlakbank emlakbank Noun ProperNoun ProperNoun
 emlaktimes emlaktimes Noun ProperNoun ProperNoun
 emlakçı emlakçı Noun None
@@ -17764,6 +17769,7 @@ evoque evoque Noun ProperNoun ProperNoun
 evora evora Noun ProperNoun ProperNoun
 evra evra Noun ProperNoun ProperNoun
 evrak evrak Noun None NoVoicing
+evrak evrak Noun None Nonstandard Voicing idx=1
 evran evran Noun ProperNoun ProperNoun
 evrat evrat Noun None Voicing
 evre evre Noun None
@@ -18765,6 +18771,7 @@ fesat fesat Noun None Voicing
 feshane feshane Noun ProperNoun ProperNoun
 feshetmek feshet Verb None AoristA Voicing
 fesih fesih Noun None VowelDrop
+fesih fesih Noun None Nonstandard idx=1
 fesleğen fesleğen Noun None
 fest fest Noun ProperNoun NoVoicing ProperNoun
 festekiz festekiz Dup None
@@ -19676,6 +19683,7 @@ fuel fuel Noun ProperNoun ProperNoun
 fueloil fueloil Noun None display=fuel-oil
 fuentes fuentes Noun ProperNoun ProperNoun
 fuhuş fuhuş Noun None VowelDrop
+fuhuş fuhuş Noun None Nonstandard idx=1
 fujer fujer Noun None
 fuji fuji Noun ProperNoun ProperNoun
 fujian fujian Noun ProperNoun ProperNoun
@@ -20216,6 +20224,7 @@ gaski gaski Noun ProperNoun ProperNoun
 gasletmek gaslet Verb None AoristA Voicing
 gasol gasol Noun ProperNoun ProperNoun
 gasp gasp Noun None Voicing
+gasp gasp Noun None NoVoicing Nonstandard idx=1
 gaspar gaspar Noun ProperNoun ProperNoun
 gasparyan gasparyan Noun ProperNoun ProperNoun
 gasper gasper Noun ProperNoun ProperNoun
@@ -20307,6 +20316,7 @@ gayrimakul gayrimakul Noun None InverseHarmony
 gayrimalum gayrimalum Noun None display=gayrimalûm
 gayrimemnun gayrimemnun Adj None
 gayrimenkul gayrimenkul Noun None InverseHarmony
+gayrimenkul gayrimenkul Noun None Nonstandard idx=1
 gayrimeskun gayrimeskun Adj None display=gayrimeskûn
 gayrimesul gayrimesul Noun None InverseHarmony
 gayrimezru gayrimezru Noun None
@@ -21486,6 +21496,7 @@ grumman grumman Noun ProperNoun ProperNoun
 grundig grundig Noun ProperNoun ProperNoun
 grundy grundy Noun ProperNoun NoVoicing ProperNoun
 grup grup Noun None Voicing
+grup grup Noun None NoVoicing Nonstandard idx=1
 grupanya grupanya Noun ProperNoun ProperNoun
 gruplamak grupla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 gryffindor gryffindor Noun ProperNoun ProperNoun
@@ -22889,6 +22900,7 @@ hajroviç hajroviç Noun ProperNoun ProperNoun
 hak hak Adj None Doubling NoVoicing
 hak hak Noun None Doubling NoVoicing
 hak hak Noun None Doubling InverseHarmony NoVoicing idx=1
+hak hak Noun None NoVoicing Nonstandard idx=2
 hak hak Noun ProperNoun Doubling NoVoicing ProperNoun
 haka haka Noun ProperNoun ProperNoun
 hakalmaz hakalmaz Noun ProperNoun ProperNoun
@@ -25306,6 +25318,7 @@ hükmi hükmi Noun None display=hükmî
 hükmolmak hükmol Verb None AoristI CausativeT PassiveIn
 hükumet hükumet Noun None NoVoicing display=hükûmet
 hüküm hüküm Noun None VowelDrop
+hüküm hüküm Noun None Nonstandard idx=1
 hükümdar hükümdar Noun None
 hükümet hükümet Noun None NoVoicing
 hükümran hükümran Adj None
@@ -25473,6 +25486,7 @@ hırıldaşmak hırıldaş Verb None AoristI Reciprocal
 hırıltı hırıltı Noun None
 hırıstiyan hırıstiyan Noun ProperNoun ProperNoun
 hısım hısım Noun None VowelDrop
+hısım hısım Noun None Nonstandard idx=1
 hıyaban hıyaban Noun None
 hıyanet hıyanet Noun None NoVoicing
 hıyar hıyar Adj None
@@ -26005,6 +26019,7 @@ ilitam ilitam Noun ProperNoun ProperNoun
 iliç iliç Noun ProperNoun ProperNoun
 ilişik ilişik Adj None Voicing
 ilişik ilişik Noun None Voicing
+ilişik ilişik Noun None NoVoicing Nonstandard idx=1
 ilişken ilişken Noun None
 ilişki ilişki Noun None
 ilişkin ilişkin Postp None pc=Dat
@@ -26932,6 +26947,7 @@ istinye istinye Noun ProperNoun ProperNoun
 istinyepark istinyepark Noun ProperNoun ProperNoun
 istirahat istirahat Noun None InverseHarmony
 istirdat istirdat Noun None Voicing
+istirdat istirdat Noun None NoVoicing Nonstandard idx=1
 istirham istirham Noun None
 istiridye istiridye Noun None
 istiskal istiskal Noun None InverseHarmony
@@ -27299,6 +27315,7 @@ içtepi içtepi Noun None
 içters içters Noun None
 içtihadi içtihadi Adj None display=içtihadî
 içtihat içtihat Noun None Voicing
+içtihat içtihat Noun None NoVoicing Nonstandard idx=1
 içtima içtima Noun None
 içtimai içtimai Adj None display=içtimaî
 içtimaiyat içtimaiyat Noun None NoVoicing
@@ -28025,6 +28042,7 @@ kabuk kabuk Noun None Voicing
 kabuklanmak kabuklan Verb None AoristI
 kabuklular kabuklular Noun None ImplicitPlural
 kabul kabul Noun None InverseHarmony
+kabul kabul Noun None Nonstandard idx=1
 kabullenmek kabullen Verb None AoristI
 kabun kabun Noun ProperNoun ProperNoun
 kaburga kaburga Noun None
@@ -28561,6 +28579,7 @@ kamışkulak kamışkulak Noun None Voicing
 kan kan Noun None NoVoicing
 kana kana Noun None
 kanaat kanaat Noun None InverseHarmony
+kanaat kanaat Noun None Nonstandard Voicing idx=1
 kanaatkar kanaatkar Adj None display=kanaatkâr
 kanada kanada Noun ProperNoun ProperNoun
 kanadiyen kanadiyen Noun None
@@ -31430,6 +31449,7 @@ komplike komplike Adj None
 kompliman kompliman Noun None
 komplo komplo Noun None
 kompost kompost Noun None Voicing
+kompost kompost Noun None NoVoicing Nonstandard idx=1
 kompostlamak kompostla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 komposto komposto Noun None
 kompoze kompoze Adj None
@@ -31594,6 +31614,7 @@ kontrendike kontrendike Noun None
 kontrfile kontrfile Noun None
 kontrgerilla kontrgerilla Noun None display=kontrgerillâ
 kontrol kontrol Noun None InverseHarmony
+kontrol kontrol Noun None Nonstandard idx=1
 kontrolör kontrolör Noun None
 kontrpiye kontrpiye Noun None
 kontrplak kontrplak Noun None Voicing display=kontrplâk
@@ -33498,6 +33519,7 @@ kıstırmak kıstır Verb None AoristI CausativeT
 kısık kısık Adj None Voicing
 kısık kısık Noun None Voicing
 kısım kısım Noun None VowelDrop
+kısım kısım Noun None Nonstandard idx=1
 kısımlamak kısımla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kısınmak kısın Verb None AoristI
 kısıntı kısıntı Noun None
@@ -35308,6 +35330,7 @@ mah mah Noun None NoVoicing
 mahabad mahabad Noun ProperNoun ProperNoun
 mahabat mahabat Noun ProperNoun ProperNoun
 mahal mahal Noun None Doubling InverseHarmony
+mahal mahal Noun None InverseHarmony Nonstandard idx=1
 mahalle mahalle Noun None
 mahallebaşı mahallebaşı Noun ProperNoun ProperNoun
 mahalli mahalli Adj None display=mahallî
@@ -36860,6 +36883,7 @@ mehdiye mehdiye Noun ProperNoun ProperNoun
 mehel mehel Noun None
 mehib mehib Noun ProperNoun ProperNoun
 mehil mehil Noun None VowelDrop
+mehil mehil Noun None Nonstandard idx=1
 mehir mehir Noun ProperNoun ProperNoun
 mehldau mehldau Noun ProperNoun ProperNoun
 mehle mehle Noun None
@@ -37124,6 +37148,7 @@ menez menez Noun ProperNoun ProperNoun
 menezes menezes Noun ProperNoun ProperNoun
 menfa menfa Noun None
 menfaat menfaat Noun None InverseHarmony
+menfaat menfaat Noun None Nonstandard Voicing idx=1
 menfaatperest menfaatperest Adj None NoVoicing
 menfaatperest menfaatperest Noun None NoVoicing
 menfaatperver menfaatperver Adj None
@@ -39412,6 +39437,7 @@ mutual mutual Noun ProperNoun ProperNoun
 muvacehe muvacehe Noun None
 muvacehesinde muvacehesinde Adv None
 muvafakat muvafakat Noun None InverseHarmony
+muvafakat muvafakat Noun None Nonstandard Voicing idx=1
 muvafakatname muvafakatname Noun None
 muvaffak muvaffak Adj None NoVoicing
 muvaffak muvaffak Noun None NoVoicing
@@ -39423,6 +39449,7 @@ muvahhid muvahhid Noun ProperNoun ProperNoun
 muvahhit muvahhit Adj None Voicing
 muvakkar muvakkar Noun ProperNoun ProperNoun
 muvakkat muvakkat Adj None InverseHarmony NoVoicing
+muvakkat muvakkat Adj None NoVoicing Nonstandard idx=1
 muvakkaten muvakkaten Adv None
 muvakkit muvakkit Noun None NoVoicing
 muvakkithane muvakkithane Noun None
@@ -39696,6 +39723,7 @@ mührüsüleyman mührüsüleyman Noun None
 mühtedi mühtedi Adj None
 mühye mühye Noun ProperNoun ProperNoun
 mühür mühür Noun None VowelDrop
+mühür mühür Noun None Nonstandard idx=1
 mühürdar mühürdar Noun None
 mühürlemek mühürle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 müjdat müjdat Noun ProperNoun ProperNoun
@@ -40031,6 +40059,7 @@ müteaddi müteaddi Adj None
 müteaddit müteaddit Adj None Voicing
 müteaffin müteaffin Adj None
 müteahhit müteahhit Noun None Voicing
+müteahhit müteahhit Noun None NoVoicing Nonstandard idx=1
 müteakiben müteakiben Postp None pc=Acc
 müteakip müteakip Adj None Voicing
 müteakip müteakip Adv None
@@ -40437,6 +40466,7 @@ nakip nakip Noun None Voicing
 nakipoğlu nakipoğlu Noun ProperNoun ProperNoun
 nakisa nakisa Noun None
 nakit nakit Noun None Voicing VowelDrop
+nakit nakit Noun None NoVoicing Nonstandard VowelDrop idx=1
 nakiye nakiye Noun ProperNoun ProperNoun
 nakkare nakkare Noun None
 nakkarhane nakkarhane Noun None
@@ -45031,6 +45061,7 @@ port port Noun ProperNoun NoVoicing ProperNoun
 portable portable Noun ProperNoun ProperNoun
 portakal portakal Noun None
 portal portal Noun None InverseHarmony
+portal portal Noun None Nonstandard idx=1
 portatif portatif Adj None
 portbagaj portbagaj Noun None
 portbebe portbebe Noun None
@@ -45367,6 +45398,7 @@ proto proto Noun ProperNoun ProperNoun
 protocol protocol Noun ProperNoun ProperNoun
 protojin protojin Noun None
 protokol protokol Noun None InverseHarmony
+protokol protokol Noun None Nonstandard idx=1
 proton proton Noun None
 protonema protonema Noun None
 protoplazma protoplazma Noun None display=protoplâzma
@@ -46416,6 +46448,7 @@ rehber rehber Noun ProperNoun ProperNoun
 rehberg rehberg Noun ProperNoun ProperNoun
 rehhagel rehhagel Noun ProperNoun ProperNoun
 rehin rehin Noun None VowelDrop
+rehin rehin Noun None Nonstandard idx=1
 rehine rehine Noun None
 rehman rehman Noun ProperNoun ProperNoun
 rehn rehn Noun ProperNoun NoVoicing ProperNoun
@@ -47659,6 +47692,7 @@ saf saf Noun None NoVoicing
 safa safa Noun None
 safa safa Noun ProperNoun ProperNoun
 safahat safahat Noun None ImplicitPlural NoVoicing
+safahat safahat Noun None InverseHarmony NoVoicing Nonstandard idx=1
 safari safari Noun None
 safarov safarov Noun ProperNoun ProperNoun
 safbeste safbeste Noun ProperNoun ProperNoun
@@ -49461,6 +49495,7 @@ seneikebise seneikebise Noun None
 senek senek Noun None Voicing
 sener sener Noun ProperNoun ProperNoun
 senet senet Noun None Voicing
+senet senet Noun None NoVoicing Nonstandard idx=1
 senevat senevat Noun ProperNoun ProperNoun display=Senevât
 senevi senevi Adj None display=senevî
 senevi senevi Noun ProperNoun ProperNoun
@@ -51462,6 +51497,7 @@ standard standard Noun ProperNoun ProperNoun
 standardizasyon standardizasyon Noun None
 standart standart Adj None Voicing
 standart standart Noun None Voicing
+standart standart Noun None NoVoicing Nonstandard idx=1
 standby standby Noun None NoVoicing display=stand-by
 stanford stanford Noun ProperNoun ProperNoun
 stanislas stanislas Noun ProperNoun ProperNoun
@@ -52837,6 +52873,7 @@ taaddüt taaddüt Noun None Voicing
 taaffün taaffün Noun None
 taah taah Noun ProperNoun ProperNoun
 taahhüt taahhüt Noun None Voicing
+taahhüt taahhüt Noun None NoVoicing Nonstandard idx=1
 taahhütname taahhütname Noun None
 taalluk taalluk Noun None NoVoicing display=taallûk
 taallukat taallukat Noun None NoVoicing
@@ -53181,6 +53218,7 @@ taksine taksine Noun ProperNoun ProperNoun
 taksir taksir Noun None
 taksirat taksirat Noun None NoVoicing
 taksit taksit Noun None NoVoicing
+taksit taksit Noun None Nonstandard Voicing idx=1
 taksitlemek taksitle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 taksonomi taksonomi Noun None
 taksonomist taksonomist Noun None NoVoicing
@@ -53197,6 +53235,7 @@ takva takva Noun ProperNoun ProperNoun
 takvim takvim Noun None
 takviye takviye Noun None
 takyidat takyidat Noun None Voicing
+takyidat takyidat Noun None NoVoicing Nonstandard idx=1
 takyit takyit Noun None Voicing
 takı takı Noun None
 takık takık Adj None Voicing
@@ -53546,6 +53585,7 @@ taraba taraba Noun None
 tarabengiz tarabengiz Noun ProperNoun ProperNoun
 tarabya tarabya Noun ProperNoun ProperNoun
 taraf taraf Noun None
+taraf taraf Noun None InverseHarmony Nonstandard idx=1
 tarafeyn tarafeyn Noun None
 tarafgir tarafgir Adj None
 taraftar taraftar Noun None
@@ -54149,6 +54189,7 @@ tecimer tecimer Noun ProperNoun ProperNoun
 tecimevi tecimevi Noun None
 tecmil tecmil Noun ProperNoun ProperNoun
 tecrit tecrit Noun None Voicing
+tecrit tecrit Noun None NoVoicing Nonstandard idx=1
 tecrübe tecrübe Noun None
 tecrübi tecrübi Noun None display=tecrübî
 tecvit tecvit Noun None NoVoicing
@@ -54161,6 +54202,7 @@ tedahül tedahül Noun None
 tedai tedai Noun None
 tedak tedak Noun ProperNoun ProperNoun
 tedarik tedarik Noun None NoVoicing
+tedarik tedarik Noun None Nonstandard Voicing idx=1
 tedariklemek tedarikle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 tedavi tedavi Noun None
 tedavül tedavül Noun None
@@ -54247,6 +54289,7 @@ tehalüf tehalüf Noun None
 tehalük tehalük Noun None Voicing
 tehcir tehcir Noun None
 tehdit tehdit Noun None Voicing
+tehdit tehdit Noun None NoVoicing Nonstandard idx=1
 tehditkar tehditkar Adj None display=tehditkâr
 tehemten tehemten Noun ProperNoun ProperNoun
 tehevvür tehevvür Noun None
@@ -54592,6 +54635,7 @@ temer temer Noun ProperNoun ProperNoun
 temerküz temerküz Noun None
 temerrüd temerrüd Noun ProperNoun ProperNoun
 temerrüt temerrüt Noun None Voicing
+temerrüt temerrüt Noun None NoVoicing Nonstandard idx=1
 temessül temessül Noun None
 temettü temettü Noun None
 temevvüç temevvüç Noun None Voicing
@@ -54822,6 +54866,7 @@ terebentin terebentin Noun None
 tereci tereci Noun None
 tereddi tereddi Noun None
 tereddüt tereddüt Noun None Voicing
+tereddüt tereddüt Noun None NoVoicing Nonstandard idx=1
 terek terek Noun None Voicing
 tereke tereke Noun None
 terekküp terekküp Noun None Voicing
@@ -55206,6 +55251,7 @@ teşrinievvel teşrinievvel Noun None
 teşrinisani teşrinisani Noun None
 teşt teşt Noun None NoVoicing
 teşvik teşvik Noun None NoVoicing
+teşvik teşvik Noun None Nonstandard Voicing idx=1
 teşvikiye teşvikiye Noun ProperNoun ProperNoun
 teşvikkar teşvikkar Noun None display=teşvikkâr
 teşviş teşviş Noun None
@@ -57688,6 +57734,7 @@ usturuplu usturuplu Adj None
 usturuplu usturuplu Adv None
 usul usul Adv None InverseHarmony
 usul usul Noun None InverseHarmony
+usul usul Noun None Nonstandard idx=1
 usulca usulca Adv None
 usulcacık usulcacık Adv None
 usuldan usuldan Adv None
@@ -58641,6 +58688,7 @@ vesaik vesaik Noun None InverseHarmony
 vesair vesair Adj None
 vesaire vesaire Noun None
 vesait vesait Noun None Voicing
+vesait vesait Noun None NoVoicing Nonstandard idx=1
 vesaitinakliye vesaitinakliye Noun None
 vesamet vesamet Noun ProperNoun ProperNoun
 vesayet vesayet Noun None NoVoicing
@@ -58824,6 +58872,7 @@ vintage vintage Noun ProperNoun ProperNoun
 vinter vinter Noun None
 vinyet vinyet Noun None NoVoicing
 vinç vinç Noun None Voicing
+vinç vinç Noun None NoVoicing Nonstandard idx=1
 viola viola Noun ProperNoun ProperNoun
 violet violet Noun ProperNoun ProperNoun
 violetta violetta Noun ProperNoun ProperNoun
@@ -65458,6 +65507,7 @@ zıypak zıypak Adj None Voicing
 şahıgül şahıgül Noun ProperNoun ProperNoun
 şahım şahım Noun None VowelDrop
 şahıs şahıs Noun None VowelDrop
+şahıs şahıs Noun None Nonstandard idx=1
 şaibe şaibe Noun None
 şaik şaik Noun ProperNoun ProperNoun
 şair şair Adj None

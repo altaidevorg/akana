@@ -66,7 +66,7 @@ DEFAULT_RESOURCES = [
     "person-names.dict",
 ]
 CURATED_NAMES = {"proper.dict", "abbreviations.dict", "person-names.dict"}
-SUPPLEMENTS = ["akana-legal.dict", "akana-extra.dict"]
+SUPPLEMENTS = ["akana-legal.dict", "akana-extra.dict", "akana-variants.dict"]
 REMOVALS = "akana-remove.dict"
 
 # Zemberek primary POS short forms -> akana loader names.

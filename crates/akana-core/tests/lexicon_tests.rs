@@ -172,6 +172,33 @@ fn old_orthography_reads_as_nonstandard_with_the_modern_lemma() {
 }
 
 #[test]
+fn usage_variants_of_alternations_read_as_nonstandard() {
+    // Plan step D5: second stems with one alternation flipped (akana-variants.dict).
+    let morph = TurkishMorphology::new();
+    for (variant, standard, lemma) in [
+        ("temerrüte", "temerrüde", "temerrüt"),
+        ("gaspı", "gasbı", "gasp"),
+        ("fuhuşa", "fuhşa", "fuhuş"),
+        ("hakında", "hakkında", "hak"),
+    ] {
+        let parses = morph.analyze(variant);
+        assert_eq!(
+            parses.first().map(|p| p.lemma.as_str()),
+            Some(lemma),
+            "{variant}"
+        );
+        assert!(parses.iter().all(|p| p.nonstandard), "{variant}");
+        assert!(morph.analyze_standard(variant).is_empty(), "{variant}");
+        // The standard spelling reads as before, and first.
+        let standard = morph.analyze(standard);
+        assert!(
+            !standard.is_empty() && !standard[0].nonstandard,
+            "{standard:?}"
+        );
+    }
+}
+
+#[test]
 fn abbreviations_are_not_common_nouns() {
     // Zemberek's `K [P:Abbrv]` became the common noun `k`, so `ki` read as k-ı (Acc).
     let morph = TurkishMorphology::new();
