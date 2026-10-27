@@ -207,5 +207,9 @@ bitflags::bitflags! {
         /// "that he could not find"), which the corpus counts cannot tell apart (akana's
         /// attribute)
         const RARE = 1 << 25;
+        /// A second stem of an item with the alternation TDK does not write, which usage
+        /// does (temerrüte for temerrüde, gaspı for gasbı): it keeps the item's lemma, yields
+        /// to a standard reading, and its readings are `nonstandard` (akana's attribute)
+        const NONSTANDARD = 1 << 26;
     }
 }

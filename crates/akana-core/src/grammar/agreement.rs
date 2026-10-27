@@ -264,7 +264,7 @@ impl AgreementRuleEngine {
                 .replace("mez", "r")
                 .replace("maz", "r");
             let positive = morphology
-                .analyze(&fixed)
+                .analyze_standard(&fixed)
                 .iter()
                 .any(|p| is_verb(p) && !has_tag(p, "Neg"));
             if fixed == lower || !positive {

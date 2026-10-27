@@ -268,6 +268,7 @@ impl PyMorphology {
             dict.set_item("formatted", p.formatted)?;
             dict.set_item("analysis", p.analysis)?;
             dict.set_item("score", p.score)?;
+            dict.set_item("nonstandard", p.nonstandard)?;
             list.append(dict)?;
         }
         Ok(list)
@@ -413,6 +414,7 @@ impl PyDisambiguator {
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;
             dict.set_item("analysis", p.analysis)?;
+            dict.set_item("nonstandard", p.nonstandard)?;
             list.append(dict)?;
         }
         Ok(list)

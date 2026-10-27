@@ -60,9 +60,9 @@ fn misspelling_of(
     root: &str,
     pos: Option<PrimaryPos>,
 ) -> bool {
-    morphology.analyze(lower).is_empty()
+    morphology.analyze_standard(lower).is_empty()
         && morphology
-            .analyze(fixed)
+            .analyze_standard(fixed)
             .iter()
             .any(|p: &MorphParse| p.root == root && pos.is_none_or(|pos| p.primary_pos == pos))
 }
@@ -252,7 +252,7 @@ impl PhonologicalRuleEngine {
                     if ending.starts_with('a') { "a" } else { "e" }
                 );
                 if morphology
-                    .analyze(&verb_root)
+                    .analyze_standard(&verb_root)
                     .iter()
                     .any(|p| p.primary_pos == crate::morphology::pos::PrimaryPos::Verb)
                 {
@@ -310,9 +310,9 @@ impl PhonologicalRuleEngine {
                 let fixed_lower = format!("{stem}{corrected}");
                 // a verb form: not the nouns and numerals that end alike (ekonomiye, yevmiye,
                 // yirmiye, ikramiye), and the corrected form is a word
-                let parses = morphology.analyze(lower);
+                let parses = morphology.analyze_standard(lower);
                 if parses.iter().any(|p| p.primary_pos != PrimaryPos::Verb)
-                    || morphology.analyze(&fixed_lower).is_empty()
+                    || morphology.analyze_standard(&fixed_lower).is_empty()
                 {
                     continue;
                 }
@@ -446,7 +446,7 @@ impl PhonologicalRuleEngine {
     ) {
         // Only check words unrecognized by morphology (potential harmony typo), and not a
         // name or abbreviation with a suffix after an apostrophe (SoC'ler, Beat'ler)
-        if lower.contains(['\'', '’']) || !morphology.analyze(lower).is_empty() {
+        if lower.contains(['\'', '’']) || !morphology.analyze_standard(lower).is_empty() {
             return;
         }
 
@@ -458,7 +458,7 @@ impl PhonologicalRuleEngine {
                 let current_pl = &lower[lower.len() - 3..];
                 if current_pl != expected_pl {
                     let fixed_lower = format!("{stem}{expected_pl}");
-                    if !morphology.analyze(&fixed_lower).is_empty() {
+                    if !morphology.analyze_standard(&fixed_lower).is_empty() {
                         let replacement = match_case(original, &fixed_lower);
                         findings.push(GrammarFinding::new(
                             GrammarRule::PluralHarmony,

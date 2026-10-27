@@ -64,6 +64,11 @@ def test_morphology_analysis():
     assert name["analysis"] == "[Ankara:Noun,Prop] ankara:Noun+A3sg+dan:Abl"
     paper = morph.analyze("kâğıdı")[0]
     assert (paper["lemma"], paper["display_lemma"]) == ("kağıt", "kâğıt")
+    assert paper["nonstandard"] is False
+
+    # Old orthography reads with the modern lemma, marked as no standard spelling.
+    old = morph.analyze("karariyle")[0]
+    assert (old["lemma"], old["nonstandard"]) == ("karar", True)
 
     # A participle reads as a noun ("that it is") and as an adjective ("which it is"): the
     # same akana tags, told apart by pos and the Zemberek analysis.

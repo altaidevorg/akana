@@ -142,6 +142,36 @@ fn a_latin_i_reads_as_i_where_the_turkish_reading_finds_no_word() {
 }
 
 #[test]
+fn old_orthography_reads_as_nonstandard_with_the_modern_lemma() {
+    // Plan step D5: -iyle, a or e narrowed before y, -mAğA. Search finds the lemma; spelling
+    // checks see no correct word.
+    let morph = TurkishMorphology::new();
+    for (word, lemma) in [
+        ("karariyle", "karar"),
+        ("maksadiyle", "maksat"),
+        ("olmıyan", "olmak"),
+        ("sağlıyacak", "sağlamak"),
+        ("vermeğe", "vermek"),
+    ] {
+        let parses = morph.analyze(word);
+        assert_eq!(
+            parses.first().map(|p| p.lemma.as_str()),
+            Some(lemma),
+            "{word}"
+        );
+        assert!(
+            parses.iter().all(|p| p.nonstandard && p.score <= 0.5),
+            "{word}"
+        );
+        assert!(morph.analyze_standard(word).is_empty(), "{word}");
+    }
+    // An acute accent folds like a circumflex, and the modern forms stay standard.
+    for word in ["hálá", "káğıt", "eviyle", "damağa"] {
+        assert!(!morph.analyze_standard(word).is_empty(), "{word}");
+    }
+}
+
+#[test]
 fn abbreviations_are_not_common_nouns() {
     // Zemberek's `K [P:Abbrv]` became the common noun `k`, so `ki` read as k-ı (Acc).
     let morph = TurkishMorphology::new();

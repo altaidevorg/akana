@@ -17,6 +17,11 @@ use unicode_normalization::UnicodeNormalization;
 /// The marks written for an apostrophe (Ankara’ya, Ankara`ya); input folds them to `'`.
 const APOSTROPHES: [char; 7] = ['\'', '’', '‘', 'ʼ', '`', '´', '′'];
 
+/// The spelling factor of a nonstandard reading ([`MorphParse::nonstandard`]), and its log in
+/// rank units (ln 0.5 / ln 1.02 * 16).
+const NONSTANDARD_FACTOR: f32 = 0.5;
+const NONSTANDARD_UNITS: i32 = -560;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MorphemeData {
     pub name: String,
@@ -53,6 +58,13 @@ pub struct MorphParse {
     /// under the corpus prior, so a word's scores sum to at most 1 and an unambiguous word's is
     /// its factor. Analyses come sorted by it.
     pub score: f32,
+    /// Whether the reading is of a spelling usage has but TDK does not: an alternation left
+    /// out or applied against the dictionary (temerrüte, gaspı) or old orthography
+    /// (karariyle, olmıyan, vermeğe). It keeps the standard lemma, so search finds the word,
+    /// but it is no correct spelling: the spell checker, the grammar rules and the
+    /// deasciifier count only standard readings.
+    #[serde(default)]
+    pub nonstandard: bool,
     /// The morphotactic path the reading took, which the syntactic analyzer splits into
     /// inflectional groups. Empty for a reading the analyzer did not make.
     #[serde(skip)]
@@ -329,7 +341,8 @@ pub const LEXICAL_PREFERENCE: f32 = 0.001;
 ///   word of its own); between a verb and the voice derivation of another verb, the verb wins
 ///   when it is `Lexicalized` (katılmak "join"), the derivation when it is `NotLexicalized`
 ///   (alınmak, whose forms are al-ın "be taken"), and with neither the prior decides;
-/// - a `Rare` item (bulamak "smear") yields to any other reading of the word (bul-ama-dığı).
+/// - a `Rare` item (bulamak "smear") yields to any other reading of the word (bul-ama-dığı);
+/// - a `Nonstandard` stem's reading yields to any standard reading of the word.
 pub fn prior_yields(p: &MorphParse) -> bool {
     p.yields
 }
@@ -846,6 +859,15 @@ impl TurkishMorphology {
         parses
     }
 
+    /// The readings of a word as TDK spells it: [`analyze`](Self::analyze) without the
+    /// [`nonstandard`](MorphParse::nonstandard) ones. What the spell checker, the grammar rules
+    /// and the deasciifier judge a spelling by.
+    pub fn analyze_standard(&self, word: &str) -> Vec<MorphParse> {
+        let mut parses = self.analyze(word);
+        parses.retain(|p| !p.nonstandard);
+        parses
+    }
+
     pub(super) fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
         let parses = self.analyze_written(word);
         // Text typed without the Turkish keyboard writes İ as I (KITAPLAR, INSAN, Internet), and
@@ -906,13 +928,21 @@ impl TurkishMorphology {
             };
         let clean: &str = &composed;
         // Lexicon roots carry no circumflex (nikâh -> nikah), as in Zemberek's
-        // normalizeForAnalysis; every apostrophe-like mark is an apostrophe.
+        // normalizeForAnalysis, nor the acute accent some texts write for it (hálá,
+        // muhafazakár); in a word written with a capital, an acute accent is a foreign name's
+        // (José, Pará, which is no para). Every apostrophe-like mark is an apostrophe.
+        let acute = !clean.starts_with(char::is_uppercase);
         let lower: String = super::super::phonology::to_turkish_lower(clean)
             .chars()
             .map(|c| match c {
                 'â' => 'a',
                 'î' => 'i',
                 'û' => 'u',
+                'á' if acute => 'a',
+                'í' if acute => 'i',
+                'ú' if acute => 'u',
+                'é' if acute => 'e',
+                'ó' if acute => 'o',
                 c if APOSTROPHES.contains(&c) => '\'',
                 _ => c,
             })
@@ -959,6 +989,9 @@ impl TurkishMorphology {
                 }
                 if parses.is_empty() {
                     parses = self.analyze_joined_numeral(clean, &word);
+                }
+                if parses.is_empty() {
+                    parses = self.analyze_old_orthography(clean, &word);
                 }
                 // A letter, as a list's marker (i, ü, l, x, ğ), that the lexicon lacks: the
                 // letter, by its name.
@@ -1283,6 +1316,49 @@ impl TurkishMorphology {
         finish(results)
     }
 
+    /// A word in the orthography of older texts, which TDK no longer writes, read as the modern
+    /// spelling with its readings `nonstandard`: -iyle for -(y)lA whatever the harmony
+    /// (karariyle, dolayısiyle: kararıyla, dolayısıyla); a or e narrowed before y outside
+    /// -yor (olmıyan, sağlıyacak, edilmiyecek: olmayan, sağlayacak, edilmeyecek); -mAğA for
+    /// -mAyA (vermeğe, açmağa, yapmağı: vermeye, açmaya, yapmayı).
+    fn analyze_old_orthography(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
+        let mut modern: Vec<String> = Vec::new();
+        if let Some(i) = lower.rfind("iyle").or_else(|| lower.rfind("iyla")) {
+            for ending in ["ıyla", "uyla", "üyle", "iyle"] {
+                modern.push(format!(
+                    "{}{ending}{}",
+                    &lower[..i],
+                    &lower[i + "iyle".len()..]
+                ));
+            }
+        }
+        for (old, new) in [
+            ("ıya", "aya"),
+            ("iye", "eye"),
+            ("mağ", "may"),
+            ("meğ", "mey"),
+        ] {
+            if let Some(i) = lower.rfind(old) {
+                let rest = &lower[i + old.len()..];
+                if !old.starts_with('m') || rest.starts_with(super::phonetics::is_vowel) {
+                    modern.push(format!("{}{new}{rest}", &lower[..i]));
+                }
+            }
+        }
+        let mut parses: Vec<MorphParse> = Vec::new();
+        for word in modern.iter().filter(|w| w.as_str() != lower) {
+            for mut p in self.analyze_normalized(clean, word, false) {
+                if !parses.iter().any(|q| q.formatted == p.formatted) {
+                    p.nonstandard = true;
+                    p.score *= NONSTANDARD_FACTOR;
+                    p.rank += NONSTANDARD_UNITS;
+                    parses.push(p);
+                }
+            }
+        }
+        parses
+    }
+
     /// A numeral written as one word (onbeş, yirmidört, beşbin, onüçüncü, onar), as court
     /// decisions often write it: the readings of its last number word, with the whole numeral
     /// as root and lemma, where the words before it and that word make a number as it is read
@@ -1517,6 +1593,11 @@ impl TurkishMorphology {
         if rare.len() < results.len() - first {
             for i in rare {
                 results[i].yields = true;
+            }
+        }
+        if results[first..].iter().any(|p| !p.nonstandard) {
+            for p in &mut results[first..] {
+                p.yields |= p.nonstandard;
             }
         }
     }
@@ -1981,6 +2062,13 @@ pub(super) fn render(
     } else {
         (0.95, -41)
     };
+    // A spelling TDK does not write counts half.
+    let nonstandard = item.attributes.contains(RootAttr::NONSTANDARD);
+    let (score, rank) = if nonstandard {
+        (score * NONSTANDARD_FACTOR, rank + NONSTANDARD_UNITS)
+    } else {
+        (score, rank)
+    };
     MorphParse {
         surface: original.to_string(),
         lemma: item.lemma.clone(),
@@ -1990,6 +2078,7 @@ pub(super) fn render(
         secondary_pos: item.secondary_pos,
         morpheme_tags: tags.into_iter().map(str::to_string).collect(),
         formatted,
+        nonstandard,
         analysis: zemberek_analysis(graph, item, stem, steps, input),
         score,
         yields: false,

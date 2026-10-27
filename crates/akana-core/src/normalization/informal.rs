@@ -58,7 +58,7 @@ impl TurkishInformalNormalizer {
         if count >= 2 {
             let single_chars = Self::reduce_all_consecutive_duplicates(word);
             if !GLOBAL_MORPHOLOGY
-                .analyze(&to_turkish_lower(&single_chars))
+                .analyze_standard(&to_turkish_lower(&single_chars))
                 .is_empty()
             {
                 return single_chars;
@@ -191,7 +191,7 @@ impl TurkishInformalNormalizer {
                     format!("{stem}{buffer}{harmonic_c}{suffix}")
                 };
 
-                if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
+                if !GLOBAL_MORPHOLOGY.analyze_standard(&candidate).is_empty() {
                     return candidate;
                 }
             }
@@ -211,7 +211,7 @@ impl TurkishInformalNormalizer {
             if lower.ends_with(end) && lower.len() > end.len() {
                 let stem = &lower[..lower.len() - end.len()];
                 let candidate = format!("{stem}{repl}");
-                if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
+                if !GLOBAL_MORPHOLOGY.analyze_standard(&candidate).is_empty() {
                     return candidate;
                 }
             }
@@ -229,7 +229,7 @@ impl TurkishInformalNormalizer {
             if lower.ends_with(end) && lower.len() > end.len() {
                 let stem = &lower[..lower.len() - end.len()];
                 let candidate = format!("{stem}{repl}");
-                if !GLOBAL_MORPHOLOGY.analyze(&candidate).is_empty() {
+                if !GLOBAL_MORPHOLOGY.analyze_standard(&candidate).is_empty() {
                     return candidate;
                 }
             }

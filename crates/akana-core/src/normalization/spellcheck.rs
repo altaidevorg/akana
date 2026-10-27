@@ -79,14 +79,15 @@ impl TurkishSpellChecker {
         }
     }
 
-    /// Checks if a word is correctly spelled (either in root dictionary or recognized by morphological analyzer).
+    /// Checks if a word is correctly spelled: in the vocabulary, or read by the morphological
+    /// analyzer as TDK spells it (a nonstandard reading, temerrüte or olmıyan, is no spelling).
     #[inline]
     pub fn is_correct(&self, word: &str) -> bool {
         let lower = super::super::phonology::to_turkish_lower(word);
         if self.vocabulary.words.contains(&lower) {
             return true;
         }
-        !self.morphology.analyze(&lower).is_empty()
+        !self.morphology.analyze_standard(&lower).is_empty()
     }
 
     /// Suggests correctly spelled words using StringZilla SIMD-accelerated edit distance.

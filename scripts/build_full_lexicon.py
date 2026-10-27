@@ -132,6 +132,7 @@ ATTRIBUTES = {
     "Lexicalized": "Lexicalized",
     "NotLexicalized": "NotLexicalized",
     "Rare": "Rare",
+    "Nonstandard": "Nonstandard",
 }
 
 VOWELS = set("aeıioöuüâîû")

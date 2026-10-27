@@ -50,6 +50,12 @@ lemmas against stems should match `root`.
 - `display_lemma` gives the dictionary's spelling of the lemma: `Ankara`, `kâğıt`, `Hakkâri`,
   `e-posta`. `analysis` uses it, as Zemberek does (`[Ankara:Noun,Prop] ankara:Noun+A3sg`).
   `lemma` stays the folded, lower-case key (`ankara`, `kağıt`) that sparse terms use.
+- Spellings that usage has but TDK does not, such as old orthography (`karariyle`,
+  `olmıyan`, `vermeğe`), read with the modern lemma (`karar`, `olmak`, `vermek`), at half the
+  score, with the new key `nonstandard` set. The spell checker, the grammar rules and the
+  deasciifier ignore such readings: `kitapı` and `olmıyan` are still misspellings to them.
+  `Morphology.analyze` returns them; code that judges spellings should skip them, as
+  `TurkishMorphology::analyze_standard` does in Rust.
 
 **Syntactic morphology.** `SyntacticMorphology` and `syntactic_analyze` report UD features:
 `Number`, `Person`, `Number[psor]`, `Person[psor]` and `VerbForm`, where 0.8.0 had
@@ -82,8 +88,9 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
 - The `morphology::graph` and `morphology::suffixes` modules (`MorphState`,
   `SuffixTransition`, `SuffixType`, `TurkishMorphotactics::transitions()`) are replaced by the
   new morphotactic graph.
-- `MorphParse` has the new field `analysis` (`#[serde(default)]`) and the method
-  `display_lemma()`.
+- `MorphParse` has the new fields `analysis` and `nonstandard` (both `#[serde(default)]`)
+  and the method `display_lemma()`; `TurkishMorphology::analyze_standard` returns the readings
+  without the nonstandard ones.
 
 **Other outputs that changed with the analyzer.** `stem`, `extract_keywords`, the
 readability metrics (Kalyoncu word lists and grade), and PII masks (leak fixes) give
@@ -95,8 +102,9 @@ different results.
   (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
   `compatibility`). Their fingerprints hash the embedded resources, the encoders' constants
   and the analyses of a probe set.
-- `MorphParse::analysis` and `MorphParse::display_lemma()`, and the Python keys `analysis`,
-  `pos` and `display_lemma`.
+- `MorphParse::analysis`, `MorphParse::nonstandard`, `MorphParse::display_lemma()` and
+  `TurkishMorphology::analyze_standard`, and the Python keys `analysis`, `pos`,
+  `display_lemma` and `nonstandard`.
 - Grammar rule selection (`rules`, `enable`, `disable`, `experimental`) and `grammar_rules()`.
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
   Zemberek dictionaries and morphotactics (Apache 2.0) and the UD-derived function-lemma table

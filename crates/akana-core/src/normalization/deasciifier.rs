@@ -97,7 +97,7 @@ impl TurkishDeasciifier {
         }
 
         // Check if the word as-is is already a valid Turkish word
-        let direct_parses = GLOBAL_MORPHOLOGY.analyze(&lower);
+        let direct_parses = GLOBAL_MORPHOLOGY.analyze_standard(&lower);
 
         // Find candidate letter substitutions: c->ç, g->ğ, s->ş, o->ö, u->ü, i->ı
         let mut ambiguous_positions: Vec<(usize, Vec<char>)> = Vec::new();
@@ -145,7 +145,7 @@ impl TurkishDeasciifier {
             if cand == lower && !direct_parses.is_empty() {
                 continue;
             }
-            let parses = GLOBAL_MORPHOLOGY.analyze(&cand);
+            let parses = GLOBAL_MORPHOLOGY.analyze_standard(&cand);
             if !parses.is_empty() {
                 let diacritic_count = cand
                     .chars()

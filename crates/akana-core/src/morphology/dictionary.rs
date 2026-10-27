@@ -231,6 +231,7 @@ fn attribute_by_name(name: &str) -> Option<RootAttr> {
         "lexicalized" => RootAttr::LEXICALIZED,
         "notlexicalized" => RootAttr::NOT_LEXICALIZED,
         "rare" => RootAttr::RARE,
+        "nonstandard" => RootAttr::NONSTANDARD,
         "propernoun" => RootAttr::PROPER_NOUN,
         _ => return None,
     })

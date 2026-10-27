@@ -24,7 +24,7 @@ use crate::phonology::{
 /// clitic off a word fire only on a word it does not know: "hükmü", "yetki" and "kararda"
 /// end like a merged particle but are words.
 pub(crate) fn is_known(morphology: &TurkishMorphology, lower: &str) -> bool {
-    !morphology.analyze(lower).is_empty()
+    !morphology.analyze_standard(lower).is_empty()
 }
 
 /// Whether `lower` reads as a finite verb (gitti, yapar, gelmiş, bilse): a verb after its
@@ -32,7 +32,7 @@ pub(crate) fn is_known(morphology: &TurkishMorphology, lower: &str) -> bool {
 /// deverbal noun (sözleşme, yetki) and participle (bulunduğun) has a verb root.
 fn is_finite_verb(morphology: &TurkishMorphology, lower: &str) -> bool {
     const FINITE: [&str; 8] = ["Past", "Prog", "Aor", "Fut", "Evid", "Cond", "Opt", "Nec"];
-    morphology.analyze(lower).iter().any(|p| {
+    morphology.analyze_standard(lower).iter().any(|p| {
         p.pos == PrimaryPos::Verb && p.morpheme_tags.iter().any(|t| FINITE.contains(&t.as_str()))
     })
 }
@@ -43,7 +43,7 @@ fn is_finite_verb(morphology: &TurkishMorphology, lower: &str) -> bool {
 /// read into a lower-case word ("saudade" is no Saud-a-de).
 fn is_case_marked(morphology: &TurkishMorphology, lower: &str) -> bool {
     const CASES: [&str; 5] = ["Acc", "Dat", "Gen", "Abl", "Ins"];
-    morphology.analyze(lower).iter().any(|p| {
+    morphology.analyze_standard(lower).iter().any(|p| {
         !matches!(
             p.secondary_pos,
             SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
@@ -884,7 +884,7 @@ impl OrthographyRuleEngine {
                 && prev_lower != "bile"
                 && lower != "bile"
                 && morphology
-                    .analyze(&format!("{prev_lower}{lower}"))
+                    .analyze_standard(&format!("{prev_lower}{lower}"))
                     .iter()
                     .any(|p| p.morpheme_tags.iter().any(|t| t == "Abil"))
             {
@@ -926,13 +926,13 @@ impl OrthographyRuleEngine {
             // kurallar"), not in "bir takım gönderip", "baskın bir takım hâline geldi"
             let plural = |t: &str| {
                 morphology
-                    .analyze(t)
+                    .analyze_standard(t)
                     .iter()
                     .any(|p| p.morpheme_tags.iter().any(|t| t == "A3pl"))
             };
             let nominal = |t: &str| {
                 morphology
-                    .analyze(t)
+                    .analyze_standard(t)
                     .iter()
                     .any(|p| matches!(p.pos, PrimaryPos::Noun | PrimaryPos::Adj))
             };

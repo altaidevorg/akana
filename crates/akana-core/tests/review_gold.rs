@@ -297,7 +297,9 @@ fn zemberek_tests_keep_their_known_failures() {
                     if mode == "full" && dict.iter().any(|d| d == "DEFAULT" || d == "EMPTY") {
                         continue;
                     }
-                    let parses = m.analyze(word);
+                    // Zemberek's expectations are of standard spellings: a nonstandard
+                    // reading (okumağı) neither passes nor counts.
+                    let parses = m.analyze_standard(word);
                     let own: Vec<&MorphParse> = parses
                         .iter()
                         .filter(|p| mode == "tiny" || lemmas.contains(&p.lemma))
@@ -379,7 +381,8 @@ fn paradigm_lists_keep_their_known_failures() {
         }
         let cols: Vec<&str> = line.split('\t').collect();
         let (kind, word) = (cols[0], cols[1]);
-        let parses = morphology.analyze(word);
+        // The lists judge spellings: a nonstandard reading (temerrüte) does not count.
+        let parses = morphology.analyze_standard(word);
         let has = |lemma: &str, tail: &str| {
             parses.iter().any(|p| {
                 (lemma == "*" || p.lemma == lemma || p.display_lemma() == lemma)

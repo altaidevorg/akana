@@ -70,8 +70,10 @@ fn current_failures() -> BTreeSet<String> {
         let [word, root, tags] = fields[..] else {
             panic!("malformed paradigms.tsv line: {line:?}");
         };
+        // A paradigm's form is a correct spelling: a nonstandard reading does not count, nor
+        // does one for a misspelling to reject.
         let found = morphology
-            .analyze(word)
+            .analyze_standard(word)
             .iter()
             .any(|p| p.root == root && p.morpheme_tags.join("+") == tags);
         if !found {
@@ -98,7 +100,7 @@ fn current_failures() -> BTreeSet<String> {
         }
     }
     for word in data_lines(REJECT) {
-        if !morphology.analyze(word).is_empty() {
+        if !morphology.analyze_standard(word).is_empty() {
             failures.insert(format!("reject\t{word}"));
         }
     }
