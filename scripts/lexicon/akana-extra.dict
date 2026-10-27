@@ -151,7 +151,7 @@ erkeksi [P:Adj]
 insansı [P:Adj]
 koronavirüs
 kovid
-COVID [P:Abbrv; Pr:kovid]
+COVID [P:Abbrv; Pr:kovid; Ref:kovid]
 PCR [P:Abbrv]
 NFT [P:Abbrv]
 SİHA [P:Abbrv; Pr:siha]

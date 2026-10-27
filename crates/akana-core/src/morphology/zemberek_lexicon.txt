@@ -963,6 +963,7 @@ aida aida Noun Abbrv pr=aida
 aidat aidat Noun None NoVoicing
 aidiyet aidiyet Noun None NoVoicing
 aids aids Noun Abbrv pr=aidese
+aids aids Noun Abbrv pr=aıdese display=AIDS
 aiesec aiesec Noun ProperNoun ProperNoun
 aifd aifd Noun Abbrv pr=aifede
 aigk aigk Noun Abbrv pr=aigeka
@@ -5172,8 +5173,6 @@ ağızlamak ağızla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 ağızotu ağızotu Noun None
 ağızsıl ağızsıl Adj None
 aıba aıba Noun ProperNoun ProperNoun
-aıds aıds Noun Abbrv pr=aıdese
-aıhm aıhm Noun Abbrv pr=aiheme
 aıpac aıpac Noun ProperNoun ProperNoun
 aş aş Noun Abbrv pr=aşe
 aş aş Noun None NoVoicing
@@ -11134,6 +11133,8 @@ churkin churkin Noun ProperNoun ProperNoun
 chıcago chıcago Noun ProperNoun ProperNoun
 chıp chıp Noun ProperNoun NoVoicing ProperNoun
 ci ci Noun Abbrv pr=cei
+ci ci Noun Abbrv pr=ceı display=CI
+cia cia Noun Abbrv pr=siyayey display=CIA
 ciabao ciabao Noun ProperNoun ProperNoun
 ciampi ciampi Noun ProperNoun ProperNoun
 ciao ciao Noun ProperNoun ProperNoun
@@ -11788,7 +11789,6 @@ covent covent Noun ProperNoun ProperNoun
 coventry coventry Noun ProperNoun ProperNoun
 cover cover Noun ProperNoun ProperNoun
 covington covington Noun ProperNoun ProperNoun
-covıd covıd Noun Abbrv pr=kovid
 cowboys cowboys Noun ProperNoun ProperNoun
 cowell cowell Noun ProperNoun ProperNoun
 cowen cowen Noun ProperNoun ProperNoun
@@ -11812,7 +11812,7 @@ coşkunyürek coşkunyürek Noun ProperNoun ProperNoun
 coşkunöz coşkunöz Noun ProperNoun ProperNoun
 coşmak coş Verb None AoristA
 coşuntu coşuntu Noun None
-cpmıec cpmıec Noun Abbrv pr=cepemeıece
+cpmiec cpmiec Noun Abbrv pr=cepemeıece display=CPMIEC
 cpt cpt Noun Abbrv pr=cepete
 cpu cpu Noun Abbrv pr=sipiyu
 cr cr Noun Abbrv pr=cere
@@ -12072,8 +12072,6 @@ cüzam cüzam Noun None
 cüzdan cüzdan Noun None
 cüzi cüzi Adj None
 cüzzam cüzzam Noun None
-cı cı Noun Abbrv pr=ceı
-cıa cıa Noun Abbrv pr=siyayey
 cıbıl cıbıl Adj None
 cıbıldak cıbıldak Adj None Voicing
 cıbıltepe cıbıltepe Noun ProperNoun ProperNoun
@@ -16382,6 +16380,7 @@ emevi emevi Noun None
 emevi emevi Noun ProperNoun ProperNoun
 emeç emeç Noun None Voicing
 emeç emeç Noun ProperNoun ProperNoun
+emi emi Noun Abbrv pr=emi display=EMI
 emie emie Noun ProperNoun ProperNoun
 emik emik Noun None Voicing
 emilia emilia Noun ProperNoun ProperNoun
@@ -16485,7 +16484,6 @@ emzik emzik Noun None Voicing
 emzikli emzikli Adj None
 emzirmek emzir Verb None AoristI CausativeT
 emülsiyon emülsiyon Noun None
-emı emı Noun Abbrv pr=emı
 emıtt emıtt Noun ProperNoun ProperNoun
 en en Adv None
 en en Noun None NoVoicing
@@ -18490,8 +18488,8 @@ faşizan faşizan Adj None
 faşizm faşizm Noun None
 faşır faşır Dup None
 fb fb Noun Abbrv pr=febe
+fbi fbi Noun Abbrv pr=febeı display=FBI
 fbtv fbtv Noun Abbrv pr=febeteve
-fbı fbı Noun Abbrv pr=febeı
 fda fda Noun Abbrv pr=fedea
 fdp fdp Noun Abbrv pr=fedepe
 fdt fdt Noun Abbrv pr=fedete
@@ -18843,7 +18841,9 @@ feşmekan feşmekan Dup None
 feşmekan feşmekan Noun None display=feşmekân
 fhkc fhkc Noun Abbrv pr=fehekece
 fi fi Noun None NoVoicing
+fia fia Noun Abbrv pr=fia display=FIA
 fiat fiat Noun ProperNoun ProperNoun
+fiba fiba Noun Abbrv pr=fiba display=FIBA
 fibabanka fibabanka Noun ProperNoun ProperNoun
 fiber fiber Noun None
 fiberglas fiberglas Noun None
@@ -18855,8 +18855,10 @@ fibromiyalji fibromiyalji Noun None
 fibroz fibroz Noun None
 fico fico Noun ProperNoun ProperNoun
 fiction fiction Noun ProperNoun ProperNoun
+fida fida Noun Abbrv pr=fida display=FIDA
 fidan fidan Noun None
 fidansoy fidansoy Noun ProperNoun ProperNoun
+fide fide Noun Abbrv pr=fide display=FIDE
 fide fide Noun None
 fideizm fideizm Noun None
 fidel fidel Noun ProperNoun ProperNoun
@@ -18870,6 +18872,7 @@ fielding fielding Noun ProperNoun ProperNoun
 fields fields Noun ProperNoun ProperNoun
 fiennes fiennes Noun ProperNoun ProperNoun
 fiesta fiesta Noun ProperNoun ProperNoun
+fifa fifa Noun Abbrv pr=fifa display=FIFA
 fifi fifi Noun ProperNoun ProperNoun
 fifield fifield Noun ProperNoun ProperNoun
 fifre fifre Noun None
@@ -18910,6 +18913,7 @@ fiksing fiksing Noun ProperNoun ProperNoun
 fikstür fikstür Noun None
 fiktif fiktif Noun None
 fil fil Noun None NoVoicing
+fila fila Noun Abbrv pr=fila display=FILA
 filaman filaman Noun None display=filâman
 filament filament Noun None Voicing
 filament filament Noun ProperNoun ProperNoun
@@ -19087,6 +19091,7 @@ fistan fistan Noun None
 fisto fisto Adj None
 fisto fisto Noun None
 fistül fistül Noun None
+fisu fisu Noun Abbrv pr=fisu display=FISU
 fisu fisu Noun ProperNoun ProperNoun
 fisyon fisyon Noun None
 fit fit Noun None NoVoicing
@@ -19109,6 +19114,7 @@ fitre fitre Noun None
 fitz fitz Noun ProperNoun NoVoicing ProperNoun
 fitzgerald fitzgerald Noun ProperNoun ProperNoun
 fitzpatrick fitzpatrick Noun ProperNoun ProperNoun
+fivb fivb Noun Abbrv pr=feivebe display=FIVB
 five five Noun ProperNoun ProperNoun
 fiyaka fiyaka Noun None
 fiyapı fiyapı Noun ProperNoun ProperNoun
@@ -19785,11 +19791,6 @@ füzesavar füzesavar Noun None
 füzyometre füzyometre Noun None
 füzyon füzyon Noun None
 füzün füzün Noun ProperNoun ProperNoun
-fıa fıa Noun Abbrv pr=fıa
-fıba fıba Noun Abbrv pr=fiba
-fıda fıda Noun Abbrv pr=fida
-fıde fıde Noun Abbrv pr=fide
-fıfa fıfa Noun Abbrv pr=fifa
 fıkdan fıkdan Noun None
 fıkra fıkra Noun None
 fıkramak fıkra Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -19801,7 +19802,6 @@ fıkırdak fıkırdak Adj None Voicing
 fıkırdamak fıkırda Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 fıkırdaşmak fıkırdaş Verb None AoristI Reciprocal
 fıkırtı fıkırtı Noun None
-fıla fıla Noun Abbrv pr=fila
 fıldır fıldır Dup None
 fındık fındık Noun None Voicing
 fındık fındık Noun ProperNoun ProperNoun
@@ -19854,7 +19854,6 @@ fıstıki fıstıki Noun None display=fıstıkî
 fıstıklamak fıstıkla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 fıstıkoğlu fıstıkoğlu Noun ProperNoun ProperNoun
 fıstıkçamı fıstıkçamı Noun None CompoundP3sg roots=fıstık-çam
-fısu fısu Noun Abbrv pr=fisu
 fısıl fısıl Dup None
 fısıldamak fısılda Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 fısıldaşmak fısıldaş Verb None AoristI Reciprocal
@@ -19868,7 +19867,6 @@ fıtri fıtri Noun None display=fıtrî
 fıtriye fıtriye Noun None
 fıttırmak fıttır Verb None AoristI CausativeT
 fıtık fıtık Noun None Voicing
-fıvb fıvb Noun Abbrv pr=feivebe
 fıymak fıy Verb None AoristA
 fıçı fıçı Adj None
 fıçı fıçı Noun None
@@ -23999,7 +23997,7 @@ hbos hbos Noun ProperNoun NoVoicing ProperNoun
 hd hd Noun Abbrv pr=hede
 hdd hdd Noun Abbrv pr=hedede
 hdl hdl Noun Abbrv pr=hedele
-hdmı hdmı Noun Abbrv pr=eyçdiemay
+hdmi hdmi Noun Abbrv pr=eyçdiemay display=HDMI
 hdp hdp Noun Abbrv pr=hedepe
 hdr hdr Noun Abbrv pr=hedere
 hdtv hdtv Noun Abbrv pr=eyçditivi
@@ -24387,6 +24385,7 @@ hgk hgk Noun Abbrv pr=hegeka
 hgs hgs Noun Abbrv pr=hegese
 hh hh Noun Abbrv pr=hehe
 hi hi Noun Abbrv pr=hei
+hi hi Noun Abbrv pr=heı display=HI
 hibbert hibbert Noun ProperNoun ProperNoun
 hibe hibe Noun None
 hibetullah hibetullah Noun ProperNoun ProperNoun
@@ -24698,6 +24697,7 @@ hitman hitman Noun ProperNoun ProperNoun
 hito hito Noun ProperNoun ProperNoun
 hits hits Noun ProperNoun NoVoicing ProperNoun
 hitzfeld hitzfeld Noun ProperNoun ProperNoun
+hiv hiv Noun Abbrv NoVoicing pr=hiv display=HIV
 hiva hiva Noun ProperNoun ProperNoun
 hiyerarşi hiyerarşi Noun None
 hiyerarşik hiyerarşik Adj None Voicing
@@ -25408,7 +25408,6 @@ hüzzam hüzzam Noun None
 hüzzam hüzzam Noun ProperNoun ProperNoun
 hüzün hüzün Noun None VowelDrop
 hüzünlenmek hüzünlen Verb None AoristI
-hı hı Noun Abbrv pr=heı
 hıdiv hıdiv Noun None
 hıdrellez hıdrellez Noun None
 hıdır hıdır Noun ProperNoun ProperNoun
@@ -25474,7 +25473,6 @@ hırıldaşmak hırıldaş Verb None AoristI Reciprocal
 hırıltı hırıltı Noun None
 hırıstiyan hırıstiyan Noun ProperNoun ProperNoun
 hısım hısım Noun None VowelDrop
-hıv hıv Noun Abbrv NoVoicing pr=hıv
 hıyaban hıyaban Noun None
 hıyanet hıyanet Noun None NoVoicing
 hıyar hıyar Adj None
@@ -25515,6 +25513,7 @@ iab iab Noun Abbrv pr=iab
 iade iade Noun None
 iadeiitibar iadeiitibar Noun None
 iadeiziyaret iadeiziyaret Noun None Voicing
+ian ian Noun Abbrv pr=ian display=IAN
 iane iane Noun None
 iaosb iaosb Noun ProperNoun ProperNoun
 iare iare Noun None
@@ -25526,6 +25525,7 @@ ibadethane ibadethane Noun None
 ibadi ibadi Noun ProperNoun ProperNoun
 ibadullah ibadullah Noun None
 ibadullah ibadullah Noun ProperNoun ProperNoun
+iban iban Noun Abbrv pr=iban display=IBAN
 ibare ibare Noun None
 ibaret ibaret Adj None NoVoicing
 ibaret ibaret Noun None NoVoicing
@@ -25547,6 +25547,7 @@ ibk ibk Noun Abbrv pr=ibeka
 iblağ iblağ Noun None display=iblâğ
 iblis iblis Noun None
 iblisane iblisane Adj None
+ibm ibm Noun Abbrv pr=aybiem display=IBM
 ibn ibn Noun Abbrv pr=ibene
 ibne ibne Noun None
 ibnu ibnu Noun ProperNoun ProperNoun
@@ -25586,12 +25587,14 @@ ibrişim ibrişim Noun None
 ibsan ibsan Noun ProperNoun ProperNoun
 ibzal ibzal Noun None InverseHarmony
 ibşar ibşar Noun ProperNoun ProperNoun
+ic ic Noun Abbrv pr=ıce display=IC
 icab icab Noun ProperNoun ProperNoun
 icabet icabet Noun None NoVoicing
 icabet icabet Noun ProperNoun ProperNoun display=İcâbet
 icabi icabi Noun ProperNoun ProperNoun display=İcâbi
 icabında icabında Adv None
 icadiye icadiye Noun ProperNoun ProperNoun
+icao icao Noun Abbrv pr=icao display=ICAO
 icap icap Noun None Voicing
 icar icar Noun None
 icat icat Noun None Voicing
@@ -25600,6 +25603,9 @@ icazet icazet Noun None NoVoicing
 icazet icazet Noun ProperNoun ProperNoun
 icazetname icazetname Noun None
 icbar icbar Noun None
+icbc icbc Noun Abbrv pr=ıcebece display=ICBC
+icc icc Noun Abbrv pr=ıcece display=ICC
+ice ice Noun Abbrv pr=ice display=ICE
 iclal iclal Noun ProperNoun ProperNoun
 icma icma Noun ProperNoun ProperNoun
 icmal icmal Noun None InverseHarmony
@@ -25607,7 +25613,10 @@ icmal icmal Noun ProperNoun ProperNoun display=İcmâl
 icra icra Noun None
 icraat icraat Noun None ImplicitPlural NoVoicing
 icrai icrai Adj None display=icraî
+icrc icrc Noun Abbrv pr=ıcerece display=ICRC
+icsid icsid Noun Abbrv pr=icsid display=ICSID
 id id Noun Abbrv pr=ide
+id id Noun Abbrv pr=ıde display=ID
 idadi idadi Noun None display=idadî
 idam idam Noun None
 idame idame Noun None
@@ -25631,6 +25640,7 @@ idealist idealist Adj None NoVoicing
 idealize idealize Adj None
 idealizm idealizm Noun None
 idealtepe idealtepe Noun ProperNoun ProperNoun
+idef idef Noun Abbrv pr=idef display=IDEF
 idefiks idefiks Noun None
 idefix idefix Noun ProperNoun ProperNoun
 identik identik Adj None Voicing
@@ -25662,13 +25672,20 @@ idris idris Noun ProperNoun ProperNoun
 idtm idtm Noun ProperNoun NoVoicing ProperNoun
 iduğ iduğ Noun ProperNoun ProperNoun
 ie ie Noun Abbrv pr=ie
+iea iea Noun Abbrv pr=iea display=IEA
+ieee ieee Noun Abbrv pr=aytripıli display=IEEE
 ief ief Noun Abbrv pr=ief
+ieft ieft Noun Abbrv pr=ieft display=IEFT
+ielts ielts Noun Abbrv pr=ıeletese display=IELTS
 iesob iesob Noun ProperNoun ProperNoun
 iett iett Noun Abbrv pr=ietete
+if if Noun Abbrv pr=ıfe display=IF
 ifa ifa Noun None
+ifab ifab Noun Abbrv pr=ifab display=IFAB
 ifade ifade Noun None
 ifakat ifakat Noun ProperNoun ProperNoun
 ifaza ifaza Noun ProperNoun ProperNoun
+ifc ifc Noun Abbrv pr=ıfece display=IFC
 ifdal ifdal Noun ProperNoun ProperNoun
 iffet iffet Noun None NoVoicing
 iffet iffet Noun ProperNoun ProperNoun
@@ -25799,8 +25816,11 @@ ikaz ikaz Noun None
 ikbal ikbal Noun None InverseHarmony
 ikbal ikbal Noun ProperNoun ProperNoun display=İkbâl
 ikbar ikbar Noun ProperNoun ProperNoun
+ikby ikby Noun Abbrv pr=ıkebeye display=IKBY
 ikdam ikdam Noun None
 ikdam ikdam Noun ProperNoun ProperNoun
+ikdp ikdp Noun Abbrv pr=ıkedepe display=IKDP
+ike ike Noun Abbrv pr=ike display=IKE
 ikebana ikebana Noun None
 iken iken Adv None
 iken iken Noun None
@@ -25889,6 +25909,7 @@ iktisadiyat iktisadiyat Noun None NoVoicing
 iktisap iktisap Noun None Voicing
 iktisat iktisat Noun None Voicing
 iktiza iktiza Noun None
+ikyb ikyb Noun Abbrv pr=ıkeyebe display=IKYB
 ikçü ikçü Noun ProperNoun ProperNoun
 ikö ikö Noun Abbrv pr=ikö
 iköpab iköpab Noun ProperNoun ProperNoun
@@ -26063,6 +26084,8 @@ ilmiklemek ilmikle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 ilmiye ilmiye Noun None
 ilmuhaber ilmuhaber Noun None
 ilmühaber ilmühaber Noun None
+ilo ilo Noun Abbrv pr=ilo display=ILO
+ils ils Noun Abbrv NoVoicing pr=ils display=ILS
 ilsak ilsak Noun ProperNoun ProperNoun
 ilsavun ilsavun Noun ProperNoun ProperNoun
 ilsev ilsev Noun ProperNoun ProperNoun
@@ -26139,14 +26162,17 @@ imdad imdad Noun ProperNoun ProperNoun display=İmdâd
 imdat imdat Interj None
 imdat imdat Noun None Voicing
 imdat imdat Noun ProperNoun ProperNoun
+imdb imdb Noun Abbrv pr=ımedebe display=IMDB
 imdi imdi Adv None
 imece imece Noun None
+imei imei Noun Abbrv pr=imei display=IMEI
 imek i Verb None AoristA CausativeT NonReciprocal PassiveIn ProgressiveVowelDrop
 imek imek Noun None Voicing
 imelih imelih Noun ProperNoun ProperNoun
 imer imer Noun Abbrv pr=imer
 imer imer Noun ProperNoun ProperNoun
 imes imes Noun Abbrv pr=imes
+imf imf Noun Abbrv pr=imefe display=IMF
 imga imga Noun ProperNoun ProperNoun
 imge imge Noun None
 imge imge Noun ProperNoun ProperNoun
@@ -26232,6 +26258,7 @@ inayet inayet Noun None NoVoicing
 inayet inayet Noun ProperNoun ProperNoun
 inayetullah inayetullah Noun ProperNoun ProperNoun
 inaç inaç Noun ProperNoun ProperNoun
+inc inc Noun Abbrv pr=ınece display=INC
 ince ince Adj None
 inceayan inceayan Noun ProperNoun ProperNoun
 incebacak incebacak Noun ProperNoun ProperNoun
@@ -26327,6 +26354,7 @@ influenza influenza Noun ProperNoun ProperNoun
 info info Noun ProperNoun ProperNoun
 informatik informatik Noun None Voicing
 ing ing Noun Abbrv pr=inege
+ing ing Noun Abbrv pr=ınege display=ING
 ingiliz ingiliz Noun ProperNoun ProperNoun
 ingilizanahtarı ingilizanahtarı Noun None CompoundP3sg roots=ingiliz-anahtar
 ingilizce ingilizce Adj ProperNoun ProperNoun
@@ -26378,6 +26406,7 @@ inkıyat inkıyat Noun None Voicing
 inlemek inle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 inme inme Noun None
 inmek in Verb None AoristA
+inn inn Noun Abbrv pr=ınene display=INN
 inna inna Noun ProperNoun ProperNoun
 innova innova Noun ProperNoun ProperNoun
 innovia innovia Noun ProperNoun ProperNoun
@@ -26490,8 +26519,11 @@ inşirah inşirah Noun None
 inşirah inşirah Noun ProperNoun ProperNoun
 inşirak inşirak Noun ProperNoun ProperNoun
 ioaş ioaş Noun Abbrv pr=ioaş
+ioc ioc Noun Abbrv pr=ioc display=IOC
+ip ip Noun Abbrv pr=ıpe display=IP
 ip ip Noun None NoVoicing
 ipar ipar Noun ProperNoun ProperNoun
+ipcc ipcc Noun Abbrv pr=ıpecece display=IPCC
 ipek ipek Adj None Voicing
 ipek ipek Noun None Voicing
 ipek ipek Noun ProperNoun ProperNoun
@@ -26532,8 +26564,13 @@ iptidai iptidai Adj None display=iptidaî
 iptidaları iptidaları Adv None
 iptila iptila Noun None display=iptilâ
 iptizal iptizal Noun None InverseHarmony
+iptv iptv Noun Abbrv pr=ıpeteve display=IPTV
 ipucu ipucu Noun None CompoundP3sg roots=ip-uç
+ipv ipv Noun Abbrv pr=aypivealtı display=IPV
+ipv4 ipv4 Noun Abbrv pr=aypivedört display=IPV4
 ipşiroğlu ipşiroğlu Noun ProperNoun ProperNoun
+iq iq Noun Abbrv pr=ayku display=IQ
+ir ir Noun Abbrv pr=ıre display=IR
 irade irade Noun None
 irade irade Noun ProperNoun ProperNoun
 iradedışı iradedışı Noun None CompoundP3sg roots=irade-dış
@@ -26643,7 +26680,9 @@ isare isare Noun ProperNoun ProperNoun
 isase isase Noun ProperNoun ProperNoun
 isavi isavi Noun ProperNoun ProperNoun
 isbak isbak Noun ProperNoun ProperNoun
+isbn isbn Noun Abbrv pr=ısebene display=ISBN
 iscehisar iscehisar Noun ProperNoun ProperNoun
+isco isco Noun Abbrv pr=isco display=ISCO
 isdemir isdemir Noun ProperNoun ProperNoun
 ise ise Adv None
 isedak isedak Noun ProperNoun ProperNoun
@@ -26991,6 +27030,8 @@ ito ito Noun Abbrv pr=ito
 itoraman itoraman Noun ProperNoun ProperNoun
 itoğluit itoğluit Interj None
 itriyum itriyum Noun None
+its its Noun Abbrv pr=ıtese display=ITS
+itso itso Noun Abbrv pr=itso display=ITSO
 itso itso Noun ProperNoun ProperNoun
 ittifak ittifak Noun None NoVoicing
 ittihad ittihad Noun ProperNoun ProperNoun
@@ -26998,7 +27039,9 @@ ittihat ittihat Noun None Voicing
 ittihaz ittihaz Noun None
 ittisal ittisal Noun None InverseHarmony
 ittırat ittırat Noun None Voicing
+ituc ituc Noun Abbrv pr=ituc display=ITUC
 itü itü Noun Abbrv pr=itü
+iucn iucn Noun Abbrv pr=ıucene display=IUCN
 ivan ivan Noun ProperNoun ProperNoun
 ivanişvili ivanişvili Noun ProperNoun ProperNoun
 ivankov ivankov Noun ProperNoun ProperNoun
@@ -27027,6 +27070,7 @@ ivmeyazar ivmeyazar Noun None
 ivmeölçer ivmeölçer Noun None
 ivrindi ivrindi Noun ProperNoun ProperNoun
 ivriz ivriz Noun ProperNoun ProperNoun
+ivy ivy Noun Abbrv pr=ıveye display=IVY
 iy iy Noun Abbrv pr=iye
 iyad iyad Noun ProperNoun ProperNoun
 iye iye Noun None
@@ -30940,6 +30984,7 @@ kitkat kitkat Noun ProperNoun ProperNoun
 kitle kitle Noun None
 kitlemek kitle Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop idx=1
 kitre kitre Noun None
+kitt kitt Noun Abbrv pr=keıtete display=KITT
 kitt kitt Noun ProperNoun NoVoicing ProperNoun
 kittel kittel Noun ProperNoun ProperNoun
 kitts kitts Noun ProperNoun NoVoicing ProperNoun
@@ -31803,6 +31848,7 @@ kovancılar kovancılar Noun ProperNoun ProperNoun
 kovaçeviç kovaçeviç Noun ProperNoun ProperNoun
 kovboy kovboy Noun None
 kovcu kovcu Adj None
+kovid covid Noun Abbrv pr=kovid display=kovid
 kovid kovid Noun None
 kovlamak kovla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kovmak kov Verb None AoristA
@@ -33471,7 +33517,6 @@ kıtipiyoz kıtipiyoz Adj None
 kıtlama kıtlama Adv None
 kıtlama kıtlama Noun None
 kıtlık kıtlık Noun None Voicing
-kıtt kıtt Noun Abbrv pr=keıtete
 kıtık kıtık Noun None Voicing
 kıtıklamak kıtıkla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kıtıpiyos kıtıpiyos Adj None
@@ -38235,6 +38280,7 @@ misurata misurata Noun ProperNoun ProperNoun
 misvak misvak Noun None Voicing
 misyon misyon Noun None
 misyoner misyoner Noun None
+mit mit Noun Abbrv NoVoicing pr=mit display=MIT
 mit mit Noun None NoVoicing
 mitat mitat Noun ProperNoun ProperNoun
 mitch mitch Noun ProperNoun NoVoicing ProperNoun
@@ -38760,17 +38806,17 @@ mp3 mp3 Noun Abbrv pr=mepeüç
 mpeg mpeg Noun Abbrv pr=mepeege
 mpenza mpenza Noun ProperNoun ProperNoun
 mr mr Noun Abbrv pr=mere
+mri mri Noun Abbrv pr=mereı display=MRI
 mrquez mrquez Noun ProperNoun ProperNoun
 mrs mrs Noun Abbrv pr=merese
 mrsic mrsic Noun Abbrv pr=mereseice
 mrsiç mrsiç Noun Abbrv pr=mereseiçe
-mrı mrı Noun Abbrv pr=mereı
 ms ms Noun Abbrv pr=mese
 ms ms Noun None pr=mese
 msb msb Noun Abbrv pr=mesebe
 msc msc Noun Abbrv pr=mesece
 mschumacher mschumacher Noun ProperNoun ProperNoun
-mscı mscı Noun Abbrv pr=meseceı
+msci msci Noun Abbrv pr=meseceı display=MSCI
 mskü mskü Noun Abbrv pr=mesekeü
 msn msn Noun Abbrv pr=mesene
 msnbc msnbc Noun Abbrv pr=mesenebece
@@ -40235,7 +40281,6 @@ mısırlıoğlu mısırlıoğlu Noun ProperNoun ProperNoun
 mısıroğlu mısıroğlu Noun ProperNoun ProperNoun
 mısıryağı mısıryağı Noun None CompoundP3sg roots=mısır-yağ
 mısırözü mısırözü Noun None CompoundP3sg roots=mısır-öz
-mıt mıt Noun Abbrv NoVoicing pr=mıt
 mıymıntı mıymıntı Adj None
 mızmız mızmız Adj None
 mızmızlanmak mızmızlan Verb None AoristI
@@ -40764,8 +40809,8 @@ nbg nbg Noun Abbrv pr=nebege
 nc nc Noun Abbrv pr=nece
 ncaa ncaa Noun Abbrv pr=ensieyey
 ncap ncap Noun Abbrv pr=neceape
+ncis ncis Noun Abbrv pr=neceıse display=NCIS
 ncity ncity Noun ProperNoun NoVoicing ProperNoun
-ncıs ncıs Noun Abbrv pr=neceıse
 nd nd Noun Abbrv pr=nede
 nda nda Noun Abbrv pr=endiey
 ndjock ndjock Noun ProperNoun NoVoicing ProperNoun
@@ -42035,6 +42080,7 @@ ohrid ohrid Noun ProperNoun ProperNoun
 ohsad ohsad Noun ProperNoun ProperNoun
 ohsas ohsas Noun ProperNoun ProperNoun
 oib oib Noun Abbrv pr=oib
+oica oica Noun Abbrv pr=oica display=OICA
 oidipus oidipus Noun ProperNoun ProperNoun
 oil oil Noun Abbrv pr=oil
 oil oil Noun None
@@ -43061,7 +43107,6 @@ oğuztüzün oğuztüzün Noun ProperNoun ProperNoun
 oğuç oğuç Noun ProperNoun ProperNoun
 oğuş oğuş Noun ProperNoun ProperNoun
 oğuşturmak oğuştur Verb None AoristI CausativeT
-oıca oıca Noun Abbrv pr=oıca
 oş oş Noun Abbrv pr=oşe
 oşinografi oşinografi Noun None
 p p Noun Abbrv NoVoicing pr=pe
@@ -44776,9 +44821,9 @@ plüton plüton Noun ProperNoun ProperNoun
 plütonyum plütonyum Noun None
 plüviyometre plüviyometre Noun None
 pm pm Noun Abbrv pr=peme
+pmi pmi Noun Abbrv pr=pemeı display=PMI
 pmum pmum Noun ProperNoun NoVoicing ProperNoun
 pmyo pmyo Noun Abbrv pr=pemeyeo
-pmı pmı Noun Abbrv pr=pemeı
 pnas pnas Noun ProperNoun NoVoicing ProperNoun
 pnin pnin Noun ProperNoun NoVoicing ProperNoun
 pnömokok pnömokok Noun None Voicing
@@ -46777,6 +46822,7 @@ rikkat rikkat Noun ProperNoun ProperNoun
 riko riko Noun ProperNoun ProperNoun
 riley riley Noun ProperNoun ProperNoun
 rilke rilke Noun ProperNoun ProperNoun
+rim rim Noun Abbrv NoVoicing pr=rim display=RIM
 rima rima Noun ProperNoun ProperNoun
 rimayet rimayet Noun ProperNoun ProperNoun
 rimbaud rimbaud Noun ProperNoun ProperNoun
@@ -47421,7 +47467,6 @@ rıfkıye rıfkıye Noun ProperNoun ProperNoun
 rıh rıh Noun None NoVoicing
 rıhdan rıhdan Noun None
 rıhtım rıhtım Noun None
-rım rım Noun Abbrv NoVoicing pr=rım
 rıza rıza Noun None
 rıza rıza Noun ProperNoun ProperNoun
 rızaen rızaen Adv None
@@ -50300,6 +50345,7 @@ silüet silüet Noun None NoVoicing
 silüet silüet Noun ProperNoun ProperNoun
 silüryen silüryen Noun None
 sim sim Adj None NoVoicing
+sim sim Noun Abbrv NoVoicing pr=sim display=SIM
 sim sim Noun None NoVoicing
 sima sima Noun None
 sima sima Noun ProperNoun ProperNoun
@@ -52612,7 +52658,6 @@ sıkışmak sıkış Verb None AoristI
 sıkışık sıkışık Adj None Voicing
 sıla sıla Noun None
 sılay sılay Noun ProperNoun ProperNoun
-sım sım Noun Abbrv NoVoicing pr=sım
 sımak sı Verb None AoristA CausativeT PassiveIn ProgressiveVowelDrop
 sımsıcak sımsıcak Adj None Voicing
 sımsıcak sımsıcak Adv None
@@ -53893,7 +53938,6 @@ tağmaç tağmaç Noun ProperNoun ProperNoun
 tağyir tağyir Noun None
 tağızade tağızade Noun ProperNoun ProperNoun
 tağşiş tağşiş Noun None
-taı taı Noun Abbrv pr=taı
 taş taş Adj None NoVoicing
 taş taş Noun None NoVoicing
 taşak taşak Noun None Voicing
@@ -54010,11 +54054,11 @@ td td Noun Abbrv pr=tede
 tdci tdci Noun Abbrv pr=tedecei
 tdh tdh Noun Abbrv pr=tedehe
 tdi tdi Noun Abbrv pr=tedei
+tdi tdi Noun Abbrv pr=tedeı display=TDI
 tdk tdk Noun Abbrv pr=tedeka
 tdkd tdkd Noun Abbrv pr=tedekede
 tdp tdp Noun Abbrv pr=tedepe
 tdçi tdçi Noun Abbrv pr=tedeçei
-tdı tdı Noun Abbrv pr=tedeı
 te te Noun None NoVoicing
 tea tea Noun Abbrv pr=tea
 teadül teadül Noun None
@@ -55169,7 +55213,7 @@ teşyi teşyi Noun None
 tff tff Noun Abbrv pr=tefefe
 tffhgd tffhgd Noun Abbrv pr=tefefehegede
 tfmd tfmd Noun Abbrv pr=tefemede
-tfsı tfsı Noun Abbrv pr=tefeseı
+tfsi tfsi Noun Abbrv pr=tefeseı display=TFSI
 tg tg Noun Abbrv pr=tege
 tgb tgb Noun Abbrv pr=tegebe
 tgc tgc Noun Abbrv pr=tegece
@@ -55394,6 +55438,7 @@ tino tino Noun ProperNoun ProperNoun
 tinto tinto Noun ProperNoun ProperNoun
 tiny tiny Noun ProperNoun NoVoicing ProperNoun
 tip tip Adj None NoVoicing
+tip tip Noun Abbrv NoVoicing pr=tip display=TIP
 tip tip Noun None NoVoicing
 tipi tipi Noun None
 tipik tipik Adj None Voicing
@@ -56307,6 +56352,7 @@ tse tse Noun Abbrv pr=tesee
 tshh tshh Noun Abbrv pr=tesehehe
 tshinvali tshinvali Noun ProperNoun ProperNoun
 tsi tsi Noun Abbrv pr=tesei
+tsi tsi Noun Abbrv pr=teseı display=TSI
 tsipras tsipras Noun ProperNoun ProperNoun
 tsk tsk Noun Abbrv pr=teseka
 tskb tskb Noun Abbrv pr=tesekebe
@@ -56320,10 +56366,10 @@ tsunade tsunade Noun ProperNoun ProperNoun
 tsunami tsunami Noun None
 tsvangirai tsvangirai Noun ProperNoun ProperNoun
 tsyd tsyd Noun Abbrv pr=teseyede
-tsı tsı Noun Abbrv pr=teseı
 tt tt Noun Abbrv pr=tete
 ttb ttb Noun Abbrv pr=tetebe
 ttgv ttgv Noun Abbrv pr=tetegeve
+ttip ttip Noun Abbrv pr=teteıpe display=TTIP
 ttk ttk Noun Abbrv pr=teteka
 ttk ttk Noun Abbrv pr=kanunu idx=1
 ttkd ttkd Noun Abbrv pr=tetekede
@@ -56331,7 +56377,6 @@ ttkkmb ttkkmb Noun Abbrv pr=tetekekemebe
 ttnet ttnet Noun Abbrv pr=teteneete
 tts tts Noun Abbrv pr=tetese
 ttso ttso Noun Abbrv pr=teteseo
-ttıp ttıp Noun Abbrv pr=teteıpe
 tu tu Noun Abbrv pr=teu
 tual tual Noun None InverseHarmony
 tuan tuan Noun ProperNoun ProperNoun
@@ -57129,7 +57174,6 @@ tınnet tınnet Noun None Voicing
 tıntın tıntın Adj None
 tınç tınç Noun ProperNoun NoVoicing ProperNoun
 tını tını Noun None
-tıp tıp Noun Abbrv NoVoicing pr=tıp
 tıp tıp Noun None Doubling Voicing
 tıpa tıpa Noun None
 tıpalamak tıpala Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -57257,6 +57301,7 @@ uhura uhura Noun ProperNoun ProperNoun
 uhuvvet uhuvvet Noun None NoVoicing
 uib uib Noun Abbrv pr=uib
 uilenberg uilenberg Noun ProperNoun ProperNoun
+uitp uitp Noun Abbrv pr=uıtepe display=UITP
 ujfalusi ujfalusi Noun ProperNoun ProperNoun
 uk uk Noun Abbrv pr=uka
 ukab ukab Noun ProperNoun ProperNoun
@@ -57266,6 +57311,7 @@ ukde ukde Noun None
 ukde ukde Noun ProperNoun ProperNoun
 ukhuvan ukhuvan Noun ProperNoun ProperNoun
 ukic ukic Noun ProperNoun ProperNoun
+ukip ukip Noun Abbrv pr=ukip display=UKIP
 ukiç ukiç Noun ProperNoun ProperNoun
 uknum uknum Noun None
 uknum uknum Noun ProperNoun ProperNoun
@@ -57277,7 +57323,6 @@ ukubet ukubet Adj None Voicing
 ukubet ukubet Noun None Voicing
 ukul ukul Noun ProperNoun ProperNoun
 ukuş ukuş Noun ProperNoun ProperNoun
-ukıp ukıp Noun Abbrv pr=ukıp
 ula ula Noun ProperNoun ProperNoun
 ulagay ulagay Noun ProperNoun ProperNoun
 ulah ulah Noun ProperNoun ProperNoun
@@ -57462,8 +57507,8 @@ underwood underwood Noun ProperNoun ProperNoun
 undp undp Noun Abbrv pr=unedepe
 unep unep Noun Abbrv pr=unep
 unesco unesco Noun Abbrv pr=unesco
+unficyp unficyp Noun Abbrv pr=unefeıceyepe display=UNFICYP
 unfpa unfpa Noun Abbrv pr=unfpa
-unfıcyp unfıcyp Noun Abbrv pr=unefeıceyepe
 ungan ungan Noun ProperNoun ProperNoun
 unger unger Noun ProperNoun ProperNoun
 unhcr unhcr Noun ProperNoun NoVoicing ProperNoun
@@ -57943,7 +57988,6 @@ uğut uğut Noun None Voicing
 uğuz uğuz Noun ProperNoun ProperNoun
 uğuş uğuş Noun ProperNoun ProperNoun
 uğuşturmak uğuştur Verb None AoristI CausativeT
-uıtp uıtp Noun Abbrv pr=uıtepe
 uşak uşak Noun None Voicing
 uşak uşak Noun ProperNoun ProperNoun
 uşakkapan uşakkapan Noun None
@@ -58784,6 +58828,7 @@ violet violet Noun ProperNoun ProperNoun
 violetta violetta Noun ProperNoun ProperNoun
 viop viop Noun ProperNoun ProperNoun
 vip vip Noun Abbrv NoVoicing pr=vip
+vip vip Noun Abbrv pr=viaypi display=VIP
 vip vip Noun None NoVoicing
 viper viper Noun ProperNoun ProperNoun
 vira vira Adv None
@@ -59035,7 +59080,6 @@ vüreyka vüreyka Noun ProperNoun ProperNoun
 vürut vürut Noun None Voicing
 vüsat vüsat Noun None InverseHarmony
 vüzera vüzera Noun None
-vı vı Noun Abbrv pr=veı
 vıcık vıcık Adj None Voicing
 vıcıklamak vıcıkla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 vıcırdamak vıcırda Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -59046,7 +59090,6 @@ vın vın Noun None NoVoicing
 vınlamak vınla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 vınn vınn Noun ProperNoun NoVoicing ProperNoun
 vınıltı vınıltı Noun None
-vıp vıp Noun Abbrv pr=viaypi
 vır vır Dup None NoVoicing
 vırgınıa vırgınıa Noun ProperNoun ProperNoun
 vırlamak vırla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -59060,7 +59103,6 @@ vızıldamak vızılda Verb None AoristI CausativeT PassiveIn ProgressiveVowelDr
 vızıltı vızıltı Noun None
 vızır vızır Dup None
 vızırdamak vızırda Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
-vıı vıı Noun Abbrv pr=vıı
 waalwijk waalwijk Noun ProperNoun ProperNoun
 wachovia wachovia Noun ProperNoun ProperNoun
 wachowski wachowski Noun ProperNoun ProperNoun
@@ -64809,53 +64851,33 @@ zıypak zıypak Adj None Voicing
 ıaea ıaea Noun ProperNoun ProperNoun
 ıago ıago Noun ProperNoun ProperNoun
 ıain ıain Noun ProperNoun ProperNoun
-ıan ıan Noun Abbrv pr=ıan
 ıaquinta ıaquinta Noun ProperNoun ProperNoun
 ıarc ıarc Noun ProperNoun ProperNoun
 ıata ıata Noun ProperNoun ProperNoun
 ıbaka ıbaka Noun ProperNoun ProperNoun
-ıban ıban Noun Abbrv pr=iban
 ıban ıban Noun ProperNoun ProperNoun
 ıbanez ıbanez Noun ProperNoun ProperNoun
 ıberia ıberia Noun ProperNoun ProperNoun
 ıbex ıbex Noun ProperNoun ProperNoun
 ıbiza ıbiza Noun ProperNoun ProperNoun
-ıbm ıbm Noun Abbrv pr=aybiem
 ıbrahim ıbrahim Noun ProperNoun ProperNoun
 ıbrahimovic ıbrahimovic Noun ProperNoun ProperNoun
 ıbrahimoviç ıbrahimoviç Noun ProperNoun ProperNoun
 ıbricic ıbricic Noun ProperNoun ProperNoun
-ıc ıc Noun Abbrv pr=ıce
 ıcann ıcann Noun ProperNoun ProperNoun
-ıcao ıcao Noun Abbrv pr=ıcao
 ıcarus ıcarus Noun ProperNoun ProperNoun
-ıcbc ıcbc Noun Abbrv pr=ıcebece
-ıcc ıcc Noun Abbrv pr=ıcece
 ıccat ıccat Noun ProperNoun ProperNoun
-ıce ıce Noun Abbrv pr=ıce
 ıceman ıceman Noun ProperNoun ProperNoun
 ıchigo ıchigo Noun ProperNoun ProperNoun
 ıcomos ıcomos Noun ProperNoun ProperNoun
 ıcon ıcon Noun ProperNoun ProperNoun
-ıcrc ıcrc Noun Abbrv pr=ıcerece
-ıcsıd ıcsıd Noun Abbrv pr=ıcsıd
 ıcığı ıcığı Noun None
-ıd ıd Noun Abbrv pr=ıde
 ıdaho ıdaho Noun ProperNoun ProperNoun
-ıdef ıdef Noun Abbrv pr=ıdef
 ıdentity ıdentity Noun ProperNoun ProperNoun
 ıdris ıdris Noun ProperNoun ProperNoun
 ıduna ıduna Noun ProperNoun ProperNoun
 ıdık ıdık Noun ProperNoun ProperNoun
 ıdıkut ıdıkut Noun ProperNoun ProperNoun
-ıe ıe Noun Abbrv pr=ıe
-ıea ıea Noun Abbrv pr=ıea
-ıeee ıeee Noun Abbrv pr=aytripıli
-ıeft ıeft Noun Abbrv pr=ıeft
-ıelts ıelts Noun Abbrv pr=ıeletese
-ıf ıf Noun Abbrv pr=ıfe
-ıfab ıfab Noun Abbrv pr=ıfab
-ıfc ıfc Noun Abbrv pr=ıfece
 ıggy ıggy Noun ProperNoun NoVoicing ProperNoun
 ıglesias ıglesias Noun ProperNoun ProperNoun
 ıgmg ıgmg Noun ProperNoun NoVoicing ProperNoun
@@ -64874,22 +64896,16 @@ zıypak zıypak Adj None Voicing
 ıhma ıhma Noun None
 ıhmak ıh Verb None AoristA
 ıkarus ıkarus Noun ProperNoun ProperNoun
-ıkby ıkby Noun Abbrv pr=ıkebeye
 ıkco ıkco Noun ProperNoun ProperNoun
-ıkdp ıkdp Noun Abbrv pr=ıkedepe
-ıke ıke Noun Abbrv pr=ıke
 ıkea ıkea Noun ProperNoun ProperNoun
 ıker ıker Noun ProperNoun ProperNoun
-ıki ıki Noun Abbrv pr=ıki
 ıkisi ıkisi Noun ProperNoun ProperNoun
 ıklamak ıkla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 ıklım ıklım Dup None
 ıknat ıknat Noun ProperNoun ProperNoun
-ıkyb ıkyb Noun Abbrv pr=ıkeyebe
 ıkına ıkına Dup None
 ıkınmak ıkın Verb None AoristI
 ıkıntı ıkıntı Noun None
-ıl ıl Noun Abbrv pr=ıle
 ıldırı ıldırı Noun ProperNoun ProperNoun
 ıldız ıldız Noun ProperNoun ProperNoun
 ılgamak ılga Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -64914,12 +64930,9 @@ zıypak zıypak Adj None Voicing
 ılievski ılievski Noun ProperNoun ProperNoun
 ılithyia ılithyia Noun ProperNoun ProperNoun
 ıliç ıliç Noun ProperNoun ProperNoun
-ılk ılk Noun Abbrv NoVoicing pr=ılk
 ıllinois ıllinois Noun ProperNoun ProperNoun
 ılluminati ılluminati Noun ProperNoun ProperNoun
 ıllustrated ıllustrated Noun ProperNoun ProperNoun
-ılo ılo Noun Abbrv pr=ılo
-ıls ıls Noun Abbrv NoVoicing pr=ıls
 ıltar ıltar Noun None
 ılves ılves Noun ProperNoun ProperNoun
 ılya ılya Noun ProperNoun ProperNoun
@@ -64942,10 +64955,7 @@ zıypak zıypak Adj None Voicing
 ımages ımages Noun ProperNoun ProperNoun
 ımagine ımagine Noun ProperNoun ProperNoun
 ımax ımax Noun ProperNoun ProperNoun
-ımdb ımdb Noun Abbrv pr=ımedebe
 ımelda ımelda Noun ProperNoun ProperNoun
-ımeı ımeı Noun Abbrv pr=ımeı
-ımf ımf Noun Abbrv pr=imefe
 ımmanuel ımmanuel Noun ProperNoun ProperNoun
 ımmelt ımmelt Noun ProperNoun ProperNoun
 ımogen ımogen Noun ProperNoun ProperNoun
@@ -64963,7 +64973,6 @@ zıypak zıypak Adj None Voicing
 ınamoto ınamoto Noun ProperNoun ProperNoun
 ınarritu ınarritu Noun ProperNoun ProperNoun
 ınbev ınbev Noun ProperNoun ProperNoun
-ınc ınc Noun Abbrv pr=ınece
 ıncal ıncal Noun ProperNoun ProperNoun
 ıncalız ıncalız Noun None
 ınception ınception Noun ProperNoun ProperNoun
@@ -64993,7 +65002,6 @@ zıypak zıypak Adj None Voicing
 ınfo ınfo Noun ProperNoun ProperNoun
 ınformation ınformation Noun ProperNoun ProperNoun
 ınfrastructure ınfrastructure Noun ProperNoun ProperNoun
-ıng ıng Noun Abbrv pr=ınege
 ınge ınge Noun ProperNoun ProperNoun
 ıngeborg ıngeborg Noun ProperNoun ProperNoun
 ınglourious ınglourious Noun ProperNoun ProperNoun
@@ -65004,7 +65012,6 @@ zıypak zıypak Adj None Voicing
 ıniesta ıniesta Noun ProperNoun ProperNoun
 ıniguez ıniguez Noun ProperNoun ProperNoun
 ınitiative ınitiative Noun ProperNoun ProperNoun
-ınn ınn Noun Abbrv pr=ınene
 ınni ınni Noun ProperNoun ProperNoun
 ınnocence ınnocence Noun ProperNoun ProperNoun
 ınnovation ınnovation Noun ProperNoun ProperNoun
@@ -65057,26 +65064,18 @@ zıypak zıypak Adj None Voicing
 ınvitel ınvitel Noun ProperNoun ProperNoun
 ınzaghi ınzaghi Noun ProperNoun ProperNoun
 ıoannis ıoannis Noun ProperNoun ProperNoun
-ıoc ıoc Noun Abbrv pr=ıoc
 ıosco ıosco Noun ProperNoun ProperNoun
 ıowa ıowa Noun ProperNoun ProperNoun
-ıp ıp Noun Abbrv pr=ıpe
 ıpad ıpad Noun ProperNoun ProperNoun
 ıpard ıpard Noun ProperNoun ProperNoun
-ıpcc ıpcc Noun Abbrv pr=ıpecece
 ıphone ıphone Noun ProperNoun ProperNoun
 ıpod ıpod Noun ProperNoun ProperNoun
 ıpra ıpra Noun ProperNoun ProperNoun
 ıpsos ıpsos Noun ProperNoun ProperNoun
 ıpswich ıpswich Noun ProperNoun ProperNoun
-ıptv ıptv Noun Abbrv pr=ıpeteve
-ıpv ıpv Noun Abbrv pr=aypivealtı
-ıpv4 ıpv4 Noun Abbrv pr=aypivedört
 ıpıl ıpıl Dup None
 ıpıslak ıpıslak Adj None Voicing
 ıpıssız ıpıssız Adj None
-ıq ıq Noun Abbrv pr=ayku
-ır ır Noun Abbrv pr=ıre
 ıra ıra Noun None
 ırak ırak Adj None Voicing
 ırak ırak Noun None Voicing
@@ -65133,8 +65132,6 @@ zıypak zıypak Adj None Voicing
 ısaiah ısaiah Noun ProperNoun ProperNoun
 ısak ısak Noun ProperNoun ProperNoun
 ısaksson ısaksson Noun ProperNoun ProperNoun
-ısbn ısbn Noun Abbrv pr=ısebene
-ısco ısco Noun Abbrv pr=ısco
 ısdar ısdar Noun None
 ısdell ısdell Noun ProperNoun ProperNoun
 ısengard ısengard Noun ProperNoun ProperNoun
@@ -65177,7 +65174,6 @@ zıypak zıypak Adj None Voicing
 ısmarlatmak ısmarlat Verb None AoristI
 ısna ısna Noun ProperNoun ProperNoun
 ısner ısner Noun ProperNoun ProperNoun
-ıso ıso Noun Abbrv pr=ıso
 ısobel ısobel Noun ProperNoun ProperNoun
 ısofix ısofix Noun ProperNoun ProperNoun
 ısofıx ısofıx Noun ProperNoun ProperNoun
@@ -65233,7 +65229,6 @@ zıypak zıypak Adj None Voicing
 ısıveren ısıveren Adj None
 ısıyayar ısıyayar Noun None
 ısıölçer ısıölçer Noun None
-ıt ıt Noun Abbrv pr=ıte
 ıtalia ıtalia Noun ProperNoun ProperNoun
 ıtalo ıtalo Noun ProperNoun ProperNoun
 ıtaly ıtaly Noun ProperNoun ProperNoun
@@ -65247,16 +65242,11 @@ zıypak zıypak Adj None Voicing
 ıtri ıtri Noun None display=ıtrî
 ıtri ıtri Noun ProperNoun ProperNoun
 ıtriyat ıtriyat Noun None ImplicitPlural NoVoicing
-ıts ıts Noun Abbrv pr=ıtese
-ıtso ıtso Noun Abbrv pr=ıtso
 ıttıla ıttıla Noun None
 ıttırat ıttırat Noun None Voicing
-ıtuc ıtuc Noun Abbrv pr=ıtuc
 ıtzhak ıtzhak Noun ProperNoun ProperNoun
 ıtır ıtır Noun None
 ıtır ıtır Noun ProperNoun ProperNoun
-ıucn ıucn Noun Abbrv pr=ıucene
-ıv ıv Noun Abbrv pr=ıve
 ıvan ıvan Noun ProperNoun ProperNoun
 ıvanka ıvanka Noun ProperNoun ProperNoun
 ıvankov ıvankov Noun ProperNoun ProperNoun
@@ -65268,10 +65258,8 @@ zıypak zıypak Adj None Voicing
 ıvica ıvica Noun ProperNoun ProperNoun
 ıvkovic ıvkovic Noun ProperNoun ProperNoun
 ıvory ıvory Noun ProperNoun ProperNoun
-ıvy ıvy Noun Abbrv pr=ıveye
 ıvır ıvır Dup None
 ıydiye ıydiye Noun None
-ıyi ıyi Noun Abbrv pr=ıyi
 ızban ızban Noun ProperNoun ProperNoun
 ızbandut ızbandut Noun None Voicing
 ızdırap ızdırap Noun None Voicing
@@ -66342,7 +66330,6 @@ zıypak zıypak Adj None Voicing
 şüreka şüreka Noun None display=şürekâ
 şüyu şüyu Noun None
 şüyün şüyün Noun ProperNoun ProperNoun
-şıh şıh Noun Abbrv NoVoicing pr=şıh
 şıhanlıoğlu şıhanlıoğlu Noun ProperNoun ProperNoun
 şık şık Adj None NoVoicing
 şık şık Noun None NoVoicing

@@ -113,6 +113,35 @@ fn a_name_without_its_apostrophe_reads_only_through_a_consonant_ending() {
 }
 
 #[test]
+fn a_latin_i_reads_as_i_where_the_turkish_reading_finds_no_word() {
+    // Plan step D3. Text typed without the Turkish keyboard writes İ as I, and so do foreign
+    // acronyms, whose lemmas have i.
+    let morph = TurkishMorphology::new();
+    let lemma = |word: &str| morph.analyze(word).first().map(|p| p.lemma.clone());
+    assert_eq!(lemma("KITAPLAR").as_deref(), Some("kitap"));
+    assert_eq!(lemma("INSAN").as_deref(), Some("insan"));
+    assert_eq!(lemma("FBI").as_deref(), Some("fbi"));
+    assert_eq!(lemma("fbi").as_deref(), Some("fbi"));
+    assert_eq!(lemma("COVID'e").as_deref(), Some("kovid"));
+    // A known acronym takes its suffixes by the lexicon's pronunciation (CIA "siyayey", FBI
+    // "febeı"); an unknown one by either reading of its I, with the lemma spelled accordingly.
+    assert_eq!(lemma("CIA'in").as_deref(), Some("cia"));
+    assert_eq!(lemma("FBI'nın").as_deref(), Some("fbi"));
+    assert_eq!(lemma("XYZI'nin").as_deref(), Some("xyzi"));
+    assert_eq!(lemma("XYZI'nın").as_deref(), Some("xyzı"));
+    // A Turkish word in capitals keeps its ı (KIRATLI'nın).
+    assert_eq!(lemma("KIRATLI'nın").as_deref(), Some("kıratlı"));
+    // The Turkish reading stays where it makes a word, and Roman numerals stay numbers.
+    assert_eq!(lemma("ISI").as_deref(), Some("ısı"));
+    assert_eq!(morph.analyze("IV")[0].primary_pos, PrimaryPos::Num);
+    // Turkish words in capitals that Zemberek's list took for acronyms are gone.
+    assert!(morph
+        .analyze("iki")
+        .iter()
+        .all(|p| p.secondary_pos != SecondaryPos::Abbreviation));
+}
+
+#[test]
 fn abbreviations_are_not_common_nouns() {
     // Zemberek's `K [P:Abbrv]` became the common noun `k`, so `ki` read as k-ı (Acc).
     let morph = TurkishMorphology::new();

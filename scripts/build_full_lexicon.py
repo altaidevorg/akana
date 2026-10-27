@@ -406,14 +406,31 @@ def make_entry(word, meta, source):
     if primary == "Punc":
         return None
     # TurkishDictionaryLoader.generateRoot / normalizeForDictionary.
-    lemma = normalize_circumflex(turkish_lower(word.replace("-", "").replace("'", "")))
+    written = word.replace("-", "").replace("'", "")
+    lemma = normalize_circumflex(turkish_lower(written))
+    # A foreign acronym writes i as I (IMF, CIA, COVID): its lemma has i, so that a word typed
+    # in lower case finds it (the analyzer reads an I as İ too), while a guessed pronunciation
+    # keeps the Turkish letter name of I, ı, as Zemberek's does (FBI'ın). The ı of an acronym
+    # Zemberek spells in title case is such an I as well (Fbı, Hıv, Icsıd: FBI, HIV, ICSID).
+    letter_reading = lemma
+    latin_i = (
+        secondary == "Abbrv"
+        and len(written) > 1
+        and ("I" in written or (written[0].isupper() and "ı" in written[1:]))
+    )
+    if latin_i:
+        lemma = normalize_circumflex(turkish_lower(written.replace("I", "İ"))).replace("ı", "i")
     root = lemma[:-3] if primary == "Verb" and is_verb(word) else lemma
     if not root or not all(c in LETTERS or c.isdigit() for c in root):
         return None
     if "Pr" in meta:
         pron = normalize_circumflex(turkish_lower(meta["Pr"]))
     elif secondary == "Abbrv":
-        pron = guess_abbreviation(root)
+        # Read letter by letter, a Latin I is the letter ı (FBI "febeı"); read as a word, it is
+        # i (MİT, HIV: "mit", "hiv").
+        pron = guess_abbreviation(letter_reading)
+        if latin_i and pron == letter_reading:
+            pron = guess_abbreviation(root)
     elif any(c in VOWELS for c in root):
         pron = root
     else:
@@ -438,8 +455,14 @@ def make_entry(word, meta, source):
         ref = meta["Ref"]
         e.lemma = normalize_circumflex(turkish_lower(ref))
     # The dictionary's own spelling of the lemma: a verb's infinitive, a name with its capital
-    # and apostrophe, a loanword with its circumflex.
-    e.display = meta["Ref"] if "Ref" in meta and source.startswith("akana") else word
+    # and apostrophe, a loanword with its circumflex; an acronym with a Latin I in capitals
+    # with that I (Ibm, Icsıd: IBM, ICSID).
+    if "Ref" in meta and source.startswith("akana"):
+        e.display = meta["Ref"]
+    elif latin_i:
+        e.display = "".join(c if c == "I" else turkish_upper(c) for c in word)
+    else:
+        e.display = word
     return e
 
 

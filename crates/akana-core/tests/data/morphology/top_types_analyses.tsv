@@ -635,7 +635,7 @@ değil	değil	Conj		Conj	Conj	[değil:Conj] değil:Conj
 müdahalenin	müdahale	Noun		Noun+Gen	Noun	[müdahale:Noun] müdahale:Noun+A3sg+nin:Gen
 yol	yol	Noun		Noun+A3sg+Nom	Noun	[yol:Noun] yol:Noun+A3sg
 gönderilmesine	göndermek	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[göndermek:Verb] gönder:Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg+ne:Dat
-IV	ıv	Noun	Abbrv	Noun+A3sg+Nom	Noun	[IV:Noun,Abbrv] ıv:Noun+A3sg
+IV	IV	Num	Card	Num	Num	[IV:Num,Card] IV:Num
 kişisel	kişisel	Adj		Adj	Adj	[kişisel:Adj] kişisel:Adj
 yapan	yapmak	Verb		Verb+PresPart	Adj	[yapmak:Verb] yap:Verb|an:PresPart→Adj
 GEREKÇE	gerekçe	Noun		Noun+A3sg+Nom	Noun	[gerekçe:Noun] gerekçe:Noun+A3sg
@@ -1260,7 +1260,7 @@ Bakanlar	bakan	Noun		Noun+A3pl	Noun	[bakan:Noun] bakan:Noun+lar:A3pl
 alanı	alan	Noun		Noun+P3sg	Noun	[alan:Noun] alan:Noun+A3sg+ı:P3sg
 kredi	kredi	Noun		Noun+A3sg+Nom	Noun	[kredi:Noun] kredi:Noun+A3sg
 duruşmada	duruşma	Noun		Noun+Loc	Noun	[duruşma:Noun] duruşma:Noun+A3sg+da:Loc
-Tıp	tıp	Noun	Abbrv	Noun+A3sg+Nom	Noun	[TIP:Noun,Abbrv] tıp:Noun+A3sg
+Tıp	tıp	Noun		Noun+A3sg+Nom	Noun	[tıp:Noun] tıp:Noun+A3sg
 sürdüğü	sürmek	Verb		Verb+PastPart+P3sg	Noun	[sürmek:Verb] sür:Verb|düğ:PastPart→Noun+A3sg+ü:P3sg
 GEREĞİ	gerek	Noun		Noun+P3sg	Noun	[gerek:Noun] gereğ:Noun+A3sg+i:P3sg
 inkar	inkar	Noun		Noun+A3sg+Nom	Noun	[inkâr:Noun] inkar:Noun+A3sg
@@ -2114,7 +2114,7 @@ niyetli	niyet	Noun		Noun+With	Adj	[niyet:Noun] niyet:Noun+A3sg|li:With→Adj
 resmî	resmi	Adj		Adj	Adj	[resmî:Adj] resmi:Adj
 yerde	yer	Noun		Noun+Loc	Noun	[yer:Noun] yer:Noun+A3sg+de:Loc
 yükümlülüğünün	yüküm	Noun		Noun+With+Ness+P3sg+Gen	Noun	[yüküm:Noun] yüküm:Noun+A3sg|lü:With→Adj|lüğ:Ness→Noun+A3sg+ü:P3sg+nün:Gen
-VI	vı	Noun	Abbrv	Noun+A3sg+Nom	Noun	[VI:Noun,Abbrv] vı:Noun+A3sg
+VI	VI	Num	Card	Num	Num	[VI:Num,Card] VI:Num
 bakım	bakım	Noun		Noun+A3sg+Nom	Noun	[bakım:Noun] bakım:Noun+A3sg
 reddetmiştir	reddetmek	Verb		Verb+Evid+CopPres3sg	Verb	[reddetmek:Verb] reddet:Verb+miş:Narr+A3sg+tir:Cop
 Aykırılık	aykırı	Adj		Adj+Ness	Noun	[aykırı:Adj] aykırı:Adj|lık:Ness→Noun+A3sg
@@ -5073,7 +5073,7 @@ Kuzey	kuzey	Adj		Adj	Adj	[kuzey:Adj] kuzey:Adj
 Peru	peru	Noun	Prop	Noun+A3sg+Nom	Noun	[Peru:Noun,Prop] peru:Noun+A3sg
 maç	maç	Noun		Noun+A3sg+Nom	Noun	[maç:Noun] maç:Noun+A3sg
 oyuncusu	oyun	Noun		Noun+Agt+P3sg	Noun	[oyun:Noun] oyun:Noun+A3sg|cu:Agt→Noun+A3sg+su:P3sg
-ISBN	ısbn	Noun	Abbrv	Noun+A3sg+Nom	Noun	[ISBN:Noun,Abbrv] ısbn:Noun+A3sg
+ISBN	isbn	Noun	Abbrv	Noun+A3sg+Nom	Noun	[ISBN:Noun,Abbrv] isbn:Noun+A3sg
 Ligi	lig	Noun		Noun+P3sg	Noun	[lig:Noun] lig:Noun+A3sg+i:P3sg
 merkezli	merkez	Noun		Noun+With	Adj	[merkez:Noun] merkez:Noun+A3sg|li:With→Adj
 Savaşı	savaş	Noun		Noun+P3sg	Noun	[savaş:Noun] savaş:Noun+A3sg+ı:P3sg
@@ -5164,7 +5164,7 @@ kuruldu	kurmak	Verb		Verb+Pass+Past	Verb	[kurmak:Verb] kur:Verb|ul:Pass→Verb+d
 çekimi	çekim	Noun		Noun+P3sg	Noun	[çekim:Noun] çekim:Noun+A3sg+i:P3sg
 Bizans	bizans	Noun	Prop	Noun+A3sg+Nom	Noun	[Bizans:Noun,Prop] bizans:Noun+A3sg
 Eleme	elem	Noun		Noun+Dat	Noun	[elem:Noun] elem:Noun+A3sg+e:Dat
-FIFA	fıfa	Noun	Abbrv	Noun+A3sg+Nom	Noun	[FIFA:Noun,Abbrv] fıfa:Noun+A3sg
+FIFA	fifa	Noun	Abbrv	Noun+A3sg+Nom	Noun	[FIFA:Noun,Abbrv] fifa:Noun+A3sg
 Hawaii	hawaii	Noun	Prop	Noun+A3sg+Nom	Noun	[Hawaii:Noun,Prop] hawaii:Noun+A3sg
 Kadınlar	kadın	Noun		Noun+A3pl	Noun	[kadın:Noun] kadın:Noun+lar:A3pl
 Sultan	sultan	Noun		Noun+A3sg+Nom	Noun	[sultan:Noun] sultan:Noun+A3sg
@@ -5577,8 +5577,8 @@ Erzurum	erzurum	Noun	Prop	Noun+A3sg+Nom	Noun	[Erzurum:Noun,Prop] erzurum:Noun+A3
 Gök	gök	Noun	Prop	Noun+A3sg+Nom	Noun	[Gök:Noun,Prop] gök:Noun+A3sg
 Hayatı	hayat	Noun		Noun+P3sg	Noun	[hayat:Noun] hayat:Noun+A3sg+ı:P3sg
 Hristiyan	hristiyan	Noun	Prop	Noun+A3sg+Nom	Noun	[Hristiyan:Noun,Prop] hristiyan:Noun+A3sg
-IMDb'de	ımdb	Noun	Abbrv	Noun+Loc	Noun	[IMDB:Noun,Abbrv] ımdb:Noun+A3sg+de:Loc
-IOC	ıoc	Noun	Abbrv	Noun+A3sg+Nom	Noun	[IOC:Noun,Abbrv] ıoc:Noun+A3sg
+IMDb'de	imdb	Noun	Abbrv	Noun+Loc	Noun	[IMDB:Noun,Abbrv] imdb:Noun+A3sg+de:Loc
+IOC	ioc	Noun	Abbrv	Noun+A3sg+Nom	Noun	[IOC:Noun,Abbrv] ioc:Noun+A3sg
 Kadın	kadın	Noun		Noun+A3sg+Nom	Noun	[kadın:Noun] kadın:Noun+A3sg
 Kamboçya	kamboçya	Noun	Prop	Noun+A3sg+Nom	Noun	[Kamboçya:Noun,Prop] kamboçya:Noun+A3sg
 Krallık'ın	krallık	Noun	Prop	Noun+Gen	Noun	[Krallık:Noun,Prop] krallık:Noun+A3sg+ın:Gen
@@ -5635,7 +5635,7 @@ Arka	arka	Noun		Noun+A3sg+Nom	Noun	[arka:Noun] arka:Noun+A3sg
 Bab	bab	Noun	Abbrv	Noun+A3sg+Nom	Noun	[BAB:Noun,Abbrv] bab:Noun+A3sg
 Bey	bey	Noun		Noun+A3sg+Nom	Noun	[bey:Noun] bey:Noun+A3sg
 British	british	Noun	Prop	Noun+A3sg+Nom	Noun	[British:Noun,Prop] british:Noun+A3sg
-COVID	covıd	Noun	Abbrv	Noun+A3sg+Nom	Noun	[COVID:Noun,Abbrv] covıd:Noun+A3sg
+COVID	kovid	Noun	Abbrv	Noun+A3sg+Nom	Noun	[kovid:Noun,Abbrv] covid:Noun+A3sg
 Delta	delta	Noun		Noun+A3sg+Nom	Noun	[delta:Noun] delta:Noun+A3sg
 Douglas	douglas	Noun	Prop	Noun+A3sg+Nom	Noun	[Douglas:Noun,Prop] douglas:Noun+A3sg
 Erişim	erişim	Noun		Noun+A3sg+Nom	Noun	[erişim:Noun] erişim:Noun+A3sg
@@ -5866,7 +5866,7 @@ Fenerbahçe	fenerbahçe	Noun	Prop	Noun+A3sg+Nom	Noun	[Fenerbahçe:Noun,Prop] fen
 Filo	filo	Noun		Noun+A3sg+Nom	Noun	[filo:Noun] filo:Noun+A3sg
 Gençlik	genç	Adj		Adj+Ness	Noun	[genç:Adj] genç:Adj|lik:Ness→Noun+A3sg
 IAG	-	-	-	-	-	-
-Idol	-	-	-	-	-	-
+Idol	idol	Noun		Noun+A3sg+Nom	Noun	[idol:Noun] idol:Noun+A3sg
 Kong	kong	Noun	Prop	Noun+A3sg+Nom	Noun	[Kong:Noun,Prop] kong:Noun+A3sg
 Konseyi	konsey	Noun		Noun+P3sg	Noun	[konsey:Noun] konsey:Noun+A3sg+i:P3sg
 Kulübü	kulüp	Noun		Noun+P3sg	Noun	[kulüp:Noun] kulüb:Noun+A3sg+ü:P3sg
@@ -5963,7 +5963,7 @@ De	de	Conj		Conj	Conj	[de:Conj] de:Conj
 Ecuador	-	-	-	-	-	-
 Emir	emir	Noun		Noun+A3sg+Nom	Noun	[emir:Noun] emir:Noun+A3sg
 Eurovision'da	eurovision	Noun	Prop	Noun+Loc	Noun	[Eurovision:Noun,Prop] eurovision:Noun+A3sg+da:Loc
-FIBA	fıba	Noun	Abbrv	Noun+A3sg+Nom	Noun	[FIBA:Noun,Abbrv] fıba:Noun+A3sg
+FIBA	fiba	Noun	Abbrv	Noun+A3sg+Nom	Noun	[FIBA:Noun,Abbrv] fiba:Noun+A3sg
 Finali	final	Noun		Noun+P3sg	Noun	[final:Noun] final:Noun+A3sg+i:P3sg
 Fiziksel	fizik	Noun		Noun+Related	Adj	[fizik:Noun] fizik:Noun+A3sg|sel:Related→Adj
 Gürcistan	gürcistan	Noun	Prop	Noun+A3sg+Nom	Noun	[Gürcistan:Noun,Prop] gürcistan:Noun+A3sg
@@ -6190,7 +6190,7 @@ Belçika	belçika	Noun	Prop	Noun+A3sg+Nom	Noun	[Belçika:Noun,Prop] belçika:Nou
 Beni	ben	Pron	Pers	Pron+A1sg+Acc	Pron	[ben:Pron,Pers] ben:Pron+A1sg+i:Acc
 Birliği'nin	birlik	Noun		Noun+P3sg+Gen	Noun	[birlik:Noun] birliğ:Noun+A3sg+i:P3sg+nin:Gen
 Breccia	-	-	-	-	-	-
-CIA	cıa	Noun	Abbrv	Noun+A3sg+Nom	Noun	[CIA:Noun,Abbrv] cıa:Noun+A3sg
+CIA	cia	Noun	Abbrv	Noun+A3sg+Nom	Noun	[CIA:Noun,Abbrv] cia:Noun+A3sg
 Cambridge	cambridge	Noun	Prop	Noun+A3sg+Nom	Noun	[Cambridge:Noun,Prop] cambridge:Noun+A3sg
 Cortex	cortex	Noun	Prop	Noun+A3sg+Nom	Noun	[Cortex:Noun,Prop] cortex:Noun+A3sg
 Database	database	Noun	Prop	Noun+A3sg+Nom	Noun	[Database:Noun,Prop] database:Noun+A3sg
@@ -6371,7 +6371,7 @@ Hindenburg'u	hindenburg	Noun	Prop	Noun+P3sg	Noun	[Hindenburg:Noun,Prop] hindenbu
 History	history	Noun	Prop	Noun+A3sg+Nom	Noun	[History:Noun,Prop] history:Noun+A3sg
 Hofmann	hofmann	Noun	Prop	Noun+A3sg+Nom	Noun	[Hofmann:Noun,Prop] hofmann:Noun+A3sg
 Home	home	Noun	Prop	Noun+A3sg+Nom	Noun	[Home:Noun,Prop] home:Noun+A3sg
-In	-	-	-	-	-	-
+In	in	Noun		Noun+A3sg+Nom	Noun	[in:Noun] in:Noun+A3sg
 Japonya'nın	japonya	Noun	Prop	Noun+Gen	Noun	[Japonya:Noun,Prop] japonya:Noun+A3sg+nın:Gen
 Katılımcılar	katılım	Noun		Noun+Agt+A3pl	Noun	[katılım:Noun] katılım:Noun+A3sg|cı:Agt→Noun+lar:A3pl
 Kongo	kongo	Noun	Prop	Noun+A3sg+Nom	Noun	[Kongo:Noun,Prop] kongo:Noun+A3sg

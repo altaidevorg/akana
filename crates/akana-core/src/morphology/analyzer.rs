@@ -847,6 +847,51 @@ impl TurkishMorphology {
     }
 
     pub(super) fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
+        let parses = self.analyze_written(word);
+        // Text typed without the Turkish keyboard writes İ as I (KITAPLAR, INSAN, Internet), and
+        // so do foreign acronyms (FBI, IMF), whose lemmas have i: a word with an I that its
+        // Turkish reading (ı) leaves without a lexicon word is read with İ in place of its I's
+        // too, in every combination for up to four, the fewest first. The first that makes a
+        // lexicon word wins; failing that, a word with no reading takes the first with any.
+        let clean = word.trim();
+        let lexical = |ps: &[MorphParse]| ps.iter().any(|p| !self.root_items(&p.root).is_empty());
+        if !clean.contains('I') || lexical(&parses) || self.analyze_roman(clean).is_some() {
+            return parses;
+        }
+        let positions: Vec<usize> = clean.match_indices('I').map(|(i, _)| i).take(4).collect();
+        let mut subsets: Vec<u32> = (1..1u32 << positions.len()).collect();
+        subsets.sort_by_key(|s| s.count_ones());
+        let mut fallback: Option<Vec<MorphParse>> = None;
+        for subset in subsets {
+            let mut dotted = String::with_capacity(clean.len() + 4);
+            let mut last = 0;
+            for (bit, &at) in positions.iter().enumerate() {
+                if subset & (1 << bit) != 0 {
+                    dotted.push_str(&clean[last..at]);
+                    dotted.push('İ');
+                    last = at + 1;
+                }
+            }
+            dotted.push_str(&clean[last..]);
+            let mut readings = self.analyze_written(&dotted);
+            for p in &mut readings {
+                p.surface = clean.to_string();
+            }
+            if lexical(&readings) {
+                return readings;
+            }
+            if fallback.is_none() && !readings.is_empty() {
+                fallback = Some(readings);
+            }
+        }
+        match fallback {
+            Some(readings) if parses.is_empty() => readings,
+            _ => parses,
+        }
+    }
+
+    /// The analyses of a word as written: `analyze_unranked` without its reading of I as İ.
+    fn analyze_written(&self, word: &str) -> Vec<MorphParse> {
         let clean = word.trim();
         if clean.is_empty() {
             return Vec::new();
@@ -1129,19 +1174,26 @@ impl TurkishMorphology {
         }
         // A name or abbreviation the lexicon knows is not guessed again: ABD'nın is not a word
         // because ABD is read "abede". A common word used as a name is (Başlangıç'ı, with no
-        // voicing).
-        let known = self.root_items(stem).iter().any(|i| {
-            matches!(
-                i.secondary_pos,
-                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-            )
+        // voicing). Nor is an acronym the lexicon spells with the i of its Latin I (CIA'nın,
+        // when CIA is read "siyayey").
+        let original_stem = clean.rfind(APOSTROPHES).map_or(clean, |i| &clean[..i]);
+        let named = |root: &str| {
+            self.root_items(root).iter().any(|i| {
+                matches!(
+                    i.secondary_pos,
+                    SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+                )
+            })
+        };
+        let latin = original_stem.contains('I').then(|| {
+            super::super::phonology::to_turkish_lower(&original_stem.replace('I', "İ"))
+                .replace(APOSTROPHES, "")
         });
-        if known {
+        if named(stem) || latin.is_some_and(|i| named(&i)) {
             return Vec::new();
         }
         // An upper-case stem is an abbreviation, read letter by letter unless it reads as a
         // word (TCDD'nin "tecedede", NATO'nun).
-        let original_stem = clean.rfind(APOSTROPHES).map_or(clean, |i| &clean[..i]);
         let abbreviation =
             original_stem.chars().count() > 1 && original_stem.chars().all(|c| !c.is_lowercase());
         let mut guessed = if abbreviation {

@@ -392,3 +392,18 @@ Muacceliyet
 Tramer
 Ohal
 Uyap
+
+## Turkish words typed in capitals without the Turkish keyboard, which Zemberek's
+## abbreviations.dict took for acronyms (Iki, Ilk: İKİ, İLK; Şıh), and the Roman numerals IV,
+## VI and VII. Their lemmas had ı; with the i of a Latin acronym's I they would be abbreviation
+## twins of iki, ilk, il, in and it (plan step D3).
+Iki [P:Abbrv]
+Il [P:Abbrv]
+Ilk [P:Abbrv]
+In [P:Abbrv]
+Iyi [P:Abbrv]
+It [P:Abbrv]
+Iv [P:Abbrv]
+Vı [P:Abbrv]
+Vıı [P:Abbrv]
+Şıh [P:Abbrv]
