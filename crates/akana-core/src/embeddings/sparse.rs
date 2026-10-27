@@ -142,6 +142,8 @@ impl MorphologicalSparseEncoder {
         let mut out = Vec::new();
         // Compound splits of the roots seen so far: splitting may analyse the root again.
         let mut splits: HashMap<String, Option<(String, String)>> = HashMap::new();
+        // The terms of the unknown words seen so far, whose backoff tries every split.
+        let mut backoff: HashMap<String, String> = HashMap::new();
         for sentence in SentenceSegmenter::segment(text) {
             let tokens = TurkishTokenizer::tokenize_words(sentence.text);
             let parses = self.disambiguator.disambiguate(&tokens);
@@ -151,11 +153,15 @@ impl MorphologicalSparseEncoder {
                     continue;
                 }
                 if parse.primary_pos == PrimaryPos::Unknown {
-                    // A word the analyzer does not know is its own term, without the period of
-                    // an abbreviation the tokenizer keeps (krş. and krş are one term).
-                    let term = surface.trim_end_matches('.');
+                    // A word the analyzer does not know is its backoff stem (hiperbariğe and
+                    // hiperbarik are one term), or else itself, without the period of an
+                    // abbreviation the tokenizer keeps (krş. and krş are one term).
+                    let bare = surface.trim_end_matches('.');
+                    let term = backoff.entry(bare.to_string()).or_insert_with_key(|w| {
+                        self.morphology.backoff_stem(w).unwrap_or_else(|| w.clone())
+                    });
                     if self.is_term(term) {
-                        out.push((term.to_string(), pos_weight(parse)));
+                        out.push((term.clone(), pos_weight(parse)));
                     }
                     continue;
                 }
@@ -546,5 +552,18 @@ mod tests {
         // Suffixes written apart after an apostrophe or an abbreviation's period are no terms.
         assert_eq!(terms("Ankara ' nın"), ["ankara"]);
         assert_eq!(terms("TCK. nun"), ["tck"]);
+    }
+
+    #[test]
+    fn an_unknown_word_is_its_backoff_stem() {
+        // Plan step D6: an inflected unknown word and its bare form are one term.
+        let encoder = MorphologicalSparseEncoder::new();
+        let terms = |text| encoder.encode_sparse(text).terms;
+        assert_eq!(
+            terms("hiperbarik hiperbariğe hiperbarikten"),
+            ["hiperbarik"]
+        );
+        // A word with no inflection to take off is its own term.
+        assert_eq!(terms("xqzvbt"), ["xqzvbt"]);
     }
 }

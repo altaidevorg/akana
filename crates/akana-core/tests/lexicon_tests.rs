@@ -199,6 +199,25 @@ fn usage_variants_of_alternations_read_as_nonstandard() {
 }
 
 #[test]
+fn an_unknown_word_backs_off_to_a_guessed_noun_stem() {
+    // Plan step D6: the stem search indexes a word the lexicon cannot read by.
+    let morph = TurkishMorphology::new();
+    for (word, stem) in [
+        ("hiperbariğe", Some("hiperbarik")),
+        ("istanbulda", Some("istanbul")),
+        ("kampüsü", Some("kampüs")),
+        ("dosyada", Some("dosya")),
+        ("hiperbariklerimizden", Some("hiperbarik")),
+        // Derivations, -m and -n stay on.
+        ("kitapçı", None),
+        ("bitcoin", None),
+        ("instagram", None),
+    ] {
+        assert_eq!(morph.backoff_stem(word).as_deref(), stem, "{word}");
+    }
+}
+
+#[test]
 fn abbreviations_are_not_common_nouns() {
     // Zemberek's `K [P:Abbrv]` became the common noun `k`, so `ki` read as k-ı (Acc).
     let morph = TurkishMorphology::new();

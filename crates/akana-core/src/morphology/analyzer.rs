@@ -143,6 +143,31 @@ static BUILTIN: LazyLock<(Arc<RootLexicon>, Arc<StemIndex>)> = LazyLock::new(|| 
     (Arc::new(lexicon), Arc::new(stems))
 });
 
+/// How many common nouns and adjectives of the built-in lexicon end in each four letters (or
+/// are those letters): how well a guessed stem ends like a word, for
+/// [`TurkishMorphology::backoff_stem`] (dosya beside dosyat, banka beside bankas).
+static ROOT_ENDINGS: LazyLock<HashMap<String, u32>> = LazyLock::new(|| {
+    let mut endings = HashMap::new();
+    for item in BUILTIN.0.items() {
+        if matches!(item.primary_pos, PrimaryPos::Noun | PrimaryPos::Adj)
+            && item.secondary_pos == SecondaryPos::None
+        {
+            *endings
+                .entry(last_letters(&item.root, 4).to_string())
+                .or_insert(0) += 1;
+        }
+    }
+    endings
+});
+
+/// The last `n` letters of a word, or the word if it is shorter.
+fn last_letters(word: &str, n: usize) -> &str {
+    word.char_indices()
+        .rev()
+        .nth(n - 1)
+        .map_or(word, |(i, _)| &word[i..])
+}
+
 /// Total search steps one word may take; a word that needs more (a crafted chain of voice
 /// suffixes) keeps the analyses found so far.
 const MAX_WORK: usize = 100_000;
@@ -857,6 +882,97 @@ impl TurkishMorphology {
             order(&mut parses);
         }
         parses
+    }
+
+    /// The stem of a word the lexicon cannot read, as search should index it: the word without
+    /// the inflections a noun takes (plural, possessive, case, -ki, copula), read through a
+    /// noun guessed from what is left, as Zemberek's analysis of unknown words guesses one
+    /// (hiperbariğe: hiperbarik; istanbulda: istanbul; kampüsü: kampüs; dosyada: dosya).
+    /// Of the stems that read so ([`backoff_candidates`](Self::backoff_candidates)), the one
+    /// with the most inflections after it wins, then the one whose last four letters end the
+    /// most nouns and adjectives of the lexicon, then the longest (plan step D6). A derivation
+    /// is not taken off (kitapçı is no kitap). `None` when no ending reads so; the word's own
+    /// analyses are not looked at.
+    pub fn backoff_stem(&self, word: &str) -> Option<String> {
+        let endings = &*ROOT_ENDINGS;
+        self.backoff_candidates(word)
+            .into_iter()
+            .max_by_key(|(stem, n)| {
+                let like = endings.get(last_letters(stem, 4)).copied().unwrap_or(0);
+                (*n, like, stem.chars().count())
+            })
+            .map(|(stem, _)| stem)
+    }
+
+    /// The stems [`backoff_stem`](Self::backoff_stem) chooses from, each with the most
+    /// inflections an ending of the word reads as after it: every split whose stem keeps three
+    /// letters and a vowel and can end a word, and for a stem in b, c, d or ğ before a vowel,
+    /// also the stem unvoiced (vücud-una: vücut, sonuc-una: sonuç).
+    #[doc(hidden)]
+    pub fn backoff_candidates(&self, word: &str) -> Vec<(String, usize)> {
+        // Without circumflexes, as lexicon roots are (dâvaların: dava).
+        let lower: String = super::super::phonology::to_turkish_lower(word.trim())
+            .chars()
+            .map(|c| match c {
+                'â' => 'a',
+                'î' => 'i',
+                'û' => 'u',
+                c => c,
+            })
+            .collect();
+        if !lower.chars().all(char::is_alphabetic) {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        for (at, _) in lower.char_indices().skip(3) {
+            let (stem, ending) = lower.split_at(at);
+            if !stem.chars().any(super::phonetics::is_vowel)
+                || !word_final(stem)
+                || !ending.starts_with(|c: char| "lıiuüsnydtaem".contains(c))
+            {
+                continue;
+            }
+            let mut roots = vec![(stem.to_string(), RootAttr::NONE)];
+            if ending.starts_with(super::phonetics::is_vowel) {
+                let last = stem.chars().next_back();
+                let unvoiced = match last {
+                    Some('b') => Some('p'),
+                    Some('c') => Some('ç'),
+                    Some('d') => Some('t'),
+                    Some('ğ') => Some('k'),
+                    _ => None,
+                };
+                if let (Some(last), Some(unvoiced)) = (last, unvoiced) {
+                    let head = &stem[..stem.len() - last.len_utf8()];
+                    roots.push((format!("{head}{unvoiced}"), RootAttr::VOICING));
+                }
+            }
+            for (root, attributes) in roots {
+                let mut item = DictionaryItem::new(
+                    root.as_str(),
+                    root.as_str(),
+                    PrimaryPos::Noun,
+                    SecondaryPos::None,
+                    attributes,
+                );
+                item.pronunciation = Some(root.clone());
+                let inflections = self
+                    .analyze_guessed(&item, &lower, word)
+                    .iter()
+                    .filter(|p| {
+                        p.morpheme_tags.len() > 1
+                            && p.morpheme_tags[1..]
+                                .iter()
+                                .all(|t| INFLECTION_TAGS.contains(&t.as_str()))
+                    })
+                    .map(|p| p.morpheme_tags.len() - 1)
+                    .max();
+                if let Some(n) = inflections {
+                    out.push((root, n));
+                }
+            }
+        }
+        out
     }
 
     /// The readings of a word as TDK spells it: [`analyze`](Self::analyze) without the
@@ -2182,6 +2298,48 @@ fn restem_analysis(
     out.push_str(rest);
     out
 }
+
+/// Whether a stem can end as a Turkish word does: not in a stop followed by a consonant
+/// (kitapç; ks is, in boks), nor in a voiced stop after a consonant but n or r (istanbuld;
+/// android has one consonant).
+fn word_final(stem: &str) -> bool {
+    let mut letters = stem.chars().rev();
+    let (Some(last), Some(before)) = (letters.next(), letters.next()) else {
+        return true;
+    };
+    if super::phonetics::is_vowel(last) || super::phonetics::is_vowel(before) {
+        return true;
+    }
+    let stop = |c: char| matches!(c, 'p' | 'ç' | 't' | 'k' | 'b' | 'c' | 'd' | 'g' | 'ğ');
+    let voiced_stop = matches!(last, 'b' | 'c' | 'd' | 'g' | 'ğ');
+    !(stop(before) && !(before == 'k' && last == 's'))
+        && !(voiced_stop && !matches!(before, 'n' | 'r'))
+}
+
+/// The inflections [`TurkishMorphology::backoff_stem`] takes off an unknown word: plural,
+/// possessive (but the singular first and second persons'), case, -ki and the third person's
+/// copula. -m and -n are left on, as more often the end of a foreign word (bitcoin is no
+/// bitcoi-n, instagram no instagra-m), and so is the equative (Endonezyaca is a language).
+const INFLECTION_TAGS: &[&str] = &[
+    "A3pl",
+    "P3sg",
+    "P1pl",
+    "P2pl",
+    "P3pl",
+    "Gen",
+    "Dat",
+    "Acc",
+    "Loc",
+    "Abl",
+    "Ins",
+    "RelClitic",
+    "Cop",
+    "CopPres3sg",
+    "CopPres3pl",
+    "CopPast",
+    "CopEvid",
+    "CopCond",
+];
 
 /// Derivational tags: an analysis without them is preferred among equals.
 const DERIVATIONAL_TAGS: &[&str] = &[

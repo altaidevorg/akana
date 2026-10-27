@@ -4,6 +4,8 @@
 //! ```text
 //! cargo run --release -p akana-core --example morph_probe -- kitabı gelmem bana
 //! ```
+//!
+//! With `--backoff`, the stem search indexes an unknown word by (`backoff_stem`) instead.
 
 use akana_core::morphology::TurkishMorphology;
 use std::io::BufRead;
@@ -29,6 +31,24 @@ fn main() {
                 "{word}: {n} analyses, {:.3} ms",
                 start.elapsed().as_secs_f64() * 1000.0 / 20.0
             );
+        }
+        return;
+    }
+    if words.first().is_some_and(|w| w == "--backoff-candidates") {
+        for word in &words[1..] {
+            let candidates: Vec<String> = morphology
+                .backoff_candidates(word)
+                .into_iter()
+                .map(|(stem, n)| format!("{stem}/{n}"))
+                .collect();
+            println!("{word}	{}", candidates.join(" "));
+        }
+        return;
+    }
+    if words.first().is_some_and(|w| w == "--backoff") {
+        for word in &words[1..] {
+            let stem = morphology.backoff_stem(word);
+            println!("{word}: {}", stem.as_deref().unwrap_or("-"));
         }
         return;
     }

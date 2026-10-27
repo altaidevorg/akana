@@ -102,9 +102,9 @@ different results.
   (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
   `compatibility`). Their fingerprints hash the embedded resources, the encoders' constants
   and the analyses of a probe set.
-- `MorphParse::analysis`, `MorphParse::nonstandard`, `MorphParse::display_lemma()` and
-  `TurkishMorphology::analyze_standard`, and the Python keys `analysis`, `pos`,
-  `display_lemma` and `nonstandard`.
+- `MorphParse::analysis`, `MorphParse::nonstandard`, `MorphParse::display_lemma()`,
+  `TurkishMorphology::analyze_standard` and `TurkishMorphology::backoff_stem`, and the Python
+  keys `analysis`, `pos`, `display_lemma` and `nonstandard`.
 - Grammar rule selection (`rules`, `enable`, `disable`, `experimental`) and `grammar_rules()`.
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
   Zemberek dictionaries and morphotactics (Apache 2.0) and the UD-derived function-lemma table
@@ -120,11 +120,23 @@ different results.
     ranks alike.
   - The prior records the lexicon and morphotactic graph it was estimated for, and a test
     fails when they no longer match.
+  - Real-world input reads: a name written with its capital but without the apostrophe
+    (`Türkiyede`, at a lower score), dotted abbreviations (`Dr.`, `TCK.nun`), a capital I typed
+    for İ (`KITAPLAR`) and foreign acronyms with `i` lemmas (`fbi`, `covid`), times on the hour
+    (`17.00'ye`), distributives on digits (`3'er`), numerals written as one word (`onbeş`),
+    lower-case Roman numerals and list letters, old orthography and usage variants of
+    alternations (`temerrüte`, as `nonstandard` readings).
+- **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
+  (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
+  court decisions write after its period (`TCK.nun`). NER entities still end with the number.
 - **Sparse encoder.**
   - One disambiguated lemma per word occurrence, with 32-bit term ids.
   - The function-lemma weights come from a table frozen with the sparse spec.
   - A term weighs by its lemma's lexicon class, not by the reading the disambiguator picked,
     so a change of ranking no longer moves weights.
+  - A word the analyzer cannot read is indexed by its backoff stem (`hiperbariğe` and
+    `hiperbarik` are one term), an abbreviation has one term however it is written (`Av.`,
+    `Av`), and a suffix written apart (`1924 'te`, `TCK. nun`) is no term.
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'
