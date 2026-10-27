@@ -28,7 +28,7 @@ use crate::morphology::{
 use crate::phonology::to_turkish_lower;
 use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
 /// Sparse lexical vector containing feature IDs and corresponding BM25 weights.
@@ -173,13 +173,13 @@ impl MorphologicalSparseEncoder {
                     .entry(surface.clone())
                     .or_insert_with_key(|w| frozen_form(&self.morphology, w));
                 if let Some((term, weight)) = fixed {
-                    if self.is_term(term) {
+                    if self.is_lemma_term(term) {
                         out.push((term.clone(), *weight));
                     }
                     continue;
                 }
                 let lemma = to_turkish_lower(&parse.lemma);
-                if self.is_term(&lemma) {
+                if self.is_lemma_term(&lemma) {
                     let weight = lemma_weight(&lemma, parse);
                     out.push((lemma, weight));
                 }
@@ -189,7 +189,7 @@ impl MorphologicalSparseEncoder {
                 });
                 if let Some((first, head)) = parts {
                     for part in [first, head] {
-                        if self.is_term(part) {
+                        if self.is_lemma_term(part) {
                             out.push((part.clone(), COMPOUND_PART_WEIGHT));
                         }
                     }
@@ -243,6 +243,12 @@ impl MorphologicalSparseEncoder {
         word.chars().nth(1).is_some()
             && word.chars().any(char::is_alphanumeric)
             && !self.stopwords.is_stopword(word)
+    }
+
+    /// Whether a lemma can be a term: [`is_term`](Self::is_term), and not a function word
+    /// ([`STOP_LEMMAS`]), whichever of its readings the context picks.
+    fn is_lemma_term(&self, lemma: &str) -> bool {
+        self.is_term(lemma) && !STOP_LEMMAS.contains(lemma)
     }
 }
 
@@ -362,6 +368,47 @@ static LEMMA_WEIGHTS: LazyLock<HashMap<String, f32>> = LazyLock::new(|| {
         .collect()
 });
 
+/// Classes of function words: a lemma whose dictionary items are all in them is no term (ve,
+/// için, bu, kendi, mi).
+const FUNCTION_CLASSES: &[PrimaryPos] = &[
+    PrimaryPos::Pron,
+    PrimaryPos::Conj,
+    PrimaryPos::Postp,
+    PrimaryPos::Q,
+    PrimaryPos::Det,
+];
+
+/// Function words whose items include a content class, which are no term either: the article
+/// and numeral bir, the negative değil, and the adverbs and postpositions of court prose
+/// (review 2 RANK2-11, LEX-20).
+const LISTED_STOP_LEMMAS: &[&str] = &[
+    "bir",
+    "değil",
+    "diye",
+    "kendi",
+    "önce",
+    "sonra",
+    "tarafından",
+    "üzere",
+];
+
+/// The lemmas that are no term ([`FUNCTION_CLASSES`], [`LISTED_STOP_LEMMAS`]): decided
+/// by the lemma, so a word's term does not come and go with the reading its context picks
+/// (tarafından the adverb or taraf-ı-ndan the noun).
+static STOP_LEMMAS: LazyLock<HashSet<String>> = LazyLock::new(|| {
+    let mut classes: HashMap<String, bool> = HashMap::new();
+    let morphology = TurkishMorphology::new();
+    for item in morphology.lexicon().items() {
+        let function = FUNCTION_CLASSES.contains(&item.primary_pos);
+        *classes.entry(to_turkish_lower(&item.lemma)).or_insert(true) &= function;
+    }
+    classes
+        .into_iter()
+        .filter_map(|(lemma, function)| function.then_some(lemma))
+        .chain(LISTED_STOP_LEMMAS.iter().map(|l| l.to_string()))
+        .collect()
+});
+
 /// The term of a word the dictionary lists as an adverb or a postposition, written as that word,
 /// whichever reading its context picks: the readings are in every such word, and their order
 /// turned with every re-estimation of the prior, and the term with it (review 2 RANK2-04).
@@ -437,6 +484,14 @@ pub(crate) fn fingerprint_constants() -> String {
     s.push_str(" precedence");
     for pos in CLASS_PRECEDENCE {
         s.push_str(&format!(" {}", pos.as_str()));
+    }
+    s.push_str(" function-classes");
+    for pos in FUNCTION_CLASSES {
+        s.push_str(&format!(" {}", pos.as_str()));
+    }
+    s.push_str(" function-lemmas");
+    for lemma in LISTED_STOP_LEMMAS {
+        s.push_str(&format!(" {lemma}"));
     }
     s.push_str(" fragments");
     for fragment in SUFFIX_FRAGMENTS {
@@ -548,9 +603,9 @@ mod tests {
     #[test]
     fn function_lemmas_weigh_less() {
         let encoder = MorphologicalSparseEncoder::new();
-        // bir is in most documents of both samples, kooperatif in 2 % of court decisions.
-        let values = term_values(encoder.encode_sparse("Bir kooperatif kuruldu."));
-        assert!(values["bir"] < values["kooperatif"] / 3.0, "{values:?}");
+        // almak is in most documents of both samples, kooperatif in 2 % of court decisions.
+        let values = term_values(encoder.encode_sparse("Kooperatif karar aldı."));
+        assert!(values["almak"] < values["kooperatif"] / 2.0, "{values:?}");
         // tarih is in 92 % of court decisions but few general texts: no function lemma.
         let values = term_values(encoder.encode_sparse("Eski tarih kitabı."));
         assert_eq!(values["tarih"], 1.3, "{values:?}");
@@ -591,6 +646,43 @@ mod tests {
             "expected compound components in extracted terms, got {:?}",
             vec.terms
         );
+    }
+
+    /// Review 2 RANK2-11, LEX-20: function words are no term, decided by the lemma.
+    #[test]
+    fn function_lemmas_are_no_terms() {
+        for lemma in [
+            "ve",
+            "için",
+            "bu",
+            "kendi",
+            "gibi",
+            "göre",
+            "bir",
+            "değil",
+            "tarafından",
+            "sonra",
+            "üzere",
+        ] {
+            assert!(STOP_LEMMAS.contains(lemma), "{lemma}");
+        }
+        // A lemma with a content reading stays a term.
+        for lemma in ["çok", "karar", "devam", "mahkeme", "karşı", "kadar"] {
+            assert!(!STOP_LEMMAS.contains(lemma), "{lemma}");
+        }
+        let encoder = MorphologicalSparseEncoder::new();
+        let terms = encoder
+            .encode_sparse("Dosya bir kez daha mahkeme tarafından incelendi ve karar verildi.")
+            .terms;
+        for absent in ["bir", "tarafından", "ve"] {
+            assert!(!terms.iter().any(|t| t == absent), "{absent} in {terms:?}");
+        }
+        for present in ["dosya", "mahkeme", "karar"] {
+            assert!(
+                terms.iter().any(|t| t == present),
+                "{present} not in {terms:?}"
+            );
+        }
     }
 
     #[test]

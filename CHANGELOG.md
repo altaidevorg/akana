@@ -175,6 +175,11 @@ different results.
     `cephane`, `elbirliği`), and common compounds the lexicon does not mark are
     (`bilgisayar`, `kahverengi`, `ayakkabı`, `bilirkişi`, `kötüniyet`). `decompose` follows
     the same lists.
+  - Function words are no terms, decided by the lemma: a lemma whose dictionary items are
+    all pronouns, conjunctions, postpositions, determiners or question particles (`ve`,
+    `için`, `bu`, `kendi`, `uyarınca`), and `bir`, `değil`, `diye`, `önce`, `sonra`,
+    `tarafından` and `üzere`. Before, the stopword list was a list of surface words, and
+    whether `tarafından` was a term depended on the reading the disambiguator picked.
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'
