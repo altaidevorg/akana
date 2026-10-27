@@ -217,6 +217,10 @@ different results.
 - A CompoundP3sg noun derives on its stem without the possessive only: `cumhurbaşkanılık` and
   `cumhurbaşkanılığı` no longer analyse (`cumhurbaşkanlık` does; -(I)msI takes either,
   `zeytinyağımsı`).
+- The 52 lexicon verbs Zemberek marks Reciprocal or Reflexive (`atışmak`, `paylaşmak`,
+  `karşılaşmak`, `savaşmak`, `yıkanmak`) carry the voice as Zemberek does, an implicit
+  `Recip`/`Reflex` in `analysis` (`atış:Verb|Recip→Verb+tı:Past`), where they had it as their
+  `secondary_pos`, which belongs to pronouns (`kendi`, `birbiri`).
 - `reciprocal_rank_fusion` is deterministic: equal scores are ordered by best rank, then id
   (they came in hash order, so the same inputs gave different rankings), an id listed twice in
   one list counts once, and a `k` that is not positive and finite, or an `alpha` that is not

@@ -6015,7 +6015,7 @@ hükûmeti	hükumet	Noun		Noun+P3sg	Noun	[hükûmet:Noun] hükumet:Noun+A3sg+i:P
 insanların	insan	Noun		Noun+A3pl+Gen	Noun	[insan:Noun] insan:Noun+lar:A3pl+ın:Gen
 isyan	isyan	Noun		Noun+A3sg+Nom	Noun	[isyan:Noun] isyan:Noun+A3sg
 kalır	kalmak	Verb		Verb+Aor	Verb	[kalmak:Verb] kal:Verb+ır:Aor+A3sg
-karşılaştığı	karşılaşmak	Verb	Recip	Verb+PastPart+P3sg	Noun	[karşılaşmak:Verb,Recip] karşılaş:Verb|tığ:PastPart→Noun+A3sg+ı:P3sg
+karşılaştığı	karşılaşmak	Verb		Verb+PastPart+P3sg	Noun	[karşılaşmak:Verb] karşılaş:Verb|Recip→Verb|tığ:PastPart→Noun+A3sg+ı:P3sg
 kategoride	kategori	Noun		Noun+Loc	Noun	[kategori:Noun] kategori:Noun+A3sg+de:Loc
 kere	kere	Noun		Noun+A3sg+Nom	Noun	[kere:Noun] kere:Noun+A3sg
 kg	kg	Noun		Noun+A3sg+Nom	Noun	[kg:Noun] kg:Noun+A3sg
@@ -6135,7 +6135,7 @@ hastalığı	hastalık	Noun		Noun+P3sg	Noun	[hastalık:Noun] hastalığ:Noun+A3s
 ikincisi	ikinci	Num	Ord	Num+P3sg	Noun	[ikinci:Num,Ord] ikinci:Num|Zero→Noun+A3sg+si:P3sg
 işgali	işgal	Noun		Noun+P3sg	Noun	[işgal:Noun] işgal:Noun+A3sg+i:P3sg
 karakterler	karakter	Noun		Noun+A3pl	Noun	[karakter:Noun] karakter:Noun+ler:A3pl
-karşılaşmaları	karşılaşmak	Verb	Recip	Verb+ActN+P3pl	Noun	[karşılaşmak:Verb,Recip] karşılaş:Verb|ma:Inf2→Noun+A3sg+ları:P3pl
+karşılaşmaları	karşılaşmak	Verb		Verb+ActN+P3pl	Noun	[karşılaşmak:Verb] karşılaş:Verb|Recip→Verb|ma:Inf2→Noun+A3sg+ları:P3pl
 komedyen	komedyen	Noun		Noun+A3sg+Nom	Noun	[komedyen:Noun] komedyen:Noun+A3sg
 kullanır	kullanmak	Verb		Verb+Aor	Verb	[kullanmak:Verb] kullan:Verb+ır:Aor+A3sg
 kuzeyinde	kuzey	Noun		Noun+P3sg+Loc	Noun	[kuzey:Noun] kuzey:Noun+A3sg+i:P3sg+nde:Loc

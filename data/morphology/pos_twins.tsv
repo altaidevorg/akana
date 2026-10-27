@@ -659,7 +659,6 @@ anlaşıp	VerbAdv:2
 anlık	Noun:5
 anma	Noun:1 Verb:1 VerbNoun:1
 anmadan	Noun:1
-anmaktayım	Verb:1
 anmanız	Noun:1
 anması	VerbNoun:1
 ansızın	Adv:7 Noun:1
@@ -4524,7 +4523,6 @@ düşüneyim	Verb:1
 düşünme	Verb:4 VerbNoun:2
 düşünmeden	Noun:1 VerbAdv:4 VerbNoun:1
 düşünmekteydi	Verb:1
-düşünmekteyim	Verb:1
 düşünmeli	Verb:2
 düşünmem	Verb:3 VerbNoun:1
 düşünmemektedir	Verb:4
@@ -5062,7 +5060,6 @@ etmediğim	VerbPart:1
 etmekte	Verb:11 VerbNoun:8
 etmektedir	Verb:26 VerbNoun:1
 etmekteydi	Verb:2
-etmekteydiler	Verb:1
 etmeli	Verb:12
 etmelidir	Verb:2
 etmeliydi	Verb:1
@@ -5541,7 +5538,6 @@ gelmeye	Noun:1 VerbNoun:8
 gelmeyebilir	Verb:1
 gelmeyecek	Verb:2 VerbPart:1
 gelmeyecektir	Verb:1
-gelmeyeyim	Verb:1
 gelmez	Verb:19 VerbPart:5
 gelmiş	Verb:44 VerbPart:22
 gelmişim	Verb:8
@@ -6869,7 +6865,6 @@ hissedilecektir	Verb:1
 hissedilmez	VerbPart:2
 hisseli	Adj:1 Noun:2
 hissetmektedir	Verb:1
-hissetmekteyim	Verb:1
 hissetmeli	Verb:1
 hissetmelidir	Verb:1
 hissetmeye	VerbNoun:1
@@ -8564,7 +8559,6 @@ keçe	Noun:4
 keçelenmiş	Verb:1
 keçeleşmiş	Noun:1 Verb:3
 keçi	Noun:8
-keşfedebilmekteyim	Verb:1
 keşfedeceği	VerbPart:1
 keşfedilmeden	VerbAdv:1
 keşfedilmiş	Verb:1 VerbPart:1
@@ -8735,7 +8729,6 @@ konuşacağımız	VerbPart:2
 konuşacağınız	VerbNoun:1
 konuşamadık	Verb:1
 konuşamaz	Verb:1
-konuşayım	Verb:1
 konuşlanmışlar	Verb:1
 konuşma	Noun:10 Verb:3 VerbNoun:8
 konuşmadan	Noun:1 VerbAdv:5 VerbNoun:1
@@ -8936,7 +8929,6 @@ koşarlar	Verb:2
 koşmaca	Noun:1
 koşmadan	VerbAdv:1
 koşmadığı	VerbPart:1
-koşmaktayız	Verb:2
 koşmaya	Noun:1 VerbNoun:4
 koşmayacak	Verb:2
 koşmuştu	Verb:1 VerbPart:1
@@ -10235,7 +10227,6 @@ olmadığıydı	Verb:1
 olmakta	Verb:2 VerbNoun:1
 olmaktadır	Verb:13
 olmaktadırlar	Verb:1
-olmaktayız	VerbNoun:1
 olmalı	Verb:34 VerbPart:2
 olmalıdır	Noun:1 Verb:18
 olmalıdırlar	Verb:1
@@ -10258,7 +10249,6 @@ olmayacaktı	Verb:1 VerbPart:1
 olmayacaktır	Verb:6 VerbPart:1
 olmayacağı	VerbNoun:3 VerbPart:1
 olmayacağım	Verb:2
-olmayayım	Verb:1
 olmaz	Adj:6 Verb:59 VerbPart:12
 olmazdı	Verb:8 VerbPart:1
 olmazlar	Verb:1
@@ -11554,7 +11544,6 @@ sevinemez	Verb:1
 sevinilecek	VerbPart:1
 sevinir	Verb:1
 sevinmemişti	VerbPart:1
-sevinmeyeyim	Verb:1
 sevinmişti	Verb:1 VerbPart:1
 sevinmiştim	VerbPart:1
 sevişmeden	VerbNoun:1
@@ -11747,7 +11736,6 @@ soluduğum	VerbPart:1
 soluk	Adj:13 Adv:1 Noun:8
 soluklar	Noun:2
 solum	Adj:1
-solumaktasınızdır	Verb:1
 solumaya	VerbNoun:1
 solunun	Noun:1
 som	Noun:3
@@ -13677,7 +13665,6 @@ vermeyecek	Verb:2 VerbPart:1
 vermeyecekti	Verb:1
 vermeyecektir	Verb:1
 vermeyeceğim	Verb:1
-vermeyeyim	Verb:2
 vermez	Verb:9 VerbPart:1
 vermiş	Verb:26 VerbPart:18
 vermişler	Verb:5
@@ -13940,7 +13927,6 @@ yansıtabilir	Verb:3
 yansıtacak	Verb:2 VerbPart:1
 yansıtma	Noun:1 VerbNoun:1
 yansıtmaktadır	Verb:3
-yansıtmaktayım	Verb:1
 yansıttığı	VerbPart:2
 yansıtılır	Verb:2
 yansıtır	Verb:2
@@ -14539,7 +14525,6 @@ yaşama	Noun:6 Verb:2 VerbNoun:10
 yaşamadık	Verb:31
 yaşamadıkları	VerbNoun:1
 yaşamaktadır	Verb:2
-yaşamaktayım	Verb:1
 yaşamamaktadır	Verb:1
 yaşamamışsak	Verb:1
 yaşamamıştı	Verb:1
@@ -15424,7 +15409,6 @@ zıttı	Noun:1
 çalma	Noun:1 VerbNoun:2
 çalmakta	Verb:1
 çalmaktaydı	Verb:1
-çalmaktaydılar	Verb:1
 çalmalar	VerbNoun:1
 çalmalıyım	Verb:1
 çalmaya	Verb:1 VerbNoun:10
@@ -16104,7 +16088,6 @@ zıttı	Noun:1
 ödeme	Noun:37 VerbNoun:6
 ödemeden	Noun:1 VerbAdv:1
 ödemediği	VerbNoun:1
-ödemekteyiz	Verb:1
 ödemeler	Noun:5 VerbNoun:1
 ödemeli	Adj:4
 ödemeye	Noun:4

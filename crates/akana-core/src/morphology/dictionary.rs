@@ -504,15 +504,26 @@ fn parse_zemberek_line(line: &str) -> Option<(&str, DictionaryItem)> {
 /// Applies a secondary POS or an attribute named in a dictionary line; an unknown name is
 /// ignored.
 fn add_name(item: &mut DictionaryItem, name: &str) {
-    if let Some(sec) = SecondaryPos::from_name(name) {
-        if item.secondary_pos == SecondaryPos::None {
-            item.secondary_pos = sec;
+    // Reflexive and Reciprocal name a pronoun's secondary POS (kendi, birbiri) but a verb's
+    // root attribute: the verb carries the voice implicitly (yıkan-mak, atış-mak), which its
+    // own root state gives every reading. Read as a secondary POS, 52 lexicon verbs lost it.
+    let voice = item.primary_pos == PrimaryPos::Verb
+        && attribute_by_name(name)
+            .is_some_and(|a| a.intersects(RootAttr::REFLEXIVE | RootAttr::RECIPROCAL));
+    match SecondaryPos::from_name(name).filter(|_| !voice) {
+        Some(sec) => {
+            if item.secondary_pos == SecondaryPos::None {
+                item.secondary_pos = sec;
+            }
+            if sec == SecondaryPos::ProperNoun {
+                item.attributes |= RootAttr::PROPER_NOUN;
+            }
         }
-        if sec == SecondaryPos::ProperNoun {
-            item.attributes |= RootAttr::PROPER_NOUN;
+        None => {
+            if let Some(attr) = attribute_by_name(name) {
+                item.attributes |= attr;
+            }
         }
-    } else if let Some(attr) = attribute_by_name(name) {
-        item.attributes |= attr;
     }
 }
 
