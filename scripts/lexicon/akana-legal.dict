@@ -40,7 +40,8 @@ irad [A:NoVoicing; Ref:irat]
 Salih [P:Noun,Prop]
 Ali [P:Noun,Prop]
 
-## Abbreviations of statutes and courts, with the pronunciation that decides their suffixes
+## Abbreviations of statutes, courts and institutions (AT: Avrupa Topluluğu), with the
+## pronunciation that decides their suffixes
 ## (HMK'nın, AİHM'nin, İYUK'un). A statute is also read as its last word, Kanunu (HMK'nun,
 ## İİK'na), and AİHM/AİHS as written (AİHM'e, AİHS'in): Index:1 entries add that reading.
 HMK [P:Abbrv; Pr:hemeka]
@@ -90,6 +91,7 @@ KVKK [P:Abbrv; Pr:kanunu; Index:1]
 DMK [P:Abbrv; Pr:demeka]
 AŞ [P:Abbrv; Pr:aşe]
 AAMÜT [P:Abbrv; Pr:aamüte]
+AT [P:Abbrv; Pr:ate]
 
 ## Abbreviations of company names, titles and addresses Zemberek lacks (TDK: San., Şti., Av.,
 ## Sok.), read as the word they stand for. Court decisions write them thousands of times

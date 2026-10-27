@@ -654,12 +654,21 @@ pub fn prior_class(p: &MorphParse) -> usize {
 }
 
 /// Whether the prior's case model counts a reading as a name (a proper noun or an
-/// abbreviation), which is written capitalised.
+/// abbreviation), which is written capitalised. A name takes inflections; a derivation makes a
+/// common word (Hakim-lik), whose capital is a title's or a sentence's ("İnfaz Hâkimliğinin"),
+/// so a derived name reading counts as any other word.
 pub fn prior_is_name(p: &MorphParse) -> bool {
     matches!(
         p.secondary_pos,
         SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-    )
+    ) && !p.morpheme_tags.iter().any(|t| is_derivational_tag(t))
+}
+
+/// The case factor a reading takes when its word is capitalised, in rank units: what the
+/// disambiguator divides out where a capital says nothing about the word (the start of a
+/// sentence, a word in capitals).
+pub(crate) fn prior_capital_units(p: &MorphParse) -> i32 {
+    PRIOR.case[if prior_is_name(p) { 0 } else { 2 }]
 }
 
 /// Whether the prior's case model counts a word as written capitalised (Ali, KARAR).

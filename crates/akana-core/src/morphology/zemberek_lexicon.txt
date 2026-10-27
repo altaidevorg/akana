@@ -4125,6 +4125,7 @@ asım asım Noun None
 asıma asıma Noun ProperNoun ProperNoun
 asıntı asıntı Noun None
 asır asır Noun None VowelDrop
+at at Noun Abbrv pr=ate
 at at Noun None NoVoicing
 at at Noun ProperNoun NoVoicing ProperNoun
 ata ata Noun None

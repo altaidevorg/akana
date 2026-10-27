@@ -9,8 +9,8 @@
 //! ([`rank_units`]), so a sentence disambiguates alike on every platform.
 
 use super::analyzer::{
-    co_occurring_extra_tags, prior_negative_imperative, prior_register_units, rank_units,
-    MorphParse, TurkishMorphology,
+    co_occurring_extra_tags, prior_capital_units, prior_negative_imperative, prior_register_units,
+    rank_units, MorphParse, TurkishMorphology,
 };
 use super::pos::{PrimaryPos, SecondaryPos};
 use crate::phonology::to_turkish_lower;
@@ -132,6 +132,21 @@ impl MorphologicalDisambiguator {
             // The first word of a sentence or of a quotation is capitalised whatever it is.
             let is_sentence_start = i == 0 || is_opening(tokens[i - 1]);
             let is_first_char_upper = tokens[i].chars().next().is_some_and(|c| c.is_uppercase());
+            // There, and in a word written in capitals (KARAR, ÜSTÜN) but for one that can be
+            // an abbreviation (AT, AB), the capital says nothing about the word: the prior's
+            // case factor is divided out ("Kanun , ...", "Ekmek aldım").
+            let capital_says_nothing = is_first_char_upper
+                && (is_sentence_start
+                    || (tokens[i].chars().filter(|c| c.is_alphabetic()).count() > 1
+                        && !tokens[i].chars().any(char::is_lowercase)
+                        && !parses
+                            .iter()
+                            .any(|p| p.secondary_pos == SecondaryPos::Abbreviation)));
+            // A question particle after the word makes it the predicate ("gelecek misin").
+            let before_question = analyses_per_token
+                .get(i + 1)
+                .and_then(|parses| parses.first())
+                .is_some_and(|p| p.primary_pos == PrimaryPos::Q);
             let following = &analyses_per_token[i + 1..];
             let next_parses = following.first().map(Vec::as_slice).unwrap_or_default();
             let next_is_word = i + 1 < n && !is_punctuation(tokens[i + 1]);
@@ -232,8 +247,9 @@ impl MorphologicalDisambiguator {
                 // 1. The predicate comes last (SOV), in the sentence and less surely in a
                 // clause: a finite verb before a comma or "ve" (gelecek, ...) over its participle.
                 // Not a negative imperative there: before "ve" its twin, the verbal noun in -mA,
-                // is far likelier ("belgelendirme ve bilgilendirme").
-                if is_sentence_final {
+                // is far likelier ("belgelendirme ve bilgilendirme"). A question particle
+                // follows the predicate ("Yarın gelecek misin ?").
+                if is_sentence_final || before_question {
                     if parse.pos == PrimaryPos::Verb {
                         bonus += const { rank_units(2.0) };
                     } else if is_predicate(parse) {
@@ -388,11 +404,13 @@ impl MorphologicalDisambiguator {
                 }
                 // Fewer derivation layers on a tie, counting overt morphemes: otherwise "Ali"
                 // (Noun+A3sg+Nom) loses to "Al-i" (Noun+Acc).
-                let rank = if addresses {
-                    parse.rank - prior_register_units(parse)
-                } else {
-                    parse.rank
-                };
+                let mut rank = parse.rank;
+                if addresses {
+                    rank -= prior_register_units(parse);
+                }
+                if capital_says_nothing {
+                    rank -= prior_capital_units(parse);
+                }
                 let score = rank.max(top_rank + RANK_FLOOR) + 2 * bonus.min(MAX_BONUS)
                     - 2 * marked as i32 * const { rank_units(0.01) };
                 // The analyzer's order breaks exact ties.
