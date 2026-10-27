@@ -1022,6 +1022,11 @@ fn reciprocal_rank_fusion(
 ) -> PyResult<Vec<(u64, f32)>> {
     let k_val = k.unwrap_or(60.0);
     let alpha_val = alpha.unwrap_or(1.0);
+    if !(k_val > 0.0 && k_val.is_finite()) || !alpha_val.is_finite() {
+        return Err(PyValueError::new_err(format!(
+            "k must be positive and finite and alpha finite (got k={k_val}, alpha={alpha_val})"
+        )));
+    }
     release(py, || {
         akana_core::reciprocal_rank_fusion(&dense_results, &sparse_results, k_val, alpha_val)
             .into_iter()

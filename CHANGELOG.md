@@ -200,6 +200,10 @@ different results.
 - A CompoundP3sg noun derives on its stem without the possessive only: `cumhurbaşkanılık` and
   `cumhurbaşkanılığı` no longer analyse (`cumhurbaşkanlık` does; -(I)msI takes either,
   `zeytinyağımsı`).
+- `reciprocal_rank_fusion` is deterministic: equal scores are ordered by best rank, then id
+  (they came in hash order, so the same inputs gave different rankings), an id listed twice in
+  one list counts once, and a `k` that is not positive and finite, or an `alpha` that is not
+  finite, is rejected (`ValueError` in Python) where it returned infinite scores.
 - The dependency parser, the readability metrics and the syntactic analyzer share one
   inventory of non-finite verb forms (`morphology::verb_form`), the full set the analyzer
   emits: -DIkçA, -cAsInA, -AmAdAn, -AsIyA converbs and -mIş, -Ar/-mAz, -AsI participles were

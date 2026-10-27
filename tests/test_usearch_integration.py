@@ -125,6 +125,14 @@ def test_reciprocal_rank_fusion():
     assert fused_dict[102] > fused_dict[103]
     assert fused_dict[102] > fused_dict[104]
 
+    # Equal scores come in one order (best rank, then id), every call (review 2 EMB-12).
+    dense = [(1, 0.9), (2, 0.8), (3, 0.7), (4, 0.6)]
+    sparse = [(2, 4.0), (1, 3.0), (4, 2.0), (3, 1.0)]
+    orders = {tuple(i for i, _ in akana.reciprocal_rank_fusion(dense, sparse)) for _ in range(50)}
+    assert orders == {(1, 2, 3, 4)}
+    with pytest.raises(ValueError):
+        akana.reciprocal_rank_fusion(dense, sparse, k=-1.0)
+
 
 @pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")
 def test_usearch_2bit_compiled_metric():
