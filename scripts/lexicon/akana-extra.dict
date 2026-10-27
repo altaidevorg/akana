@@ -167,3 +167,10 @@ otogaz
 ## takograf 3); the lemma stays the dictionary's.
 takoğraf [Ref:takograf]
 asteroid [Ref:asteroit]
+
+## Clothing sizes, which are no Roman numerals (XL'i as iksel beside Zemberek's ikslarç); TL
+## read as lira as well as tele (TL'nın 53 sample tokens, TL'nin 3,831). Plan step D4.
+XS [P:Abbrv]
+XL [P:Abbrv; Pr:iksel; Index:1]
+XXL [P:Abbrv]
+TL [P:Abbrv; Pr:lira; Index:1]

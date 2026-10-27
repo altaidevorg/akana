@@ -957,13 +957,44 @@ impl TurkishMorphology {
                 if parses.is_empty() && word.ends_with('.') && self.analyze_roman(clean).is_none() {
                     parses = self.analyze_dotted(clean, &word);
                 }
+                if parses.is_empty() {
+                    parses = self.analyze_joined_numeral(clean, &word);
+                }
+                // A letter, as a list's marker (i, ü, l, x, ğ), that the lexicon lacks: the
+                // letter, by its name.
+                if parses.is_empty()
+                    && word.chars().count() == 1
+                    && word.chars().all(char::is_alphabetic)
+                {
+                    let mut letter = DictionaryItem::new(
+                        word.as_str(),
+                        word.as_str(),
+                        PrimaryPos::Noun,
+                        SecondaryPos::Abbreviation,
+                        RootAttr::NONE,
+                    );
+                    letter.pronunciation = Some(super::pronunciation::letter_pronunciation(&word));
+                    parses = self.analyze_guessed(&letter, &word, clean);
+                }
+                // A list's numerals in lower case (ii, iii, xiv).
+                if parses.is_empty()
+                    && word.chars().nth(1).is_some()
+                    && word.chars().all(|c| matches!(c, 'i' | 'v' | 'x'))
+                {
+                    if let Some(mut roman) = self.analyze_roman(&word.to_ascii_uppercase()) {
+                        for p in &mut roman {
+                            p.surface = clean.to_string();
+                        }
+                        parses = roman;
+                    }
+                }
                 (word, parses)
             }
         };
         if let Some(roman) = self.analyze_roman(clean) {
             // A word the lexicon knows keeps its own readings first (MI, the question particle
-            // in capitals; CD); otherwise the numeral replaces a guessed abbreviation (II,
-            // XIX., IV'üncü), so II'nın is no word.
+            // in capitals; CD; XL, the size); otherwise the numeral replaces a guessed
+            // abbreviation (II, XIX., IV'üncü), so II'nın is no word.
             let stem = stem.strip_suffix('.').unwrap_or(&stem);
             if self.root_items(stem).is_empty() {
                 parses.retain(|p| p.secondary_pos != SecondaryPos::Abbreviation);
@@ -1026,8 +1057,17 @@ impl TurkishMorphology {
                 && groups[1..].iter().all(|g| g.len() == 3)
                 && !digits_part.contains([',', ':', '/', '-'])
         };
+        // A time on the hour is read by its hour (17.00'ye, 22:00'den: "on yedi", "yirmi iki").
+        let on_the_hour = digits_part
+            .rsplit_once(['.', ':'])
+            .filter(|(hour, minutes)| {
+                *minutes == "00" && (1..=2).contains(&hour.len()) && !hour.contains(['.', ':'])
+            })
+            .map(|(hour, _)| hour);
         let digits: String = if thousands {
             digits_part.replace('.', "")
+        } else if let Some(hour) = on_the_hour {
+            hour.to_string()
         } else {
             digits_part
                 .rsplit(['.', ',', ':', '/', '-'])
@@ -1060,14 +1100,22 @@ impl TurkishMorphology {
             .into_iter()
             .filter(|p| {
                 p.primary_pos == PrimaryPos::Num
-                    && (p.root == word || p.root == super::pronunciation::ordinal_word(word))
+                    && (p.root == word
+                        || p.root == super::pronunciation::ordinal_word(word)
+                        // The distributive (3'er, 2'şer, %50'şer: üçer, ikişer, ellişer).
+                        || (p.secondary_pos == SecondaryPos::Distributive
+                            && !ordinal
+                            && p.root.starts_with(stem)))
             })
             .map(|mut p| {
-                let ordinal_reading = p.root != word || ordinal;
+                let distributive = p.secondary_pos == SecondaryPos::Distributive;
+                let ordinal_reading = (p.root != word && !distributive) || ordinal;
                 p.formatted = format!("[{root}:Num] {root}:{}", p.morpheme_tags.join("+"));
                 p.lemma = root.clone();
                 p.root = root.clone();
-                p.secondary_pos = if ordinal_reading && !percent {
+                p.secondary_pos = if distributive {
+                    SecondaryPos::Distributive
+                } else if ordinal_reading && !percent {
                     SecondaryPos::Ordinal
                 } else {
                     secondary
@@ -1218,15 +1266,71 @@ impl TurkishMorphology {
         if guessed.pronunciation.is_none() && !stem.chars().any(super::phonetics::is_vowel) {
             guessed.pronunciation = Some(super::pronunciation::letter_pronunciation(stem));
         }
-        let stems: Vec<StemTransition> = stems::generate(&guessed, 0, &ENGINE.roots)
+        self.analyze_guessed(&guessed, &joined, clean)
+    }
+
+    /// The analyses of `input` through an item the lexicon does not have, as after an
+    /// apostrophe.
+    fn analyze_guessed(&self, item: &DictionaryItem, input: &str, clean: &str) -> Vec<MorphParse> {
+        let stems: Vec<StemTransition> = stems::generate(item, 0, &ENGINE.roots)
             .into_iter()
-            .filter(|s| joined.starts_with(s.surface.as_ref()))
+            .filter(|s| input.starts_with(s.surface.as_ref()))
             .collect();
         let candidates: Vec<(&StemTransition, &DictionaryItem)> =
-            stems.iter().map(|s| (s, &guessed)).collect();
+            stems.iter().map(|s| (s, item)).collect();
         let mut results = Vec::new();
-        self.search(&candidates, &joined, clean, true, &mut results);
+        self.search(&candidates, input, clean, true, &mut results);
         finish(results)
+    }
+
+    /// A numeral written as one word (onbeş, yirmidört, beşbin, onüçüncü, onar), as court
+    /// decisions often write it: the readings of its last number word, with the whole numeral
+    /// as root and lemma, where the words before it and that word make a number as it is read
+    /// (onbeş is 15; beşon is none).
+    fn analyze_joined_numeral(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
+        let mut splits = Vec::new();
+        let mut rest = lower;
+        while let Some(word) = super::pronunciation::number_word_prefix(rest) {
+            rest = &rest[word.len()..];
+            if rest.is_empty() {
+                break;
+            }
+            splits.push(lower.len() - rest.len());
+        }
+        for &at in splits.iter().rev() {
+            let (prefix, last) = lower.split_at(at);
+            let readings: Vec<MorphParse> = self
+                .analyze_normalized(clean, last, false)
+                .into_iter()
+                .filter(|p| {
+                    p.primary_pos == PrimaryPos::Num
+                        && super::pronunciation::cardinal_word(&p.root).is_some_and(|c| {
+                            super::pronunciation::joined_number_value(&format!("{prefix}{c}"))
+                                .is_some()
+                        })
+                })
+                .map(|mut p| {
+                    let root = format!("{prefix}{}", p.root);
+                    let body = p.analysis.split_once("] ").map_or("", |(_, b)| b);
+                    let stem = format!("{prefix}{}", body.split(':').next().unwrap_or(""));
+                    p.formatted = format!("[{root}:Num] {root}:{}", p.morpheme_tags.join("+"));
+                    p.analysis = restem_analysis(
+                        &p.analysis,
+                        &root,
+                        PrimaryPos::Num,
+                        p.secondary_pos,
+                        &stem,
+                    );
+                    p.lemma = root.clone();
+                    p.root = root;
+                    p
+                })
+                .collect();
+            if !readings.is_empty() {
+                return readings;
+            }
+        }
+        Vec::new()
     }
 
     /// A word with the period of an abbreviation, which the tokenizer keeps (Dr., vb., No.,
@@ -1271,7 +1375,8 @@ impl TurkishMorphology {
     /// (burnda, not Burn+Loc), so istanbulda gets no reading; the sparse encoder's backoff stem
     /// is what matches it to İstanbul. Not for a name that is also a common word (Kitapı is a
     /// misspelt kitabı, not the name Kitap with its accusative), nor for a name of fewer than
-    /// three letters or an abbreviation not written in capitals.
+    /// three letters, an abbreviation of one letter (Ade is no A+Loc) or one not written in
+    /// capitals.
     fn analyze_name_without_apostrophe(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
         if !clean.starts_with(char::is_uppercase) {
             return Vec::new();
@@ -1299,7 +1404,7 @@ impl TurkishMorphology {
                         stem_chars >= 3 && self.root_items(&item.root).iter().all(named)
                     }
                     SecondaryPos::Abbreviation => {
-                        clean.chars().take(stem_chars).all(|c| !c.is_lowercase())
+                        stem_chars >= 2 && clean.chars().take(stem_chars).all(|c| !c.is_lowercase())
                     }
                     _ => false,
                 }

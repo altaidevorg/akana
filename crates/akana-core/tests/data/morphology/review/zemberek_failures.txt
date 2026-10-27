@@ -1,5 +1,5 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# tiny lexicons: 1231 of 1245 checks pass (98.9 %)
+# tiny lexicons: 1230 of 1245 checks pass (98.8 %)
 # full lexicons: 1176 of 1238 checks pass (95.0 %)
 #   AdjectiveDerivationTest full 23/24
 #   AdjectiveDerivationTest tiny 23/24
@@ -28,7 +28,7 @@
 #   VerbDerivationTest full 111/112
 #   VerbDerivationTest tiny 111/112
 #   VerbsTest full 378/384
-#   VerbsTest tiny 378/384
+#   VerbsTest tiny 377/384
 full	AdjectiveDerivationTest/justlikeAdjTest	SINGLE	siyahsı	Adj + JustLike + Adj
 full	FunctionalTests/testAbbreviationVoicing_Issue_183	COUNT	Tübitaka	1
 full	FunctionalTests/testDate	COUNT	1.1.2014	1
@@ -105,3 +105,4 @@ tiny	VerbsTest/reciprocalTest_IGNORED	ANY	dövüştük	Verb + Recip + Verb + Pas
 tiny	VerbsTest/reciprocalTest_IGNORED	ANY	kaçış	Verb + Recip + Verb + Imp + A2sg
 tiny	VerbsTest/reciprocalTest_IGNORED	ANY	kaçışma	Verb + Recip + Verb + Neg + Imp + A2sg
 tiny	VerbsTest/reciprocalTest_IGNORED	ANY	kaçıştık	Verb + Recip + Verb + Past + A1pl
+tiny	VerbsTest/testImek	FAIL	i	

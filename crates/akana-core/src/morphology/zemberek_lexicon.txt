@@ -55547,6 +55547,7 @@ tki tki Noun Abbrv pr=tekei
 tkp tkp Noun Abbrv pr=tekepe
 tkyd tkyd Noun Abbrv pr=tekeyede
 tl tl Noun Abbrv pr=tele
+tl tl Noun Abbrv pr=lira idx=1
 tlos tlos Noun ProperNoun NoVoicing ProperNoun
 tm tm Noun Abbrv pr=teme
 tmk tmk Noun Abbrv pr=temeka
@@ -59553,11 +59554,14 @@ xing xing Noun ProperNoun NoVoicing ProperNoun
 xinhua xinhua Noun ProperNoun ProperNoun
 xinjiang xinjiang Noun ProperNoun ProperNoun
 xl xl Noun Abbrv pr=ikslarç
+xl xl Noun Abbrv pr=iksel idx=1
 xoom xoom Noun ProperNoun ProperNoun
 xp xp Noun Abbrv pr=ikspi
 xperia xperia Noun ProperNoun ProperNoun
+xs xs Noun Abbrv pr=iksse
 xu xu Noun Abbrv NoVoicing pr=zu
 xx xx Noun Abbrv pr=iksiks
+xxl xxl Noun Abbrv pr=iksiksle
 xxx xxx Noun Abbrv pr=iksiksiks
 y y Noun Abbrv NoVoicing pr=ye
 ya ya Conj None

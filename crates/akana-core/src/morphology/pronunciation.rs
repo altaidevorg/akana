@@ -208,6 +208,56 @@ pub fn last_number_word(digits: &str) -> &'static str {
     }
 }
 
+/// The number words and their values.
+fn number_words() -> impl Iterator<Item = (&'static str, u64)> {
+    let ones = (1..10).map(|d| (ONES[d], d as u64));
+    let tens = (1..10).map(|d| (TENS[d], 10 * d as u64));
+    let powers = (1..POWERS.len()).map(|p| (POWERS[p], 1000u64.pow(p as u32)));
+    ones.chain(tens).chain([("yüz", 100)]).chain(powers)
+}
+
+/// The longest number word `text` starts with (altmış before altı).
+pub fn number_word_prefix(text: &str) -> Option<&'static str> {
+    number_words()
+        .map(|(w, _)| w)
+        .filter(|w| text.starts_with(w))
+        .max_by_key(|w| w.len())
+}
+
+/// The value of a number written out as one word (onbeş -> 15, ikibinyirmialtı -> 2026), when
+/// [`number_to_words`] writes that number so: beşon, birbin and onon are no numbers.
+pub fn joined_number_value(words: &str) -> Option<u64> {
+    let (mut total, mut group, mut rest) = (0u64, 0u64, words);
+    while !rest.is_empty() {
+        let word = number_word_prefix(rest)?;
+        let value = number_words().find(|&(w, _)| w == word)?.1;
+        if value == 100 {
+            group = group.max(1).checked_mul(100)?;
+        } else if value >= 1000 {
+            total = total.checked_add(group.max(1).checked_mul(value)?)?;
+            group = 0;
+        } else {
+            group += value;
+        }
+        rest = &rest[word.len()..];
+    }
+    let value = total.checked_add(group)?;
+    (number_to_words(&value.to_string()) == words).then_some(value)
+}
+
+/// The cardinal of a number word, an ordinal or a distributive (üçüncü and üçer -> üç, dörder
+/// -> dört); `None` for a word that is none of them.
+pub fn cardinal_word(numeral: &str) -> Option<&'static str> {
+    number_words().map(|(w, _)| w).find(|&w| {
+        let stem = if w == "dört" { "dörd" } else { w };
+        numeral == w
+            || numeral == ordinal_word(w)
+            || numeral
+                .strip_prefix(stem)
+                .is_some_and(|e| matches!(e, "er" | "ar" | "şer" | "şar"))
+    })
+}
+
 /// The ordinal of a number word (üç -> üçüncü), for 15. and 3'üncü.
 pub fn ordinal_word(word: &str) -> &'static str {
     match word {
@@ -301,6 +351,21 @@ mod tests {
         assert_eq!(last_number_word("100"), "yüz");
         assert_eq!(last_number_word("0"), "sıfır");
         assert_eq!(ordinal_word(last_number_word("15")), "beşinci");
+    }
+
+    #[test]
+    fn reads_joined_numbers() {
+        assert_eq!(joined_number_value("onbeş"), Some(15));
+        assert_eq!(joined_number_value("altmışaltı"), Some(66));
+        assert_eq!(joined_number_value("ikibinyirmialtı"), Some(2026));
+        assert_eq!(joined_number_value("beşbin"), Some(5000));
+        for not_a_number in ["beşon", "birbin", "onon", "onbeşx"] {
+            assert_eq!(joined_number_value(not_a_number), None, "{not_a_number}");
+        }
+        assert_eq!(cardinal_word("üçüncü"), Some("üç"));
+        assert_eq!(cardinal_word("dörder"), Some("dört"));
+        assert_eq!(cardinal_word("ikişer"), Some("iki"));
+        assert_eq!(cardinal_word("ev"), None);
     }
 
     #[test]
