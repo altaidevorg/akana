@@ -63,6 +63,11 @@
 //! attributes decide, and the other reading takes `LEXICAL_PREFERENCE` (`prior_yields`). And one
 //! is the spelling's: in a word written with a circumflex, a reading whose dictionary spelling
 //! has none takes `CIRCUMFLEX_EVIDENCE` (`prior_respelled`: Hâkimliği is hâkim's, not hakim's).
+//! And a bare plural noun read as a predicate (karar-lar "they are decisions") takes
+//! `BARE_PLURAL_COPULA`, the rate of such predicates in the UD treebanks, in the analyzer only:
+//! the two readings are in every bare plural, and a factor in EM would compound at each
+//! iteration (0.085^10), where left out of it the two shapes stay even and the analyzer's
+//! factor makes the split the rate.
 //!
 //! The output is the model as the analyzer uses it, gzipped for `analyzer.rs` to embed: every
 //! item's and shape's log probability in integer rank units (`rank_units`), with its count, the
@@ -72,10 +77,11 @@
 //! bit for bit.
 
 use akana_core::morphology::{
-    prior_capitalised, prior_class, prior_inventory, prior_is_name, prior_item_key,
-    prior_negative_imperative, prior_respelled, prior_second_person, prior_shape_group,
-    prior_shape_key, prior_yields, rank_units, TurkishMorphology, CIRCUMFLEX_EVIDENCE,
-    LEXICAL_PREFERENCE, PRIOR_CLASSES, RANK_UNITS_PER_NAT, RANK_UNITS_PER_STEP,
+    prior_bare_plural_copula, prior_capitalised, prior_class, prior_inventory, prior_is_name,
+    prior_item_key, prior_negative_imperative, prior_respelled, prior_second_person,
+    prior_shape_group, prior_shape_key, prior_yields, rank_units, TurkishMorphology,
+    BARE_PLURAL_COPULA, CIRCUMFLEX_EVIDENCE, LEXICAL_PREFERENCE, PRIOR_CLASSES, RANK_UNITS_PER_NAT,
+    RANK_UNITS_PER_STEP,
 };
 use std::collections::HashMap;
 use std::io::Write;
@@ -199,6 +205,7 @@ struct Reading {
     negative: bool,
     yields: bool,
     respelled: bool,
+    copula: bool,
     classes: u32,
 }
 
@@ -213,6 +220,7 @@ impl Reading {
             self.negative,
             self.yields,
             self.respelled,
+            self.copula,
         ) == (
             other.item,
             other.shape,
@@ -221,6 +229,7 @@ impl Reading {
             other.negative,
             other.yields,
             other.respelled,
+            other.copula,
         )
     }
 }
@@ -386,6 +395,7 @@ fn main() {
                 negative: prior_negative_imperative(p),
                 yields: prior_yields(p),
                 respelled,
+                copula: prior_bare_plural_copula(p),
                 classes: 1 << prior_class(p),
             };
             match readings.iter().position(|r: &Reading| r.same(&reading)) {
@@ -565,6 +575,7 @@ fn main() {
         ("second-person-negative-imperative", 1.0),
         ("lexical-preference", f64::from(LEXICAL_PREFERENCE)),
         ("circumflex", f64::from(CIRCUMFLEX_EVIDENCE)),
+        ("bare-plural-copula", f64::from(BARE_PLURAL_COPULA)),
     ] {
         rows.push(format!("R\t{key}\t{}\t{p:.6}", units(p)));
     }
@@ -613,6 +624,11 @@ fn main() {
                     }
                     + if r.respelled {
                         units(f64::from(CIRCUMFLEX_EVIDENCE))
+                    } else {
+                        0
+                    }
+                    + if r.copula {
+                        units(f64::from(BARE_PLURAL_COPULA))
                     } else {
                         0
                     }

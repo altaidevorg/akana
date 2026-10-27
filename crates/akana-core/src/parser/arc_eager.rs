@@ -101,19 +101,29 @@ impl TurkishDependencyParser {
             return DependencyTree::new(Vec::new());
         }
         let n = tokens.len();
+        // Punctuation, which the analyzer leaves unanalysed.
+        let punct = |i: usize| {
+            disambiguated[i].pos == PrimaryPos::Punc
+                || tokens[i].chars().all(|c| !c.is_alphanumeric())
+        };
 
-        // 1. Locate the primary root of the sentence (typically the sentence-final verb or copular predicate)
-        let mut root_idx = n - 1;
-        for (i, p) in disambiguated.iter().enumerate().rev() {
-            // The question particle carries copula and person (mi-yiz) but is not the predicate.
-            if p.pos == PrimaryPos::Q {
-                continue;
-            }
-            if p.pos == PrimaryPos::Verb || p.morpheme_tags.iter().any(|t| t.starts_with("Cop")) {
-                root_idx = i;
-                break;
-            }
-        }
+        // 1. Locate the primary root of the sentence: the last verb or copular predicate (var,
+        // yok and değil are predicates too). The question particle carries copula and person
+        // (mi-yiz) but is not the predicate: the word before it is ("öğrenci misin"). With
+        // neither, the last word that is no punctuation or question particle is ("Hava çok
+        // soğuk ."), never the punctuation (review 2 PARSER2-01).
+        let predicate = |p: &MorphParse| {
+            p.pos == PrimaryPos::Verb
+                || p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
+                || matches!(p.lemma.as_str(), "var" | "yok" | "değil")
+        };
+        let content = |i: &usize| !punct(*i) && disambiguated[*i].pos != PrimaryPos::Q;
+        let root_idx = (0..n)
+            .rev()
+            .filter(content)
+            .find(|&i| predicate(&disambiguated[i]))
+            .or_else(|| (0..n).rev().find(content))
+            .unwrap_or(n - 1);
 
         let mut nodes = Vec::with_capacity(n);
 
@@ -126,6 +136,7 @@ impl TurkishDependencyParser {
 
             // UD: infinitives, participles and converbs are VERB (with a VerbForm).
             let upos = match parse.pos {
+                _ if punct(i) => "PUNCT",
                 _ if form_of_verb.is_some() => "VERB",
                 PrimaryPos::Noun => {
                     if parse.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun {
@@ -158,7 +169,7 @@ impl TurkishDependencyParser {
             if i == root_idx {
                 head = 0;
                 deprel = "root".to_string();
-            } else if parse.pos == PrimaryPos::Punc {
+            } else if punct(i) {
                 head = root_idx + 1;
                 deprel = "punct".to_string();
             } else if parse.pos == PrimaryPos::Q {
@@ -225,9 +236,19 @@ impl TurkishDependencyParser {
                     root_idx + 1
                 };
                 deprel = "cc".to_string();
+            } else if parse.pos == PrimaryPos::Postp && i > 0 && !punct(i - 1) {
+                // A postposition marks the word before it (Dilekçe ile, onun için): UD case.
+                head = i;
+                deprel = "case".to_string();
             } else if parse.pos == PrimaryPos::Noun || parse.pos == PrimaryPos::Pron {
+                let before_postposition =
+                    i + 1 < n && disambiguated[i + 1].pos == PrimaryPos::Postp;
                 // Check case features
-                if parse.morpheme_tags.contains(&"Acc".to_string()) {
+                if before_postposition {
+                    // The postposition's complement is an oblique of the predicate.
+                    head = root_idx + 1;
+                    deprel = "obl".to_string();
+                } else if parse.morpheme_tags.contains(&"Acc".to_string()) {
                     head = root_idx + 1;
                     deprel = "obj".to_string();
                 } else if parse.morpheme_tags.contains(&"Dat".to_string())

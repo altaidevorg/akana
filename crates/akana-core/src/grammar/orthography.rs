@@ -44,12 +44,95 @@ fn is_finite_verb(morphology: &TurkishMorphology, lower: &str) -> bool {
 /// -de/-da after it is the conjunction. Not the locative, and not a name or abbreviation
 /// read into a lower-case word ("saudade" is no Saud-a-de).
 fn is_case_marked(morphology: &TurkishMorphology, lower: &str) -> bool {
-    const CASES: [&str; 5] = ["Acc", "Dat", "Gen", "Abl", "Ins"];
-    morphology.analyze_standard(lower).iter().any(|p| {
-        !matches!(
-            p.secondary_pos,
-            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-        ) && p.morpheme_tags.iter().any(|t| CASES.contains(&t.as_str()))
+    fn case(p: &crate::morphology::MorphParse) -> Option<&str> {
+        const CASES: [&str; 5] = ["Acc", "Dat", "Gen", "Abl", "Ins"];
+        p.morpheme_tags
+            .iter()
+            .map(String::as_str)
+            .find(|t| CASES.contains(t))
+    }
+    let common: Vec<_> = morphology
+        .analyze_standard(lower)
+        .into_iter()
+        .filter(|p| {
+            !matches!(
+                p.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            )
+        })
+        .collect();
+    let mut cases = common.iter().filter_map(case).peekable();
+    if cases.peek().is_none() {
+        return false;
+    }
+    // A stem that is only a genitive must be one at its best reading.
+    if cases.all(|c| c == "Gen") {
+        return common.first().and_then(case).is_some();
+    }
+    true
+}
+
+/// Whether a stem's case readings are all genitives (alının, hakkının).
+fn only_genitive(morphology: &TurkishMorphology, lower: &str) -> bool {
+    let mut cases = morphology
+        .analyze_standard(lower)
+        .into_iter()
+        .filter(|p| {
+            !matches!(
+                p.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            )
+        })
+        .filter_map(|p| {
+            p.morpheme_tags
+                .into_iter()
+                .find(|t| matches!(t.as_str(), "Acc" | "Dat" | "Gen" | "Abl" | "Ins"))
+        })
+        .peekable();
+    cases.peek().is_some() && cases.all(|c| c == "Gen")
+}
+
+/// Whether a word one letter away from `lower` (a letter changed, dropped or added) is a known
+/// word's possessed locative, -(s)I-ndA: `lower` is then likelier that word misspelt than a
+/// genitive with -da written on it (alınında for alan-ı-nda, aranında for oran-ı-nda,
+/// bölünmeninde for bölünme-si-nde; review 2 GN2-03). Not a neighbour the edit makes through
+/// another possessive or a derivation (hakkınızda, fatura-sız-ı-nda for hakkınında and
+/// faturasınında, which are genitives). It costs the rare genitive that has such a neighbour
+/// (borçlununda: borçlu-su-nda).
+fn misspelt_locative(morphology: &TurkishMorphology, lower: &str) -> bool {
+    const LETTERS: &str = "abcçdefgğhıijklmnoöprsştuüvyz";
+    let chars: Vec<char> = lower.chars().collect();
+    let locative = |word: Vec<char>| {
+        let word: String = word.into_iter().collect();
+        morphology.analyze_standard(&word).iter().any(|p| {
+            p.morpheme_tags
+                .ends_with(&["P3sg".to_string(), "Loc".to_string()])
+                && !p.morpheme_tags.iter().any(|t| {
+                    crate::morphology::is_derivational_tag(t)
+                        && !matches!(t.as_str(), "ActN" | "Inf")
+                })
+        })
+    };
+    for i in 0..chars.len() {
+        let mut dropped = chars.clone();
+        dropped.remove(i);
+        if locative(dropped) {
+            return true;
+        }
+        for letter in LETTERS.chars().filter(|&l| l != chars[i]) {
+            let mut changed = chars.clone();
+            changed[i] = letter;
+            if locative(changed) {
+                return true;
+            }
+        }
+    }
+    (0..=chars.len()).any(|i| {
+        LETTERS.chars().any(|letter| {
+            let mut added = chars.clone();
+            added.insert(i, letter);
+            locative(added)
+        })
     })
 }
 
@@ -527,7 +610,9 @@ impl OrthographyRuleEngine {
                 if !is_known(morphology, tok)
                     && (is_finite_verb(morphology, stem)
                         || (lower.ends_with("de") || lower.ends_with("da"))
-                            && is_case_marked(morphology, stem))
+                            && is_case_marked(morphology, stem)
+                            && !(only_genitive(morphology, stem)
+                                && misspelt_locative(morphology, &lower)))
                 {
                     let (original_stem, _) = split_lower_suffix(tok, 2);
                     let correct_clitic = if let Some(v) = last_vowel(stem) {

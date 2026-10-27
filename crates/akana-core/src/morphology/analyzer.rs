@@ -53,10 +53,13 @@ pub struct MorphParse {
     /// Pnon and Nom are not, as in Zemberek. `morpheme_tags` and `formatted` stay akana's.
     #[serde(default)]
     pub analysis: String,
-    /// How likely the reading is: a spelling factor (1 for a bare root, 0.95 for a suffixed
-    /// word, 0.6 for a name's suffixes written without an apostrophe) times P(reading | word)
-    /// under the corpus prior, so a word's scores sum to at most 1 and an unambiguous word's is
-    /// its factor. Analyses come sorted by it.
+    /// How likely the reading is, for ranking: a spelling factor (1 for a bare root, 0.95 for a
+    /// suffixed word, 0.6 for a name's suffixes written without an apostrophe) times the
+    /// reading's share of its word under the corpus prior, so a word's scores sum to at most 1
+    /// and an unambiguous word's is its factor. Analyses come sorted by it. It is a ranking
+    /// score, not a calibrated probability: readings the corpus cannot tell apart share what the
+    /// estimator's start and the fixed factors give them (review 2 RANK2-08), so compare a
+    /// word's scores with one another, and do not threshold them across words.
     pub score: f32,
     /// Whether the reading is of a spelling usage has but TDK does not: an alternation left
     /// out or applied against the dictionary (temerrüte, gaspı) or old orthography
@@ -379,6 +382,22 @@ pub fn prior_yields(p: &MorphParse) -> bool {
     p.yields
 }
 
+/// The prior's factor for a bare plural noun read as a predicate, "they are Ns" (karar-lar
+/// CopPres3pl beside karar-lar A3pl, which every plural noun has): the odds of a bare
+/// nominative plural noun being its sentence's predicate in the UD Turkish train and dev
+/// splits, 727 of 9,247 (7.9 %, headings included). Corpus counts cannot separate the two
+/// readings, which left them at 0.50 / 0.45 (review 2 RANK2-08).
+pub const BARE_PLURAL_COPULA: f32 = 0.085;
+
+/// Whether the prior scales a reading by [`BARE_PLURAL_COPULA`]: a noun with the 3rd-person
+/// plural copula and nothing else.
+pub fn prior_bare_plural_copula(p: &MorphParse) -> bool {
+    p.primary_pos == PrimaryPos::Noun
+        && p.pos == PrimaryPos::Noun
+        && p.morpheme_tags.len() == 2
+        && p.morpheme_tags[1] == "CopPres3pl"
+}
+
 /// The prior's factor for a reading [`prior_respelled`] in a word written with a circumflex:
 /// the mark is written to tell the word apart (hâkim "judge" from hakim "dominant", resmî
 /// "official" from the name Resmi, şeklî "formal" from şekl-i "its form"), so a reading whose
@@ -467,6 +486,8 @@ pub(super) struct Prior {
     lexical: i32,
     /// [`CIRCUMFLEX_EVIDENCE`].
     circumflex: i32,
+    /// [`BARE_PLURAL_COPULA`].
+    copula: i32,
     /// log P(case as written | reading): name capitalised, name lower-case, other word
     /// capitalised, other word lower-case.
     case: [i32; 4],
@@ -505,6 +526,7 @@ impl Prior {
             negative_imperative: 0,
             lexical: 0,
             circumflex: 0,
+            copula: 0,
             case: [0; 4],
             forms: HashMap::default(),
             inventory: String::new(),
@@ -541,6 +563,7 @@ impl Prior {
                 ("R", "second-person-negative-imperative") => prior.negative_imperative = units,
                 ("R", "lexical-preference") => prior.lexical = units,
                 ("R", "circumflex") => prior.circumflex = units,
+                ("R", "bare-plural-copula") => prior.copula = units,
                 ("R", "case-name-capitalised") => prior.case[0] = units,
                 ("R", "case-name-lower") => prior.case[1] = units,
                 ("R", "case-other-capitalised") => prior.case[2] = units,
@@ -636,13 +659,18 @@ impl Prior {
         });
         let register = self.register(p);
         let lexical = if p.yields { self.lexical } else { 0 };
+        let copula = if prior_bare_plural_copula(p) {
+            self.copula
+        } else {
+            0
+        };
         let case = self.case[match (prior_is_name(p), capitalised) {
             (true, true) => 0,
             (true, false) => 1,
             (false, true) => 2,
             (false, false) => 3,
         }];
-        item + shape + register + lexical + case
+        item + shape + register + lexical + copula + case
     }
 }
 

@@ -150,6 +150,10 @@ impl MorphologicalDisambiguator {
             let following = &analyses_per_token[i + 1..];
             let next_parses = following.first().map(Vec::as_slice).unwrap_or_default();
             let next_is_word = i + 1 < n && !is_punctuation(tokens[i + 1]);
+            // The next word's best reading is a finite verb.
+            let next_is_verb = next_parses
+                .first()
+                .is_some_and(|p| p.pos == PrimaryPos::Verb);
             let modifies_noun = noun_ahead(following);
             // An adjective modifies a noun phrase past the indefinite article ("uzun bir
             // süre", "önemli bir karar"); a determiner does not ("Bu bir kitap").
@@ -352,7 +356,9 @@ impl MorphologicalDisambiguator {
                 // a word that is no noun or pronoun ("daha sonra", ", sonra da", at the start of
                 // a sentence) or after another case ("Bu doğru"), and is its adverb, adjective or
                 // noun twin; but a time takes sonra and önce bare ("iki yıl sonra"), and bu, şu,
-                // o and ne take kadar.
+                // o and ne take kadar. Between a noun and a verb a postposition that governs the
+                // nominative is one (Dilekçe ile başvurdu), where before a noun it may be a
+                // conjunction (Ali ile Veli geldi).
                 if parse.primary_pos == PrimaryPos::Postp {
                     let governed = || {
                         self.morphology
@@ -370,6 +376,9 @@ impl MorphologicalDisambiguator {
                         }
                         Some("Nom") if marked && governed().any(|c| c == "Abl") => {}
                         _ if marked => bonus -= const { rank_units(1.0) },
+                        Some("Nom") if governed().any(|c| c == "Nom") && next_is_verb => {
+                            bonus += const { rank_units(1.0) }
+                        }
                         _ => {}
                     }
                 }

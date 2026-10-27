@@ -140,13 +140,16 @@ fn readings(lower: &str) -> Readings {
         "Ins",
     ];
     let common = common_readings(lower);
+    // The copula counts as an inflection: every plural noun also reads as "they are Ns"
+    // (davacı-lar CopPres3pl), which made Davacılar, Başvurucular a first name before the name
+    // after them (review 2 PII2-03).
     Readings {
         common: !common.is_empty(),
         only_inflected: !common.is_empty()
             && common.iter().all(|p| {
                 p.morpheme_tags
                     .iter()
-                    .any(|t| INFLECTIONS.contains(&t.as_str()))
+                    .any(|t| INFLECTIONS.contains(&t.as_str()) || t.starts_with("Cop"))
             }),
     }
 }

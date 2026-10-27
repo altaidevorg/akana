@@ -164,3 +164,7 @@ different results.
   spaces and overlapping edits (grammar), and cycles or extra roots in dependency trees.
 - PII leaks: upper-case Turkish triggers, and text that `restore` would turn into an earlier
   value.
+- A plural role noun before a name (`Davacılar Ahmet Yılmaz`) is no longer masked as part of
+  the name; a sentence without a verb (`Hava çok soğuk .`, `Evde kimse yok .`) has its predicate
+  as the dependency root, never the punctuation, and a postposition attaches to its noun
+  (`case`); the de/da rule no longer splits a misspelt locative as a genitive (`aranında`).

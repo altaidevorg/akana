@@ -451,3 +451,24 @@ fn sentence_level_rules_stay_in_their_sentence() {
         .iter()
         .any(|f| f.rule == GrammarRule::NegationConcord));
 }
+
+/// Review 2 GN2-03: a genitive with -da written on it is split ("Hakkının da"), but not a
+/// word one letter away from a possessed locative, which is that word misspelt (aranında for
+/// oranında, bölünmeninde for bölünmesinde).
+#[test]
+fn misspelt_locatives_are_not_split_as_genitives() {
+    let checker = TurkishGrammarChecker::new();
+    let split = |text: &str| {
+        checker
+            .check(text)
+            .findings
+            .iter()
+            .any(|f| f.rule == GrammarRule::DeDaAfterVerb)
+    };
+    assert!(split("Hakkınında karar verildi."));
+    assert!(split("Faturasınında ödenmesi gerekir."));
+    assert!(split("Evede gitti."));
+    assert!(!split("Faiz aranında artış oldu."));
+    assert!(!split("Bölünmeninde etkisi var."));
+    assert!(!split("Davanın alınında görüldüğü gibi."));
+}
