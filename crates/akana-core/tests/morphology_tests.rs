@@ -294,3 +294,50 @@ fn homographs_have_their_own_prior_keys() {
     assert!(keys.contains("ay ay Noun -"), "{keys:?}");
     assert!(keys.contains("ay ay Noun Time #1"), "{keys:?}");
 }
+
+/// Review 2 MORPH2-12: user dictionaries also take Zemberek's syntax, as its dictionaries and
+/// akana's supplements write it, and the loader returns the lines it cannot read.
+#[test]
+fn dictionary_lines_in_zemberek_syntax_and_rejected_lines() {
+    let mut morph = TurkishMorphology::new();
+    let rejected = morph.load_dictionary_str(
+        "kriptopara [P:Noun; A:CompoundP3sg; Roots:kripto-para]\n\
+         foobarlamak\n\
+         fıstıkçap [A:Voicing]\n\
+         XYZK [P:Abbrv; Pr:iksiyezetka]\n\
+         bozuk [P:Foo]\n\
+         eksik satır\n\
+         acik [P:Noun\n",
+    );
+    assert_eq!(rejected, ["bozuk [P:Foo]", "eksik satır", "acik [P:Noun"]);
+    assert!(morph
+        .analyze("foobarladı")
+        .iter()
+        .any(|p| p.lemma == "foobarlamak" && p.primary_pos == PrimaryPos::Verb));
+    assert!(morph
+        .analyze("fıstıkçabı")
+        .iter()
+        .any(|p| p.root == "fıstıkçap" && p.morpheme_tags.contains(&"Acc".to_string())));
+    assert!(morph
+        .analyze("kriptoparası")
+        .iter()
+        .any(|p| p.root == "kriptopara"));
+    assert!(morph
+        .analyze("XYZK'ya")
+        .iter()
+        .any(|p| p.secondary_pos == SecondaryPos::Abbreviation));
+    // No line of the built-in lexicon is rejected.
+    let mut lexicon = RootLexicon::empty();
+    let builtin = include_str!("../src/morphology/zemberek_lexicon.txt");
+    assert!(lexicon.load_from_str(builtin).is_empty());
+}
+
+/// Review 2 MORPH-09: the fullwidth apostrophe of East Asian keyboards is an apostrophe.
+#[test]
+fn fullwidth_apostrophe() {
+    let morph = TurkishMorphology::new();
+    assert!(morph
+        .analyze("Ankara＇da")
+        .iter()
+        .any(|p| p.lemma == "ankara" && p.morpheme_tags.contains(&"Loc".to_string())));
+}

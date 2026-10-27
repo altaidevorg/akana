@@ -14,8 +14,9 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, LazyLock};
 use unicode_normalization::UnicodeNormalization;
 
-/// The marks written for an apostrophe (Ankara’ya, Ankara`ya); input folds them to `'`.
-const APOSTROPHES: [char; 7] = ['\'', '’', '‘', 'ʼ', '`', '´', '′'];
+/// The marks written for an apostrophe (Ankara’ya, Ankara`ya, the fullwidth Ankara＇ya of
+/// East Asian keyboards); input folds them to `'`.
+const APOSTROPHES: [char; 8] = ['\'', '’', '‘', 'ʼ', '`', '´', '′', '＇'];
 
 /// The spelling factor of a nonstandard reading ([`MorphParse::nonstandard`]), and its log in
 /// rank units (ln 0.5 / ln 1.02 * 16).
@@ -171,8 +172,9 @@ fn last_letters(word: &str, n: usize) -> &str {
         .map_or(word, |(i, _)| &word[i..])
 }
 
-/// Total search steps one word may take; a word that needs more (a crafted chain of voice
-/// suffixes) keeps the analyses found so far.
+/// Search steps one candidate stem may take; a candidate that needs more (a crafted chain of
+/// voice suffixes) keeps the analyses found so far. Each candidate has its own budget, so a
+/// short stem's search never starves a longer one's (review 2 MORPH2-14).
 const MAX_WORK: usize = 100_000;
 /// Search steps after which a word's dead ends are remembered. An ordinary word takes far
 /// fewer, and hashing every step would cost more than the memo saves.
@@ -943,30 +945,33 @@ impl TurkishMorphology {
 
     /// Adds a dictionary item to the morphological analyzer at runtime.
     pub fn add_item(&mut self, item: DictionaryItem) {
-        Arc::make_mut(&mut self.lexicon).add_item(item.clone());
-        Arc::make_mut(&mut self.stems).add(item, &self.lexicon, &ENGINE.roots);
+        let at = Arc::make_mut(&mut self.lexicon).add_item(item.clone());
+        Arc::make_mut(&mut self.stems).add(at, &item, &self.lexicon, &ENGINE.roots);
     }
 
-    /// Loads custom dictionary definitions from a file at runtime.
+    /// Loads custom dictionary definitions from a file at runtime; returns the lines it could
+    /// not read ([`RootLexicon::load_from_str`] gives both formats it takes).
     pub fn load_dictionary_file<P: AsRef<std::path::Path>>(
         &mut self,
         path: P,
-    ) -> std::io::Result<()> {
+    ) -> std::io::Result<Vec<String>> {
         // Read the file before copying the shared lexicon, so a missing file costs nothing.
         let text = std::fs::read_to_string(path)?;
-        self.load_dictionary_str(&text);
-        Ok(())
+        Ok(self.load_dictionary_str(&text))
     }
 
-    /// Loads custom dictionary definitions from a multiline string.
-    pub fn load_dictionary_str(&mut self, text: &str) {
+    /// Loads custom dictionary definitions from a multiline string, in akana's column format or
+    /// in Zemberek's syntax ([`RootLexicon::load_from_str`]); returns the lines it could not
+    /// read, which add nothing.
+    pub fn load_dictionary_str(&mut self, text: &str) -> Vec<String> {
         let mut parsed = RootLexicon::empty();
-        parsed.load_from_str(text);
+        let rejected = parsed.load_from_str(text);
         let mut items: Vec<DictionaryItem> = parsed.items().cloned().collect();
         items.sort_by(|a, b| a.root.cmp(&b.root).then_with(|| a.lemma.cmp(&b.lemma)));
         for item in items {
             self.add_item(item);
         }
+        rejected
     }
 
     /// Analyzes a surface word and returns all valid morphological parses, the most likely
@@ -1759,7 +1764,7 @@ impl TurkishMorphology {
         let candidates: Vec<(&StemTransition, &DictionaryItem)> = self
             .stems
             .prefix_matches(lower)
-            .map(|s| (s, self.stems.item(s)))
+            .map(|s| (s, self.stems.item(s, &self.lexicon)))
             .filter(|(s, item)| {
                 let stem_chars = s.surface.chars().count();
                 let mut ending = clean.chars().skip(stem_chars).peekable();
@@ -1809,7 +1814,7 @@ impl TurkishMorphology {
         let candidates: Vec<(&StemTransition, &DictionaryItem)> = self
             .stems
             .prefix_matches(lower)
-            .map(|s| (s, self.stems.item(s)))
+            .map(|s| (s, self.stems.item(s, &self.lexicon)))
             .collect();
         let mut results = Vec::new();
         self.search(&candidates, lower, clean, apostrophe, &mut results);
@@ -1837,6 +1842,7 @@ impl TurkishMorphology {
             let root_morpheme = engine.graph.states[stem.to.0 as usize].morpheme;
             let ctx = Context::at_root(stem.to, root_morpheme);
             let start = stem.surface.len();
+            search.work = 0;
             search.dfs(i, stem, item, start, ctx, stem.attrs);
         }
         let Search { found, .. } = search;
@@ -2085,19 +2091,28 @@ struct Search<'a> {
     input: &'a str,
     steps: Vec<Step>,
     /// Sub-searches known to find nothing: a hash of (candidate, position, phonetic attributes,
-    /// context). Conditions read nothing else, so an equal key has the same continuations.
+    /// context, and how often each state recurs on the path so far, which
+    /// [`MAX_STATE_REPEAT`] reads). Conditions read nothing else, so an equal key has the same
+    /// continuations.
     dead: HashSet<u64>,
     work: usize,
     found: Vec<(usize, Vec<Step>)>,
 }
 
 impl Search<'_> {
-    fn key(candidate: usize, pos: usize, ctx: &Context, attrs: P) -> u64 {
+    fn key(&self, candidate: usize, pos: usize, ctx: &Context, attrs: P) -> u64 {
         let mut h = std::collections::hash_map::DefaultHasher::new();
         candidate.hash(&mut h);
         pos.hash(&mut h);
         ctx.hash(&mut h);
         attrs.bits().hash(&mut h);
+        let mut visited: Vec<u16> = self
+            .steps
+            .iter()
+            .map(|s| self.graph.transitions[s.transition as usize].to.0)
+            .collect();
+        visited.sort_unstable();
+        visited.hash(&mut h);
         h.finish()
     }
 
@@ -2121,7 +2136,7 @@ impl Search<'_> {
             self.found.push((candidate, self.steps.clone()));
             return true;
         }
-        let key = (self.work > MEMO_AFTER).then(|| Self::key(candidate, pos, &ctx, attrs));
+        let key = (self.work > MEMO_AFTER).then(|| self.key(candidate, pos, &ctx, attrs));
         if key.is_some_and(|k| self.dead.contains(&k)) {
             return false;
         }

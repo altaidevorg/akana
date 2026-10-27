@@ -15,7 +15,7 @@ use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
 use super::turkish_morphotactics::RootStates;
 use ahash::AHashMap;
 
-/// A stem: its surface, the item it belongs to (an index into [`StemIndex::items`]), its
+/// A stem: its surface, the item it belongs to (a handle [`StemIndex::item`] resolves), its
 /// phonetic attributes and the state the analysis starts in.
 #[derive(Debug, Clone, PartialEq)]
 pub struct StemTransition {
@@ -25,46 +25,68 @@ pub struct StemTransition {
     pub to: StateId,
 }
 
-/// Every stem of a lexicon, by surface.
+/// Every stem of a lexicon, by surface. A stem's item is the lexicon's own, found by its
+/// place there (so the items are not stored twice, review 2 MORPH2-13), or one the index made
+/// itself: a compound's possessive-less root, or the rare item whose place does not fit the
+/// handle.
 #[derive(Clone)]
 pub struct StemIndex {
-    pub items: Vec<DictionaryItem>,
+    own: Vec<DictionaryItem>,
     by_surface: AHashMap<Box<str>, Vec<StemTransition>>,
     max_chars: usize,
+}
+
+/// A stem's item handle: the index's own item (this bit, and its place in [`StemIndex::own`]),
+/// or the lexicon's, by its root bucket (the low 24 bits) and its place in it (7 bits).
+const OWN: u32 = 1 << 31;
+
+/// The handle of the lexicon's item at `(bucket, place)`, if it fits.
+fn lexicon_handle((bucket, place): (usize, usize)) -> Option<u32> {
+    (bucket < 1 << 24 && place < 1 << 7).then_some((place as u32) << 24 | bucket as u32)
 }
 
 impl StemIndex {
     pub fn new(lexicon: &RootLexicon, roots: &RootStates) -> Self {
         let mut index = StemIndex {
-            items: Vec::with_capacity(lexicon.count()),
+            own: Vec::new(),
             by_surface: AHashMap::with_capacity(lexicon.count() * 5 / 4),
             max_chars: 0,
         };
-        // In lexicon order (homographs in Zemberek's order), so item indices and the order of
-        // equal analyses do not depend on hash order.
-        for item in lexicon.items() {
-            index.add(item.clone(), lexicon, roots);
+        // In lexicon order (homographs in Zemberek's order), so the order of equal analyses
+        // does not depend on hash order.
+        for (at, item) in lexicon.positions() {
+            index.add(at, item, lexicon, roots);
         }
         index
     }
 
-    /// Adds an item's stems (and, for a CompoundP3sg noun, its possessive-less stem).
-    pub fn add(&mut self, item: DictionaryItem, lexicon: &RootLexicon, roots: &RootStates) {
-        let compound = compound_root_item(&item, lexicon);
-        let idx = self.items.len() as u32;
-        let stems = generate(&item, idx, roots);
-        self.items.push(item);
-        for s in stems {
+    /// Adds the stems of the lexicon's item at `at` (its bucket and place, as
+    /// [`RootLexicon::add_item`] returns them), and for a CompoundP3sg noun its
+    /// possessive-less stem.
+    pub fn add(
+        &mut self,
+        at: (usize, usize),
+        item: &DictionaryItem,
+        lexicon: &RootLexicon,
+        roots: &RootStates,
+    ) {
+        let compound = compound_root_item(item, lexicon);
+        let handle = lexicon_handle(at).unwrap_or_else(|| self.keep(item.clone()));
+        for s in generate(item, handle, roots) {
             self.insert(s);
         }
         if let Some((surface, dummy)) = compound {
-            let idx = self.items.len() as u32;
-            let stems = compound_stems(&surface, &dummy, idx, roots);
-            self.items.push(dummy);
-            for s in stems {
+            let handle = self.keep(dummy.clone());
+            for s in compound_stems(&surface, &dummy, handle, roots) {
                 self.insert(s);
             }
         }
+    }
+
+    /// Stores an item of the index's own and returns its handle.
+    fn keep(&mut self, item: DictionaryItem) -> u32 {
+        self.own.push(item);
+        OWN | (self.own.len() - 1) as u32
     }
 
     fn insert(&mut self, s: StemTransition) {
@@ -93,8 +115,13 @@ impl StemIndex {
             .flatten()
     }
 
-    pub fn item(&self, s: &StemTransition) -> &DictionaryItem {
-        &self.items[s.item as usize]
+    /// The item a stem belongs to, in `lexicon`, the one the index was built from.
+    pub fn item<'a>(&'a self, s: &StemTransition, lexicon: &'a RootLexicon) -> &'a DictionaryItem {
+        if s.item & OWN != 0 {
+            &self.own[(s.item & !OWN) as usize]
+        } else {
+            lexicon.item_at((s.item & 0xFF_FFFF) as usize, (s.item >> 24) as usize)
+        }
     }
 }
 

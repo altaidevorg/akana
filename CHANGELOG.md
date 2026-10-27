@@ -37,6 +37,12 @@ lemmas against stems should match `root`.
 - Missing cells are there (`gelmem`, `bana`, `suyunu`).
 - Tags follow the morphotactics: `burnum` also reads as `CopPres1sg`, and `çalışkan` lost its
   `Verb+DevGen` readings.
+
+**User dictionaries.** `Morphology.load_dictionary_str` and `load_dictionary_file` (Rust:
+`TurkishMorphology::load_dictionary_str`/`_file`, `RootLexicon::load_from_str`/`_file`) return
+the lines they could not read, where they returned nothing; a line with an unknown POS is one of
+them (0.8.0 read it as a noun). They also take Zemberek's own syntax (`kriptopara [P:Noun;
+A:CompoundP3sg; Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 misread.
 - Parses are sorted by `score`, which is now the probability of the reading given the word,
   times a spelling factor; a word's scores sum to at most 1.
 - The parse dicts of `Morphology.analyze` and `Disambiguator.disambiguate` have new keys:

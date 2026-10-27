@@ -1,5 +1,7 @@
 //! Turkish vowel harmony rules: 2-way (A/E - Büyük Ünlü Uyumu) and 4-way (I/İ/U/Ü - Küçük Ünlü Uyumu).
 
+use unicode_normalization::UnicodeNormalization;
+
 use super::alphabet::{
     is_back_vowel, is_front_vowel, is_rounded_vowel, is_unrounded_vowel, last_vowel,
 };
@@ -55,11 +57,13 @@ pub fn get_i_type_harmonic_vowel(stem: &str) -> char {
 }
 
 /// Checks if a word satisfies Major Vowel Harmony (Büyük Ünlü Uyumu: all vowels either all back or all front).
+/// The word is NFKC-normalised first, so İ written as I and a combining dot is İ (review 2
+/// MORPH2-18).
 pub fn check_major_vowel_harmony(word: &str) -> bool {
     let mut has_back = false;
     let mut has_front = false;
 
-    for c in word.chars() {
+    for c in word.nfkc() {
         if is_back_vowel(c) {
             has_back = true;
         } else if is_front_vowel(c) {
@@ -72,10 +76,11 @@ pub fn check_major_vowel_harmony(word: &str) -> bool {
     true
 }
 
-/// Checks if a word satisfies Minor Vowel Harmony (Küçük Ünlü Uyumu).
+/// Checks if a word satisfies Minor Vowel Harmony (Küçük Ünlü Uyumu), on the NFKC-normalised
+/// word.
 pub fn check_minor_vowel_harmony(word: &str) -> bool {
     let vowels: Vec<char> = word
-        .chars()
+        .nfkc()
         .filter(|&c| super::alphabet::is_turkish_vowel(c))
         .collect();
     if vowels.len() <= 1 {

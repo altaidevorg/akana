@@ -270,21 +270,43 @@ impl RootLexicon {
         }
     }
 
-    /// Adds an item; an item equal to one already stored is ignored.
-    pub fn add_item(&mut self, item: DictionaryItem) {
+    /// Adds an item; an item equal to one already stored is ignored. Returns where the item is
+    /// stored: its root's bucket and its place in it, which stay as they are whatever is added
+    /// later ([`item_at`](Self::item_at)).
+    pub fn add_item(&mut self, item: DictionaryItem) -> (usize, usize) {
         self.max_root_chars = self.max_root_chars.max(item.root.chars().count());
         match self.index.get(&item.root) {
             Some(&i) => {
                 let bucket = &mut self.buckets[i];
-                if !bucket.contains(&item) {
-                    bucket.push(item);
+                match bucket.iter().position(|stored| *stored == item) {
+                    Some(place) => (i, place),
+                    None => {
+                        bucket.push(item);
+                        (i, bucket.len() - 1)
+                    }
                 }
             }
             None => {
                 self.index.insert(item.root.clone(), self.buckets.len());
                 self.buckets.push(vec![item]);
+                (self.buckets.len() - 1, 0)
             }
         }
+    }
+
+    /// The item at a bucket and place [`add_item`](Self::add_item) returned.
+    pub fn item_at(&self, bucket: usize, place: usize) -> &DictionaryItem {
+        &self.buckets[bucket][place]
+    }
+
+    /// Every item with its bucket and place, in the order of [`items`](Self::items).
+    pub fn positions(&self) -> impl Iterator<Item = ((usize, usize), &DictionaryItem)> {
+        self.buckets.iter().enumerate().flat_map(|(b, bucket)| {
+            bucket
+                .iter()
+                .enumerate()
+                .map(move |(place, item)| ((b, place), item))
+        })
     }
 
     pub fn get_items(&self, root: &str) -> Option<&Vec<DictionaryItem>> {
@@ -314,101 +336,206 @@ impl RootLexicon {
     /// (`idx=N` marks a homograph after the first; items keep the file's order; `display=`
     /// spells the lemma as the dictionary does, as does a lemma written with capitals or a
     /// circumflex: `hâkim hakim Adj`),
-    /// e.g. `kitap kitap Noun Voicing`, `gelmek gel Verb`, `abd abd Noun Abbrv pr=abede`.
+    /// e.g. `kitap kitap Noun Voicing`, `gelmek gel Verb`, `abd abd Noun Abbrv pr=abede`;
+    /// or in Zemberek's own syntax, as its dictionaries and akana's supplements write them:
+    /// `word [P:Noun,Prop; A:Voicing; Pr:...; Roots:a-b; Index:1]`, or the word alone (a verb
+    /// when it ends in -mAk, else a noun): `blokzincir [A:Voicing]`, `kriptopara [P:Noun;
+    /// A:CompoundP3sg; Roots:kripto-para]`, `foobarlamak`.
     ///
     /// The secondary POS uses the names of [`SecondaryPos::from_name`] (`Prop`/`ProperNoun`,
-    /// `Abbrv`, `Time`, `Pers`, ...). Attributes take akana's or Zemberek's names (`VowelDrop`
-    /// or `LastVowelDrop`, `AoristA` or `Aorist_A`, `NoVoicing`, ...); unknown tokens are
-    /// ignored. An unknown primary POS is read as `Noun`. Lemma and root are lower-cased and
-    /// lose circumflexes, apostrophes and dashes, as `analyze` normalises words; the
-    /// attributes Zemberek infers (aorist class, voicing) are added when missing, and an
-    /// abbreviation without a pronunciation gets a guessed one (TBK -> tebeka).
-    pub fn load_from_str(&mut self, text: &str) {
+    /// `Abbrv`, `Time`, `Pers`, ...); a secondary alone stands for a noun (`P:Abbrv`).
+    /// Attributes take akana's or Zemberek's names (`VowelDrop` or `LastVowelDrop`, `AoristA`
+    /// or `Aorist_A`, `NoVoicing`, ...); unknown attributes are ignored. Lemma and root are
+    /// lower-cased and lose circumflexes, apostrophes and dashes, as `analyze` normalises
+    /// words; the attributes Zemberek infers (aorist class, voicing) are added when missing,
+    /// and an abbreviation without a pronunciation gets a guessed one (TBK -> tebeka).
+    ///
+    /// Returns the lines read neither way (an unknown POS, a missing column, an unclosed
+    /// `[`), which add no item (review 2 MORPH2-12).
+    pub fn load_from_str(&mut self, text: &str) -> Vec<String> {
         // About one item per 40 bytes of the built-in lexicon.
         self.index.reserve(text.len() / 40);
         self.buckets.reserve(text.len() / 40);
+        let mut rejected = Vec::new();
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            let mut parts = line.split_whitespace();
-            let (Some(lemma), Some(root), Some(pos)) = (parts.next(), parts.next(), parts.next())
-            else {
-                continue;
+            let zemberek = line.contains('[') || line.split_whitespace().nth(1).is_none();
+            let parsed = if zemberek {
+                parse_zemberek_line(line)
+            } else {
+                parse_akana_line(line)
             };
-
-            let written = lemma;
-            let lemma = normalize_word(lemma);
-            let root = normalize_word(root);
-            let primary_pos = PrimaryPos::from_name(pos).unwrap_or(PrimaryPos::Noun);
-            let mut item =
-                DictionaryItem::new(lemma, root, primary_pos, SecondaryPos::None, RootAttr::NONE);
-
-            for p in parts {
-                if let Some((key, value)) = p.split_once('=') {
-                    match key {
-                        "pr" => item.pronunciation = Some(normalize_word(value)),
-                        // One part is the stem without the possessive (üzeri roots=üzer), as
-                        // Zemberek joins the parts: its first part is empty.
-                        "roots" => {
-                            item.compound_roots = Some(match value.split_once('-') {
-                                Some((a, b)) => (normalize_word(a), normalize_word(b)),
-                                None => (String::new(), normalize_word(value)),
-                            });
-                        }
-                        "pc" => item.governed_case = Some(value.to_string()),
-                        "idx" => item.homograph = value.parse().unwrap_or(0),
-                        "display" => item.display = Some(value.to_string()),
-                        _ => {}
-                    }
-                    continue;
+            match parsed {
+                Some((written, mut item)) => {
+                    finish_item(&mut item, written);
+                    self.add_item(item);
                 }
-                if let Some(sec) = SecondaryPos::from_name(p) {
-                    if item.secondary_pos == SecondaryPos::None {
-                        item.secondary_pos = sec;
-                    }
-                    if sec == SecondaryPos::ProperNoun {
-                        item.attributes |= RootAttr::PROPER_NOUN;
-                    }
-                    continue;
-                }
-                if let Some(attr) = attribute_by_name(p) {
-                    item.attributes |= attr;
-                }
+                None => rejected.push(line.to_string()),
             }
-
-            if item.pronunciation.is_none() {
-                let guessed = if item.secondary_pos == SecondaryPos::Abbreviation {
-                    guess_abbreviation(&item.root)
-                } else if !item.root.chars().any(is_turkish_vowel) {
-                    letter_pronunciation(&item.root)
-                } else {
-                    item.root.clone()
-                };
-                if guessed != item.root {
-                    item.pronunciation = Some(guessed);
-                }
-            }
-            if item.display.is_none() && written != item.lemma {
-                item.display = Some(written.to_string());
-            }
-            if item.display.as_deref() == Some(&*item.display_lemma_default()) {
-                item.display = None;
-            }
-            infer_attributes(&mut item);
-            self.add_item(item);
         }
+        rejected
     }
 
     /// Loads dictionary items from a text file.
-    pub fn load_from_file<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
+    /// Returns the lines read neither way, as [`load_from_str`](Self::load_from_str) does.
+    pub fn load_from_file<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<Vec<String>> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
+        let mut rejected = Vec::new();
         for line in reader.lines() {
             let l = line?;
-            self.load_from_str(&l);
+            rejected.extend(self.load_from_str(&l));
         }
-        Ok(())
+        Ok(rejected)
     }
+}
+
+/// A line in akana's column format (`lemma root POS ...`): the lemma as written and the item,
+/// or `None` for an unknown POS or a missing column.
+fn parse_akana_line(line: &str) -> Option<(&str, DictionaryItem)> {
+    let mut parts = line.split_whitespace();
+    let (lemma, root, pos) = (parts.next()?, parts.next()?, parts.next()?);
+    let primary_pos = PrimaryPos::from_name(pos)?;
+    let mut item = DictionaryItem::new(
+        normalize_word(lemma),
+        normalize_word(root),
+        primary_pos,
+        SecondaryPos::None,
+        RootAttr::NONE,
+    );
+    for p in parts {
+        if let Some((key, value)) = p.split_once('=') {
+            match key {
+                "pr" => item.pronunciation = Some(normalize_word(value)),
+                // One part is the stem without the possessive (üzeri roots=üzer), as
+                // Zemberek joins the parts: its first part is empty.
+                "roots" => {
+                    item.compound_roots = Some(match value.split_once('-') {
+                        Some((a, b)) => (normalize_word(a), normalize_word(b)),
+                        None => (String::new(), normalize_word(value)),
+                    });
+                }
+                "pc" => item.governed_case = Some(value.to_string()),
+                "idx" => item.homograph = value.parse().unwrap_or(0),
+                "display" => item.display = Some(value.to_string()),
+                _ => {}
+            }
+            continue;
+        }
+        add_name(&mut item, p);
+    }
+    Some((lemma, item))
+}
+
+/// A line in Zemberek's syntax (`word [P:..; A:..; Pr:..; Roots:..; Index:..]`): the word as
+/// written and the item, or `None` for an unknown POS or a malformed bracket.
+fn parse_zemberek_line(line: &str) -> Option<(&str, DictionaryItem)> {
+    let (word, meta) = match line.split_once('[') {
+        Some((word, rest)) => (word.trim(), Some(rest.trim_end().strip_suffix(']')?)),
+        None => (line, None),
+    };
+    if word.is_empty() || word.contains(char::is_whitespace) {
+        return None;
+    }
+    let mut primary = None;
+    let mut secondary = SecondaryPos::None;
+    let mut names: Vec<&str> = Vec::new();
+    let mut pronunciation = None;
+    let mut roots = None;
+    let mut homograph = 0;
+    for field in meta.into_iter().flat_map(|m| m.split(';')) {
+        let Some((key, value)) = field.split_once(':') else {
+            if field.trim().is_empty() {
+                continue;
+            }
+            return None;
+        };
+        let values = value.split(',').map(str::trim).filter(|v| !v.is_empty());
+        match key.trim() {
+            "P" => {
+                for v in values {
+                    if let (None, Some(pos)) = (primary, PrimaryPos::from_name(v)) {
+                        primary = Some(pos);
+                    } else {
+                        secondary = SecondaryPos::from_name(v)?;
+                    }
+                }
+            }
+            "A" => names.extend(values),
+            "Pr" => pronunciation = Some(normalize_word(value.trim())),
+            "Roots" => {
+                roots = Some(match value.trim().split_once('-') {
+                    Some((a, b)) => (normalize_word(a), normalize_word(b)),
+                    None => (String::new(), normalize_word(value.trim())),
+                })
+            }
+            "Index" => homograph = value.trim().parse().ok()?,
+            // Ref (a spelling of another item's lemma) adds nothing here.
+            _ => {}
+        }
+    }
+    let lemma = normalize_word(word);
+    let verb_ending = ["mak", "mek"].into_iter().find(|e| lemma.ends_with(e));
+    let primary = match (primary, secondary, verb_ending) {
+        (Some(p), _, _) => p,
+        (None, SecondaryPos::None, Some(_)) => PrimaryPos::Verb,
+        (None, _, _) => PrimaryPos::Noun,
+    };
+    let root = match verb_ending {
+        Some(e) if primary == PrimaryPos::Verb => lemma[..lemma.len() - e.len()].to_string(),
+        _ => lemma.clone(),
+    };
+    let mut item = DictionaryItem::new(lemma, root, primary, SecondaryPos::None, RootAttr::NONE);
+    if secondary != SecondaryPos::None {
+        add_name(&mut item, secondary.as_str());
+    }
+    for name in names {
+        add_name(&mut item, name);
+    }
+    item.pronunciation = pronunciation;
+    item.compound_roots = roots;
+    item.homograph = homograph;
+    Some((word, item))
+}
+
+/// Applies a secondary POS or an attribute named in a dictionary line; an unknown name is
+/// ignored.
+fn add_name(item: &mut DictionaryItem, name: &str) {
+    if let Some(sec) = SecondaryPos::from_name(name) {
+        if item.secondary_pos == SecondaryPos::None {
+            item.secondary_pos = sec;
+        }
+        if sec == SecondaryPos::ProperNoun {
+            item.attributes |= RootAttr::PROPER_NOUN;
+        }
+    } else if let Some(attr) = attribute_by_name(name) {
+        item.attributes |= attr;
+    }
+}
+
+/// What every parsed line gets: a guessed pronunciation, its display spelling and the
+/// attributes Zemberek infers.
+fn finish_item(item: &mut DictionaryItem, written: &str) {
+    if item.pronunciation.is_none() {
+        let guessed = if item.secondary_pos == SecondaryPos::Abbreviation {
+            guess_abbreviation(&item.root)
+        } else if !item.root.chars().any(is_turkish_vowel) {
+            letter_pronunciation(&item.root)
+        } else {
+            item.root.clone()
+        };
+        if guessed != item.root {
+            item.pronunciation = Some(guessed);
+        }
+    }
+    if item.display.is_none() && written != item.lemma {
+        item.display = Some(written.to_string());
+    }
+    if item.display.as_deref() == Some(&*item.display_lemma_default()) {
+        item.display = None;
+    }
+    infer_attributes(item);
 }

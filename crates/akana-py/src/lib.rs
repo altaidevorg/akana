@@ -282,13 +282,16 @@ impl PyMorphology {
         })
     }
 
-    fn load_dictionary_file(&mut self, py: Python<'_>, path: &str) -> PyResult<()> {
+    /// Loads dictionary lines (akana's `lemma root POS ...` columns or Zemberek's
+    /// `word [P:..; A:..]` syntax) from a file; returns the lines it could not read.
+    fn load_dictionary_file(&mut self, py: Python<'_>, path: &str) -> PyResult<Vec<String>> {
         let inner = &mut self.inner;
         release(py, || inner.load_dictionary_file(path))?
             .map_err(|e| PyIOError::new_err(e.to_string()))
     }
 
-    fn load_dictionary_str(&mut self, py: Python<'_>, text: &str) -> PyResult<()> {
+    /// Loads dictionary lines from a string; returns the lines it could not read.
+    fn load_dictionary_str(&mut self, py: Python<'_>, text: &str) -> PyResult<Vec<String>> {
         let inner = &mut self.inner;
         release(py, || inner.load_dictionary_str(text))
     }
