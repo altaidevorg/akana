@@ -5,7 +5,8 @@
 //! cargo run --release -p akana-core --example morph_probe -- kitabı gelmem bana
 //! ```
 //!
-//! With `--backoff`, the stem search indexes an unknown word by (`backoff_stem`) instead.
+//! With `--backoff`, the stem search indexes an unknown word by (`backoff_stem`) instead. With
+//! `--time FILE`, the words analysed per second over FILE's words (one per line), best of three.
 
 use akana_core::morphology::TurkishMorphology;
 use std::io::BufRead;
@@ -32,6 +33,20 @@ fn main() {
                 start.elapsed().as_secs_f64() * 1000.0 / 20.0
             );
         }
+        return;
+    }
+    if words.first().is_some_and(|w| w == "--time") {
+        let text = std::fs::read_to_string(&words[1]).expect("a word list");
+        let list: Vec<&str> = text.lines().filter(|l| !l.is_empty()).collect();
+        let best = (0..3)
+            .map(|_| {
+                let start = std::time::Instant::now();
+                let n: usize = list.iter().map(|w| morphology.analyze(w).len()).sum();
+                std::hint::black_box(n);
+                start.elapsed().as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min);
+        println!("{:.0} words/s", list.len() as f64 / best);
         return;
     }
     if words.first().is_some_and(|w| w == "--backoff-candidates") {
