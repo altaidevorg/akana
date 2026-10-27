@@ -1,5 +1,5 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 145 tokens in context: exact 82.8 %, lemma 95.2 %, POS 89.7 %
+# 145 tokens in context: exact 83.4 %, lemma 95.9 %, POS 90.3 %
 # a gold reading is among the analyses for 97.2 %
 11:0	Hava	pos	hava|Adj|Adj|
 12:3	ama	pos	ama|Adj|Adj|
@@ -22,7 +22,6 @@
 2:4	kazak	pos	kazak|Adj|Adj|
 30:0	Bi	lemma+pos	|Unk||
 30:1	dakka	lemma	dakka|Noun|Noun+A3sg+Nom|P
-30:2	bekle	lemma+pos	bek|Noun|Noun+Ins|
 4:1	kitabı	tags	kitap|Noun|Noun+P3sg|
 4:5	çok	pos	çok|Det|Det|
 5:4	soğuk	pos	soğuk|Noun|Noun+A3sg+Nom|

@@ -1,5 +1,5 @@
 # Gold items the analyzer gets wrong today (tests/review_gold.rs).
-# 797 tokens in context: exact 96.2 %, lemma 99.1 %, POS 97.5 %
+# 797 tokens in context: exact 96.5 %, lemma 99.1 %, POS 97.5 %
 # a gold reading is among the analyses for 99.7 %
 10:2	açıkça	tags	açık|Adj|Adj+AsIf|
 12:8	esas	pos	esas|Adj|Adj|
@@ -15,7 +15,6 @@
 30:5	fiili	lemma+pos	fiil|Noun|Noun+P3sg|
 35:7	tek	pos	tek|Adv|Adv|
 38:2	haklarında	tags	hak|Noun|Noun+A3pl+P3sg+Loc|
-38:6	olabilecek	tags	olmak|Verb|Verb+Abil+Fut|
 39:3	uzun	pos	uzun|Adv|Adv|
 3:0	İlk	pos	ilk|Adv|Adv|
 3:6	karşı	pos	karşı|Noun|Noun+A3sg+Nom|
@@ -24,7 +23,6 @@
 42:3	yerine	lemma+pos	yerine|Adv|Adv|
 45:4	işvereni	tags	işveren|Noun|Noun+P3sg|
 46:15	bulunmuştur	lemma	bulunmak|Verb|Verb+Evid+CopPres3sg|
-49:2	verebilecek	tags	vermek|Verb|Verb+Abil+Fut|
 50:4	mutlak	pos	mutlak|Adv|Adv|
 52:2	ancak	pos	ancak|Conj|Conj|
 59:0	Bir	pos	bir|Adv|Adv|

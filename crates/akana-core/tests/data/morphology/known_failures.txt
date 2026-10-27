@@ -9,5 +9,3 @@ disamb	gül	Bana bakıp gül .
 disamb	yüz	Çocuklar denizde yüz metre yüzdü .
 pos	arabulucu	Bu durumda , arabulucu ihtiyaç sayısı sınav ilanında duyurulur .
 pos	dayandığı	Davacı tarafın delil olarak dayandığı ve davalının el yazısı ile yazıldığını beyan ettiği belgelerin , tarihsiz ve imzasız olduğu görülmüştür .
-pos	olabilecek	İlgililer , haklarında idari davaya konu olabilecek bir işlem veya eylemin yapılması için idari makamlara başvurabilirler .
-pos	verebilecek	Ormanlara zarar verebilecek hiçbir faaliyet ve eyleme müsaade edilemez .

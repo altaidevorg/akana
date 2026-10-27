@@ -97,6 +97,16 @@ impl MorphologicalDisambiguator {
 
             let is_sentence_final =
                 i == n - 1 || (i == n - 2 && matches!(tokens[n - 1], "." | "!" | "?" | "…"));
+            // The end of a clause inside the sentence: before a comma, a semicolon or a
+            // conjunction that joins clauses.
+            let is_clause_final = !is_sentence_final
+                && tokens.get(i + 1).is_some_and(|t| {
+                    matches!(*t, "," | ";")
+                        || matches!(
+                            to_turkish_lower(t).as_str(),
+                            "ve" | "ama" | "fakat" | "ancak" | "çünkü" | "ki"
+                        )
+                });
             // The first word of a sentence or of a quotation is capitalised whatever it is.
             let is_sentence_start = i == 0 || is_opening(tokens[i - 1]);
             let is_first_char_upper = tokens[i].chars().next().is_some_and(|c| c.is_uppercase());
@@ -104,6 +114,12 @@ impl MorphologicalDisambiguator {
             let next_parses = following.first().map(Vec::as_slice).unwrap_or_default();
             let next_is_word = i + 1 < n && !is_punctuation(tokens[i + 1]);
             let modifies_noun = noun_ahead(following);
+            // An adjective modifies a noun phrase past the indefinite article ("uzun bir
+            // süre", "önemli bir karar"); a determiner does not ("Bu bir kitap").
+            let modifies_past_article = tokens
+                .get(i + 1)
+                .is_some_and(|t| to_turkish_lower(t) == "bir")
+                && noun_ahead(following.get(1..).unwrap_or_default());
             let before_light_verb = next_parses.iter().any(|p| {
                 p.primary_pos == PrimaryPos::Verb && matches!(p.root.as_str(), "et" | "ol" | "eyle")
             });
@@ -170,13 +186,16 @@ impl MorphologicalDisambiguator {
                 // (baş-la-yınca) is not a noun, a derived verb (an-laş-ıyor-um) is a verb, a
                 // nominalised verb (gel-diğ-i) is not a finite predicate.
 
-                // 1. The predicate comes last (SOV).
+                // 1. The predicate comes last (SOV), in the sentence and less surely in a
+                // clause: a finite verb before a comma or "ve" (gelecek, ...) over its participle.
                 if is_sentence_final {
                     if parse.pos == PrimaryPos::Verb {
                         bonus += const { rank_units(2.0) };
                     } else if is_predicate(parse) {
                         bonus += const { rank_units(1.0) };
                     }
+                } else if is_clause_final && parse.pos == PrimaryPos::Verb {
+                    bonus += const { rank_units(1.0) };
                 }
 
                 // 2. A capitalised word inside a sentence is a name. Only for a bare name or
@@ -194,9 +213,17 @@ impl MorphologicalDisambiguator {
                 // Determiners (bu, o, bir, her) also have Pron entries: with no noun after them
                 // they stand for one ("Bu doğru", "O gelmedi"). The adjective twin of a
                 // determiner (o, her) is one too, and needs the noun as much.
+                // A participle modifies its noun phrase past a determiner or a number ("olabilecek
+                // bir işlem", "yapılacak bir şey"), as `participle_head` reads it; its finite twin
+                // (Fut, Narr, Aor) has no help but at the end of a sentence.
+                let participle =
+                    parse.pos == PrimaryPos::Adj && parse.analysis.contains("Part→Adj");
+                let modifies = modifies_noun
+                    || modifies_past_article
+                    || participle && participle_head(following, possessive(parse));
                 if !is_predicate(parse) {
                     match parse.pos {
-                        PrimaryPos::Adj if modifies_noun => bonus += const { rank_units(0.7) },
+                        PrimaryPos::Adj if modifies => bonus += const { rank_units(0.7) },
                         PrimaryPos::Det | PrimaryPos::Num if modifies_noun => {
                             bonus += const { rank_units(1.0) }
                         }
@@ -231,14 +258,17 @@ impl MorphologicalDisambiguator {
                     if prev.pos == PrimaryPos::Pron && parse.pos == PrimaryPos::Verb && marked > 1 {
                         bonus += const { rank_units(0.5) };
                     }
-                    // 7. A genitive wants a possessed noun ("mahkemenin kararı").
-                    if case_of(prev) == Some("Gen")
-                        && parse
+                    // 7. A genitive wants a possessed noun of its number ("mahkemenin kararı",
+                    // "davacının hakları": A3pl+P3sg; "sanıkların hakları": A3pl+P3pl).
+                    if case_of(prev) == Some("Gen") {
+                        let plural = prev
                             .morpheme_tags
                             .iter()
-                            .any(|t| t == "P3sg" || t == "P3pl")
-                    {
-                        bonus += const { rank_units(1.5) };
+                            .any(|t| t == "A3pl" || t == "P3pl");
+                        let wanted = if plural { "P3pl" } else { "P3sg" };
+                        if parse.morpheme_tags.iter().any(|t| t == wanted) {
+                            bonus += const { rank_units(1.5) };
+                        }
                     }
                     // 8. A postposition after the case it governs ("öğleden sonra", "yaşa
                     // kadar").
