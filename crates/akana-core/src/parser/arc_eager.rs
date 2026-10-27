@@ -2,52 +2,9 @@
 
 use super::tree::{DependencyNode, DependencyTree};
 use crate::morphology::pos::PrimaryPos;
-use crate::morphology::{MorphParse, MorphologicalDisambiguator, TurkishMorphology};
-
-/// Suffixes that turn a verb into a non-finite verb form heading a subordinate clause:
-/// infinitives / verbal nouns, participles and converbs.
-const VERB_FORM_TAGS: &[&str] = &[
-    "Inf",
-    "ActN",
-    "Manner",
-    "PresPart",
-    "PastPart",
-    "FutPart",
-    "AdvErek",
-    "AdvInce",
-    "AdvIp",
-    "While",
-    "SinceDoingSo",
-    "WithoutHavingDoneSo",
-];
-
-/// Lexical derivations: a verb form followed by one of these is an ordinary word again.
-const LEXICAL_TAGS: &[&str] = &[
-    "Ness", "Agt", "With", "Without", "Dim", "DevN", "DevGi", "DevGin", "DevGen",
-];
-
-/// The non-finite verb-form suffix of a parse, if it is a verb form (UD `VerbForm`).
-fn verb_form(parse: &MorphParse) -> Option<&str> {
-    let tags = &parse.morpheme_tags;
-    let k = tags
-        .iter()
-        .rposition(|t| VERB_FORM_TAGS.contains(&t.as_str()))?;
-    if tags[k + 1..]
-        .iter()
-        .any(|t| LEXICAL_TAGS.contains(&t.as_str()))
-    {
-        return None;
-    }
-    // -(y)ken also follows nominals (çocuk-ken), which are not verb forms.
-    let verbal = parse.primary_pos == PrimaryPos::Verb
-        || tags[..k]
-            .iter()
-            .any(|t| matches!(t.as_str(), "NounToVerb" | "BecomeVerb" | "CausVerb"));
-    if tags[k] == "While" && !verbal {
-        return None;
-    }
-    Some(tags[k].as_str())
-}
+use crate::morphology::{
+    verb_form, MorphParse, MorphologicalDisambiguator, TurkishMorphology, VerbForm,
+};
 
 pub struct TurkishDependencyParser {
     disambiguator: MorphologicalDisambiguator,
@@ -179,20 +136,10 @@ impl TurkishDependencyParser {
                     head = i;
                 }
                 deprel = "aux:q".to_string();
-            } else if matches!(
-                form_of_verb,
-                Some(
-                    "AdvErek"
-                        | "AdvInce"
-                        | "AdvIp"
-                        | "While"
-                        | "SinceDoingSo"
-                        | "WithoutHavingDoneSo"
-                )
-            ) {
+            } else if form_of_verb.is_some_and(|f| f.form == VerbForm::Conv) {
                 // A converb heads an adverbial clause of the predicate (advcl)
                 deprel = "advcl".to_string();
-            } else if matches!(form_of_verb, Some("PresPart" | "PastPart" | "FutPart"))
+            } else if form_of_verb.is_some_and(|f| f.form == VerbForm::Part)
                 && parse.pos == PrimaryPos::Adj
                 && next_is_noun
             {

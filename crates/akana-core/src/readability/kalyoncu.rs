@@ -2,14 +2,14 @@
 //! Based on M. Rahman Kalyoncu's master's thesis "Türkçe İçin Yeni Bir Okunabilirlik Formülü" (Ondokuz Mayıs Üniversitesi, 2025).
 
 use super::metrics::{FormulaResult, KalyoncuResults, TextStatistics};
-use crate::morphology::{PrimaryPos, SecondaryPos, TurkishMorphology};
+use crate::morphology::{verb_form, MorphologicalDisambiguator, PrimaryPos, SecondaryPos};
 use crate::phonology;
 use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
 use std::collections::{HashMap, HashSet};
 
 pub struct KalyoncuAnalyzer {
     word_list: HashSet<&'static str>,
-    morphology: TurkishMorphology,
+    disambiguator: MorphologicalDisambiguator,
 }
 
 impl Default for KalyoncuAnalyzer {
@@ -31,7 +31,7 @@ impl KalyoncuAnalyzer {
 
         Self {
             word_list: set,
-            morphology: TurkishMorphology::new(),
+            disambiguator: MorphologicalDisambiguator::new(),
         }
     }
 
@@ -59,11 +59,13 @@ impl KalyoncuAnalyzer {
 
         for sent in &sentences {
             let tokens = TurkishTokenizer::tokenize_words(sent.text);
+            // Each word's reading in its sentence (review 2 PARSER2-02).
+            let parses = self.disambiguator.disambiguate(&tokens);
             let mut sent_word_count = 0;
             let mut sent_fiilimsi_count = 0;
             let mut has_conjunction = false;
 
-            for tok in tokens {
+            for (tok, parse) in tokens.into_iter().zip(&parses) {
                 let lower = phonology::to_turkish_lower(tok);
                 if lower.chars().all(|c| !c.is_alphabetic()) {
                     continue;
@@ -87,33 +89,19 @@ impl KalyoncuAnalyzer {
                     has_conjunction = true;
                 }
 
-                // Morphological analysis for lemma, POS, and fiilimsi detection
-                let parses = self.morphology.analyze(&lower);
+                // The word's root, whether it is a verbal (fiilimsi: a verbal noun, participle
+                // or converb) and whether it is a name or a number.
                 let (best_lemma, is_fiilimsi, is_proper_or_num) =
-                    if let Some(first_parse) = parses.first() {
-                        let fiilimsi = first_parse.morpheme_tags.iter().any(|tag| {
-                            matches!(
-                                tag.as_str(),
-                                "PresPart"
-                                    | "PastPart"
-                                    | "FutPart"
-                                    | "AdvErek"
-                                    | "AdvInce"
-                                    | "AdvIp"
-                                    | "Inf"
-                                    | "ActN"
-                                    | "Manner"
-                                    | "DevN"
-                                    | "DevGi"
-                                    | "DevGin"
-                                    | "DevGen"
-                            )
-                        });
-                        let proper_or_num = first_parse.secondary_pos == SecondaryPos::ProperNoun
-                            || first_parse.primary_pos == PrimaryPos::Num;
-                        (first_parse.root.clone(), fiilimsi, proper_or_num)
-                    } else {
+                    if parse.primary_pos == PrimaryPos::Unknown {
                         (lower.clone(), false, false)
+                    } else {
+                        let proper_or_num = parse.secondary_pos == SecondaryPos::ProperNoun
+                            || parse.primary_pos == PrimaryPos::Num;
+                        (
+                            phonology::to_turkish_lower(&parse.root),
+                            verb_form(parse).is_some(),
+                            proper_or_num,
+                        )
                     };
 
                 if is_fiilimsi {

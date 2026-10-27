@@ -20,6 +20,7 @@ pub mod stemmer;
 pub mod stems;
 pub mod stopwords;
 pub mod turkish_morphotactics;
+pub mod verb_form;
 
 pub use analyzer::*;
 pub use compound::*;
@@ -29,3 +30,4 @@ pub use generator::*;
 pub use pos::*;
 pub use stemmer::*;
 pub use stopwords::*;
+pub use verb_form::{verb_form, verb_form_of, NonFinite, VerbForm};

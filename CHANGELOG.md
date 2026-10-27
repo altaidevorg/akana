@@ -200,6 +200,14 @@ different results.
 - A CompoundP3sg noun derives on its stem without the possessive only: `cumhurbaşkanılık` and
   `cumhurbaşkanılığı` no longer analyse (`cumhurbaşkanlık` does; -(I)msI takes either,
   `zeytinyağımsı`).
+- The dependency parser, the readability metrics and the syntactic analyzer share one
+  inventory of non-finite verb forms (`morphology::verb_form`), the full set the analyzer
+  emits: -DIkçA, -cAsInA, -AmAdAn, -AsIyA converbs and -mIş, -Ar/-mAz, -AsI participles were
+  missing from the parser (`Güldükçe` was `ADV`/`advmod`, now `VERB`/`advcl`), and readability
+  missed -ken, -AlI and -mAdAn and still listed tags the analyzer no longer emits. Readability
+  reads each word in its sentence (the disambiguator's reading), not its first analysis. The
+  syntactic analyzer no longer gives `VerbForm=Vnoun` to -mAzlIk and -mAcA nouns, which are
+  ordinary nouns.
 - `stem`, keyword extraction and the summarizer analyse a word as written, where they
   lower-cased it first: a capital keeps a name (`Miller`, not `mil`), and a Roman numeral its
   root (`XIX.`, `II'nci` → `II`, not `xıx.`, `ıı'nci`).

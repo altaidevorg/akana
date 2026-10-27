@@ -415,3 +415,44 @@ fn fullwidth_apostrophe() {
         .iter()
         .any(|p| p.lemma == "ankara" && p.morpheme_tags.contains(&"Loc".to_string())));
 }
+
+/// Review 2 PARSER2-02: one inventory of non-finite verb forms (verbal nouns, participles,
+/// converbs), the full set the analyzer emits, which the parser, readability and the syntactic
+/// analyzer share.
+#[test]
+fn non_finite_verb_forms_come_from_one_inventory() {
+    let morph = TurkishMorphology::new();
+    let forms = |word: &str| -> Vec<(&'static str, VerbForm)> {
+        morph
+            .analyze(word)
+            .iter()
+            .filter_map(verb_form)
+            .map(|f| (f.tag, f.form))
+            .collect()
+    };
+    for (word, tag, form) in [
+        ("gelmek", "Inf", VerbForm::Vnoun),
+        ("gelince", "AdvInce", VerbForm::Conv),
+        ("gelip", "AdvIp", VerbForm::Conv),
+        ("gelirken", "While", VerbForm::Conv),
+        ("güldükçe", "AsLongAs", VerbForm::Conv),
+        ("gelircesine", "AsIf", VerbForm::Conv),
+        ("gelemeden", "WithoutBeingAbleToHaveDoneSo", VerbForm::Conv),
+        ("gelen", "PresPart", VerbForm::Part),
+        ("gelmiş", "NarrPart", VerbForm::Part),
+        ("okunmaz", "AorPart", VerbForm::Part),
+        ("geldiği", "PastPart", VerbForm::Vnoun),
+        ("geldiği", "PastPart", VerbForm::Part),
+    ] {
+        assert!(
+            forms(word).contains(&(tag, form)),
+            "{word}: {:?}",
+            forms(word)
+        );
+    }
+    // -(y)ken after a noun or adjective, -cA on an adjective, and a verb form made an ordinary
+    // word again are no verb forms.
+    for word in ["çocukken", "hastayken", "büyükçe", "okuyucu", "bilinmezlik"] {
+        assert!(forms(word).is_empty(), "{word}: {:?}", forms(word));
+    }
+}

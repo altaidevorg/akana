@@ -11,7 +11,7 @@
 use super::types::{InflectionalGroup, SyntacticParse};
 use crate::morphology::analyzer::ENGINE;
 use crate::morphology::morphotactics::Morpheme as M;
-use crate::morphology::{MorphParse, PrimaryPos, SecondaryPos, TurkishMorphology};
+use crate::morphology::{verb_form_of, MorphParse, PrimaryPos, SecondaryPos, TurkishMorphology};
 use std::collections::BTreeMap;
 
 /// The syntactic analyzer. It shares the morphological analyzer's lexicon and ranking, so its
@@ -226,17 +226,12 @@ impl Group {
             self.moods.sort_unstable();
             self.set("Mood", &self.moods.concat());
         }
-        if let Some(form) = self.derivation.filter(|_| from_verb).and_then(|m| match m {
-            M::Agt => None,
-            M::PresPart | M::NarrPart | M::AorPart => Some("Part"),
-            _ => match self.pos {
-                PrimaryPos::Noun => Some("Vnoun"),
-                PrimaryPos::Adj => Some("Part"),
-                PrimaryPos::Adv => Some("Conv"),
-                _ => None,
-            },
-        }) {
-            self.set("VerbForm", form);
+        if let Some(form) = self
+            .derivation
+            .filter(|_| from_verb)
+            .and_then(|m| verb_form_of(m, self.pos))
+        {
+            self.set("VerbForm", form.as_str());
         }
         let derivation = self.derivation.map(|m| match m {
             M::Zero => "Cop",

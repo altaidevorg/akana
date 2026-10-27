@@ -59,3 +59,28 @@ fn nominal_predicates_are_roots_and_punctuation_never_is() {
     );
     assert_eq!(tree.nodes[0].deprel, "obl");
 }
+
+/// Review 2 PARSER2-02: every converb the analyzer emits heads an adverbial clause, every
+/// participle before a noun a relative clause.
+#[test]
+fn every_non_finite_form_is_a_verb() {
+    let parser = TurkishDependencyParser::new();
+    let node = |sentence: &str, form: &str| {
+        let tokens: Vec<&str> = sentence.split(' ').collect();
+        let tree = parser.parse(&tokens);
+        let n = tree.nodes.iter().find(|n| n.form == form).unwrap().clone();
+        (n.upos, n.deprel)
+    };
+    assert_eq!(
+        node("Güldükçe güzelleşiyor .", "Güldükçe"),
+        ("VERB".to_string(), "advcl".to_string())
+    );
+    assert_eq!(
+        node("Kaçarcasına gitti .", "Kaçarcasına"),
+        ("VERB".to_string(), "advcl".to_string())
+    );
+    assert_eq!(
+        node("Kırılmış camları topladı .", "Kırılmış"),
+        ("VERB".to_string(), "acl".to_string())
+    );
+}
