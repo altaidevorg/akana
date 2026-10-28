@@ -11,11 +11,18 @@
 //! analyzer does not meet all of them yet:
 //! `data/morphology/known_failures.txt` lists the ones it gets wrong, and this test fails when
 //! that list is not exactly the current failures, so it shrinks as fixes land and grows only on
-//! purpose. `AKANA_GOLD_WRITE=1` rewrites the list.
+//! purpose. `AKANA_GOLD_WRITE=morphology_gold` rewrites the list.
 
 use akana_core::morphology::{MorphologicalDisambiguator, SecondaryPos, TurkishMorphology};
 use std::collections::BTreeSet;
 use unicode_normalization::UnicodeNormalization;
+
+/// Whether `AKANA_GOLD_WRITE` names this suite: a comma-separated list of suites
+/// (`downstream`, `morphology_gold`, `morphology_snapshot`, `review_gold`, `pii_view`), so that a
+/// run of the whole crate with it set rewrites only what it names (review 3 PARSER3-07).
+fn gold_write(suite: &str) -> bool {
+    std::env::var("AKANA_GOLD_WRITE").is_ok_and(|v| v.split(',').any(|s| s.trim() == suite))
+}
 
 const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
 const REJECT: &str = include_str!("data/morphology/reject.txt");
@@ -188,7 +195,7 @@ fn current_failures() -> BTreeSet<String> {
 fn gold_failures_match_known_list() {
     let current = current_failures();
     let known: BTreeSet<String> = data_lines(KNOWN_FAILURES).map(str::to_string).collect();
-    if std::env::var_os("AKANA_GOLD_WRITE").is_some() {
+    if gold_write("morphology_gold") {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/data/morphology/known_failures.txt"

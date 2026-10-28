@@ -135,6 +135,18 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
 readability metrics (Kalyoncu word lists and grade), and PII masks (leak fixes) give
 different results.
 
+**Dependency trees.** `parse_conllu`, `analyze()` and `TurkishDependencyParser` give other
+trees, closer to UD Turkish: on the UD Turkish test splits (`scripts/parser_ud_eval.py`) UAS
+rose from 48.5 to 55.8 and LAS from 34.8 to 41.7.
+- `değil` is the copula (`AUX`, `cop`) of the nominal before it, which is the root: `Ali
+  öğretmen değil .` is rooted in `öğretmen`.
+- Clauses joined by a comma or a conjunction are conjuncts: the first predicate is the root
+  and heads the others (`conj`), and each word attaches to its own clause's predicate.
+- New relations: `compound` for a bare noun before a light verb (`karar verdi`, `tebliğ
+  edildi`), `nummod`, and `flat` for the later words of a name (`Ahmet Yılmaz'ın`). A
+  participle the dictionary lists as an adjective (`gelen`) is a `VERB` `acl`, and a modifier
+  reaches its noun past determiners and adjectives (`Bilinmeyen bir sebeple`).
+
 **AI-text detector.** Its model is unchanged. It reads the shared lexicon and the sentence
 segmenter, so this release moves some of its inputs on most texts: `oov_rate` and the
 sentence statistics. On a 1,928-text sample no verdict changed and the probability moved
@@ -159,9 +171,11 @@ fails on any further input change, so each change is recorded on purpose
   `scripts/benchmark_rag_real_data.py`, which prints the README's retrieval table. The
   retrieval benchmark caches Turkuaz on disk after the first run and has an exact FP32 row.
   The README's retrieval, morphology and embedding-cost figures are regenerated with them.
+  `scripts/parser_ud_eval.py` measures the dependency parser on the UD Turkish test splits
+  (UAS and LAS per treebank and per relation; `--min-las` fails below a floor).
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
-  Zemberek dictionaries and morphotactics (Apache 2.0), and the UD-derived function-lemma table
-  and morphology prior (CC BY-SA 4.0).
+  Zemberek dictionaries and morphotactics (Apache 2.0), and the UD-derived function-lemma
+  table, morphology prior and the parser's light verbs (CC BY-SA 4.0).
 
 ### Changed
 
@@ -258,7 +272,10 @@ fails on any further input change, so each change is recorded on purpose
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'
-  output.
+  output, and downstream snapshots on any change of the parser's trees (with XPOS and FEATS)
+  and of `analyze_document` on court texts. `AKANA_GOLD_WRITE` names the fixtures it rewrites
+  (`downstream`, `morphology_gold`, `morphology_snapshot`, `review_gold`, `pii_view`,
+  comma-separated), so a run of the whole crate rewrites only those.
 - **Performance.** The quadratic and cubic public paths are linear. The lexicon and the
   embedding weights are built once per process, and the Python bindings release the GIL.
 

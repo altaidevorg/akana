@@ -1,4 +1,5 @@
-//! Turkish Transition-based / Universal Dependencies Parser.
+//! Turkish dependency parser: rule-based attachment with Universal Dependencies relations
+//! and CoNLL-U output, measured on the UD Turkish test splits by `scripts/parser_ud_eval.py`.
 
 use super::tree::{DependencyNode, DependencyTree};
 use crate::morphology::pos::PrimaryPos;
@@ -6,8 +7,19 @@ use crate::morphology::{
     verb_form, MorphParse, MorphologicalDisambiguator, TurkishMorphology, VerbForm,
 };
 
+/// Verbs that a bare noun right before them forms a compound with (karar ver-, söz et-, yemek
+/// ye-) more often than it is their object or subject, counted in the UD Turkish train splits
+/// (light_verbs.txt, written by `scripts/parser_ud_eval.py --light-verbs`; CC BY-SA 4.0, see
+/// THIRD_PARTY_NOTICES; review 3 PARSER3-07).
+fn light_verb(root: &str) -> bool {
+    include_str!("light_verbs.txt")
+        .lines()
+        .any(|line| !line.starts_with('#') && line == root)
+}
+
 pub struct TurkishDependencyParser {
     disambiguator: MorphologicalDisambiguator,
+    morphology: TurkishMorphology,
 }
 
 impl Default for TurkishDependencyParser {
@@ -20,12 +32,14 @@ impl TurkishDependencyParser {
     pub fn new() -> Self {
         Self {
             disambiguator: MorphologicalDisambiguator::new(),
+            morphology: TurkishMorphology::new(),
         }
     }
 
     pub fn with_morphology(morphology: TurkishMorphology) -> Self {
         Self {
-            disambiguator: MorphologicalDisambiguator::with_morphology(morphology),
+            disambiguator: MorphologicalDisambiguator::with_morphology(morphology.clone()),
+            morphology,
         }
     }
 
@@ -69,18 +83,109 @@ impl TurkishDependencyParser {
         // (mi-yiz) but is not the predicate: the word before it is ("öğrenci misin"). With
         // neither, the last word that is no punctuation or question particle is ("Hava çok
         // soğuk ."), never the punctuation (review 2 PARSER2-01).
+        // var, yok and değil only as themselves, with no derivation after them (Varken is a
+        // converb); a postposition, conjunction or determiner is no fallback root ("Bu senin
+        // için ." is rooted in senin), and punctuation never is (review 3 PARSER3-03).
+        let bare_predicate = |p: &MorphParse| {
+            matches!(p.lemma.as_str(), "var" | "yok" | "değil")
+                && !p
+                    .morpheme_tags
+                    .iter()
+                    .skip(1)
+                    .any(|t| crate::morphology::is_derivational_tag(t))
+        };
         let predicate = |p: &MorphParse| {
-            p.pos == PrimaryPos::Verb
+            (p.pos == PrimaryPos::Verb && verb_form(p).is_none())
                 || p.morpheme_tags.iter().any(|t| t.starts_with("Cop"))
-                || matches!(p.lemma.as_str(), "var" | "yok" | "değil")
+                || bare_predicate(p)
         };
         let content = |i: &usize| !punct(*i) && disambiguated[*i].pos != PrimaryPos::Q;
-        let root_idx = (0..n)
+        let head_word = |i: &usize| {
+            content(i)
+                && !matches!(
+                    disambiguated[*i].pos,
+                    PrimaryPos::Postp | PrimaryPos::Conj | PrimaryPos::Det
+                )
+        };
+        let mut root_idx = (0..n)
             .rev()
             .filter(content)
             .find(|&i| predicate(&disambiguated[i]))
+            .or_else(|| (0..n).rev().find(head_word))
             .or_else(|| (0..n).rev().find(content))
-            .unwrap_or(n - 1);
+            .or_else(|| (0..n).find(|&i| !punct(i)))
+            .unwrap_or(0);
+        // değil is the copula of the nominal before it, which is the root (UD Turkish: "Ali
+        // öğretmen değil ." is rooted in öğretmen, değil AUX cop).
+        let copula = |i: usize| {
+            i > 0
+                && disambiguated[i].lemma == "değil"
+                && matches!(
+                    disambiguated[i - 1].pos,
+                    PrimaryPos::Noun | PrimaryPos::Adj | PrimaryPos::Pron | PrimaryPos::Num
+                )
+                && !punct(i - 1)
+        };
+        let negated = copula(root_idx).then_some(root_idx);
+        if let Some(d) = negated {
+            root_idx = d - 1;
+        }
+        // Coordinated clauses: a finite predicate before the root, followed by a comma or a
+        // conjunction, is a conjunct; the first conjunct heads the others (UD conj; review 3
+        // PARSER3-04). Each word attaches to the predicate of its own clause.
+        let clause_end = |k: usize| {
+            k + 1 < n
+                && (matches!(tokens[k + 1], "," | ";")
+                    || disambiguated[k + 1].pos == PrimaryPos::Conj)
+        };
+        let mut conjuncts: Vec<usize> = (0..root_idx)
+            .filter(|&k| content(&k) && predicate(&disambiguated[k]) && clause_end(k))
+            .collect();
+        conjuncts.push(root_idx);
+        let first = conjuncts[0];
+        let clause_of = |i: usize| {
+            conjuncts
+                .iter()
+                .copied()
+                .find(|&k| k >= i)
+                .unwrap_or(root_idx)
+        };
+        // The first word of a word's clause: past the comma or conjunction after the previous
+        // conjunct.
+        let clause_start = |i: usize| {
+            conjuncts
+                .iter()
+                .rev()
+                .find(|&&k| k < i)
+                .map_or(0, |&k| (k + 2).min(i))
+        };
+        // The noun a modifier or a relative clause goes with: the first noun after it past
+        // determiners, numbers and adjectives ("Bilinmeyen bir sebeple", "uzun bir süre";
+        // review 3 PARSER3-02).
+        let noun_after = |i: usize| {
+            let mut j = i + 1;
+            while j < n
+                && !punct(j)
+                && matches!(
+                    disambiguated[j].pos,
+                    PrimaryPos::Det | PrimaryPos::Num | PrimaryPos::Adj
+                )
+            {
+                j += 1;
+            }
+            (j < n && matches!(disambiguated[j].pos, PrimaryPos::Noun)).then_some(j)
+        };
+        // A participle the dictionary lists as an adjective (gelen, geçen, bilinen) is still a
+        // relative clause in UD: VERB acl.
+        let lexical_participle = |p: &MorphParse| {
+            p.pos == PrimaryPos::Adj
+                && verb_form(p).is_none()
+                && self
+                    .morphology
+                    .analyze(&p.surface)
+                    .iter()
+                    .any(|q| verb_form(q).is_some_and(|f| f.form == VerbForm::Part))
+        };
 
         let mut nodes = Vec::with_capacity(n);
 
@@ -88,13 +193,15 @@ impl TurkishDependencyParser {
             let id = i + 1;
             let form = parse.surface.clone();
             let lemma = parse.lemma.clone();
+            let lexical_part = lexical_participle(parse);
             let form_of_verb = verb_form(parse);
-            let next_is_noun = i + 1 < n && disambiguated[i + 1].pos == PrimaryPos::Noun;
+            let clause = clause_of(i);
 
             // UD: infinitives, participles and converbs are VERB (with a VerbForm).
             let upos = match parse.pos {
                 _ if punct(i) => "PUNCT",
-                _ if form_of_verb.is_some() => "VERB",
+                _ if negated == Some(i) => "AUX",
+                _ if form_of_verb.is_some() || lexical_part => "VERB",
                 PrimaryPos::Noun => {
                     if parse.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun {
                         "PROPN"
@@ -120,12 +227,19 @@ impl TurkishDependencyParser {
             let xpos = parse.primary_pos.as_str().to_string();
             let feats = parse.morpheme_tags.join("|");
 
-            let mut head = root_idx + 1;
+            let mut head = clause + 1;
             let mut deprel = "dep".to_string();
+            let root_idx = first;
 
             if i == root_idx {
                 head = 0;
                 deprel = "root".to_string();
+            } else if negated == Some(i) {
+                head = i;
+                deprel = "cop".to_string();
+            } else if conjuncts.contains(&i) {
+                head = root_idx + 1;
+                deprel = "conj".to_string();
             } else if punct(i) {
                 head = root_idx + 1;
                 deprel = "punct".to_string();
@@ -139,27 +253,31 @@ impl TurkishDependencyParser {
             } else if form_of_verb.is_some_and(|f| f.form == VerbForm::Conv) {
                 // A converb heads an adverbial clause of the predicate (advcl)
                 deprel = "advcl".to_string();
-            } else if form_of_verb.is_some_and(|f| f.form == VerbForm::Part)
+            } else if (form_of_verb.is_some_and(|f| f.form == VerbForm::Part) || lexical_part)
                 && parse.pos == PrimaryPos::Adj
-                && next_is_noun
+                && noun_after(i).is_some()
             {
-                // A participle before a noun heads a relative clause on it (acl)
-                head = i + 2;
+                // A participle before its noun heads a relative clause on it (acl)
+                head = noun_after(i).map_or(head, |j| j + 1);
                 deprel = "acl".to_string();
             } else if parse.pos == PrimaryPos::Adj {
-                // If followed by a Noun, it modifies that noun (amod)
-                if next_is_noun {
-                    head = i + 2;
+                // It modifies the noun after it (amod)
+                if let Some(j) = noun_after(i) {
+                    head = j + 1;
                 }
                 deprel = "amod".to_string();
             } else if parse.pos == PrimaryPos::Det {
-                // A determiner modifies the following noun (det)
-                if next_is_noun {
-                    head = i + 2;
+                // A determiner modifies the noun after it, past adjectives (det)
+                if let Some(j) = noun_after(i) {
+                    head = j + 1;
                 }
                 deprel = "det".to_string();
+            } else if parse.pos == PrimaryPos::Num && noun_after(i).is_some() {
+                // A number counts the noun after it (nummod)
+                head = noun_after(i).map_or(head, |j| j + 1);
+                deprel = "nummod".to_string();
             } else if parse.pos == PrimaryPos::Adv {
-                head = root_idx + 1;
+                head = clause + 1;
                 deprel = "advmod".to_string();
             } else if parse.pos == PrimaryPos::Conj {
                 // A conjunction attaches to the conjunct after it: a nominal or a verbal word,
@@ -190,37 +308,81 @@ impl TurkishDependencyParser {
             } else if parse.pos == PrimaryPos::Noun || parse.pos == PrimaryPos::Pron {
                 let before_postposition =
                     i + 1 < n && disambiguated[i + 1].pos == PrimaryPos::Postp;
+                let bare = parse.pos == PrimaryPos::Noun
+                    && parse.secondary_pos != crate::morphology::pos::SecondaryPos::ProperNoun
+                    && parse
+                        .morpheme_tags
+                        .iter()
+                        .skip(1)
+                        .all(|t| matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"));
+                // A noun phrase's head (Gelen adam oturdu) and a capitalised word inside the
+                // sentence, a name (Veli gitti), are no part of a compound with the verb.
+                let modified = nodes.iter().any(|m: &DependencyNode| {
+                    m.head == i + 1
+                        && matches!(
+                            m.deprel.as_str(),
+                            "acl" | "amod" | "det" | "nummod" | "nmod:poss"
+                        )
+                });
+                let capitalised =
+                    parse.surface.starts_with(char::is_uppercase) && (0..i).any(|k| !punct(k));
+                let next_is_verb = i + 1 < n
+                    && !punct(i + 1)
+                    && (disambiguated[i + 1].pos == PrimaryPos::Verb
+                        || verb_form(&disambiguated[i + 1]).is_some());
                 // Check case features
                 if before_postposition {
                     // The postposition's complement is an oblique of the predicate.
-                    head = root_idx + 1;
+                    head = clause + 1;
                     deprel = "obl".to_string();
                 } else if parse.morpheme_tags.contains(&"Acc".to_string()) {
-                    head = root_idx + 1;
+                    head = clause + 1;
                     deprel = "obj".to_string();
                 } else if parse.morpheme_tags.contains(&"Dat".to_string())
                     || parse.morpheme_tags.contains(&"Loc".to_string())
                     || parse.morpheme_tags.contains(&"Abl".to_string())
                     || parse.morpheme_tags.contains(&"Ins".to_string())
                 {
-                    head = root_idx + 1;
+                    head = clause + 1;
                     deprel = "obl".to_string();
                 } else if parse.morpheme_tags.contains(&"Gen".to_string()) {
-                    // Genitive modifier connects to following noun (nmod:poss)
-                    if next_is_noun {
-                        head = i + 2;
+                    // A genitive modifies the noun after it, past adjectives (nmod:poss)
+                    if let Some(j) = noun_after(i) {
+                        head = j + 1;
                         deprel = "nmod:poss".to_string();
                     } else {
                         head = root_idx + 1;
                         deprel = "nmod".to_string();
                     }
+                } else if bare
+                    && next_is_verb
+                    && !modified
+                    && !capitalised
+                    && light_verb(&disambiguated[i + 1].root)
+                {
+                    // A bare noun right before a light verb is a compound with it (karar ver-,
+                    // söz et-): UD Turkish's compound, the commonest relation the parser never
+                    // gave (review 3 PARSER3-07).
+                    head = i + 2;
+                    deprel = "compound".to_string();
+                } else if bare && next_is_verb && !capitalised {
+                    // Before another verb it is that verb's subject when the verb is passive
+                    // (karar açıklandı) and its object otherwise (kitap okudu).
+                    let passive = disambiguated[i + 1]
+                        .morpheme_tags
+                        .iter()
+                        .any(|t| t == "Pass");
+                    head = i + 2;
+                    deprel = if passive { "nsubj" } else { "obj" }.to_string();
                 } else {
                     // Nominative subject or object
-                    if i == 0 || (i < root_idx && i <= 1) {
-                        head = root_idx + 1;
+                    // by its place in its own clause
+                    let start = clause_start(i);
+                    if i == start || (i < clause && i <= start + 1) {
+                        head = clause + 1;
                         deprel = "nsubj".to_string();
                     } else {
-                        head = root_idx + 1;
+                        head = clause + 1;
                         deprel = "obj".to_string();
                     }
                 }
@@ -238,7 +400,34 @@ impl TurkishDependencyParser {
             });
         }
 
-        make_tree(&mut nodes, root_idx);
+        // A name of several words (Ahmet Yılmaz'ın) is one: its first word heads it with the
+        // relation the last word's case gives, and the others are flat (UD; review 3
+        // PARSER3-07).
+        let name = |i: usize| {
+            disambiguated[i].secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun
+                && !punct(i)
+        };
+        let mut a = 0;
+        while a < n {
+            let mut b = a;
+            while b + 1 < n && name(a) && name(b + 1) {
+                b += 1;
+            }
+            if b > a && a != first && !(a + 1..=b).contains(&first) {
+                let (head, deprel) = (nodes[b].head, nodes[b].deprel.clone());
+                if !(a + 1..=b + 1).contains(&head) {
+                    nodes[a].head = head;
+                    nodes[a].deprel = deprel;
+                }
+                for node in &mut nodes[a + 1..=b] {
+                    node.head = a + 1;
+                    node.deprel = "flat".to_string();
+                }
+            }
+            a = b + 1;
+        }
+
+        make_tree(&mut nodes, first);
         DependencyTree::new(nodes)
     }
 }

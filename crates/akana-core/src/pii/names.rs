@@ -1213,7 +1213,8 @@ mod tests {
     /// tests/data/morphology/top_types.txt and every listed name: whether a word reads as a
     /// common word, only as an inflected one, and as a bare nominal or an unknown word. An
     /// analyzer change that moves masks shows here as a diff of words, not as drift in masks
-    /// (review 3 PII3-03). `AKANA_GOLD_WRITE=1` rewrites tests/data/downstream/pii_view.tsv.
+    /// (review 3 PII3-03). `AKANA_GOLD_WRITE=pii_view` rewrites
+    /// tests/data/downstream/pii_view.tsv.
     #[test]
     fn pii_view_of_the_analyzer_stays_as_recorded() {
         const PATH: &str = concat!(
@@ -1242,7 +1243,9 @@ mod tests {
                 u8::from(is_bare_nominal_or_unknown(w))
             ));
         }
-        if std::env::var_os("AKANA_GOLD_WRITE").is_some() {
+        if std::env::var("AKANA_GOLD_WRITE")
+            .is_ok_and(|v| v.split(',').any(|s| s.trim() == "pii_view"))
+        {
             std::fs::write(PATH, &now).expect("writable pii_view.tsv");
             return;
         }
@@ -1254,8 +1257,8 @@ mod tests {
         assert!(
             moved.is_empty() && gone.is_empty(),
             "PII's view of the analyzer moved; now {moved:?}, before {gone:?}. If deliberate, \
-             rewrite with AKANA_GOLD_WRITE=1 cargo test -p akana-core --lib pii_view and list \
-             the diff in the commit."
+             rewrite with AKANA_GOLD_WRITE=pii_view cargo test -p akana-core --lib pii_view and \
+             list the diff in the commit."
         );
     }
 

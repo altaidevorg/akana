@@ -4,11 +4,18 @@
 //! terms are lemmas, so a lemma that moves changes every index that holds the word. A change
 //! here must be deliberate and listed in its commit.
 //!
-//! After a deliberate change: `AKANA_GOLD_WRITE=1 cargo test -p akana-core --test
+//! After a deliberate change: `AKANA_GOLD_WRITE=morphology_snapshot cargo test -p akana-core --test
 //! morphology_snapshot`, and give the diff of the snapshot in the commit message.
 
 use akana_core::morphology::TurkishMorphology;
 use std::path::PathBuf;
+
+/// Whether `AKANA_GOLD_WRITE` names this suite: a comma-separated list of suites
+/// (`downstream`, `morphology_gold`, `morphology_snapshot`, `review_gold`, `pii_view`), so that a
+/// run of the whole crate with it set rewrites only what it names (review 3 PARSER3-07).
+fn gold_write(suite: &str) -> bool {
+    std::env::var("AKANA_GOLD_WRITE").is_ok_and(|v| v.split(',').any(|s| s.trim() == suite))
+}
 
 fn data(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -39,7 +46,7 @@ fn frequent_types_keep_their_best_analysis() {
         now.push_str(&format!("{word}\t{best}\n"));
     }
     let path = data("top_types_analyses.tsv");
-    if std::env::var_os("AKANA_GOLD_WRITE").is_some() {
+    if gold_write("morphology_snapshot") {
         std::fs::write(&path, &now).expect("write snapshot");
         return;
     }
@@ -58,7 +65,8 @@ fn frequent_types_keep_their_best_analysis() {
     assert!(
         diffs.is_empty() && before.lines().count() == now.lines().count(),
         "{} of {} frequent types changed their best analysis ({lemma_diffs} their lemma):\n{}\n\
-         If deliberate, rewrite with AKANA_GOLD_WRITE=1 and list the changes in the commit.",
+         If deliberate, rewrite with AKANA_GOLD_WRITE=morphology_snapshot and list the changes \
+         in the commit.",
         diffs.len(),
         now.lines().count(),
         diffs

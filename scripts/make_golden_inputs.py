@@ -2,7 +2,7 @@
 
     python scripts/make_golden_inputs.py
     UPDATE_GOLDEN=1 cargo test -p akana-core --test golden_vectors
-    AKANA_GOLD_WRITE=1 cargo test -p akana-core --test morphology_snapshot
+    AKANA_GOLD_WRITE=morphology_snapshot cargo test -p akana-core --test morphology_snapshot
 
 - crates/akana-core/tests/data/embeddings/golden.jsonl: 160 court-decision chunks (32 per
   subset, every 20th decision of the corpus sample's eval split, chunked as an index does:

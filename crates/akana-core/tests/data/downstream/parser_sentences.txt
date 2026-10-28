@@ -27,3 +27,20 @@ Dava dilekçesi davalıya tebliğ edildi .
 Sanığın savunması alındıktan sonra karar açıklandı .
 Hukuka aykırılık bulunmadığından istemin reddine oybirliğiyle karar verildi .
 Gelmeyecekmişsiniz gibi davranmayın .
+# --- review 3 PARSER3-02/03/04/07: relative clauses past a determiner, lexicalised
+# participles, roots, değil as a copula, coordination, ile, names, compounds, numerals
+Bilinmeyen bir sebeple gitti .
+Gelen adam oturdu .
+Bu senin için .
+Sen de mi ?
+Varken harca .
+Okur yazar biri .
+mi ?
+Ali öğretmen değil .
+Ali geldi , Veli gitti .
+Ali geldi ve Veli gitti .
+Bu konu ile ilgili karar verildi .
+Ahmet Yılmaz'ın kararı onandı .
+Davacı karar verilmesini istedi .
+Okuyalı üç gün oldu .
+İki yıl önce taşındı .

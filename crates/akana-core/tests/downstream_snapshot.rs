@@ -5,14 +5,22 @@
 //! the disambiguator, the segmenter and the tokenizer (review 3 STYLE3-06). A change here must
 //! be deliberate and listed in its commit.
 //!
-//! After a deliberate change: `AKANA_GOLD_WRITE=1 cargo test -p akana-core --test
+//! After a deliberate change: `AKANA_GOLD_WRITE=downstream cargo test -p akana-core --test
 //! downstream_snapshot`, and give the diff of the snapshots in the commit message.
 
 use akana_core::parser::TurkishDependencyParser;
 use akana_core::pii::{PiiMode, TurkishPiiEngine};
 use akana_core::readability::analyze_readability;
+use akana_core::AkanaEngine;
 use akana_core::TurkishStyleAuditor;
 use std::path::PathBuf;
+
+/// Whether `AKANA_GOLD_WRITE` names this suite: a comma-separated list of suites
+/// (`downstream`, `morphology_gold`, `morphology_snapshot`, `review_gold`, `pii_view`), so that a
+/// run of the whole crate with it set rewrites only what it names (review 3 PARSER3-07).
+fn gold_write(suite: &str) -> bool {
+    std::env::var("AKANA_GOLD_WRITE").is_ok_and(|v| v.split(',').any(|s| s.trim() == suite))
+}
 
 fn data(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -30,10 +38,11 @@ fn sentences(name: &str) -> Vec<String> {
         .collect()
 }
 
-/// Compares `now` with the snapshot `name`, or writes it under `AKANA_GOLD_WRITE`.
+/// Compares `now` with the snapshot `name`, or writes it when `AKANA_GOLD_WRITE` names
+/// `downstream`.
 fn check(name: &str, now: &str) {
     let path = data(name);
-    if std::env::var_os("AKANA_GOLD_WRITE").is_some() {
+    if gold_write("downstream") {
         std::fs::write(&path, now).expect("write snapshot");
         return;
     }
@@ -47,7 +56,8 @@ fn check(name: &str, now: &str) {
     assert!(
         diffs.is_empty() && before.lines().count() == now.lines().count(),
         "{name} changed ({} lines differ, {} lines before, {} now):\n{}\n\
-         If the change is deliberate, rewrite it with AKANA_GOLD_WRITE=1 and list it in the commit.",
+         If the change is deliberate, rewrite it with AKANA_GOLD_WRITE=downstream and list it \
+         in the commit.",
         diffs.len(),
         before.lines().count(),
         now.lines().count(),
@@ -79,13 +89,35 @@ fn parse_trees_stay_as_recorded() {
         now.push_str(&format!("# {sentence}\n"));
         for n in &tree.nodes {
             now.push_str(&format!(
-                "{}\t{}\t{}\t{}\t{}\t{}\n",
-                n.id, n.form, n.lemma, n.upos, n.head, n.deprel
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+                n.id, n.form, n.lemma, n.upos, n.xpos, n.feats, n.head, n.deprel
             ));
         }
         now.push('\n');
     }
     check("parser_snapshot.conllu", &now);
+}
+
+#[test]
+fn documents_stay_as_recorded() {
+    // The whole path, as Python's analyze() takes it: segmenter, tokenizer, disambiguator,
+    // parser (review 3 PARSER3-07). One text per line.
+    let engine = AkanaEngine::new();
+    let mut now = String::new();
+    for text in sentences("documents.txt") {
+        now.push_str(&format!("# {text}\n"));
+        for sentence in engine.analyze_document(&text).sentences {
+            now.push_str(&format!("## {}\n", sentence.text));
+            for n in &sentence.dependency_tree.nodes {
+                now.push_str(&format!(
+                    "{}\t{}\t{}\t{}\t{}\t{}\n",
+                    n.id, n.form, n.lemma, n.upos, n.head, n.deprel
+                ));
+            }
+        }
+        now.push('\n');
+    }
+    check("documents_snapshot.conllu", &now);
 }
 
 #[test]

@@ -89,6 +89,12 @@ Changes:    no text is shipped. The analyzer's frequency prior is estimated
             read in more than one part of speech, how many times its tokens are tagged in each
             of fourteen part-of-speech classes).
 
+Shipped as: crates/akana-core/src/parser/light_verbs.txt, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no text is shipped. The list holds the 31 verb roots that a bare noun right before
+            them is more often a compound with than their object or subject, counted in the
+            train splits (scripts/parser_ud_eval.py --light-verbs).
+
 -------------------------------------------------------------------------------------------------
 3. Sources approved for use, from which nothing ships yet
 -------------------------------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 //! Each set has a `*_failures.txt` beside it listing every item the analyzer gets wrong today,
 //! with a summary in its comment lines. A test fails when the current failures differ from the
 //! list in either direction, so a change shows which items it fixes and which it breaks. After
-//! a deliberate change, `AKANA_GOLD_WRITE=1 cargo test -p akana-core --test review_gold`
+//! a deliberate change, `AKANA_GOLD_WRITE=review_gold cargo test -p akana-core --test review_gold`
 //! rewrites the lists, and the commit gives their diff.
 
 use akana_core::morphology::{
@@ -20,6 +20,13 @@ use akana_core::morphology::{
 use akana_core::phonology::to_turkish_lower;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
+
+/// Whether `AKANA_GOLD_WRITE` names this suite: a comma-separated list of suites
+/// (`downstream`, `morphology_gold`, `morphology_snapshot`, `review_gold`, `pii_view`), so that a
+/// run of the whole crate with it set rewrites only what it names (review 3 PARSER3-07).
+fn gold_write(suite: &str) -> bool {
+    std::env::var("AKANA_GOLD_WRITE").is_ok_and(|v| v.split(',').any(|s| s.trim() == suite))
+}
 
 fn review(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -32,10 +39,10 @@ fn percent(part: usize, total: usize) -> String {
 }
 
 /// Compares `failures` with the list in `path` (its non-comment lines), or rewrites the list
-/// with `summary` as comments when `AKANA_GOLD_WRITE` is set.
+/// with `summary` as comments when `AKANA_GOLD_WRITE` names `review_gold`.
 fn ratchet(path: &Path, summary: &[String], failures: &BTreeSet<String>) {
     let name = path.file_name().unwrap_or_default().to_string_lossy();
-    if std::env::var_os("AKANA_GOLD_WRITE").is_some() {
+    if gold_write("review_gold") {
         let mut text =
             String::from("# Gold items the analyzer gets wrong today (tests/review_gold.rs).\n");
         for line in summary {
@@ -66,7 +73,7 @@ fn ratchet(path: &Path, summary: &[String], failures: &BTreeSet<String>) {
     assert!(
         broken.is_empty() && fixed.is_empty(),
         "{name}: {} newly failing, {} now passing ({} known, {} now; now: {}):\n{report}\
-         If deliberate, rewrite with AKANA_GOLD_WRITE=1 and give the diff in the commit.",
+         If deliberate, rewrite with AKANA_GOLD_WRITE=review_gold and give the diff in the commit.",
         broken.len(),
         fixed.len(),
         known.len(),

@@ -1,0 +1,8 @@
+# Texts that pin the whole analysis path of AkanaEngine::analyze_document (segmenter,
+# tokenizer, disambiguator, parser; review 3 PARSER3-07): court writing with ellipses,
+# numbered paragraphs, amounts, abbreviations and initials. Synthetic; one text per line.
+Davacı ...'nin vekili duruşmaya geldi. Davalı ... vekili gelmedi... Sonra dava görüldü.
+1. Başvurucu 12.500 TL ödedi. 2. Mahkeme 3.200,00 TL'nin iadesine karar verdi.
+Ankara 3. Asliye Hukuk Mahkemesi'nin 2019/12 E. , 2020/5 K. sayılı kararı onandı.
+Davalı ABC Tic. A.Ş.'nin itirazı reddedildi. HMK.'ya göre süre kesindir.
+Madde 2.'si uygulanır. Saat 15.30'da duruşma açıldı.

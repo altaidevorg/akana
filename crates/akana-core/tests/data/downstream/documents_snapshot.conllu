@@ -1,0 +1,102 @@
+# Davacı ...'nin vekili duruşmaya geldi. Davalı ... vekili gelmedi... Sonra dava görüldü.
+## Davacı ...'nin vekili duruşmaya geldi.
+1	Davacı	davacı	NOUN	9	nsubj
+2	.	.	PUNCT	9	punct
+3	.	.	PUNCT	9	punct
+4	.	.	PUNCT	9	punct
+5	'	'	PUNCT	9	punct
+6	nin	nin	X	9	dep
+7	vekili	vekil	NOUN	9	obj
+8	duruşmaya	duruşma	NOUN	9	obl
+9	geldi	gelmek	VERB	0	root
+10	.	.	PUNCT	9	punct
+## Davalı ... vekili gelmedi...
+1	Davalı	davalı	ADJ	6	amod
+2	.	.	PUNCT	6	punct
+3	.	.	PUNCT	6	punct
+4	.	.	PUNCT	6	punct
+5	vekili	vekil	NOUN	6	obj
+6	gelmedi	gelmek	VERB	0	root
+7	.	.	PUNCT	6	punct
+8	.	.	PUNCT	6	punct
+9	.	.	PUNCT	6	punct
+## Sonra dava görüldü.
+1	Sonra	sonra	ADV	3	advmod
+2	dava	dava	NOUN	3	nsubj
+3	görüldü	görmek	VERB	0	root
+4	.	.	PUNCT	3	punct
+
+# 1. Başvurucu 12.500 TL ödedi. 2. Mahkeme 3.200,00 TL'nin iadesine karar verdi.
+## 1. Başvurucu 12.500 TL ödedi.
+1	1	1	NUM	6	dep
+2	.	.	PUNCT	6	punct
+3	Başvurucu	başvurucu	NOUN	6	obj
+4	12.500	12.500	NUM	5	nummod
+5	TL	tl	NOUN	6	obj
+6	ödedi	ödemek	VERB	0	root
+7	.	.	PUNCT	6	punct
+## 2. Mahkeme 3.200,00 TL'nin iadesine karar verdi.
+1	2	2	NUM	8	dep
+2	.	.	PUNCT	8	punct
+3	Mahkeme	mahkeme	NOUN	8	obj
+4	3.200,00	3.200,00	NUM	5	nummod
+5	TL'nin	tl	NOUN	6	nmod:poss
+6	iadesine	iade	NOUN	8	obl
+7	karar	karar	NOUN	8	compound
+8	verdi	vermek	VERB	0	root
+9	.	.	PUNCT	8	punct
+
+# Ankara 3. Asliye Hukuk Mahkemesi'nin 2019/12 E. , 2020/5 K. sayılı kararı onandı.
+## Ankara 3. Asliye Hukuk Mahkemesi'nin 2019/12 E. , 2020/5 K. sayılı kararı onandı.
+1	Ankara	ankara	PROPN	18	nsubj
+2	3	3	NUM	18	dep
+3	.	.	PUNCT	18	punct
+4	Asliye	asliye	NOUN	18	obj
+5	Hukuk	hukuk	NOUN	18	obj
+6	Mahkemesi'nin	mahkeme	NOUN	18	nmod
+7	2019	2019	NUM	18	dep
+8	/	/	PUNCT	18	punct
+9	12	12	NUM	10	nummod
+10	E.	e	NOUN	18	obj
+11	,	,	PUNCT	18	punct
+12	2020	2020	NUM	18	dep
+13	/	/	PUNCT	18	punct
+14	5	5	NUM	15	nummod
+15	K.	k	NOUN	18	obj
+16	sayılı	sayılı	ADJ	17	amod
+17	kararı	karar	NOUN	18	obj
+18	onandı	onamak	VERB	0	root
+19	.	.	PUNCT	18	punct
+
+# Davalı ABC Tic. A.Ş.'nin itirazı reddedildi. HMK.'ya göre süre kesindir.
+## Davalı ABC Tic. A.Ş.'nin itirazı reddedildi.
+1	Davalı	davalı	ADJ	2	amod
+2	ABC	abc	PROPN	6	nsubj
+3	Tic.	tic	NOUN	6	obj
+4	A.Ş.'nin	aş	NOUN	5	nmod:poss
+5	itirazı	itiraz	NOUN	6	obj
+6	reddedildi	reddetmek	VERB	0	root
+7	.	.	PUNCT	6	punct
+## HMK.'ya göre süre kesindir.
+1	HMK.'ya	hmk	NOUN	4	obl
+2	göre	göre	ADP	1	case
+3	süre	süre	NOUN	4	obj
+4	kesindir	kesin	ADJ	0	root
+5	.	.	PUNCT	4	punct
+
+# Madde 2.'si uygulanır. Saat 15.30'da duruşma açıldı.
+## Madde 2.'si uygulanır.
+1	Madde	madde	NOUN	6	nsubj
+2	2	2	NUM	6	dep
+3	.	.	PUNCT	6	punct
+4	'	'	PUNCT	6	punct
+5	si	si	NOUN	6	nsubj
+6	uygulanır	uygulamak	VERB	0	root
+7	.	.	PUNCT	6	punct
+## Saat 15.30'da duruşma açıldı.
+1	Saat	saat	NOUN	4	nsubj
+2	15.30'da	15.30	NOUN	4	obl
+3	duruşma	duruşma	NOUN	4	compound
+4	açıldı	açmak	VERB	0	root
+5	.	.	PUNCT	4	punct
+

@@ -48,7 +48,20 @@ fn nominal_predicates_are_roots_and_punctuation_never_is() {
     assert_eq!(root("Bugün okulda sınav var ."), "var");
     assert_eq!(root("Evde kimse yok ."), "yok");
     assert_eq!(root("Bu karar doğru mu ?"), "doğru");
-    assert_eq!(root("Ali öğretmen değil ."), "değil");
+    // değil is the copula of the nominal before it, as in UD Turkish (review 3 PARSER3-03).
+    assert_eq!(root("Ali öğretmen değil ."), "öğretmen");
+    let tree = parser.parse(&["Ali", "öğretmen", "değil", "."]);
+    assert_eq!(
+        (
+            tree.nodes[2].upos.as_str(),
+            tree.nodes[2].deprel.as_str(),
+            tree.nodes[2].head
+        ),
+        ("AUX", "cop", 2)
+    );
+    // A postposition is no root, nor punctuation (review 3 PARSER3-03).
+    assert_eq!(root("Bu senin için ."), "senin");
+    assert_eq!(root("mi ?"), "mi");
     assert_eq!(root("Sen bu akşam bize gelecek misin ?"), "gelecek");
 
     let tree = parser.parse(&["Dilekçe", "ile", "başvurdu", "."]);
@@ -82,5 +95,56 @@ fn every_non_finite_form_is_a_verb() {
     assert_eq!(
         node("Kırılmış camları topladı .", "Kırılmış"),
         ("VERB".to_string(), "acl".to_string())
+    );
+}
+
+/// Review 3 PARSER3-02/04/07: relations measured on UD Turkish (scripts/parser_ud_eval.py).
+#[test]
+fn compounds_conjuncts_names_and_relative_clauses() {
+    let parser = TurkishDependencyParser::new();
+    // Each word's (form, head, relation).
+    let arcs = |sentence: &str| -> Vec<(String, usize, String)> {
+        let tokens: Vec<&str> = sentence.split(' ').collect();
+        let tree = parser.parse(&tokens);
+        tree.nodes
+            .iter()
+            .map(|n| (n.form.clone(), n.head, n.deprel.clone()))
+            .collect()
+    };
+    let arc = |sentence: &str, form: &str| {
+        let found = arcs(sentence).into_iter().find(|a| a.0 == form).unwrap();
+        (found.1, found.2)
+    };
+    // A bare noun before a light verb is a compound with it; before another passive verb its
+    // subject, before another active one its object.
+    assert_eq!(
+        arc("Mahkeme davanın reddine karar verdi .", "karar"),
+        (5, "compound".to_string())
+    );
+    assert_eq!(
+        arc("Sonra karar açıklandı .", "karar"),
+        (3, "nsubj".to_string())
+    );
+    assert_eq!(arc("Ali kitap okudu .", "kitap"), (3, "obj".to_string()));
+    // Coordinated clauses: the first conjunct heads the second, and a name opening the second
+    // clause is its subject.
+    for sentence in ["Ali geldi , Veli gitti .", "Ali geldi ve Veli gitti ."] {
+        assert_eq!(arc(sentence, "geldi"), (0, "root".to_string()));
+        assert_eq!(arc(sentence, "gitti"), (2, "conj".to_string()));
+        assert_eq!(arc(sentence, "Veli"), (5, "nsubj".to_string()));
+    }
+    // A name of several words is one, headed by its first word.
+    assert_eq!(
+        arc("Ahmet Yılmaz'ın kararı onandı .", "Yılmaz'ın"),
+        (1, "flat".to_string())
+    );
+    // A relative clause reaches its noun past a determiner; a number counts its noun.
+    assert_eq!(
+        arc("Bilinmeyen bir sebeple gitti .", "Bilinmeyen"),
+        (3, "acl".to_string())
+    );
+    assert_eq!(
+        arc("İki yıl önce taşındı .", "İki"),
+        (2, "nummod".to_string())
     );
 }

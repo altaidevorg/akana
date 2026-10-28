@@ -48,7 +48,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - Trained AI-text detector in every audit report (`report.ai_detection`, next to the rule-based `ai_score`, which counts style findings): calibrated probability that the text is AI-written, from 500 gradient-boosted trees over 75 signals (content statistics, mined AI phrases such as *"Elbette"*, *"önemli bir rol oynar"*, token-transition scores over Akana's own embedding tokenizer), with a Turkish "why AI" report. On a held-out OpenAI evaluation set it flags about 95 of 100 AI texts long enough to judge (65+ words), at 1% false alarms on separate human texts. Not proof of authorship; poems get no decision, academic text a warning, shorter or highly repetitive texts are not judged.
   - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
-  - Transition-based parser outputting Universal Dependencies (UD) format and CoNLL-U trees.
+  - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.8 % of words to the right head (UAS) and 41.7 % with the right relation too (LAS), where attaching every word to the next gets 42.0 % UAS (`scripts/parser_ud_eval.py`). Trained parsers do much better: use it for rough structure.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).
