@@ -90,6 +90,37 @@ impl<'a> Scan<'a> {
         true
     }
 
+    /// Whether token `next` is an apostrophe joined to the text ending at `end` and to the
+    /// letters of a suffix after it ("...'nin", "2.'si"): no closing quote.
+    fn suffix_apostrophe(&mut self, next: usize, end: usize) -> bool {
+        if !self.has(next) {
+            return false;
+        }
+        let t = self.tokens[next].clone();
+        t.start == end
+            && t.text.chars().count() == 1
+            && t.text.starts_with(['\'', '’', '‘', '`', '´', '′', '＇'])
+            && self.has(next + 1)
+            && self.tokens[next + 1].start == t.end
+            && self.tokens[next + 1]
+                .text
+                .starts_with(|c: char| c.is_alphabetic())
+    }
+
+    /// Whether the text goes on after an ellipsis ending at `end`, with token `next`: an
+    /// apostrophe joined to it and to the letters of a suffix, or a word in lower case.
+    fn continues_after(&mut self, next: usize, end: usize) -> bool {
+        if !self.has(next) {
+            return false;
+        }
+        let t = self.tokens[next].clone();
+        let lower_word = matches!(
+            t.token_type,
+            TokenType::Word | TokenType::ProperNounWithApostrophe
+        ) && t.text.starts_with(|c: char| c.is_lowercase());
+        lower_word || self.suffix_apostrophe(next, end)
+    }
+
     /// The next sentence, unless the scan first reaches a token starting at or after `stop`.
     fn next_sentence(&mut self, stop: usize) -> Step<'a> {
         if self.done {
@@ -104,6 +135,8 @@ impl<'a> Scan<'a> {
             }
 
             let is_sentence_ender = match token.text {
+                // A suffix after the period ("2.'si") continues the word (review 3 TOK3-05).
+                "." if self.suffix_apostrophe(i + 1, token.end) => false,
                 "." => {
                     // Make sure it's not preceded by abbreviation or part of number
                     if token.token_type == TokenType::Abbreviation
@@ -111,13 +144,33 @@ impl<'a> Scan<'a> {
                     {
                         false
                     } else if i > 0 && self.tokens[i - 1].token_type == TokenType::Number {
-                        // Ordinal number check (e.g. "3. madde", "1. kat")
-                        if self.has(i + 1) && self.tokens[i + 1].token_type == TokenType::Word {
+                        // An ordinal: "3. madde", "1. kat", and before a capital a number of
+                        // one or two digits, as court decisions name courts and paragraphs
+                        // ("Ankara 3. Asliye Hukuk Mahkemesi", "2. Mahkeme reddetti", "Yargıtay
+                        // 9. HD."); a year or an amount ends the sentence (review 3 TOK3-03).
+                        if self.has(i + 1)
+                            && matches!(
+                                self.tokens[i + 1].token_type,
+                                TokenType::Word
+                                    | TokenType::Abbreviation
+                                    | TokenType::ProperNounWithApostrophe
+                            )
+                        {
                             let next_first_char = self.tokens[i + 1].text.chars().next().unwrap();
-                            !next_first_char.is_lowercase()
+                            let number = self.tokens[i - 1].text;
+                            let ordinal =
+                                number.len() <= 2 && number.chars().all(|c| c.is_ascii_digit());
+                            !next_first_char.is_lowercase() && !ordinal
                         } else {
                             true
                         }
+                    } else if self.has(i + 1)
+                        && token.end == self.tokens[i + 1].start
+                        && matches!(self.tokens[i + 1].text, "," | ";" | ":")
+                    {
+                        // A comma or semicolon right after the period: no sentence starts with
+                        // one (an abbreviation the list lacks).
+                        false
                     } else {
                         true
                     }
@@ -131,18 +184,32 @@ impl<'a> Scan<'a> {
                 let mut next_i = i + 1;
 
                 // Consume any additional sentence enders (e.g. multiple dots in "...", "!!", "?!")
+                let mut dots = usize::from(token.text == ".");
                 while self.has(next_i) && matches!(self.tokens[next_i].text, "." | "!" | "?" | "…")
                 {
                     end_idx = self.tokens[next_i].end;
+                    dots += usize::from(self.tokens[next_i].text == ".");
                     next_i += 1;
                 }
 
-                // Consume any trailing quotes / closing brackets
+                // An ellipsis inside a sentence: a name left out (davacı ...'nin vekili,
+                // HÂKİMİ ...'NIN) whose suffix follows, or text that goes on in lower case
+                // (davacı ... vekili). Ending the sentence there made the suffix open the
+                // next sentence and become a term (review 3 TOK3-01).
+                let ellipsis = dots >= 2 || token.text == "…";
+                if ellipsis && self.continues_after(next_i, end_idx) {
+                    self.i = next_i;
+                    continue;
+                }
+
+                // Consume any trailing quotes / closing brackets, but not an apostrophe that
+                // joins a suffix (review 3 TOK3-01).
                 while self.has(next_i)
                     && matches!(
                         self.tokens[next_i].text,
                         "\"" | "”" | "’" | "'" | ")" | "]" | "»"
                     )
+                    && !self.suffix_apostrophe(next_i, end_idx)
                 {
                     end_idx = self.tokens[next_i].end;
                     next_i += 1;
@@ -194,6 +261,10 @@ mod tests {
         "Gel. 12. gün... vb. şeyler. ali@x.com yazdı. #etiket @ad",
         "a\nb. c",
         "...!!! ???",
+        "Davacı ...'nin vekili geldi. Davalı ... vekili gelmedi... Sonra.",
+        "Ankara 3. Asliye Hukuk Mahkemesi'nin 2019/12 E. , 2020/5 K. sayılı kararı. Son 2019. Yeni",
+        "A.Ş.'nin ve T.C. Anayasası'nın (d. 1950, ö. 2010) hükmü.",
+        "\u{feff}Madde 2.'si uygulanır. Yargıtay 9. HD. E. 2019/1 sayılı. Bitti!'nin sonu",
     ];
 
     #[test]

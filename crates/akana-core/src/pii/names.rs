@@ -390,14 +390,22 @@ impl Scan<'_, '_> {
         )
     }
 
-    /// A single capital letter glued to a following period: the A of "A. Yılmaz".
-    fn is_initial(&self, i: usize) -> bool {
-        self.word(i)
-            .is_some_and(|w| w.letters == 1 && w.cap && !w.has_apostrophe)
-            && self
-                .tokens
-                .get(i + 1)
-                .is_some_and(|t| t.text == "." && t.start == self.tokens[i].end)
+    /// The last token of an initial at `i`, a single capital letter glued to a following
+    /// period (the A of "A. Yılmaz"): `i` itself where the tokenizer keeps them together as an
+    /// abbreviation ("A."), or the period's token after the letter.
+    fn initial_end(&self, i: usize) -> Option<usize> {
+        let w = self.word(i)?;
+        if w.letters != 1 || !w.cap || w.has_apostrophe {
+            return None;
+        }
+        let token = &self.tokens[i];
+        if token.text.ends_with('.') {
+            return Some(i);
+        }
+        self.tokens
+            .get(i + 1)
+            .is_some_and(|t| t.text == "." && t.start == token.end)
+            .then_some(i + 1)
     }
 
     fn is_place(&self, lower: &str) -> bool {
@@ -589,10 +597,10 @@ impl Scan<'_, '_> {
                 if !(cap_mode && after_given && onto_name) {
                     break;
                 }
-            } else if cap_mode && self.is_initial(j) {
+            } else if let Some(e) = self.initial_end(j).filter(|_| cap_mode) {
                 // a middle initial (John F. Kennedy) or a trailing one (Ahmet K.)
-                let k = j + 2;
-                if k < n && self.same_line(j + 1, k) && self.surname_like(k, false) {
+                let k = e + 1;
+                if k < n && self.same_line(e, k) && self.surname_like(k, false) {
                     after_given = false; // the word after a middle initial is the surname
                     last = k;
                     parts += 2;
@@ -1007,13 +1015,14 @@ pub(super) fn detect_names(
             i = last + 1;
             continue;
         }
-        let (first, start, confidence) = if scan.is_initial(i)
-            && i + 2 < n
-            && scan.same_line(i + 1, i + 2)
-            && scan.surname_like(i + 2, scan.sentence_initial(i))
-        {
+        let initial = scan.initial_end(i).filter(|&e| {
+            e + 1 < n
+                && scan.same_line(e, e + 1)
+                && scan.surname_like(e + 1, scan.sentence_initial(i))
+        });
+        let (first, start, confidence) = if let Some(e) = initial {
             // A. Yılmaz: the initial and the surname
-            (i + 2, tokens[i].start, 0.9)
+            (e + 1, tokens[i].start, 0.9)
         } else if let Some(confidence) = scan.confirm(i, scorer) {
             (
                 i,

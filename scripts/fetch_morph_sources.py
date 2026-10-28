@@ -9,7 +9,7 @@ licence of every file).
 Sources (the user approved each on 2026-10-26):
 - UD Turkish BOUN, Kenet, Penn, Tourism, Atis, FrameNet (CC BY-SA 4.0) at UD release r2.18: their
   train and dev splits may train what akana ships; their test splits are for evaluation only;
-- UD Turkish IMST (CC BY-NC-SA 4.0) at r2.18: evaluation only, never in anything that ships;
+- UD Turkish IMST (CC BY-NC-SA 3.0) at r2.18: evaluation only, never in anything that ships;
 - Google Research turkish-morphology lexicon (Apache-2.0), `src/analyzer/lexicon/base/*.tsv`;
 - TRmorph lexicon (MIT), `lexicon/`;
 - the Turkish Wiktionary extract of kaikki.org (Wiktionary content: CC BY-SA 4.0 and GFDL), an

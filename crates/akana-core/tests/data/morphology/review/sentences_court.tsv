@@ -90,7 +90,7 @@
 3	beni	ok	ben|Pron|Pron+A1sg+Acc|
 4	sürekli	ok	sürekli|Adv|Adv|
 5	arayarak	ok	aramak|Verb|Verb+AdvErek|
-6	rahatsız	ok	rahat|Adj|Adj+Without|
+6	rahatsız	ok	rahatsız|Adj|Adj| || rahat|Adj|Adj+Without|
 7	etmeye	ok	etmek|Verb|Verb+ActN+Dat|
 8	başladı	ok	başlamak|Verb|Verb+Past|
 @ yargitay
@@ -335,7 +335,7 @@
 1	dosyada	ok	dosya|Noun|Noun+Loc|
 3	dava	ok	dava|Noun|Noun+A3sg+Nom|
 4	dilekçesinde	ok	dilekçe|Noun|Noun+P3sg+Loc|
-5	haksız	ok	hak|Noun|Noun+Without| || hak|Adj|Adj+Without|
+5	haksız	ok	haksız|Adj|Adj| || hak|Noun|Noun+Without| || hak|Adj|Adj+Without|
 6	olarak	ok	olmak|Verb|Verb+AdvErek|
 7	tahsil	ok	tahsil|Noun|Noun+A3sg+Nom|
 8	edildiği	ok	etmek|Verb|Verb+Pass+PastPart+P3sg|
@@ -373,7 +373,7 @@
 5	olarak	ok	olmak|Verb|Verb+AdvErek|
 6	açılacak	ok	açmak|Verb|Verb+Pass+FutPart|
 7	dava	ok	dava|Noun|Noun+A3sg+Nom|
-9	kamulaştırmama	ok	kamu|Noun|Noun+BecomeVerb+Caus+Neg+ActN| || kamu|Adj|Adj+BecomeVerb+Caus+Neg+ActN|
+9	kamulaştırmama	ok	kamulaştırmak|Verb|Verb+Neg+ActN| || kamu|Noun|Noun+BecomeVerb+Caus+Neg+ActN| || kamu|Adj|Adj+BecomeVerb+Caus+Neg+ActN|
 10	işleminin	ok	işlem|Noun|Noun+P3sg+Gen|
 11	iptali	ok	iptal|Noun|Noun+P3sg|
 12	istemiyle	ok	istem|Noun|Noun+P3sg+Ins|
@@ -711,7 +711,7 @@
 16	bu	ok	bu|Det|Det|
 17	cezalar	ok	ceza|Noun|Noun+A3pl|
 18	henüz	ok	henüz|Adv|Adv|
-19	kesinleşmemiştir	ok	kesin|Adj|Adj+BecomeVerb+Neg+Evid+CopPres3sg|
+19	kesinleşmemiştir	ok	kesinleşmek|Verb|Verb+Neg+Evid+CopPres3sg| || kesin|Adj|Adj+BecomeVerb+Neg+Evid+CopPres3sg|
 @ aym_bb
 > Somut olayda başvurucu hakkında işvereni şüphe feshine götüren olgulardan biri , başvurucunun ağabeyi hakkında soruşturma yürütüldüğü ve bu kapsamda tutuklandığı bilgisidir .
 0	Somut	ok	somut|Adj|Adj|

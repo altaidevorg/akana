@@ -198,6 +198,12 @@ impl MorphologicalDisambiguator {
             // What a postposition could govern: the case of the word before it, if a noun or
             // a pronoun.
             let previous_case = previous.and_then(case_of);
+            // A demonstrative or interrogative determiner before the word (rule 8c).
+            let after_demonstrative = i > 0
+                && matches!(
+                    to_turkish_lower(tokens[i - 1]).as_str(),
+                    "bu" | "şu" | "o" | "her" | "hangi"
+                );
             let exclaims = tokens[i + 1..]
                 .iter()
                 .find(|t| matches!(**t, "." | "!" | "?"))
@@ -252,17 +258,24 @@ impl MorphologicalDisambiguator {
                 // clause: a finite verb before a comma or "ve" (gelecek, ...) over its participle.
                 // Not a negative imperative there: before "ve" its twin, the verbal noun in -mA,
                 // is far likelier ("belgelendirme ve bilgilendirme"). A question particle
-                // follows the predicate ("Yarın gelecek misin ?").
+                // follows the predicate ("Yarın gelecek misin ?"). The existential predicates
+                // var and yok, bare or with the copula, are their clause's verb too ("Bir sorun
+                // vardı .", "itirazı varsa ,"): beside varmak's forms, the only verb there, they
+                // lost every such sentence (review 3 RANK3-01). After a dative, which varmak
+                // governs, the verb is meant ("eve vardı", "sonuca vardı").
+                let after_dative = previous_case == Some("Dat");
+                let existential = matches!(parse.lemma.as_str(), "var" | "yok")
+                    && parse.primary_pos != PrimaryPos::Verb
+                    && (marked == 1 || is_predicate(parse))
+                    && !after_dative;
+                let verb = parse.pos == PrimaryPos::Verb || existential;
                 if is_sentence_final || before_question {
-                    if parse.pos == PrimaryPos::Verb {
+                    if verb {
                         bonus += const { rank_units(2.0) };
                     } else if is_predicate(parse) {
                         bonus += const { rank_units(1.0) };
                     }
-                } else if is_clause_final
-                    && parse.pos == PrimaryPos::Verb
-                    && !prior_negative_imperative(parse)
-                {
+                } else if is_clause_final && verb && !prior_negative_imperative(parse) {
                     bonus += const { rank_units(1.0) };
                 }
 
@@ -381,6 +394,52 @@ impl MorphologicalDisambiguator {
                         }
                         _ => {}
                     }
+                }
+
+                // 8b. ile is the instrumental and comitative postposition before ilgili,
+                // birlikte, beraber and karşılaştır- ("Bu konu ile ilgili", "Ali ile birlikte")
+                // and after a verbal noun ("yontulması ile", "yapılması ile"), where the
+                // conjunction the prior prefers (UD tags ile CCONJ 69 %) had read 98.6 % of
+                // court contexts (review 3 RANK3-03). Between two verbal nouns it joins them.
+                if parse.root == "ile" && parse.primary_pos == PrimaryPos::Postp {
+                    let next = tokens.get(i + 1).map(|t| to_turkish_lower(t));
+                    let before_relation = next.as_deref().is_some_and(|t| {
+                        matches!(t, "ilgili" | "birlikte" | "beraber")
+                            || t.starts_with("karşılaştır")
+                    });
+                    let verbal_noun = |p: &MorphParse| {
+                        p.primary_pos == PrimaryPos::Verb
+                            && p.pos == PrimaryPos::Noun
+                            && p.morpheme_tags
+                                .iter()
+                                .any(|t| matches!(t.as_str(), "ActN" | "Inf"))
+                    };
+                    let after_verbal_noun = previous.is_some_and(verbal_noun)
+                        && !following
+                            .first()
+                            .and_then(|next| next.first())
+                            .is_some_and(verbal_noun);
+                    if before_relation || after_verbal_noun {
+                        bonus += const { rank_units(1.5) };
+                    }
+                }
+
+                // 8c. After a demonstrative or interrogative determiner (bu, şu, o, her,
+                // hangi) a noun's -(s)I is the accusative, not the possessive ("Bu filmi
+                // beğendim", "Mahkeme bu talebi reddetmiştir"): the prior's P3sg read every
+                // consonant-final one so in context. On the held-out UD test splits this
+                // choice gains 0.9 points of case accuracy (review 3 RANK3-02).
+                if after_demonstrative
+                    && parse.pos == PrimaryPos::Noun
+                    && parse.morpheme_tags.last().is_some_and(|t| t == "Acc")
+                    && !parse.morpheme_tags.iter().any(|t| {
+                        matches!(
+                            t.as_str(),
+                            "P1sg" | "P2sg" | "P3sg" | "P1pl" | "P2pl" | "P3pl"
+                        )
+                    })
+                {
+                    bonus += const { rank_units(1.5) };
                 }
 
                 // 9. An interjection stands alone ("Hayır, ..."); inside a clause the word is

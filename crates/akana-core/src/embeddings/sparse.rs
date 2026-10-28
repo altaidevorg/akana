@@ -148,24 +148,47 @@ impl MorphologicalSparseEncoder {
         let mut backoff: HashMap<String, String> = HashMap::new();
         // The fixed terms of the adverbs and postpositions seen so far ([`frozen_form`]).
         let mut frozen: HashMap<String, Option<(String, f32)>> = HashMap::new();
+        // The last token of the sentence before, which a suffix written apart may follow.
+        let mut before: Option<&str> = None;
         for sentence in SentenceSegmenter::segment(text) {
             let tokens = TurkishTokenizer::tokenize_words(sentence.text);
             let parses = self.disambiguator.disambiguate(&tokens);
             for (i, (token, parse)) in tokens.iter().zip(&parses).enumerate() {
                 let surface = to_turkish_lower(token.trim());
-                if !self.is_term(&surface) || suffix_fragment(&tokens, i) {
+                if !self.is_term(&surface) || suffix_fragment(&tokens, i, before) {
                     continue;
                 }
                 if parse.primary_pos == PrimaryPos::Unknown {
                     // A word the analyzer does not know is its backoff stem (hiperbariğe and
                     // hiperbarik are one term), or else itself, without the period of an
-                    // abbreviation the tokenizer keeps (krş. and krş are one term).
+                    // abbreviation the tokenizer keeps (krş. and krş are one term). A name
+                    // the lexicon lacks, written with its capital inside a sentence (Larnaca,
+                    // Zelenski), keeps every letter: a name's suffixes follow an apostrophe,
+                    // and the backoff made junk of it (larnaç; review 3 MORPH3-02).
+                    // A name's suffixes after its apostrophe are no part of its term
+                    // (Trump'ın, Trump'a: trump).
                     let bare = surface.trim_end_matches('.');
-                    let term = backoff.entry(bare.to_string()).or_insert_with_key(|w| {
-                        self.morphology.backoff_stem(w).unwrap_or_else(|| w.clone())
-                    });
-                    if self.is_term(term) {
-                        out.push((term.clone(), pos_weight(parse)));
+                    let bare = bare
+                        .split(['\'', '’', '‘', '`', '´', '′', '＇'])
+                        .next()
+                        .unwrap_or(bare);
+                    let name = i > 0
+                        && token.starts_with(char::is_uppercase)
+                        && token.chars().any(char::is_lowercase);
+                    let term = if name {
+                        bare.to_string()
+                    } else {
+                        backoff
+                            .entry(bare.to_string())
+                            .or_insert_with_key(|w| {
+                                self.morphology.backoff_stem(w).unwrap_or_else(|| w.clone())
+                            })
+                            .clone()
+                    };
+                    // A stem that is a function word is no term (itibarende: itibaren; review 3
+                    // MSTAB3-07).
+                    if self.is_lemma_term(&term) {
+                        out.push((term, pos_weight(parse)));
                     }
                     continue;
                 }
@@ -195,6 +218,7 @@ impl MorphologicalSparseEncoder {
                     }
                 }
             }
+            before = tokens.last().copied().or(before);
         }
         out
     }
@@ -261,18 +285,37 @@ const SUFFIX_FRAGMENTS: &[&str] = &[
     "taki", "teki",
 ];
 
-/// Whether the token at `i` is a suffix written apart after an apostrophe or the period of an
-/// abbreviation in capitals (X ' nin, TCK. nun), which is no term.
-fn suffix_fragment(tokens: &[&str], i: usize) -> bool {
-    let Some(previous) = i.checked_sub(1).and_then(|p| tokens.get(p)) else {
+/// Whether the token at `i` is a suffix written apart, which is no term: after an apostrophe
+/// (X ' nin, ... 'nin), a closing quote right before it (Sözleşmesi"nin), the period of an
+/// abbreviation or initials in capitals (TCK. nun, A.Ş. nin), or an acronym in capitals
+/// (TTK nın). `before` is the last token of the sentence before, for a sentence that starts
+/// with the suffix (review 3 MSTAB3-05).
+fn suffix_fragment(tokens: &[&str], i: usize, before: Option<&str>) -> bool {
+    let previous = match i.checked_sub(1) {
+        Some(p) => tokens.get(p).copied(),
+        None => before,
+    };
+    let Some(previous) = previous else {
         return false;
     };
-    let after_apostrophe = matches!(*previous, "'" | "’");
-    let after_abbreviation = previous
-        .strip_suffix('.')
-        .is_some_and(|a| a.chars().nth(1).is_some() && a.chars().all(char::is_uppercase));
-    (after_apostrophe || after_abbreviation)
-        && SUFFIX_FRAGMENTS.contains(&to_turkish_lower(tokens[i]).as_str())
+    if !SUFFIX_FRAGMENTS.contains(&to_turkish_lower(tokens[i]).as_str()) {
+        return false;
+    }
+    // Both are slices of the same text: the quote touches the suffix.
+    let adjacent = previous.as_ptr() as usize + previous.len() == tokens[i].as_ptr() as usize;
+    let after_apostrophe = matches!(previous, "'" | "’" | "‘" | "`" | "´" | "′" | "＇");
+    let after_quote = adjacent && matches!(previous, "\"" | "”" | "“" | "»");
+    let after_abbreviation = previous.strip_suffix('.').is_some_and(|a| {
+        !a.is_empty()
+            && a.chars().any(char::is_uppercase)
+            && a.chars().all(|c| c.is_uppercase() || c == '.')
+    });
+    // In lower case only: in text written in capitals the word after one is a word (GIDA UN
+    // SANAYİ).
+    let after_acronym = previous.chars().nth(1).is_some()
+        && previous.chars().all(char::is_uppercase)
+        && !tokens[i].chars().any(char::is_uppercase);
+    after_apostrophe || after_quote || after_abbreviation || after_acronym
 }
 
 /// How much a word's reading counts: names and numbers most, function words least.
@@ -716,6 +759,11 @@ mod tests {
         // Suffixes written apart after an apostrophe or an abbreviation's period are no terms.
         assert_eq!(terms("Ankara ' nın"), ["ankara"]);
         assert_eq!(terms("TCK. nun"), ["tck"]);
+        // Review 3: after a name left out (...'nin), a quote, initials and an acronym.
+        assert_eq!(terms("Davacı ...'nin vekili"), ["davacı", "vekil"]);
+        assert_eq!(terms("Sözleşmesi\"nin"), ["sözleşme"]);
+        assert_eq!(terms("TTK nın"), ["ttk"]);
+        assert_eq!(terms("GIDA UN SANAYİ"), ["gıda", "sanayi", "un"]);
     }
 
     #[test]
@@ -729,5 +777,11 @@ mod tests {
         );
         // A word with no inflection to take off is its own term.
         assert_eq!(terms("xqzvbt"), ["xqzvbt"]);
+        // Review 3: a vowel-final word and its inflected forms are one term; a name the lexicon
+        // lacks keeps its letters inside a sentence; a function word is no term.
+        assert_eq!(terms("zorbanta zorbantanın zorbantalar"), ["zorbanta"]);
+        assert_eq!(terms("Biz Larnaca gördük"), ["larnaca", "görmek"]);
+        assert_eq!(terms("Biz Zxqwert'ın ve Zxqwert'a"), ["zxqwert"]);
+        assert_eq!(terms("itibarende"), Vec::<String>::new());
     }
 }

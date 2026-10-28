@@ -9,14 +9,25 @@ Sources (all in `scripts/lexicon/`):
   `morphology/src/main/resources/tr`; Apache License 2.0, see `zemberek/NOTICE.md`). The build
   first checks them against the SHA-256 pinned there (`scripts/fetch_zemberek_dicts.py`, which
   can also re-create them from the pinned wheel).
-- `akana-legal.dict`, `akana-extra.dict`: akana's own entries in the same syntax. An entry here
-  replaces Zemberek's entry with the same word, POS and secondary POS.
+- `akana-legal.dict`, `akana-extra.dict`, `akana-variants.dict`: akana's own entries in the
+  same syntax. An entry here replaces Zemberek's entry with the same word, POS and secondary
+  POS. `Ref:` gives the lemma of a variant spelling, whose root keeps the variant (tesbit:
+  tespit).
+- `akana-spelling.dict`: Zemberek words that are misspellings or variant spellings of a
+  dictionary word (şöför, orjinal, herşey). Every common entry of the spelling takes the line's
+  `Ref:` lemma and the attributes it adds (Nonstandard for a misspelling) and keeps its own.
 - `akana-remove.dict`: Zemberek entries to drop (same syntax; matched on word, POS and
   secondary POS).
 
+The build fails on a line of akana-remove.dict or akana-spelling.dict that matches no entry.
+
 Every rule mirrors zemberek.morphology.lexicon.tr.TurkishDictionaryLoader so that the root
-inventory and attributes match Zemberek's own, with three differences that fix what the
+inventory and attributes match Zemberek's own, with four differences that fix what the
 analyzer accepted wrongly:
+
+- A `Ref:` of master-dictionary.dict or non-tdk.dict that points at another word gives the
+  lemma and its spelling (hükümet: hükûmet; motorsiklet: motosiklet), which Zemberek keeps as
+  a reference only. A non-tdk.dict entry with one is Nonstandard: TDK does not spell so.
 
 - Duplicates are merged by precedence instead of being kept under a new index. Within one
   file an entry without attributes or index that repeats an earlier entry's word and POS (a
@@ -24,8 +35,9 @@ analyzer accepted wrongly:
   is dropped when an earlier file already has that word and POS. Indexed homographs of one
   file (kalp "heart" and kalp "counterfeit") are kept.
 - Entries of `proper-from-corpus.dict` that are inflected common words (Mahkemesi, Kurulu,
-  Üniversitesi) or misspelled stems (Redd, Kitab, Kalb) are dropped unless a curated file
-  (proper, person-names, abbreviations) lists the name too.
+  Üniversitesi), misspelled stems (Redd, Kitab, Kalb), common words without their Turkish
+  letters (Egitim, Ayrica) or ASCII-I spellings of an İ-name (Istanbul read as ıstanbul) are
+  dropped unless a curated file (proper, person-names, abbreviations) lists the name too.
 - Roots with characters that are not letters or digits (m², alm.) are dropped.
 
 The build fails when a CompoundP3sg entry's `roots=` does not spell the word (head, tail as it
@@ -37,7 +49,8 @@ Output, one item per line, sorted:
         [idx=N] [display=SPELLING]
 `pr=` is written for abbreviations and wherever the pronunciation differs from the root (gram→gıram);
 `idx=` numbers a homograph after the first
-(kalp "heart", kalp idx=1 "counterfeit"), which comes first. `roots=` gives the parts of a compound that carries its own 3rd-person possessive
+(kalp "heart", kalp idx=1 "counterfeit"), which comes first; homographs that would share a
+number (dahil and dâhil, aids and AIDS) take the next free one, so that the prior keys each. `roots=` gives the parts of a compound that carries its own 3rd-person possessive
 (cumhurbaşkanı roots=cumhur-başkan); `pc=` is the case a postposition governs. The attributes
 are Zemberek's after `inferMorphemicAttributes`, so a verb's aorist class and a monosyllable's
 NoVoicing are explicit. The lemma is folded (lower case, no circumflex, apostrophe or dash), the
@@ -67,6 +80,7 @@ DEFAULT_RESOURCES = [
 ]
 CURATED_NAMES = {"proper.dict", "abbreviations.dict", "person-names.dict"}
 SUPPLEMENTS = ["akana-legal.dict", "akana-extra.dict", "akana-variants.dict"]
+SPELLINGS = "akana-spelling.dict"
 REMOVALS = "akana-remove.dict"
 
 # Zemberek primary POS short forms -> akana loader names.
@@ -337,7 +351,7 @@ def infer_attributes(pron, primary, secondary, attrs):
 
 
 class Entry:
-    __slots__ = ("lemma", "root", "pos", "secondary", "attrs", "pron", "roots", "pc", "explicit", "indexed", "index", "source", "word", "display")
+    __slots__ = ("lemma", "root", "pos", "secondary", "attrs", "pron", "roots", "pc", "explicit", "indexed", "index", "source", "word", "display", "spelled")
 
     def key(self):
         return (self.lemma, self.root, self.pos, self.secondary)
@@ -440,6 +454,8 @@ def make_entry(word, meta, source):
     e = Entry()
     e.word = word
     e.lemma = lemma
+    # The key the entry has as written, before a Ref: gives it another lemma.
+    e.spelled = (lemma, root, primary, secondary)
     e.root = root
     e.pos = primary
     e.secondary = secondary
@@ -451,15 +467,27 @@ def make_entry(word, meta, source):
     e.indexed = "Index" in meta
     e.index = int(meta.get("Index", "0") or 0)
     e.source = source
-    if "Ref" in meta and source.startswith("akana"):
-        # akana entries may point at a canonical lemma (tesbit -> tespit, red -> ret).
-        ref = meta["Ref"]
+    # The word a `Ref:` points at gives the lemma and its spelling; the root keeps the variant.
+    # akana's entries name a spelling (tesbit: tespit, red: ret). Zemberek's name an item
+    # (kilitlemek_Verb, hain_Adj), most often the entry's own first sense (avuç_Noun on avuç
+    # [Index:1]), which changes nothing. A non-tdk.dict entry that points at another word is a
+    # spelling TDK does not use (motorsiklet, tevhid, kitlemek), so it is Nonstandard;
+    # master-dictionary.dict's are TDK's own referrals (hükümet: hükûmet; siluet: silüet).
+    # Review 3 LEX3-01.
+    ref = meta.get("Ref")
+    if ref and not source.startswith("akana"):
+        ref = ref.split("_")[0]
+        if source not in ("master-dictionary.dict", "non-tdk.dict") or normalize_circumflex(turkish_lower(ref)) == lemma:
+            ref = None
+        elif source == "non-tdk.dict":
+            e.attrs.add("Nonstandard")
+    if ref:
         e.lemma = normalize_circumflex(turkish_lower(ref))
     # The dictionary's own spelling of the lemma: a verb's infinitive, a name with its capital
     # and apostrophe, a loanword with its circumflex; an acronym with a Latin I in capitals
     # with that I (Ibm, Icsıd: IBM, ICSID).
-    if "Ref" in meta and source.startswith("akana"):
-        e.display = meta["Ref"]
+    if ref:
+        e.display = ref
     elif latin_i:
         e.display = "".join(c if c == "I" else turkish_upper(c) for c in word)
     else:
@@ -541,6 +569,79 @@ def junk_proper(entry, common):
     return False
 
 
+# Real names that are spelled as a common word without some of its Turkish letters (Resul beside
+# resül, Akçil beside akçıl, Ogün beside öğün), which `misspelt_name` would take for misspellings.
+ASCII_NAMES = {
+    "akçil", "akşin", "aliş", "atik", "cenk", "cunha", "daniş", "gina", "hazim", "humayun", "ilgar",
+    "kacar", "kacır", "korel", "mevlut", "mubarek", "musavi", "nacar", "ogün", "oğur", "razi",
+    "resul", "sabir", "sani", "sato", "sina", "taras", "umran",
+}
+FLATTEN = str.maketrans("çğıöşüâîû", "cgiosuaiu")
+
+
+def misspelt_name(entry, flattened, names):
+    """Whether a corpus-collected proper noun is a common word written without some of its
+    Turkish letters (Egitim, Ayrica, Buyuk, Dogan: eğitim, ayrıca, büyük, doğan), or a name
+    with the dotless ı an ASCII I gives in Turkish lower case beside its İ spelling (Istanbul,
+    Ibrahim: ıstanbul beside istanbul). The spell checker took egitim for a word, and the
+    analyzer read Istanbul as ıstanbul without trying İ (review 3 NORM3-01, MORPH3-06).
+    `flattened` maps a common root without Turkish letters to the roots; `names` holds every
+    name's root."""
+    w = entry.root
+    same = flattened.get(w.translate(FLATTEN), ())
+    if w in ASCII_NAMES or w in same:
+        # A name that is a common word as written (Akit, Gayrimenkul) is
+        # scripts/audit_corpus_names.py's to judge.
+        return False
+    for c in same:
+        if c != w and all(x == y or x == y.translate(FLATTEN) for x, y in zip(w, c)):
+            return True
+    if "ı" in w and "I" in entry.word:
+        dotted = normalize_circumflex(turkish_lower(entry.word.replace("I", "İ").replace("'", "")))
+        return dotted != w and (dotted in names or dotted in flattened.get(dotted.translate(FLATTEN), ()))
+    return False
+
+
+def respell(items, report):
+    """Applies akana-spelling.dict: every common entry of a line's spelling (and POS, if the line
+    gives one) takes the line's `Ref:` lemma and spelling, if it gives one, and the attributes the line adds:
+    Nonstandard for a misspelling (şöför: şoför), none for a variant TDK refers to its other
+    spelling (rızk: rızık), NoVoicing where the variant keeps its stop (mahkümiyeti). Names and
+    abbreviations of the spelling are left alone. Review 3 LEX3-01/02."""
+    by_spelling = {}
+    for key in items:
+        for e in items[key]:
+            if e.secondary not in ("ProperNoun", "Abbrv"):
+                by_spelling.setdefault(e.spelled[:2], []).append(e)
+    unmatched = []
+    with open(os.path.join(LEXICON_DIR, SPELLINGS), encoding="utf-8") as f:
+        for line in f:
+            parsed = parse_line(line)
+            if parsed is None:
+                continue
+            word, meta = parsed
+            if "Ref" not in meta and "A" not in meta:
+                raise SystemExit(f"{SPELLINGS}: a line with neither Ref: nor A: {line.strip()}")
+            spec = make_entry(word, meta, "akana:" + SPELLINGS)
+            added = {a.strip() for a in meta.get("A", "").split(",") if a.strip()}
+            matches = [e for e in by_spelling.get(spec.spelled[:2], []) if "P" not in meta or e.pos == spec.pos]
+            if not matches:
+                unmatched.append(line.strip())
+            for e in matches:
+                items[e.key()].remove(e)
+                if not items[e.key()]:
+                    del items[e.key()]
+                e.attrs |= added
+                if "NoVoicing" in added:
+                    e.attrs.discard("Voicing")
+                if "Ref" in meta:
+                    e.lemma, e.display = spec.lemma, spec.display
+                items.setdefault(e.key(), []).append(e)
+                report.append(f"{SPELLINGS}: {e.word} -> {e.line()}")
+    if unmatched:
+        raise SystemExit(f"{SPELLINGS} lines that match no entry:\n  " + "\n  ".join(unmatched))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--output", default="crates/akana-core/src/morphology/zemberek_lexicon.txt")
@@ -601,21 +702,50 @@ def main():
         if e.source in CURATED_NAMES or e.source in ("master-dictionary.dict", "non-tdk.dict")
         and e.secondary == "ProperNoun"
     }
+    flattened, names = {}, set()
+    for key in order:
+        for e in items[key]:
+            if e.secondary == "ProperNoun":
+                names.add(e.root)
+            elif e.source in ("master-dictionary.dict", "non-tdk.dict") and e.secondary != "Abbrv":
+                flattened.setdefault(e.root.translate(FLATTEN), set()).add(e.root)
     for key in order:
         kept = []
         for e in items[key]:
-            if e.source == "proper-from-corpus.dict" and e.root not in curated and junk_proper(e, common):
-                report.append(f"junk proper noun: dropped {e.word}")
-                continue
+            if e.source == "proper-from-corpus.dict" and e.root not in curated:
+                if junk_proper(e, common):
+                    report.append(f"junk proper noun: dropped {e.word}")
+                    continue
+                if misspelt_name(e, flattened, names):
+                    report.append(f"misspelt proper noun: dropped {e.word}")
+                    continue
             kept.append(e)
         items[key] = kept
 
-    removals = {e.key() for e in read_entries(os.path.join(LEXICON_DIR, REMOVALS), "akana-remove")}
-    for key in removals:
-        if items.pop(key, None) is not None:
+    # A removal is matched on the entry as written (camii, which non-tdk.dict refers to cami).
+    removals = {e.spelled for e in read_entries(os.path.join(LEXICON_DIR, REMOVALS), "akana-remove")}
+    dropped = set()
+    for key in list(items):
+        kept = [e for e in items[key] if e.spelled not in removals]
+        if len(kept) < len(items[key]):
+            dropped.update(e.spelled for e in items[key] if e.spelled in removals)
             report.append(f"akana-remove: dropped {key}")
+            if kept:
+                items[key] = kept
+            else:
+                del items[key]
+    if removals - dropped:
+        # The entry a line named has changed or gone (review 3 LEX3-09).
+        raise SystemExit(f"{REMOVALS} lines that drop nothing:\n  " + "\n  ".join(map(str, sorted(removals - dropped))))
     for name in SUPPLEMENTS:
         for e in read_entries(os.path.join(LEXICON_DIR, name), "akana:" + name):
+            if e.spelled != e.key() and items.get(e.spelled):
+                # A Ref: entry replaces the Zemberek entry of its spelling (şöför, lemma şoför,
+                # replaces non-tdk.dict's şöför).
+                report.append(f"{name}: replaced {items[e.spelled][0].line()} by {e.line()}")
+                del items[e.spelled]
+                items[e.key()] = [e]
+                continue
             if e.indexed and items.get(e.key()):
                 # A second reading of an entry (HMK "hemeka" and "kanunu"; merci, merci-i).
                 items[e.key()].append(e)
@@ -625,6 +755,24 @@ def main():
             else:
                 order.append(e.key())
             items[e.key()] = [e]
+    respell(items, report)
+    # Homographs that share an index (a circumflex twin: dahil "interference", dâhil "included";
+    # an acronym and its Latin-I twin: aids, AIDS) take the next free one after the plainly
+    # spelled first, so that each has a key of its own in the prior (review 3 LEX3-02).
+    for entries in items.values():
+        taken = {e.index for e in entries}
+        owner = {}  # index -> the line that has it
+        moved = {}  # (index, line) -> the index it moved to
+        for e in sorted(entries, key=lambda e: (e.index, e.display_field() is not None, e.line())):
+            line = e.line()
+            if (e.index, line) in moved:
+                e.index = moved[(e.index, line)]
+            elif owner.setdefault(e.index, line) != line:
+                new = max(taken) + 1
+                taken.add(new)
+                owner[new] = line
+                moved[(e.index, line)] = new
+                e.index = new
 
     # Entries that come out as the same line are one item; it shows a spelling of its own only
     # if none of them is spelled as the default (kar and kâr stay the item kar).

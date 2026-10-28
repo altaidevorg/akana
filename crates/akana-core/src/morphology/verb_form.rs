@@ -98,7 +98,11 @@ pub fn verb_form(parse: &MorphParse) -> Option<NonFinite> {
             continue;
         }
         if state.derivative && m != M::Zero {
-            if verb && verb_form_of(m, PrimaryPos::Noun).is_some() {
+            // A converb on the copula of a verb form is the word's form: gel-miş-ken,
+            // yap-mak-ta-yken (review 3 MORPH3-08); on a noun's (çocuk-ken) it is none.
+            let converb_on_form =
+                found.is_some() && verb_form_of(m, PrimaryPos::Adv) == Some(VerbForm::Conv);
+            if (verb || converb_on_form) && verb_form_of(m, PrimaryPos::Noun).is_some() {
                 found = Some((m, None));
             } else if lexical(m) {
                 found = None;

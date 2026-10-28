@@ -72,6 +72,15 @@ A:CompoundP3sg; Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 mis
   deasciifier ignore such readings: `kitapı` and `olmıyan` are still misspellings to them.
   `Morphology.analyze` returns them; code that judges spellings should skip them, as
   `TurkishMorphology::analyze_standard` does in Rust.
+- Misspellings Zemberek lists as words read the same way, with the TDK lemma (`şöför`:
+  `şoför`, `döküman`: `doküman`, `orjinal`: `orijinal`, `ünvan`: `unvan`; `herşey` keeps its
+  lemma), and so do the words Zemberek refers to another spelling (`motorsiklet`:
+  `motosiklet`). A spelling TDK refers to the other takes its lemma without being
+  nonstandard (`hükümet`: `hükumet`, `rızk`: `rızık`, `kast`: `kasıt`). Inflected forms listed
+  as words read as the word's (`mevkii`, `bayii`, `zayii`: P3sg).
+- Corpus "names" that were common words without their Turkish letters (`egitim`, `ayrica`,
+  `Dogan`) or ASCII-I twins of a name (`ıstanbul`) are gone: `Istanbul` reads `istanbul`, and
+  the spell checker no longer accepts `egitim`.
 
 **Syntactic morphology.** `SyntacticMorphology` and `syntactic_analyze` report UD features:
 `Number`, `Person`, `Number[psor]`, `Person[psor]` and `VerbForm`, where 0.8.0 had
@@ -176,18 +185,56 @@ fails on any further input change, so each change is recorded on purpose
     alternations (`temerrüte`, as `nonstandard` readings).
   - Forms Zemberek's morphotactics lacked or the port got wrong now read: `deyip`, `deyince`,
     `yiyince` (not `diyip`), a participle's bare dative and instrumental (`olacağa`, `olacakla`),
-    `gelmişlercesine`, `okuduklarımızdansınız`, `dolayısı`.
+    `gelmişlercesine`, `okuduklarımızdansınız`, `dolayısı`. A bare -DIk takes no dative
+    (`olduğa` is rejected; `ettiklere` and `olacağa` read), and -(y)ken after a verb form makes
+    a converb (`gelmişken`).
+  - Input as word processors leave it reads: soft hyphens and zero-width characters inside a
+    word, ligatures and fullwidth letters (`tedbirine` with a soft hyphen, `ﬁkir` with the ﬁ ligature, `ＫＩＴＡＰ`). Initials read as
+    their abbreviation (`A.Ş.`, `T.C.`), and `C.`, `D.`, `L.`, `M.` as abbreviations rather
+    than Roman numerals when the lexicon has one. Readings that differ only in a silent
+    morpheme are one (`milletvekili`).
+  - Lexicon: court and general words added (`kesinleşmek`, `gerçekleştirmek`,
+    `kamulaştırmak`, `satın`, `giderim`, `uyarlık`, `ruhsal`, `evrensel`, `haksız`,
+    `istisnaen`, `tevhiden`, `mündericat`, `Katar`, `Yüksel` …); `kasıt` makes `kastı`; the
+    readings of `OHAL'in`, `HUMK'nın`, `HGK'nun`, `HSK'nun`, `VUK'nun` and `YİDK'in`; `sakın`
+    and `yaşasın` are interjections again; rare items no longer take a frequent word's forms
+    (`ekleri` is `ek`, `eleme` is `elemek`). Homographs that shared a prior key have their own
+    (`dahil` and `dâhil`).
+  - Ranking: the treebanks' tags choose between lemmas for `varsa`, `vardı`, `vardır`,
+    `doğan`, `örneğin`, `altın`, `bilir` and `çıktı`; the time adverbs `önce`, `sonra`,
+    `şimdi`, `bugün` and `daha` keep their time noun apart; an adjective's or a present
+    participle's -lArI comes in a noun's order (`diğerleri` A3pl+P3sg). In context, `var` and
+    `yok` are their clause's predicate (`Bir sorun vardı .`) unless a dative precedes
+    (`eve vardı`), `ile` is the postposition before `ilgili`, `birlikte`, `beraber` and after
+    a verbal noun, and a noun's -(s)I after `bu`, `şu`, `o`, `her` or `hangi` is the
+    accusative (`Bu filmi beğendim`).
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
-  court decisions write after its period (`TCK.nun`). NER entities still end with the number.
+  court decisions write after its period (`TCK.nun`, `HMK.'ya`; not `A.Ş.vekili`). NER
+  entities still end with the number. Amounts are numbers, not times (`12.500`, `3.200,00`).
+  The apostrophe may be any of ' ’ ‘ ` ´ ′ ＇, and a soft hyphen or zero-width character
+  inside a word keeps it one token. A single letter with a period is an abbreviation (`A.
+  Yılmaz`, `2019/12 E.`, `(d. 1950)`), except the pronoun `o`, and so are `md.`, `örn.`,
+  `HD.`, `CD.`, `Bşk.` and `Müd.`. A byte order mark is no token. A dash right after a word
+  or a number is no sign: `2005-2009` is `2005`, `-`, `2009` (it gave `-2009`), and
+  `COVID-19` has the number `19`.
+- **Sentences.** An ellipsis inside a sentence no longer ends it (`davacı ...'nin vekili`,
+  `davacı ... vekili`), nor does a court's or paragraph's number before a capital
+  (`Ankara 3. Asliye Hukuk Mahkemesi`), a period right before a comma, or a period before an
+  apostrophe and its suffix (`2.'si`), which is no closing quote.
 - **Sparse encoder.**
   - One disambiguated lemma per word occurrence, with 32-bit term ids.
   - The function-lemma weights come from a table frozen with the sparse spec.
   - A term weighs by its lemma's lexicon class, not by the reading the disambiguator picked,
     so a change of ranking no longer moves weights.
   - A word the analyzer cannot read is indexed by its backoff stem (`hiperbariğe` and
-    `hiperbarik` are one term), an abbreviation has one term however it is written (`Av.`,
-    `Av`), and a suffix written apart (`1924 'te`, `TCK. nun`) is no term.
+    `hiperbarik` are one term; a vowel-final word and its forms are one, `zorbanta` and
+    `zorbantanın`), an abbreviation has one term however it is written (`Av.`, `Av`), and a
+    suffix written apart (`1924 'te`, `TCK. nun`, `...'nin`, `Sözleşmesi"nin`, `TTK nın`) is no
+    term. A name the lexicon lacks, capitalised inside a sentence, keeps all its letters
+    (`Larnaca`), an unknown word's suffixes after its apostrophe are no part of its term
+    (`Trump'ın` is `trump`, where it was `trump'ın`), and a backoff stem that is a function
+    word is no term.
   - A derived word the dictionary lists is its own lemma (`başvurucu`, `uyuşmazlık`,
     `yüklenici`, `gözlük`, `deyiş`), so that its lemma no longer turns with a re-estimated
     prior.
@@ -228,6 +275,9 @@ fails on any further input change, so each change is recorded on purpose
   `karşılaşmak`, `savaşmak`, `yıkanmak`) carry the voice as Zemberek does, an implicit
   `Recip`/`Reflex` in `analysis` (`atış:Verb|Recip→Verb+tı:Past`), where they had it as their
   `secondary_pos`, which belongs to pronouns (`kendi`, `birbiri`).
+- The lexicon build fails on a removal or respelling line that matches no entry (three
+  removals had silently matched nothing), and a supplement entry with `Ref:` replaces the
+  Zemberek entry of its spelling instead of standing beside it.
 - `reciprocal_rank_fusion` is deterministic: equal scores are ordered by best rank, then id
   (they came in hash order, so the same inputs gave different rankings), an id listed twice in
   one list counts once, and a `k` that is not positive and finite, or an `alpha` that is not

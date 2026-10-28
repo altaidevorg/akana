@@ -19,8 +19,6 @@ sulh
 ## junk filter does not catch (the 2026-10-20 review's examples).
 Kitab
 Kalb
-Arac
-Genc
 Grub
 Grubu
 Kurulu
@@ -35,11 +33,7 @@ Mamülleri
 Tevdiine
 Umumiye
 Sonucta
-Örnegin
 Mitingte
-Muvafakatı
-Tevkifatı
-Teleskopu
 
 ## Interjection twins of content words (review 2, MLEX2-01). Zemberek lists commands, vocatives
 ## and exclamations as interjections beside the noun, adjective or adverb they are (ileri,
@@ -154,13 +148,29 @@ yeğen [P:Interj]
 ölüm [P:Interj]
 öyle [P:Interj]
 üstat [P:Interj]
-## Verb forms Zemberek lists as interjections only; the verb reads them (ol-amaz, yaşa-sın).
+## Verb forms Zemberek lists as interjections only; the verb reads them (ol-amaz, yaşa). sakın
+## and yaşasın stay interjections: UD tags them INTJ 89 % and 60 % of the time, at least the
+## 10 % the rule above keeps (review 3 LEX3-07).
 affetmişsin [P:Interj]
 kahrolsun [P:Interj]
 olamaz [P:Interj]
-sakın [P:Interj]
 yaşa [P:Interj]
-yaşasın [P:Interj]
+## Words person-names.dict lists as names (review 3 LEX3-03): evrensel and ruhsal are
+## adjectives (akana-extra.dict), sevgilim and dahi common words, and the rest inflected forms
+## of a word. scripts/audit_corpus_names.py --person-names picks 149 more, but they are given
+## names too (Aslı, Faiz, Sabit, Üstün), which only the context tells from the word.
+Sevgilim
+Ruhsal
+Evrensel
+Dahi
+Bilgiye
+Takdire
+Zemine
+Yağın
+Yaşın
+Korur
+Erer
+Kuşat
 
 ## Months and days are common nouns (TDK writes them capitalised only in a full date); their
 ## proper-noun twins made Mayıs, Aralık or Pazar read as names (review 2, MLEX2-03).
@@ -197,6 +207,7 @@ Te [P:Abbrv]
 ## Danışmanlık read as names before. Names without a common reading (temyizen, usuli) wait
 ## until their own entries are added.
 Akit
+Akti
 Anne
 Atar
 Atıksu
@@ -208,6 +219,7 @@ Banka
 Bara
 Bazan
 Başarır
+Başdenetçi
 Baştan
 Beklerken
 Belki
@@ -222,6 +234,7 @@ Diyetetik
 Durak
 Edip
 Ekmek
+Elatma
 Elektrik
 Elektronik
 Elle
@@ -244,6 +257,7 @@ Gümrük
 Güç
 Hale
 Halefiyet
+Havacılık
 Havagazı
 Hole
 İnanç
@@ -252,6 +266,7 @@ Hole
 Kadar
 Kapitalizasyon
 Karşıoy
+Kaynak
 Kağıt
 Kitap
 Kontrol
@@ -273,10 +288,12 @@ Mele
 Mezkür
 Mobbing
 Muhakemat
+Muhdesatın
 Muvakkat
 Müdafii
 Müddeabihin
 Mühür
+Mükerrirlere
 Müteahhit
 Müterafik
 Müzik
@@ -294,6 +311,7 @@ Sade
 Sana
 Satar
 Sağol
+Selahiyetleri
 Sensin
 Seramik
 Seyrek
@@ -333,23 +351,6 @@ Zoralımına
 Şehit
 Şerefeli
 Şunu
-## Corpus names spelled with a dotless capital I where the word has İ (Idare, Ikinci, Internet:
-## text typed without Turkish letters), which read as ıdare, ıkinci with back-vowel suffixes.
-Ibis
-Idare
-Idea
-Idol
-Ikinci
-Ilan
-Iman
-Indi
-Integral
-Internet
-Iris
-Isaf
-Isle
-Işte
-
 ## Inherited junk (MLEX2-08): a misspelt compound (aşçıbaşı is listed), a compound with a
 ## nonsense split (şöylem-es), and abbreviations with junk pronunciations or none of their own.
 aşcıbaşı
@@ -359,13 +360,26 @@ FIGC [P:Abbrv]
 Löw [P:Abbrv]
 Mdlüğü [P:Abbrv]
 
-## Inflected forms listed as words (non-tdk.dict's camii, mevzuu and sanayii, a corpus name
-## Tevzii): the ayn entries of akana-legal.dict read them as cami, mevzu, sanayi and tevzi with
-## the possessive or the accusative.
+## Inflected forms listed as words (non-tdk.dict's camii, mevzuu, sanayii, mevkii, bayii, zayii
+## and tevazuu, a corpus name Tevzii): the ayn entries of akana-legal.dict read them as cami,
+## mevzu, sanayi, mevki, bayi, zayi, tevazu and tevzi with the possessive or the accusative.
 camii
 mevzuu
 sanayii
+mevkii
+bayii
+zayii
+tevazuu
 Tevzii
+## Corpus "names" that are misspellings of the words akana-spelling.dict respells (review 3
+## LEX3-01).
+Şöför
+Çünki
+Teba
+Resül
+Klüp
+Kampus
+Traş
 ## hazırun, which the master dictionary spells so, is hazirun's entry in akana-legal.dict (56
 ## sample tokens against 7).
 hazırun
@@ -400,7 +414,6 @@ Uyap
 Iki [P:Abbrv]
 Il [P:Abbrv]
 Ilk [P:Abbrv]
-In [P:Abbrv]
 Iyi [P:Abbrv]
 It [P:Abbrv]
 Iv [P:Abbrv]

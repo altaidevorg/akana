@@ -43,7 +43,9 @@ Ali [P:Noun,Prop]
 ## Abbreviations of statutes, courts and institutions (AT: Avrupa Topluluğu), with the
 ## pronunciation that decides their suffixes
 ## (HMK'nın, AİHM'nin, İYUK'un). A statute is also read as its last word, Kanunu (HMK'nun,
-## İİK'na), and AİHM/AİHS as written (AİHM'e, AİHS'in): Index:1 entries add that reading.
+## İİK'na), a council as Kurulu (HGK'nun, HSK'nun), and AİHM/AİHS/YİDK as written (AİHM'e,
+## AİHS'in, YİDK'in): Index:1 entries add that reading. HUMK is read letter by letter as well
+## (HUMK'nın 90 sample tokens; review 3 LEX3-06).
 HMK [P:Abbrv; Pr:hemeka]
 HMK [P:Abbrv; Pr:kanunu; Index:1]
 TBK [P:Abbrv; Pr:tebeka]
@@ -66,6 +68,7 @@ BK [P:Abbrv; Pr:kanunu; Index:1]
 İYUK [P:Abbrv; Pr:kanunu; Index:1]
 HUMK [P:Abbrv; Pr:humk]
 HUMK [P:Abbrv; Pr:kanunu; Index:1]
+HUMK [P:Abbrv; Pr:heumeka; Index:2]
 CMUK [P:Abbrv; Pr:cemeuka]
 CMUK [P:Abbrv; Pr:kanunu; Index:1]
 AİHM [P:Abbrv; Pr:aiheme]
@@ -75,16 +78,21 @@ AİHS [P:Abbrv; Pr:aihs; Index:1]
 AYM [P:Abbrv; Pr:ayeme]
 GK [P:Abbrv; Pr:geka]
 HGK [P:Abbrv; Pr:hegeka]
+HGK [P:Abbrv; Pr:kurulu; Index:1]
 CGK [P:Abbrv; Pr:cegeka]
 İBK [P:Abbrv; Pr:ibeka]
 PDY [P:Abbrv; Pr:pedeye]
 AAÜT [P:Abbrv; Pr:aaüte]
 HSK [P:Abbrv; Pr:heseka]
+HSK [P:Abbrv; Pr:kurulu; Index:1]
 SMK [P:Abbrv; Pr:semeka]
 SMK [P:Abbrv; Pr:kanunu; Index:1]
 KTK [P:Abbrv; Pr:kateka]
 KTK [P:Abbrv; Pr:kanunu; Index:1]
 YİDK [P:Abbrv; Pr:yeideka]
+YİDK [P:Abbrv; Pr:yidk; Index:1]
+VUK [P:Abbrv; Pr:vuk]
+VUK [P:Abbrv; Pr:kanunu; Index:1]
 ZMMS [P:Abbrv; Pr:zememese]
 KVKK [P:Abbrv; Pr:kavekaka]
 KVKK [P:Abbrv; Pr:kanunu; Index:1]
@@ -151,6 +159,10 @@ beyit [A:LastVowelDrop, NoVoicing]
 hısım [A:LastVowelDrop]
 mehil [A:LastVowelDrop]
 rızık [A:LastVowelDrop, NoVoicing]
+## kasıt, -stı (TDK; kast- 398 sample tokens against kasd- 31), with kasdı as a nonstandard
+## spelling; review 3 LEX3-02.
+kasıt [A:LastVowelDrop, NoVoicing]
+kasıt [A:LastVowelDrop, Nonstandard; Index:1]
 emlak [A:NoVoicing]
 büyükşehir [A:LastVowelDrop]
 kalp [A:Voicing, InverseHarmony]
@@ -262,13 +274,16 @@ TPMK [P:Abbrv]
 CPT [P:Abbrv]
 IBAN [P:Abbrv; Pr:iban]
 ZMM [P:Abbrv]
-## Words whose suffixes keep the ayn of the Arabic (camii, sanayii, mevzuu, vukuu, tevzii), as
-## merci and tevdi above.
+## Words whose suffixes keep the ayn of the Arabic (camii, sanayii, mevzuu, vukuu, tevzii;
+## bayii, zayii, tevazuu of review 3 LEX3-01), as merci and tevdi above.
 cami [Pr:camiğ; Index:1]
 sanayi [Pr:sanayiğ; Index:1]
 mevzu [Pr:mevzuğ; Index:1]
 vuku [Pr:vukuğ; Index:1]
 tevzi [Pr:tevziğ; Index:1]
+bayi [Pr:bayiğ; Index:1]
+zayi [Pr:zayiğ; Index:1]
+tevazu [Pr:tevazuğ; Index:1]
 
 ## Court words that Zemberek has only as names collected from text (plan step E6, review 2
 ## MLEX2-03 and -06): the samples write them in lower case (temyizen 4,941 tokens against 1,146
@@ -292,5 +307,37 @@ muhdesat [A:NoVoicing]
 malüliyet [A:NoVoicing; Ref:maluliyet]
 muacceliyet [A:NoVoicing]
 tramer
-OHAL [P:Abbrv; Pr:ohal]
+## OHAL is olağanüstü hâl, whose hâl takes front vowels (OHAL'in 71 sample tokens, OHAL'e 35,
+## OHAL'ın none); review 3 LEX3-06.
+OHAL [P:Abbrv; Pr:ohal; A:InverseHarmony]
 UYAP [P:Abbrv; Pr:uyap]
+
+## Legal words Zemberek lacks (review 3 LEX3-08; counts in the court samples): the -en adverbs
+## istisnaen 5, ihtaren 5, nakten 4, fennen 4, tevhiden 13; mündericatı 5, garame 5, müstemir 4,
+## mütevatir 4, kanunkoyucu 5; ketm-i verese, written ketmi (the grammar rules split it "ket
+## mi"); yed-i emin, whose yedinde read yedi+P2sg; hukuka uyarlık (1,255 tokens read Uyar+lık).
+istisnaen [P:Adv]
+ihtaren [P:Adv]
+nakten [P:Adv]
+fennen [P:Adv]
+tevhiden [P:Adv]
+mündericat [A:NoVoicing]
+garame
+müstemir [P:Adj]
+mütevatir [P:Adj]
+kanunkoyucu
+ketmi
+yed
+uyarlık
+## Verbs of a noun or adjective that are words of their own, which the analyzer read as the
+## noun's or adjective's -lAş (kesinleşmiş: kesin, about 1,600 court tokens; kamulaştırma: kamu,
+## 940; review 3 RANK3-08): a listed verb wins over the derivation that spells it. giderim
+## "remedy" (430 Constitutional Court tokens) read gider+P1sg or git+Aor+A1sg; satın (398) read
+## sat+Imp+A2pl.
+kesinleşmek
+kesinleştirmek
+gerçekleşmek
+gerçekleştirmek
+kamulaştırmak
+giderim
+satın [P:Adv]

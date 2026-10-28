@@ -2512,6 +2512,7 @@ budaklanmadan	VerbAdv:1
 budaklanmasına	VerbNoun:1
 budalaca	Adj:3
 budar	Verb:1
+bugün	Adv:175 Noun:56
 bugünden	Noun:8
 bugünküler	Adj:1
 bugünlük	Adv:4 Noun:1
@@ -3030,6 +3031,7 @@ cıvatalar	Noun:1
 cıvmış	Verb:1
 dadandı	Verb:1
 dadanma	VerbNoun:1
+daha	Adv:2144
 dahası	Adv:8 Noun:5
 dahi	Adj:2 Adv:10 Conj:23 Noun:4 Postp:2
 dahil	Adj:2 Adv:1 Noun:63
@@ -4183,6 +4185,7 @@ duyunca	Noun:2 Verb:1 VerbAdv:7
 duyurmadan	VerbAdv:1
 duyurmaz	Verb:1
 duyurunca	VerbAdv:1
+dâha	Noun:1
 dâhil	Adj:1 Noun:17
 dâhilî	Adj:2
 dökecek	Verb:2 VerbPart:1
@@ -4901,7 +4904,6 @@ eren	VerbPart:15
 erene	VerbNoun:1
 erenler	VerbNoun:1
 erer	Verb:2
-ererken	VerbPart:2
 ergin	Adj:1
 eri	Noun:3
 eridiği	VerbPart:1
@@ -5161,7 +5163,6 @@ evlenmeyen	VerbPart:1
 evlenmez	Verb:1
 evlenmiş	Noun:1 Verb:1
 evlenmişti	Noun:1
-evrensel	Adj:8 Noun:1
 evsizler	Noun:1
 evvel	Adj:3 Adv:1 Postp:54
 evvela	Adv:19
@@ -5636,31 +5637,56 @@ gerçekler	Noun:2
 gerçekleşebilir	Verb:1
 gerçekleşecek	Verb:3 VerbPart:2
 gerçekleşecektir	Verb:2
+gerçekleşeceğini	Adj:1 VerbPart:1
+gerçekleşen	VerbPart:7
+gerçekleşenlerden	VerbNoun:1
+gerçekleşerek	VerbAdv:1
 gerçekleşir	Verb:4
 gerçekleşme	Adj:1
 gerçekleşmediği	VerbPart:1
 gerçekleşmemiş	VerbPart:1
+gerçekleşmesi	VerbNoun:1 VerbPart:1
+gerçekleşmesine	VerbNoun:2
+gerçekleşmesini	VerbNoun:1
+gerçekleşmesinin	VerbNoun:1
 gerçekleşmeye	Adj:1
 gerçekleşmeyecek	VerbPart:1
+gerçekleşmeyeceğine	VerbPart:1
 gerçekleşmiş	VerbPart:1
 gerçekleşmişti	Verb:1
 gerçekleşmiştir	Verb:1 VerbPart:1
+gerçekleştirdiklerinden	VerbPart:1
+gerçekleştirdiklerini	VerbPart:1
+gerçekleştirdikten	VerbPart:1
 gerçekleştirdiği	VerbPart:2
 gerçekleştirebilir	Verb:2
+gerçekleştirebilmek	VerbNoun:1
 gerçekleştirecek	VerbPart:1
 gerçekleştirecekleri	VerbPart:1
 gerçekleştirecektir	Verb:1
 gerçekleştireceği	VerbPart:1
+gerçekleştiren	VerbPart:2
 gerçekleştirilebilir	Verb:2
 gerçekleştirilecek	Verb:1
+gerçekleştirilen	Noun:1 VerbPart:3
 gerçekleştirilir	Verb:1
+gerçekleştirilmesi	VerbNoun:1
+gerçekleştirilmesinde	VerbNoun:1
+gerçekleştirilmesine	Noun:2
 gerçekleştirilmiştir	Verb:1
 gerçekleştirir	Verb:1
+gerçekleştirirken	VerbPart:1
 gerçekleştirme	VerbNoun:1
+gerçekleştirmede	VerbNoun:1
+gerçekleştirmek	VerbNoun:2
 gerçekleştirmeye	VerbNoun:1
+gerçekleştirmeyen	VerbPart:1
+gerçekleştirmeyi	VerbNoun:2
 gerçekleştirmiş	Noun:1 Verb:1 VerbPart:1
 gerçekleştirmişim	Verb:1
 gerçekleştiği	VerbPart:2
+gerçekleştiğine	VerbPart:1
+gerçekleştiğini	VerbNoun:2
 gerçekte	Adv:4 Noun:6
 gerçekten	Adv:149
 gerçektir	Adj:2
@@ -8514,7 +8540,10 @@ kesin	Adj:34 Adv:3 Verb:5
 kesince	Verb:1
 kesindi	Adj:1 Noun:1
 kesindir	Adj:1
+kesinleşmemişken	VerbPart:1
 kesinleşmeye	VerbNoun:1
+kesinleştirmek	VerbNoun:1
+kesinleştirmesi	VerbNoun:1
 kesinlikle	Adv:133 Noun:5
 kesiş	VerbNoun:1
 kesişme	Verb:1
@@ -10862,7 +10891,6 @@ romanesk	Adj:1
 romantik	Adj:12
 rugan	Noun:4
 ruhani	Adj:2
-ruhsal	Adj:4
 ruhsatlar	Noun:1
 rulo	Noun:1
 rustik	Adj:1
@@ -14268,7 +14296,6 @@ yastıklar	Noun:5
 yastıklara	Noun:3
 yastıkları	Noun:3
 yastıklı	Adj:1 Noun:1
-yastığa	Noun:3
 yastığı	Noun:3
 yastığın	Noun:1
 yastığının	Noun:1
@@ -16605,6 +16632,7 @@ zıttı	Noun:1
 şifreler	Noun:1
 şikagolular	Noun:1
 şimalî	Adj:1
+şimdi	Adv:387 Noun:1
 şimdiden	Adv:16
 şimdilerde	Adv:3
 şimdilik	Adv:32

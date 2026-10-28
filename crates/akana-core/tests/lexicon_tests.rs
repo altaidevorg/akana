@@ -205,9 +205,14 @@ fn an_unknown_word_backs_off_to_a_guessed_noun_stem() {
     for (word, stem) in [
         ("hiperbariğe", Some("hiperbarik")),
         ("istanbulda", Some("istanbul")),
-        ("kampüsü", Some("kampüs")),
+        ("kampüslerin", Some("kampüs")),
         ("dosyada", Some("dosya")),
         ("hiperbariklerimizden", Some("hiperbarik")),
+        // Review 3 MORPH3-02: a vowel the word may end in is no inflection to take off, so a
+        // vowel-final word and its inflected forms are one stem (zorbanta, not zorbant).
+        ("zorbanta", None),
+        ("zorbantalar", Some("zorbanta")),
+        ("zorbantanın", Some("zorbanta")),
         // Derivations, -m and -n stay on.
         ("kitapçı", None),
         ("bitcoin", None),
@@ -308,4 +313,175 @@ fn determiners_before_nouns_and_pronouns_alone() {
     assert_eq!(chosen("Bu kitabı okudun")[0].primary_pos, PrimaryPos::Det);
     assert_eq!(chosen("bu güzel kitap")[0].primary_pos, PrimaryPos::Det);
     assert_eq!(chosen("Bu doğru")[0].primary_pos, PrimaryPos::Pron);
+}
+
+#[test]
+fn misspellings_and_references_read_with_the_tdk_lemma() {
+    // Review 3 LEX3-01/02: Zemberek's non-TDK spellings and its Ref: pointers were lemmas of
+    // their own, and the spell checker took them for TDK spellings. A misspelling now reads
+    // as nonstandard with the TDK lemma; a reference or a spelling twin TDK lists takes its
+    // target's lemma; an inflected form listed as a word (mevkii) reads as the word's.
+    let morph = TurkishMorphology::new();
+    for (word, lemma, nonstandard) in [
+        ("şöförün", "şoför", true),
+        ("dökümanı", "doküman", true),
+        ("orjinalinde", "orijinal", true),
+        ("motorsiklet", "motosiklet", true),
+        ("herşey", "herşey", true),
+        ("hükümetin", "hükumet", false),
+        ("kastı", "kasıt", false),
+        ("rızkı", "rızık", false),
+        ("mevkii", "mevki", false),
+        ("bayiine", "bayi", false),
+    ] {
+        let p = &morph.analyze(word)[0];
+        assert_eq!(
+            (p.lemma.as_str(), p.nonstandard),
+            (lemma, nonstandard),
+            "{word}"
+        );
+    }
+    assert!(morph.analyze_standard("şöför").is_empty());
+    assert!(!morph.analyze_standard("hükümet").is_empty());
+}
+
+#[test]
+fn names_that_are_misspelt_words_are_gone() {
+    // Review 3 NORM3-01, MORPH3-06: corpus "names" that were common words without their
+    // Turkish letters made egitim a word, and the ASCII-I twin ıstanbul kept Istanbul from
+    // its İ reading.
+    let morph = TurkishMorphology::new();
+    assert!(morph.analyze("egitim").is_empty());
+    assert!(morph.analyze("Ayrica").is_empty());
+    assert_eq!(morph.analyze("Istanbul")[0].lemma, "istanbul");
+    // A real name spelled so stays (ASCII_NAMES in the build).
+    assert!(morph
+        .analyze("Akçil")
+        .iter()
+        .any(|p| p.secondary_pos == SecondaryPos::ProperNoun));
+}
+
+#[test]
+fn homographs_have_their_own_prior_keys() {
+    // Review 3 LEX3-02: dahil "interference" and dâhil "included" shared a prior key (lemma,
+    // root, POS, secondary POS and homograph number), so the prior could not tell them apart.
+    let morph = TurkishMorphology::new();
+    let numbers: std::collections::HashSet<u8> = morph
+        .root_items("dahil")
+        .iter()
+        .filter(|item| item.primary_pos == PrimaryPos::Noun)
+        .map(|item| item.homograph)
+        .collect();
+    assert_eq!(numbers.len(), 2, "{numbers:?}");
+}
+
+#[test]
+fn context_picks_lemma_and_case_as_review_3_found() {
+    // Review 3 RANK3-01..05: (sentence, word, lemma, primary POS, last tag).
+    for (sentence, word, lemma, pos, last) in [
+        (
+            "İtirazı varsa , bildirsin .",
+            "varsa",
+            "var",
+            PrimaryPos::Adj,
+            "CopCond",
+        ),
+        (
+            "Bir sorun vardı .",
+            "vardı",
+            "var",
+            PrimaryPos::Adj,
+            "CopPast",
+        ),
+        (
+            "Saat beşte eve vardı .",
+            "vardı",
+            "varmak",
+            PrimaryPos::Verb,
+            "Past",
+        ),
+        (
+            "Sözleşmeden doğan alacak ödenmedi .",
+            "doğan",
+            "doğmak",
+            PrimaryPos::Verb,
+            "PresPart",
+        ),
+        (
+            "Örneğin , bu karar yanlıştır .",
+            "Örneğin",
+            "örneğin",
+            PrimaryPos::Conj,
+            "Conj",
+        ),
+        (
+            "Bu konu ile ilgili karar verildi .",
+            "ile",
+            "ile",
+            PrimaryPos::Postp,
+            "Postp",
+        ),
+        (
+            "Ali ile Veli geldi .",
+            "ile",
+            "ile",
+            PrimaryPos::Conj,
+            "Conj",
+        ),
+        (
+            "Bu filmi beğendim .",
+            "filmi",
+            "film",
+            PrimaryPos::Noun,
+            "Acc",
+        ),
+        (
+            "Mahkemenin kararı kesinleşti .",
+            "kararı",
+            "karar",
+            PrimaryPos::Noun,
+            "P3sg",
+        ),
+        (
+            "Diğerleri de geldi .",
+            "Diğerleri",
+            "diğer",
+            PrimaryPos::Adj,
+            "P3sg",
+        ),
+        (
+            "Daha önce film çevirdi .",
+            "önce",
+            "önce",
+            PrimaryPos::Adv,
+            "Adv",
+        ),
+        (
+            "Dilekçe ve ekleri incelendi .",
+            "ekleri",
+            "ek",
+            PrimaryPos::Noun,
+            "P3sg",
+        ),
+        (
+            "Kesinleşmiş karar uygulanır .",
+            "Kesinleşmiş",
+            "kesinleşmek",
+            PrimaryPos::Verb,
+            "NarrPart",
+        ),
+    ] {
+        let parses = chosen(sentence);
+        let p = parses.iter().find(|p| p.surface == word).expect(word);
+        assert_eq!(
+            (
+                p.lemma.as_str(),
+                p.primary_pos,
+                p.morpheme_tags.last().map(String::as_str)
+            ),
+            (lemma, pos, Some(last)),
+            "{sentence}: {}",
+            p.formatted
+        );
+    }
 }

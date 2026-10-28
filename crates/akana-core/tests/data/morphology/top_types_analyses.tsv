@@ -186,7 +186,7 @@ hâlinde	hal	Noun		Noun+P3sg+Loc	Noun	[hal:Noun] hal:Noun+A3sg+i:P3sg+nde:Loc
 usul	usul	Noun		Noun+A3sg+Nom	Noun	[usul:Noun] usul:Noun+A3sg
 yasal	yasal	Adj		Adj	Adj	[yasal:Adj] yasal:Adj
 edilmiştir	etmek	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[etmek:Verb] ed:Verb|il:Pass→Verb+miş:Narr+A3sg+tir:Cop
-önce	önce	Postp		Postp	Postp	[önce:Postp] önce:Postp
+önce	önce	Adv		Adv	Adv	[önce:Adv] önce:Adv
 temel	temel	Adj		Adj	Adj	[temel:Adj] temel:Adj
 a	a	Interj		Interj	Interj	[a:Interj] a:Interj
 nedenle	neden	Noun		Noun+Ins	Noun	[neden:Noun] neden:Noun+A3sg+le:Ins
@@ -361,7 +361,7 @@ yandan	yan	Noun		Noun+Abl	Noun	[yan:Noun] yan:Noun+A3sg+dan:Abl
 Ancak	ancak	Conj		Conj	Conj	[ancak:Conj] ancak:Conj
 olmadığını	olmak	Verb		Verb+Neg+PastPart+P3sg+Acc	Noun	[olmak:Verb] ol:Verb+ma:Neg|dığ:PastPart→Noun+A3sg+ı:P3sg+nı:Acc
 Usulü	usul	Noun		Noun+P3sg	Noun	[usul:Noun] usul:Noun+A3sg+ü:P3sg
-haksız	hak	Noun		Noun+Without	Adj	[hak:Noun] hak:Noun+A3sg|sız:Without→Adj
+haksız	haksız	Adj		Adj	Adj	[haksız:Adj] haksız:Adj
 hangi	hangi	Adj		Adj	Adj	[hangi:Adj] hangi:Adj
 Vergi	vergi	Noun	Prop	Noun+A3sg+Nom	Noun	[Vergi:Noun,Prop] vergi:Noun+A3sg
 kendi	kendi	Pron	Reflex	Pron+A3sg+Nom	Pron	[kendi:Pron,Reflex] kendi:Pron+A3sg+P3sg
@@ -375,7 +375,7 @@ olmayan	olmak	Verb		Verb+Neg+PresPart	Adj	[olmak:Verb] ol:Verb+ma:Neg|yan:PresPa
 gerekçeli	gerekçe	Noun		Noun+With	Adj	[gerekçe:Noun] gerekçe:Noun+A3sg|li:With→Adj
 veren	vermek	Verb		Verb+PresPart	Adj	[vermek:Verb] ver:Verb|en:PresPart→Adj
 tesis	tesis	Noun		Noun+A3sg+Nom	Noun	[tesis:Noun] tesis:Noun+A3sg
-diğerleri	diğer	Adj		Adj+P3pl	Noun	[diğer:Adj] diğer:Adj|Zero→Noun+A3sg+leri:P3pl
+diğerleri	diğer	Adj		Adj+A3pl+P3sg	Noun	[diğer:Adj] diğer:Adj|Zero→Noun+ler:A3pl+i:P3sg
 HÜKÜM	hüküm	Noun		Noun+A3sg+Nom	Noun	[hüküm:Noun] hüküm:Noun+A3sg
 tabi	tabi	Adj		Adj	Adj	[tabi:Adj] tabi:Adj
 TARİHİ	tarih	Noun		Noun+P3sg	Noun	[tarih:Noun] tarih:Noun+A3sg+i:P3sg
@@ -769,7 +769,7 @@ HMK	hmk	Noun	Abbrv	Noun+A3sg+Nom	Noun	[HMK:Noun,Abbrv] hmk:Noun+A3sg
 gününde	gün	Noun	Time	Noun+P3sg+Loc	Noun	[gün:Noun,Time] gün:Noun+A3sg+ü:P3sg+nde:Loc
 Ek	ek	Adj		Adj	Adj	[ek:Adj] ek:Adj
 yıllık	yıllık	Noun		Noun+A3sg+Nom	Noun	[yıllık:Noun] yıllık:Noun+A3sg
-doğan	doğan	Noun		Noun+A3sg+Nom	Noun	[doğan:Noun] doğan:Noun+A3sg
+doğan	doğmak	Verb		Verb+PresPart	Adj	[doğmak:Verb] doğ:Verb|an:PresPart→Adj
 trafik	trafik	Noun		Noun+A3sg+Nom	Noun	[trafik:Noun] trafik:Noun+A3sg
 belirlenmesi	belirlemek	Verb		Verb+Pass+ActN+P3sg	Noun	[belirlemek:Verb] belirle:Verb|n:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg
 üye	üye	Noun		Noun+A3sg+Nom	Noun	[üye:Noun] üye:Noun+A3sg
@@ -813,7 +813,7 @@ arama	aramak	Verb		Verb+ActN	Noun	[aramak:Verb] ara:Verb|ma:Inf2→Noun+A3sg
 dosyasında	dosya	Noun		Noun+P3sg+Loc	Noun	[dosya:Noun] dosya:Noun+A3sg+sı:P3sg+nda:Loc
 konuda	konu	Noun		Noun+Loc	Noun	[konu:Noun] konu:Noun+A3sg+da:Loc
 yasama	yasama	Noun		Noun+A3sg+Nom	Noun	[yasama:Noun] yasama:Noun+A3sg
-kamulaştırma	kamu	Adj		Adj+BecomeVerb+Caus+ActN	Noun	[kamu:Adj] kamu:Adj|laş:Become→Verb|tır:Caus→Verb|ma:Inf2→Noun+A3sg
+kamulaştırma	kamulaştırmak	Verb		Verb+ActN	Noun	[kamulaştırmak:Verb] kamulaştır:Verb|ma:Inf2→Noun+A3sg
 kaza	kaza	Noun		Noun+A3sg+Nom	Noun	[kaza:Noun] kaza:Noun+A3sg
 nci	-	-	-	-	-	-
 plakalı	plaka	Noun		Noun+With	Adj	[plaka:Noun] plaka:Noun+A3sg|lı:With→Adj
@@ -1348,7 +1348,7 @@ hatalı	hata	Noun		Noun+With	Adj	[hata:Noun] hata:Noun+A3sg|lı:With→Adj
 kanısına	kanı	Noun		Noun+P3sg+Dat	Noun	[kanı:Noun] kanı:Noun+A3sg+sı:P3sg+na:Dat
 kişiye	kişi	Noun		Noun+Dat	Noun	[kişi:Noun] kişi:Noun+A3sg+ye:Dat
 Anayasaya	anayasa	Noun		Noun+Dat	Noun	[anayasa:Noun] anayasa:Noun+A3sg+ya:Dat
-ekleri	ekler	Noun		Noun+P3sg	Noun	[ekler:Noun] ekler:Noun+A3sg+i:P3sg
+ekleri	ek	Noun		Noun+A3pl+P3sg	Noun	[ek:Noun] ek:Noun+ler:A3pl+i:P3sg
 sermaye	sermaye	Noun		Noun+A3sg+Nom	Noun	[sermaye:Noun] sermaye:Noun+A3sg
 gösteren	göstermek	Verb		Verb+PresPart	Adj	[göstermek:Verb] göster:Verb|en:PresPart→Adj
 cezasına	ceza	Noun		Noun+P3sg+Dat	Noun	[ceza:Noun] ceza:Noun+A3sg+sı:P3sg+na:Dat
@@ -1390,7 +1390,7 @@ borçlunun	borç	Noun		Noun+With+Gen	Noun	[borç:Noun] borç:Noun+A3sg|lu:With�
 geç	geç	Adj		Adj	Adj	[geç:Adj] geç:Adj
 iddiaların	iddia	Noun		Noun+A3pl+Gen	Noun	[iddia:Noun] iddia:Noun+lar:A3pl+ın:Gen
 olmasını	olmak	Verb		Verb+ActN+P3sg+Acc	Noun	[olmak:Verb] ol:Verb|ma:Inf2→Noun+A3sg+sı:P3sg+nı:Acc
-varsa	varmak	Verb		Verb+Cond	Verb	[varmak:Verb] var:Verb+sa:Desr+A3sg
+varsa	var	Adj		Adj+CopCond	Adj	[var:Adj] var:Adj|Zero→Verb+sa:Cond+A3sg
 feragat	feragat	Noun		Noun+A3sg+Nom	Noun	[feragat:Noun] feragat:Noun+A3sg
 sürülmüştür	sürmek	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[sürmek:Verb] sür:Verb|ül:Pass→Verb+müş:Narr+A3sg+tür:Cop
 davasında	dava	Noun		Noun+P3sg+Loc	Noun	[dava:Noun] dava:Noun+A3sg+sı:P3sg+nda:Loc
@@ -1482,7 +1482,7 @@ yapılmadığı	yapmak	Verb		Verb+Pass+Neg+PastPart+P3sg	Noun	[yapmak:Verb] yap:
 belgesi	belge	Noun		Noun+P3sg	Noun	[belge:Noun] belge:Noun+A3sg+si:P3sg
 etkin	etkin	Adj		Adj	Adj	[etkin:Adj] etkin:Adj
 kolluk	kolluk	Noun		Noun+A3sg+Nom	Noun	[kolluk:Noun] kolluk:Noun+A3sg
-satın	satmak	Verb		Verb+Imp+A2pl	Verb	[satmak:Verb] sat:Verb+Imp+ın:A2pl
+satın	satın	Adv		Adv	Adv	[satın:Adv] satın:Adv
 çerçevede	çerçeve	Noun		Noun+Loc	Noun	[çerçeve:Noun] çerçeve:Noun+A3sg+de:Loc
 Katip	katip	Noun		Noun+A3sg+Nom	Noun	[kâtip:Noun] katip:Noun+A3sg
 esasları	esas	Noun		Noun+A3pl+P3sg	Noun	[esas:Noun] esas:Noun+lar:A3pl+ı:P3sg
@@ -1575,11 +1575,11 @@ açılması	açmak	Verb		Verb+Pass+ActN+P3sg	Noun	[açmak:Verb] aç:Verb|ıl:Pas
 sağlayacak	sağlamak	Verb		Verb+FutPart	Adj	[sağlamak:Verb] sağla:Verb|yacak:FutPart→Adj
 fiili	fiili	Adj		Adj	Adj	[fiilî:Adj] fiili:Adj
 gerekçeleri	gerekçe	Noun		Noun+A3pl+P3sg	Noun	[gerekçe:Noun] gerekçe:Noun+ler:A3pl+i:P3sg
-kesinleştiğinde	kesin	Adj		Adj+BecomeVerb+PastPart+P3sg+Loc	Noun	[kesin:Adj] kesin:Adj|leş:Become→Verb|tiğ:PastPart→Noun+A3sg+i:P3sg+nde:Loc
+kesinleştiğinde	kesinleşmek	Verb		Verb+PastPart+P3sg+Loc	Noun	[kesinleşmek:Verb] kesinleş:Verb|tiğ:PastPart→Noun+A3sg+i:P3sg+nde:Loc
 maddeye	madde	Noun		Noun+Dat	Noun	[madde:Noun] madde:Noun+A3sg+ye:Dat
 örgütün	örgüt	Noun		Noun+Gen	Noun	[örgüt:Noun] örgüt:Noun+A3sg+ün:Gen
 BAŞVURU	başvuru	Noun		Noun+A3sg+Nom	Noun	[başvuru:Noun] başvuru:Noun+A3sg
-eklerinde	ekler	Noun		Noun+P3sg+Loc	Noun	[ekler:Noun] ekler:Noun+A3sg+i:P3sg+nde:Loc
+eklerinde	ek	Noun		Noun+A3pl+P3sg+Loc	Noun	[ek:Noun] ek:Noun+ler:A3pl+i:P3sg+nde:Loc
 Ticari	ticari	Adj		Adj	Adj	[ticarî:Adj] ticari:Adj
 asgari	asgari	Adj		Adj	Adj	[asgari:Adj] asgari:Adj
 değişiklik	değişik	Adj		Adj+Ness	Noun	[değişik:Adj] değişik:Adj|lik:Ness→Noun+A3sg
@@ -1713,7 +1713,7 @@ getirilmesi	getirmek	Verb		Verb+Pass+ActN+P3sg	Noun	[getirmek:Verb] getir:Verb|i
 kira	kira	Noun		Noun+A3sg+Nom	Noun	[kira:Noun] kira:Noun+A3sg
 yakın	yakın	Adj		Adj	Adj	[yakın:Adj] yakın:Adj
 duruma	durum	Noun		Noun+Dat	Noun	[durum:Noun] durum:Noun+A3sg+a:Dat
-eklerinin	ekler	Noun		Noun+P3sg+Gen	Noun	[ekler:Noun] ekler:Noun+A3sg+i:P3sg+nin:Gen
+eklerinin	ek	Noun		Noun+A3pl+P3sg+Gen	Noun	[ek:Noun] ek:Noun+ler:A3pl+i:P3sg+nin:Gen
 günden	gün	Noun	Time	Noun+Abl	Noun	[gün:Noun,Time] gün:Noun+A3sg+den:Abl
 ilgisi	ilgi	Noun		Noun+P3sg	Noun	[ilgi:Noun] ilgi:Noun+A3sg+si:P3sg
 seri	seri	Adj		Adj	Adj	[seri:Adj] seri:Adj
@@ -1721,7 +1721,7 @@ sırada	sıra	Noun		Noun+Loc	Noun	[sıra:Noun] sıra:Noun+A3sg+da:Loc
 önlenmesi	önlemek	Verb		Verb+Pass+ActN+P3sg	Noun	[önlemek:Verb] önle:Verb|n:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg
 özgürlüklerin	özgürlük	Noun		Noun+A3pl+Gen	Noun	[özgürlük:Noun] özgürlük:Noun+ler:A3pl+in:Gen
 hakkaniyete	hakkaniyet	Noun		Noun+Dat	Noun	[hakkaniyet:Noun] hakkaniyet:Noun+A3sg+e:Dat
-kesinleşmiş	kesin	Adj		Adj+BecomeVerb+Evid	Verb	[kesin:Adj] kesin:Adj|leş:Become→Verb+miş:Narr+A3sg
+kesinleşmiş	kesinleşmek	Verb		Verb+Evid	Verb	[kesinleşmek:Verb] kesinleş:Verb+miş:Narr+A3sg
 sonuca	sonuç	Noun		Noun+Dat	Noun	[sonuç:Noun] sonuc:Noun+A3sg+a:Dat
 Muhakemesi	muhakeme	Noun		Noun+P3sg	Noun	[muhakeme:Noun] muhakeme:Noun+A3sg+si:P3sg
 edilmesinin	etmek	Verb		Verb+Pass+ActN+P3sg+Gen	Noun	[etmek:Verb] ed:Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg+nin:Gen
@@ -1799,7 +1799,7 @@ kurallarının	kural	Noun		Noun+A3pl+P3sg+Gen	Noun	[kural:Noun] kural:Noun+lar:A
 paranın	para	Noun		Noun+Gen	Noun	[para:Noun] para:Noun+A3sg+nın:Gen
 yasağının	yasak	Noun		Noun+P3sg+Gen	Noun	[yasak:Noun] yasağ:Noun+A3sg+ı:P3sg+nın:Gen
 Anadolu	anadolu	Noun	Prop	Noun+A3sg+Nom	Noun	[Anadolu:Noun,Prop] anadolu:Noun+A3sg
-Doğan	doğan	Noun		Noun+A3sg+Nom	Noun	[doğan:Noun] doğan:Noun+A3sg
+Doğan	doğmak	Verb		Verb+PresPart	Adj	[doğmak:Verb] doğ:Verb|an:PresPart→Adj
 Olağanüstü	olağanüstü	Adj		Adj	Adj	[olağanüstü:Adj] olağanüstü:Adj
 herkesin	herkes	Pron	Quant	Pron+Gen	Pron	[herkes:Pron,Quant] herkes:Pron+A3pl+in:Gen
 kurallarına	kural	Noun		Noun+A3pl+P3sg+Dat	Noun	[kural:Noun] kural:Noun+lar:A3pl+ı:P3sg+na:Dat
@@ -1815,7 +1815,7 @@ Bakanlığınca	bakanlık	Noun		Noun+P3sg+Equ	Noun	[bakanlık:Noun] bakanlığ:N
 Hakim	hakim	Noun		Noun+A3sg+Nom	Noun	[hâkim:Noun] hakim:Noun+A3sg
 edilip	etmek	Verb		Verb+Pass+AdvIp	Adv	[etmek:Verb] ed:Verb|il:Pass→Verb|ip:AfterDoingSo→Adv
 edilmekle	etmek	Verb		Verb+Pass+Inf+Ins	Noun	[etmek:Verb] ed:Verb|il:Pass→Verb|mek:Inf1→Noun+A3sg+le:Ins
-gerçekleştirilen	gerçek	Adj		Adj+BecomeVerb+Caus+Pass+PresPart	Adj	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|il:Pass→Verb|en:PresPart→Adj
+gerçekleştirilen	gerçekleştirmek	Verb		Verb+Pass+PresPart	Adj	[gerçekleştirmek:Verb] gerçekleştir:Verb|il:Pass→Verb|en:PresPart→Adj
 iddialarını	iddia	Noun		Noun+A3pl+P3sg+Acc	Noun	[iddia:Noun] iddia:Noun+lar:A3pl+ı:P3sg+nı:Acc
 kısa	kısa	Adj		Adj	Adj	[kısa:Adj] kısa:Adj
 vermiş	vermek	Verb		Verb+Evid	Verb	[vermek:Verb] ver:Verb+miş:Narr+A3sg
@@ -2005,7 +2005,7 @@ SONUÇ	sonuç	Noun		Noun+A3sg+Nom	Noun	[sonuç:Noun] sonuç:Noun+A3sg
 amaçla	amaç	Noun		Noun+Ins	Noun	[amaç:Noun] amaç:Noun+A3sg+la:Ins
 ayrılmayı	ayrılmak	Verb		Verb+ActN+Acc	Noun	[ayrılmak:Verb] ayrıl:Verb|ma:Inf2→Noun+A3sg+yı:Acc
 düzenlenir	düzenlemek	Verb		Verb+Pass+Aor	Verb	[düzenlemek:Verb] düzenle:Verb|n:Pass→Verb+ir:Aor+A3sg
-giderim	gider	Noun		Noun+P1sg	Noun	[gider:Noun] gider:Noun+A3sg+im:P1sg
+giderim	giderim	Noun		Noun+A3sg+Nom	Noun	[giderim:Noun] giderim:Noun+A3sg
 isabet	isabet	Noun		Noun+A3sg+Nom	Noun	[isabet:Noun] isabet:Noun+A3sg
 kullanım	kullanım	Noun		Noun+A3sg+Nom	Noun	[kullanım:Noun] kullanım:Noun+A3sg
 millî	milli	Adj		Adj	Adj	[millî:Adj] milli:Adj
@@ -2150,7 +2150,7 @@ edilmektedir	etmek	Verb		Verb+Pass+Prog+CopPres3sg	Verb	[etmek:Verb] ed:Verb|il:
 kasten	kasten	Adv		Adv	Adv	[kasten:Adv] kasten:Adv
 kayıtlarının	kayıt	Noun		Noun+A3pl+P3sg+Gen	Noun	[kayıt:Noun] kayıt:Noun+lar:A3pl+ı:P3sg+nın:Gen
 mahkûm	mahkum	Adj		Adj	Adj	[mahkûm:Adj] mahkum:Adj
-uyarlık	uyar	Noun	Prop	Noun+Ness	Noun	[Uyar:Noun,Prop] uyar:Noun+A3sg|lık:Ness→Noun+A3sg
+uyarlık	uyarlık	Noun		Noun+A3sg+Nom	Noun	[uyarlık:Noun] uyarlık:Noun+A3sg
 yetkisizlik	yetki	Noun		Noun+Without+Ness	Noun	[yetki:Noun] yetki:Noun+A3sg|siz:Without→Adj|lik:Ness→Noun+A3sg
 edilmesini	etmek	Verb		Verb+Pass+ActN+P3sg+Acc	Noun	[etmek:Verb] ed:Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg+ni:Acc
 kararlara	karar	Noun		Noun+A3pl+Dat	Noun	[karar:Noun] karar:Noun+lar:A3pl+a:Dat
@@ -2255,8 +2255,8 @@ Ulusal	ulusal	Adj		Adj	Adj	[ulusal:Adj] ulusal:Adj
 beraber	beraber	Adv		Adv	Adv	[beraber:Adv] beraber:Adv
 bölümünde	bölüm	Noun		Noun+P3sg+Loc	Noun	[bölüm:Noun] bölüm:Noun+A3sg+ü:P3sg+nde:Loc
 idarî	idari	Adj		Adj	Adj	[idarî:Adj] idari:Adj
-kesinleşen	kesin	Adj		Adj+BecomeVerb+PresPart	Adj	[kesin:Adj] kesin:Adj|leş:Become→Verb|en:PresPart→Adj
-kesinleştiği	kesin	Adj		Adj+BecomeVerb+PastPart+P3sg	Noun	[kesin:Adj] kesin:Adj|leş:Become→Verb|tiğ:PastPart→Noun+A3sg+i:P3sg
+kesinleşen	kesinleşmek	Verb		Verb+PresPart	Adj	[kesinleşmek:Verb] kesinleş:Verb|en:PresPart→Adj
+kesinleştiği	kesinleşmek	Verb		Verb+PastPart+P3sg	Noun	[kesinleşmek:Verb] kesinleş:Verb|tiğ:PastPart→Noun+A3sg+i:P3sg
 özgü	özgü	Adj		Adj	Adj	[özgü:Adj] özgü:Adj
 Şirket	şirket	Noun		Noun+A3sg+Nom	Noun	[şirket:Noun] şirket:Noun+A3sg
 hususun	husus	Noun		Noun+Gen	Noun	[husus:Noun] husus:Noun+A3sg+un:Gen
@@ -2307,7 +2307,7 @@ DURSUN	dursun	Noun	Prop	Noun+A3sg+Nom	Noun	[Dursun:Noun,Prop] dursun:Noun+A3sg
 başlangıç	başlangıç	Noun		Noun+A3sg+Nom	Noun	[başlangıç:Noun] başlangıç:Noun+A3sg
 bizzat	bizzat	Adv		Adv	Adv	[bizzat:Adv] bizzat:Adv
 düşen	düşmek	Verb		Verb+PresPart	Adj	[düşmek:Verb] düş:Verb|en:PresPart→Adj
-gerçekleştiği	gerçek	Adj		Adj+BecomeVerb+PastPart+P3sg	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tiğ:PastPart→Noun+A3sg+i:P3sg
+gerçekleştiği	gerçekleşmek	Verb		Verb+PastPart+P3sg	Noun	[gerçekleşmek:Verb] gerçekleş:Verb|tiğ:PastPart→Noun+A3sg+i:P3sg
 mülga	mülga	Adj		Adj	Adj	[mülga:Adj] mülga:Adj
 şartlarının	şart	Noun		Noun+A3pl+P3sg+Gen	Noun	[şart:Noun] şart:Noun+lar:A3pl+ı:P3sg+nın:Gen
 Başkanlık	başkan	Noun		Noun+Ness	Noun	[başkan:Noun] başkan:Noun+A3sg|lık:Ness→Noun+A3sg
@@ -2412,13 +2412,13 @@ gönderilir	göndermek	Verb		Verb+Pass+Aor	Verb	[göndermek:Verb] gönder:Verb|i
 karşılanması	karşılamak	Verb		Verb+Pass+ActN+P3sg	Noun	[karşılamak:Verb] karşıla:Verb|n:Pass→Verb|ma:Inf2→Noun+A3sg+sı:P3sg
 merkez	merkez	Noun		Noun+A3sg+Nom	Noun	[merkez:Noun] merkez:Noun+A3sg
 şahsi	şahsi	Adj		Adj	Adj	[şahsi:Adj] şahsi:Adj
-Askeri	askeri	Noun	Prop	Noun+A3sg+Nom	Noun	[Askerî:Noun,Prop] askeri:Noun+A3sg
+Askeri	askeri	Adj		Adj	Adj	[askerî:Adj] askeri:Adj
 Gümrük	gümrük	Noun		Noun+A3sg+Nom	Noun	[gümrük:Noun] gümrük:Noun+A3sg
 Hizmetleri	hizmet	Noun		Noun+A3pl+P3sg	Noun	[hizmet:Noun] hizmet:Noun+ler:A3pl+i:P3sg
 Hâkimler	hakim	Noun		Noun+A3pl	Noun	[hâkim:Noun] hakim:Noun+ler:A3pl
 Maddesinin	madde	Noun		Noun+P3sg+Gen	Noun	[madde:Noun] madde:Noun+A3sg+si:P3sg+nin:Gen
 arasından	ara	Noun		Noun+P3sg+Abl	Noun	[ara:Noun] ara:Noun+A3sg+sı:P3sg+ndan:Abl
-kesinleşmiştir	kesin	Adj		Adj+BecomeVerb+Evid+CopPres3sg	Verb	[kesin:Adj] kesin:Adj|leş:Become→Verb+miş:Narr+A3sg+tir:Cop
+kesinleşmiştir	kesinleşmek	Verb		Verb+Evid+CopPres3sg	Verb	[kesinleşmek:Verb] kesinleş:Verb+miş:Narr+A3sg+tir:Cop
 tutanak	tutanak	Noun		Noun+A3sg+Nom	Noun	[tutanak:Noun] tutanak:Noun+A3sg
 yanlış	yanlış	Adj		Adj	Adj	[yanlış:Adj] yanlış:Adj
 Burhan	burhan	Noun		Noun+A3sg+Nom	Noun	[burhan:Noun] burhan:Noun+A3sg
@@ -2499,7 +2499,7 @@ açıklamalar	açıklama	Noun		Noun+A3pl	Noun	[açıklama:Noun] açıklama:Noun+
 başkaca	başka	Adj		Adj+Ly	Adv	[başka:Adj] başka:Adj|ca:Ly→Adv
 birim	birim	Noun		Noun+A3sg+Nom	Noun	[birim:Noun] birim:Noun+A3sg
 gerekçeler	gerekçe	Noun		Noun+A3pl	Noun	[gerekçe:Noun] gerekçe:Noun+ler:A3pl
-gerçekleşen	gerçek	Adj		Adj+BecomeVerb+PresPart	Adj	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|en:PresPart→Adj
+gerçekleşen	gerçekleşmek	Verb		Verb+PresPart	Adj	[gerçekleşmek:Verb] gerçekleş:Verb|en:PresPart→Adj
 işlendiği	işlemek	Verb		Verb+Pass+PastPart+P3sg	Noun	[işlemek:Verb] işle:Verb|n:Pass→Verb|diğ:PastPart→Noun+A3sg+i:P3sg
 muhafaza	muhafaza	Noun		Noun+A3sg+Nom	Noun	[muhafaza:Noun] muhafaza:Noun+A3sg
 zamanında	zamanında	Adv		Adv	Adv	[zamanında:Adv] zamanında:Adv
@@ -2536,7 +2536,7 @@ cezalarının	ceza	Noun		Noun+A3pl+P3sg+Gen	Noun	[ceza:Noun] ceza:Noun+lar:A3pl+
 ii	II	Num	Card	Num	Num	[II:Num,Card] II:Num
 silahların	silah	Noun		Noun+A3pl+Gen	Noun	[silâh:Noun] silah:Noun+lar:A3pl+ın:Gen
 siyasî	siyasi	Adj		Adj	Adj	[siyasî:Adj] siyasi:Adj
-zorundadır	zor	Noun		Noun+P3sg+Loc+CopPres3sg	Noun	[zor:Noun] zor:Noun+A3sg+u:P3sg+nda:Loc|Zero→Verb+Pres+A3sg+dır:Cop
+zorundadır	zor	Adj		Adj+P3sg+Loc+CopPres3sg	Noun	[zor:Adj] zor:Adj|Zero→Noun+A3sg+u:P3sg+nda:Loc|Zero→Verb+Pres+A3sg+dır:Cop
 adliye	adliye	Noun		Noun+A3sg+Nom	Noun	[adliye:Noun] adliye:Noun+A3sg
 iştirak	iştirak	Noun		Noun+A3sg+Nom	Noun	[iştirak:Noun] iştirak:Noun+A3sg
 nitelendirmesi	nitelendirmek	Verb		Verb+ActN+P3sg	Noun	[nitelendirmek:Verb] nitelendir:Verb|me:Inf2→Noun+A3sg+si:P3sg
@@ -2552,7 +2552,7 @@ sözleşmeli	sözleşme	Noun		Noun+With	Adj	[sözleşme:Noun] sözleşme:Noun+A3
 Belirtilen	belirtmek	Verb		Verb+Pass+PresPart	Adj	[belirtmek:Verb] belirt:Verb|il:Pass→Verb|en:PresPart→Adj
 GEREKÇELİ	gerekçe	Noun		Noun+With	Adj	[gerekçe:Noun] gerekçe:Noun+A3sg|li:With→Adj
 Kadro	kadro	Noun		Noun+A3sg+Nom	Noun	[kadro:Noun] kadro:Noun+A3sg
-Kamulaştırma	kamu	Adj		Adj+BecomeVerb+Caus+ActN	Noun	[kamu:Adj] kamu:Adj|laş:Become→Verb|tır:Caus→Verb|ma:Inf2→Noun+A3sg
+Kamulaştırma	kamulaştırmak	Verb		Verb+ActN	Noun	[kamulaştırmak:Verb] kamulaştır:Verb|ma:Inf2→Noun+A3sg
 Mümtaz	mümtaz	Adj		Adj	Adj	[mümtaz:Adj] mümtaz:Adj
 beyanında	beyan	Noun		Noun+P3sg+Loc	Noun	[beyan:Noun] beyan:Noun+A3sg+ı:P3sg+nda:Loc
 döneminde	dönem	Noun	Time	Noun+P3sg+Loc	Noun	[dönem:Noun,Time] dönem:Noun+A3sg+i:P3sg+nde:Loc
@@ -2677,7 +2677,7 @@ edilmediğine	etmek	Verb		Verb+Pass+Neg+PastPart+P3sg+Dat	Noun	[etmek:Verb] ed:V
 ifadesinde	ifade	Noun		Noun+P3sg+Loc	Noun	[ifade:Noun] ifade:Noun+A3sg+si:P3sg+nde:Loc
 irat	irat	Noun		Noun+A3sg+Nom	Noun	[irat:Noun] irat:Noun+A3sg
 kaldırmak	kaldırmak	Verb		Verb+Inf	Noun	[kaldırmak:Verb] kaldır:Verb|mak:Inf1→Noun+A3sg
-kamulaştırmasız	kamu	Adj		Adj+BecomeVerb+Caus+ActN+Without	Adj	[kamu:Adj] kamu:Adj|laş:Become→Verb|tır:Caus→Verb|ma:Inf2→Noun+A3sg|sız:Without→Adj
+kamulaştırmasız	kamulaştırmak	Verb		Verb+ActN+Without	Adj	[kamulaştırmak:Verb] kamulaştır:Verb|ma:Inf2→Noun+A3sg|sız:Without→Adj
 kurumları	kurum	Noun		Noun+A3pl+P3sg	Noun	[kurum:Noun] kurum:Noun+lar:A3pl+ı:P3sg
 mükerrer	mükerrer	Adj		Adj	Adj	[mükerrer:Adj] mükerrer:Adj
 olacaktır	olmak	Verb		Verb+Fut+CopPres3sg	Verb	[olmak:Verb] ol:Verb+acak:Fut+A3sg+tır:Cop
@@ -2724,7 +2724,7 @@ etmeye	etmek	Verb		Verb+ActN+Dat	Noun	[etmek:Verb] et:Verb|me:Inf2→Noun+A3sg+y
 fark	fark	Noun		Noun+A3sg+Nom	Noun	[fark:Noun] fark:Noun+A3sg
 işlemlere	işlem	Noun		Noun+A3pl+Dat	Noun	[işlem:Noun] işlem:Noun+ler:A3pl+e:Dat
 kapalı	kapalı	Adj		Adj	Adj	[kapalı:Adj] kapalı:Adj
-kesinleşmesinden	kesin	Adj		Adj+BecomeVerb+ActN+P3sg+Abl	Noun	[kesin:Adj] kesin:Adj|leş:Become→Verb|me:Inf2→Noun+A3sg+si:P3sg+nden:Abl
+kesinleşmesinden	kesinleşmek	Verb		Verb+ActN+P3sg+Abl	Noun	[kesinleşmek:Verb] kesinleş:Verb|me:Inf2→Noun+A3sg+si:P3sg+nden:Abl
 komisyon	komisyon	Noun		Noun+A3sg+Nom	Noun	[komisyon:Noun] komisyon:Noun+A3sg
 konuya	konu	Noun		Noun+Dat	Noun	[konu:Noun] konu:Noun+A3sg+ya:Dat
 maluliyet	maluliyet	Noun		Noun+A3sg+Nom	Noun	[maluliyet:Noun] maluliyet:Noun+A3sg
@@ -2902,7 +2902,7 @@ sahiplerinin	sahip	Noun		Noun+A3pl+P3sg+Gen	Noun	[sahip:Noun] sahip:Noun+ler:A3p
 savcı	savcı	Noun		Noun+A3sg+Nom	Noun	[savcı:Noun] savcı:Noun+A3sg
 uygulanabilir	uygulamak	Verb		Verb+Pass+Abil+Aor	Verb	[uygulamak:Verb] uygula:Verb|n:Pass→Verb|abil:Able→Verb+ir:Aor+A3sg
 şirketine	şirket	Noun		Noun+P3sg+Dat	Noun	[şirket:Noun] şirket:Noun+A3sg+i:P3sg+ne:Dat
-Askerî	askeri	Noun	Prop	Noun+A3sg+Nom	Noun	[Askerî:Noun,Prop] askeri:Noun+A3sg
+Askerî	askeri	Adj		Adj	Adj	[askerî:Adj] askeri:Adj
 Başkanlığına	başkan	Noun		Noun+Ness+P3sg+Dat	Noun	[başkan:Noun] başkan:Noun+A3sg|lığ:Ness→Noun+A3sg+ı:P3sg+na:Dat
 Dairemizin	daire	Noun		Noun+P1pl+Gen	Noun	[daire:Noun] daire:Noun+A3sg+miz:P1pl+in:Gen
 Vergisi	vergi	Noun		Noun+P3sg	Noun	[vergi:Noun] vergi:Noun+A3sg+si:P3sg
@@ -3087,7 +3087,7 @@ atıf	atıf	Noun		Noun+A3sg+Nom	Noun	[atıf:Noun] atıf:Noun+A3sg
 görülmüş	görmek	Verb		Verb+Pass+NarrPart	Adj	[görmek:Verb] gör:Verb|ül:Pass→Verb|müş:NarrPart→Adj
 gösterir	göstermek	Verb		Verb+Aor	Verb	[göstermek:Verb] göster:Verb+ir:Aor+A3sg
 kısmına	kısım	Noun		Noun+P3sg+Dat	Noun	[kısım:Noun] kısm:Noun+A3sg+ı:P3sg+na:Dat
-nün	nü	Adj		Adj+P2sg	Noun	[nü:Adj] nü:Adj|Zero→Noun+A3sg+n:P2sg
+nün	nü	Noun		Noun+P2sg	Noun	[nü:Noun] nü:Noun+A3sg+n:P2sg
 sanığa	sanık	Noun		Noun+Dat	Noun	[sanık:Noun] sanığ:Noun+A3sg+a:Dat
 sivil	sivil	Adj		Adj	Adj	[sivil:Adj] sivil:Adj
 suçlarından	suç	Noun		Noun+A3pl+P3sg+Abl	Noun	[suç:Noun] suç:Noun+lar:A3pl+ı:P3sg+ndan:Abl
@@ -3136,7 +3136,7 @@ farkı	fark	Noun		Noun+P3sg	Noun	[fark:Noun] fark:Noun+A3sg+ı:P3sg
 geçerlidir	geçerli	Adj		Adj+CopPres3sg	Adj	[geçerli:Adj] geçerli:Adj|Zero→Verb+Pres+A3sg+dir:Cop
 harcından	harç	Noun		Noun+P3sg+Abl	Noun	[harç:Noun] harc:Noun+A3sg+ı:P3sg+ndan:Abl
 karardan	karar	Noun		Noun+Abl	Noun	[karar:Noun] karar:Noun+A3sg+dan:Abl
-mensuplarının	mensup	Adj		Adj+P3pl+Gen	Noun	[mensup:Adj] mensup:Adj|Zero→Noun+A3sg+ları:P3pl+nın:Gen
+mensuplarının	mensup	Adj		Adj+A3pl+P3sg+Gen	Noun	[mensup:Adj] mensup:Adj|Zero→Noun+lar:A3pl+ı:P3sg+nın:Gen
 mercilerinin	merci	Noun		Noun+A3pl+P3sg+Gen	Noun	[merci:Noun] merci:Noun+ler:A3pl+i:P3sg+nin:Gen
 telafi	telafi	Noun		Noun+A3sg+Nom	Noun	[telâfi:Noun] telafi:Noun+A3sg
 yapılmaksızın	yapmak	Verb		Verb+Pass+WithoutHavingDoneSo	Adv	[yapmak:Verb] yap:Verb|ıl:Pass→Verb|maksızın:WithoutHavingDoneSo→Adv
@@ -3149,7 +3149,7 @@ bozulmasına	bozmak	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[bozmak:Verb] boz:Verb|ul
 cezalar	ceza	Noun		Noun+A3pl	Noun	[ceza:Noun] ceza:Noun+lar:A3pl
 değiştirilmesi	değişmek	Verb		Verb+Caus+Pass+ActN+P3sg	Noun	[değişmek:Verb] değiş:Verb|tir:Caus→Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg
 eksikliklerin	eksik	Adj		Adj+Ness+A3pl+Gen	Noun	[eksik:Adj] eksik:Adj|lik:Ness→Noun+ler:A3pl+in:Gen
-eksiksiz	eksik	Noun		Noun+Without	Adj	[eksik:Noun] eksik:Noun+A3sg|siz:Without→Adj
+eksiksiz	eksik	Adj		Adj+Without	Adj	[eksik:Adj] eksik:Adj|Zero→Noun+A3sg|siz:Without→Adj
 finansal	finansal	Adj		Adj	Adj	[finansal:Adj] finansal:Adj
 k	k	Noun	Abbrv	Noun+A3sg+Nom	Noun	[K:Noun,Abbrv] k:Noun+A3sg
 kullanan	kullanmak	Verb		Verb+PresPart	Adj	[kullanmak:Verb] kullan:Verb|an:PresPart→Adj
@@ -3312,7 +3312,7 @@ yerinin	yer	Noun		Noun+P3sg+Gen	Noun	[yer:Noun] yer:Noun+A3sg+i:P3sg+nin:Gen
 şüphelilerin	şüphe	Noun		Noun+With+A3pl+Gen	Noun	[şüphe:Noun] şüphe:Noun+A3sg|li:With→Adj|Zero→Noun+ler:A3pl+in:Gen
 Dairenin	daire	Noun		Noun+Gen	Noun	[daire:Noun] daire:Noun+A3sg+nin:Gen
 Görev	görev	Noun		Noun+A3sg+Nom	Noun	[görev:Noun] görev:Noun+A3sg
-GİDERİM	gider	Noun		Noun+P1sg	Noun	[gider:Noun] gider:Noun+A3sg+im:P1sg
+GİDERİM	giderim	Noun		Noun+A3sg+Nom	Noun	[giderim:Noun] giderim:Noun+A3sg
 Kuvvetleri	kuvvet	Noun	Prop	Noun+A3pl+P3sg	Noun	[Kuvvet:Noun,Prop] kuvvet:Noun+ler:A3pl+i:P3sg
 Sicil	sicil	Noun		Noun+A3sg+Nom	Noun	[sicil:Noun] sicil:Noun+A3sg
 U	u	Noun	Abbrv	Noun+A3sg+Nom	Noun	[U:Noun,Abbrv] u:Noun+A3sg
@@ -3350,7 +3350,7 @@ tarihlerinde	tarih	Noun		Noun+A3pl+P3sg+Loc	Noun	[tarih:Noun] tarih:Noun+ler:A3p
 vekillerinin	vekil	Noun		Noun+A3pl+P3sg+Gen	Noun	[vekil:Noun] vekil:Noun+ler:A3pl+i:P3sg+nin:Gen
 DOSYA	dosya	Noun		Noun+A3sg+Nom	Noun	[dosya:Noun] dosya:Noun+A3sg
 Hakkı	hak	Noun		Noun+P3sg	Noun	[hak:Noun] hakk:Noun+A3sg+ı:P3sg
-Haksız	hak	Noun		Noun+Without	Adj	[hak:Noun] hak:Noun+A3sg|sız:Without→Adj
+Haksız	haksız	Adj		Adj	Adj	[haksız:Adj] haksız:Adj
 aday	aday	Noun		Noun+A3sg+Nom	Noun	[aday:Noun] aday:Noun+A3sg
 ayırt	ayırt	Noun		Noun+A3sg+Nom	Noun	[ayırt:Noun] ayırt:Noun+A3sg
 bunlardan	bu	Pron	Demons	Pron+A3pl+Abl	Pron	[bu:Pron,Demons] bu:Pron+nlar:A3pl+dan:Abl
@@ -3553,8 +3553,8 @@ hükmünü	hüküm	Noun		Noun+P3sg+Acc	Noun	[hüküm:Noun] hükm:Noun+A3sg+ü:P3
 ihdası	ihdas	Noun		Noun+P3sg	Noun	[ihdas:Noun] ihdas:Noun+A3sg+ı:P3sg
 içermektedir	içermek	Verb		Verb+Prog+CopPres3sg	Verb	[içermek:Verb] içer:Verb+mekte:Prog2+A3sg+dir:Cop
 karşıoyları	karşıoy	Noun		Noun+A3pl+P3sg	Noun	[karşıoy:Noun] karşıoy:Noun+lar:A3pl+ı:P3sg
-kesinleşmesi	kesin	Adj		Adj+BecomeVerb+ActN+P3sg	Noun	[kesin:Adj] kesin:Adj|leş:Become→Verb|me:Inf2→Noun+A3sg+si:P3sg
-nakil	nakil	Noun		Noun+A3sg+Nom	Noun	[nakil:Noun] nakil:Noun+A3sg
+kesinleşmesi	kesinleşmek	Verb		Verb+ActN+P3sg	Noun	[kesinleşmek:Verb] kesinleş:Verb|me:Inf2→Noun+A3sg+si:P3sg
+nakil	nakil	Adj		Adj	Adj	[nâkil:Adj] nakil:Adj
 personele	personel	Noun		Noun+Dat	Noun	[personel:Noun] personel:Noun+A3sg+e:Dat
 tanındığı	tanımak	Verb		Verb+Pass+PastPart+P3sg	Noun	[tanımak:Verb] tanı:Verb|n:Pass→Verb|dığ:PastPart→Noun+A3sg+ı:P3sg
 taşımaktadır	taşımak	Verb		Verb+Prog+CopPres3sg	Verb	[taşımak:Verb] taşı:Verb+makta:Prog2+A3sg+dır:Cop
@@ -3563,7 +3563,7 @@ yükümlülüklerle	yüküm	Noun		Noun+With+Ness+A3pl+Ins	Noun	[yüküm:Noun] y�
 Elektronik	elektronik	Adj		Adj	Adj	[elektronik:Adj] elektronik:Adj
 Kurumuna	kurum	Noun		Noun+P3sg+Dat	Noun	[kurum:Noun] kurum:Noun+A3sg+u:P3sg+na:Dat
 Tebliğ	tebliğ	Noun		Noun+A3sg+Nom	Noun	[tebliğ:Noun] tebliğ:Noun+A3sg
-ayrılan	ayırmak	Verb		Verb+Pass+PresPart	Adj	[ayırmak:Verb] ayr:Verb|ıl:Pass→Verb|an:PresPart→Adj
+ayrılan	ayrılmak	Verb		Verb+PresPart	Adj	[ayrılmak:Verb] ayrıl:Verb|an:PresPart→Adj
 bilimsel	bilimsel	Adj		Adj	Adj	[bilimsel:Adj] bilimsel:Adj
 birer	birer	Num	Dist	Num	Num	[birer:Num,Dist] birer:Num
 devletinin	devlet	Noun		Noun+P3sg+Gen	Noun	[devlet:Noun] devlet:Noun+A3sg+i:P3sg+nin:Gen
@@ -3690,7 +3690,7 @@ dayanağını	dayanak	Noun		Noun+P3sg+Acc	Noun	[dayanak:Noun] dayanağ:Noun+A3sg
 değiştirilmiştir	değişmek	Verb		Verb+Caus+Pass+Evid+CopPres3sg	Verb	[değişmek:Verb] değiş:Verb|tir:Caus→Verb|il:Pass→Verb+miş:Narr+A3sg+tir:Cop
 fiillerin	fiil	Noun		Noun+A3pl+Gen	Noun	[fiil:Noun] fiil:Noun+ler:A3pl+in:Gen
 fıkralarında	fıkra	Noun		Noun+A3pl+P3sg+Loc	Noun	[fıkra:Noun] fıkra:Noun+lar:A3pl+ı:P3sg+nda:Loc
-gerçekleşmesi	gerçek	Adj		Adj+BecomeVerb+ActN+P3sg	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|me:Inf2→Noun+A3sg+si:P3sg
+gerçekleşmesi	gerçekleşmek	Verb		Verb+ActN+P3sg	Noun	[gerçekleşmek:Verb] gerçekleş:Verb|me:Inf2→Noun+A3sg+si:P3sg
 geçilmeksizin	geçmek	Verb		Verb+Pass+WithoutHavingDoneSo	Adv	[geçmek:Verb] geç:Verb|il:Pass→Verb|meksizin:WithoutHavingDoneSo→Adv
 güvenceleri	güvence	Noun		Noun+A3pl+P3sg	Noun	[güvence:Noun] güvence:Noun+ler:A3pl+i:P3sg
 ilkelerden	ilke	Noun		Noun+A3pl+Abl	Noun	[ilke:Noun] ilke:Noun+ler:A3pl+den:Abl
@@ -3923,14 +3923,14 @@ Kapatılan	kapatmak	Verb		Verb+Pass+PresPart	Adj	[kapatmak:Verb] kapat:Verb|ıl:
 Komisyonunca	komisyon	Noun		Noun+P3sg+Equ	Noun	[komisyon:Noun] komisyon:Noun+A3sg+u:P3sg+nca:Equ
 TARİH	tarih	Noun		Noun+A3sg+Nom	Noun	[tarih:Noun] tarih:Noun+A3sg
 bağlanmasına	bağlamak	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[bağlamak:Verb] bağla:Verb|n:Pass→Verb|ma:Inf2→Noun+A3sg+sı:P3sg+na:Dat
-gerçeğe	gerçek	Adj		Adj+Dat	Noun	[gerçek:Adj] gerçeğ:Adj|Zero→Noun+A3sg+e:Dat
+gerçeğe	gerçek	Noun		Noun+Dat	Noun	[gerçek:Noun] gerçeğ:Noun+A3sg+e:Dat
 ilgilinin	ilgili	Adj		Adj+Gen	Noun	[ilgili:Adj] ilgili:Adj|Zero→Noun+A3sg+nin:Gen
 ithal	ithal	Noun		Noun+A3sg+Nom	Noun	[ithal:Noun] ithal:Noun+A3sg
 kaynak	kaynak	Noun		Noun+A3sg+Nom	Noun	[kaynak:Noun] kaynak:Noun+A3sg
 kısmi	kısmi	Adj		Adj	Adj	[kısmî:Adj] kısmi:Adj
 limiti	limit	Noun		Noun+P3sg	Noun	[limit:Noun] limit:Noun+A3sg+i:P3sg
 makamlara	makam	Noun		Noun+A3pl+Dat	Noun	[makam:Noun] makam:Noun+lar:A3pl+a:Dat
-mensupları	mensup	Adj		Adj+P3pl	Noun	[mensup:Adj] mensup:Adj|Zero→Noun+A3sg+ları:P3pl
+mensupları	mensup	Adj		Adj+A3pl+P3sg	Noun	[mensup:Adj] mensup:Adj|Zero→Noun+lar:A3pl+ı:P3sg
 muamelenin	muamele	Noun		Noun+Gen	Noun	[muamele:Noun] muamele:Noun+A3sg+nin:Gen
 niteliğindedir	nitelik	Noun		Noun+P3sg+Loc+CopPres3sg	Noun	[nitelik:Noun] niteliğ:Noun+A3sg+i:P3sg+nde:Loc|Zero→Verb+Pres+A3sg+dir:Cop
 olguları	olgu	Noun		Noun+A3pl+P3sg	Noun	[olgu:Noun] olgu:Noun+lar:A3pl+ı:P3sg
@@ -3965,7 +3965,7 @@ yayımlanmasından	yayımlamak	Verb		Verb+Pass+ActN+P3sg+Abl	Noun	[yayımlamak:V
 çerçeve	çerçeve	Noun		Noun+A3sg+Nom	Noun	[çerçeve:Noun] çerçeve:Noun+A3sg
 çözümü	çözüm	Noun		Noun+P3sg	Noun	[çözüm:Noun] çözüm:Noun+A3sg+ü:P3sg
 NECİPOĞLU	necipoğlu	Noun	Prop	Noun+A3sg+Nom	Noun	[Necipoğlu:Noun,Prop] necipoğlu:Noun+A3sg
-başkalarının	başka	Adj		Adj+P3pl+Gen	Noun	[başka:Adj] başka:Adj|Zero→Noun+A3sg+ları:P3pl+nın:Gen
+başkalarının	başka	Adj		Adj+A3pl+P3sg+Gen	Noun	[başka:Adj] başka:Adj|Zero→Noun+lar:A3pl+ı:P3sg+nın:Gen
 belgede	belge	Noun		Noun+Loc	Noun	[belge:Noun] belge:Noun+A3sg+de:Loc
 bildirilen	bildirmek	Verb		Verb+Pass+PresPart	Adj	[bildirmek:Verb] bildir:Verb|il:Pass→Verb|en:PresPart→Adj
 birine	biri	Pron	Quant	Pron+Dat	Pron	[biri:Pron,Quant] biri:Pron+A3sg+P3sg+ne:Dat
@@ -4166,7 +4166,7 @@ bilgisayar	bilgisayar	Noun		Noun+A3sg+Nom	Noun	[bilgisayar:Noun] bilgisayar:Noun
 dilekçelerinde	dilekçe	Noun		Noun+A3pl+P3sg+Loc	Noun	[dilekçe:Noun] dilekçe:Noun+ler:A3pl+i:P3sg+nde:Loc
 etkileyen	etkilemek	Verb		Verb+PresPart	Adj	[etkilemek:Verb] etkile:Verb|yen:PresPart→Adj
 gaz	gaz	Noun		Noun+A3sg+Nom	Noun	[gaz:Noun] gaz:Noun+A3sg
-gerçekleştirilmesi	gerçek	Adj		Adj+BecomeVerb+Caus+Pass+ActN+P3sg	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg
+gerçekleştirilmesi	gerçekleştirmek	Verb		Verb+Pass+ActN+P3sg	Noun	[gerçekleştirmek:Verb] gerçekleştir:Verb|il:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg
 maddeleriyle	madde	Noun		Noun+A3pl+P3sg+Ins	Noun	[madde:Noun] madde:Noun+ler:A3pl+i:P3sg+yle:Ins
 maddesini	madde	Noun		Noun+P3sg+Acc	Noun	[madde:Noun] madde:Noun+A3sg+si:P3sg+ni:Acc
 maksadıyla	maksat	Noun		Noun+P3sg+Ins	Noun	[maksat:Noun] maksad:Noun+A3sg+ı:P3sg+yla:Ins
@@ -4278,7 +4278,7 @@ Banka	banka	Noun		Noun+A3sg+Nom	Noun	[banka:Noun] banka:Noun+A3sg
 Burada	bura	Noun		Noun+Loc	Noun	[bura:Noun] bura:Noun+A3sg+da:Loc
 Kıymetli	kıymet	Noun		Noun+With	Adj	[kıymet:Noun] kıymet:Noun+A3sg|li:With→Adj
 Nihai	nihai	Adj		Adj	Adj	[nihaî:Adj] nihai:Adj
-Yüksel	yük	Noun		Noun+Related	Adj	[yük:Noun] yük:Noun+A3sg|sel:Related→Adj
+Yüksel	yüksel	Noun	Prop	Noun+A3sg+Nom	Noun	[Yüksel:Noun,Prop] yüksel:Noun+A3sg
 ad	ad	Noun		Noun+A3sg+Nom	Noun	[ad:Noun] ad:Noun+A3sg
 aracının	araç	Noun		Noun+P3sg+Gen	Noun	[araç:Noun] arac:Noun+A3sg+ı:P3sg+nın:Gen
 bağdaşmayan	bağdaşmak	Verb		Verb+Neg+PresPart	Adj	[bağdaşmak:Verb] bağdaş:Verb+ma:Neg|yan:PresPart→Adj
@@ -4308,7 +4308,7 @@ benim	ben	Pron	Pers	Pron+A1sg+Gen	Pron	[ben:Pron,Pers] ben:Pron+A1sg+im:Gen
 bulundurularak	bulundurmak	Verb		Verb+Pass+AdvErek	Adv	[bulundurmak:Verb] bulundur:Verb|ul:Pass→Verb|arak:ByDoingSo→Adv
 damga	damga	Noun		Noun+A3sg+Nom	Noun	[damga:Noun] damga:Noun+A3sg
 engelleyen	engellemek	Verb		Verb+PresPart	Adj	[engellemek:Verb] engelle:Verb|yen:PresPart→Adj
-gerçekleştirdiği	gerçek	Adj		Adj+BecomeVerb+Caus+PastPart+P3sg	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|diğ:PastPart→Noun+A3sg+i:P3sg
+gerçekleştirdiği	gerçekleştirmek	Verb		Verb+PastPart+P3sg	Noun	[gerçekleştirmek:Verb] gerçekleştir:Verb|diğ:PastPart→Noun+A3sg+i:P3sg
 hayat	hayat	Noun		Noun+A3sg+Nom	Noun	[hayat:Noun] hayat:Noun+A3sg
 hâline	hal	Noun		Noun+P3sg+Dat	Noun	[hal:Noun] hal:Noun+A3sg+i:P3sg+ne:Dat
 işletilecek	işlemek	Verb		Verb+Caus+Pass+Fut	Verb	[işlemek:Verb] işle:Verb|t:Caus→Verb|il:Pass→Verb+ecek:Fut+A3sg
@@ -4420,7 +4420,7 @@ yürütülmesine	yürütmek	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[yürütmek:Verb]
 şahısların	şahıs	Noun		Noun+A3pl+Gen	Noun	[şahıs:Noun] şahıs:Noun+lar:A3pl+ın:Gen
 BEŞİNCİ	beşinci	Num	Ord	Num	Num	[beşinci:Num,Ord] beşinci:Num
 Dairesi'nce	daire	Noun		Noun+P3sg+Equ	Noun	[daire:Noun] daire:Noun+A3sg+si:P3sg+nce:Equ
-DİĞERLERİ	diğer	Adj		Adj+P3pl	Noun	[diğer:Adj] diğer:Adj|Zero→Noun+A3sg+leri:P3pl
+DİĞERLERİ	diğer	Adj		Adj+A3pl+P3sg	Noun	[diğer:Adj] diğer:Adj|Zero→Noun+ler:A3pl+i:P3sg
 KURUMU	kurum	Noun		Noun+P3sg	Noun	[kurum:Noun] kurum:Noun+A3sg+u:P3sg
 Maddi	maddi	Adj		Adj	Adj	[maddî:Adj] maddi:Adj
 Süreç	süreç	Noun		Noun+A3sg+Nom	Noun	[süreç:Noun] süreç:Noun+A3sg
@@ -4496,7 +4496,7 @@ itirazlarını	itiraz	Noun		Noun+A3pl+P3sg+Acc	Noun	[itiraz:Noun] itiraz:Noun+la
 içermediği	içermek	Verb		Verb+Neg+PastPart+P3sg	Noun	[içermek:Verb] içer:Verb+me:Neg|diğ:PastPart→Noun+A3sg+i:P3sg
 karşılamak	karşılamak	Verb		Verb+Inf	Noun	[karşılamak:Verb] karşıla:Verb|mak:Inf1→Noun+A3sg
 karşıya	karşı	Noun		Noun+Dat	Noun	[karşı:Noun] karşı:Noun+A3sg+ya:Dat
-kesinleşme	kesin	Adj		Adj+BecomeVerb+ActN	Noun	[kesin:Adj] kesin:Adj|leş:Become→Verb|me:Inf2→Noun+A3sg
+kesinleşme	kesinleşmek	Verb		Verb+ActN	Noun	[kesinleşmek:Verb] kesinleş:Verb|me:Inf2→Noun+A3sg
 konumunda	konum	Noun		Noun+P3sg+Loc	Noun	[konum:Noun] konum:Noun+A3sg+u:P3sg+nda:Loc
 kısmını	kısım	Noun		Noun+P3sg+Acc	Noun	[kısım:Noun] kısm:Noun+A3sg+ı:P3sg+nı:Acc
 mahiyette	mahiyet	Noun		Noun+Loc	Noun	[mahiyet:Noun] mahiyet:Noun+A3sg+te:Loc
@@ -4642,7 +4642,7 @@ borçlarının	borç	Noun		Noun+A3pl+P3sg+Gen	Noun	[borç:Noun] borç:Noun+lar:A
 duruşmalı	duruşma	Noun		Noun+With	Adj	[duruşma:Noun] duruşma:Noun+A3sg|lı:With→Adj
 edilmeksizin	etmek	Verb		Verb+Pass+WithoutHavingDoneSo	Adv	[etmek:Verb] ed:Verb|il:Pass→Verb|meksizin:WithoutHavingDoneSo→Adv
 fiilleri	fiil	Noun		Noun+A3pl+P3sg	Noun	[fiil:Noun] fiil:Noun+ler:A3pl+i:P3sg
-gerçekleştirmeye	gerçek	Adj		Adj+BecomeVerb+Caus+ActN+Dat	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|me:Inf2→Noun+A3sg+ye:Dat
+gerçekleştirmeye	gerçekleştirmek	Verb		Verb+ActN+Dat	Noun	[gerçekleştirmek:Verb] gerçekleştir:Verb|me:Inf2→Noun+A3sg+ye:Dat
 gruplara	grup	Noun		Noun+A3pl+Dat	Noun	[grup:Noun] grup:Noun+lar:A3pl+a:Dat
 görülmediğinden	görmek	Verb		Verb+Pass+Neg+PastPart+P3sg+Abl	Noun	[görmek:Verb] gör:Verb|ül:Pass→Verb+me:Neg|diğ:PastPart→Noun+A3sg+i:P3sg+nden:Abl
 güvenliğinin	güvenlik	Noun		Noun+P3sg+Gen	Noun	[güvenlik:Noun] güvenliğ:Noun+A3sg+i:P3sg+nin:Gen
@@ -4806,7 +4806,7 @@ ekspertiz	ekspertiz	Noun		Noun+A3sg+Nom	Noun	[ekspertiz:Noun] ekspertiz:Noun+A3s
 emekliye	emekli	Noun		Noun+Dat	Noun	[emekli:Noun] emekli:Noun+A3sg+ye:Dat
 ertelenmesi	ertelemek	Verb		Verb+Pass+ActN+P3sg	Noun	[ertelemek:Verb] ertele:Verb|n:Pass→Verb|me:Inf2→Noun+A3sg+si:P3sg
 gerekçelerin	gerekçe	Noun		Noun+A3pl+Gen	Noun	[gerekçe:Noun] gerekçe:Noun+ler:A3pl+in:Gen
-gerçekleştirildiği	gerçek	Adj		Adj+BecomeVerb+Caus+Pass+PastPart+P3sg	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|il:Pass→Verb|diğ:PastPart→Noun+A3sg+i:P3sg
+gerçekleştirildiği	gerçekleştirmek	Verb		Verb+Pass+PastPart+P3sg	Noun	[gerçekleştirmek:Verb] gerçekleştir:Verb|il:Pass→Verb|diğ:PastPart→Noun+A3sg+i:P3sg
 grubun	grup	Noun		Noun+Gen	Noun	[grup:Noun] grub:Noun+A3sg+un:Gen
 haller	hal	Noun		Noun+A3pl	Noun	[hal:Noun] hal:Noun+ler:A3pl
 irtifak	irtifak	Noun		Noun+A3sg+Nom	Noun	[irtifak:Noun] irtifak:Noun+A3sg
@@ -4918,7 +4918,7 @@ mahkûmiyete	mahkumiyet	Noun		Noun+Dat	Noun	[mahkûmiyet:Noun] mahkumiyet:Noun+A
 mevzuatın	mevzuat	Noun		Noun+Gen	Noun	[mevzuat:Noun] mevzuat:Noun+A3pl+ın:Gen
 miktarını	miktar	Noun		Noun+P3sg+Acc	Noun	[miktar:Noun] miktar:Noun+A3sg+ı:P3sg+nı:Acc
 olmasa	olmak	Verb		Verb+Neg+Cond	Verb	[olmak:Verb] ol:Verb+ma:Neg+sa:Desr+A3sg
-ruhsal	ruhsal	Noun	Prop	Noun+A3sg+Nom	Noun	[Ruhsal:Noun,Prop] ruhsal:Noun+A3sg
+ruhsal	ruhsal	Adj		Adj	Adj	[ruhsal:Adj] ruhsal:Adj
 sağlamaya	sağlamak	Verb		Verb+ActN+Dat	Noun	[sağlamak:Verb] sağla:Verb|ma:Inf2→Noun+A3sg+ya:Dat
 sonuçların	sonuç	Noun		Noun+A3pl+Gen	Noun	[sonuç:Noun] sonuç:Noun+lar:A3pl+ın:Gen
 sözleşmesinde	sözleşme	Noun		Noun+P3sg+Loc	Noun	[sözleşme:Noun] sözleşme:Noun+A3sg+si:P3sg+nde:Loc
@@ -4987,7 +4987,7 @@ davranış	davranış	Noun		Noun+A3sg+Nom	Noun	[davranış:Noun] davranış:Noun
 değerini	değer	Noun		Noun+P3sg+Acc	Noun	[değer:Noun] değer:Noun+A3sg+i:P3sg+ni:Acc
 ettiğinin	etmek	Verb		Verb+PastPart+P3sg+Gen	Noun	[etmek:Verb] et:Verb|tiğ:PastPart→Noun+A3sg+i:P3sg+nin:Gen
 faaliyetlerin	faaliyet	Noun		Noun+A3pl+Gen	Noun	[faaliyet:Noun] faaliyet:Noun+ler:A3pl+in:Gen
-gerçekleştirmek	gerçek	Adj		Adj+BecomeVerb+Caus+Inf	Noun	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|mek:Inf1→Noun+A3sg
+gerçekleştirmek	gerçekleştirmek	Verb		Verb+Inf	Noun	[gerçekleştirmek:Verb] gerçekleştir:Verb|mek:Inf1→Noun+A3sg
 gizlilik	gizli	Adj		Adj+Ness	Noun	[gizli:Adj] gizli:Adj|lik:Ness→Noun+A3sg
 görevlerine	görev	Noun		Noun+A3pl+P3sg+Dat	Noun	[görev:Noun] görev:Noun+ler:A3pl+i:P3sg+ne:Dat
 gösterge	gösterge	Noun		Noun+A3sg+Nom	Noun	[gösterge:Noun] gösterge:Noun+A3sg
@@ -5042,7 +5042,7 @@ Ukrayna	ukrayna	Noun	Prop	Noun+A3sg+Nom	Noun	[Ukrayna:Noun,Prop] ukrayna:Noun+A3
 Lingus	-	-	-	-	-	-
 Eurovision	eurovision	Noun	Prop	Noun+A3sg+Nom	Noun	[Eurovision:Noun,Prop] eurovision:Noun+A3sg
 Alman	alman	Noun	Prop	Noun+A3sg+Nom	Noun	[Alman:Noun,Prop] alman:Noun+A3sg
-eleme	elem	Noun		Noun+Dat	Noun	[elem:Noun] elem:Noun+A3sg+e:Dat
+eleme	elemek	Verb		Verb+ActN	Noun	[elemek:Verb] ele:Verb|me:Inf2→Noun+A3sg
 Final	final	Noun		Noun+A3sg+Nom	Noun	[final:Noun] final:Noun+A3sg
 final	final	Noun		Noun+A3sg+Nom	Noun	[final:Noun] final:Noun+A3sg
 Brezilya	brezilya	Noun	Prop	Noun+A3sg+Nom	Noun	[Brezilya:Noun,Prop] brezilya:Noun+A3sg
@@ -5093,7 +5093,7 @@ sinema	sinema	Noun		Noun+A3sg+Nom	Noun	[sinema:Noun] sinema:Noun+A3sg
 Fransa	fransa	Noun	Prop	Noun+A3sg+Nom	Noun	[Fransa:Noun,Prop] fransa:Noun+A3sg
 Grand	grand	Noun	Prop	Noun+A3sg+Nom	Noun	[Grand:Noun,Prop] grand:Noun+A3sg
 duyurdu	duyurmak	Verb		Verb+Past	Verb	[duyurmak:Verb] duyur:Verb+du:Past+A3sg
-çıktı	çıktı	Noun		Noun+A3sg+Nom	Noun	[çıktı:Noun] çıktı:Noun+A3sg
+çıktı	çıkmak	Verb		Verb+Past	Verb	[çıkmak:Verb] çık:Verb+tı:Past+A3sg
 profesyonel	profesyonel	Adj		Adj	Adj	[profesyonel:Adj] profesyonel:Adj
 şarkısıyla	şarkı	Noun		Noun+P3sg+Ins	Noun	[şarkı:Noun] şarkı:Noun+A3sg+sı:P3sg+yla:Ins
 New	new	Noun	Abbrv	Noun+A3sg+Nom	Noun	[NEW:Noun,Abbrv] new:Noun+A3sg
@@ -5163,7 +5163,7 @@ geçti	geçmek	Verb		Verb+Past	Verb	[geçmek:Verb] geç:Verb+ti:Past+A3sg
 kuruldu	kurmak	Verb		Verb+Pass+Past	Verb	[kurmak:Verb] kur:Verb|ul:Pass→Verb+du:Past+A3sg
 çekimi	çekim	Noun		Noun+P3sg	Noun	[çekim:Noun] çekim:Noun+A3sg+i:P3sg
 Bizans	bizans	Noun	Prop	Noun+A3sg+Nom	Noun	[Bizans:Noun,Prop] bizans:Noun+A3sg
-Eleme	elem	Noun		Noun+Dat	Noun	[elem:Noun] elem:Noun+A3sg+e:Dat
+Eleme	elemek	Verb		Verb+ActN	Noun	[elemek:Verb] ele:Verb|me:Inf2→Noun+A3sg
 FIFA	fifa	Noun	Abbrv	Noun+A3sg+Nom	Noun	[FIFA:Noun,Abbrv] fifa:Noun+A3sg
 Hawaii	hawaii	Noun	Prop	Noun+A3sg+Nom	Noun	[Hawaii:Noun,Prop] hawaii:Noun+A3sg
 Kadınlar	kadın	Noun		Noun+A3pl	Noun	[kadın:Noun] kadın:Noun+lar:A3pl
@@ -5192,7 +5192,7 @@ hızlı	hızlı	Adj		Adj	Adj	[hızlı:Adj] hızlı:Adj
 kırmızı	kırmızı	Adj		Adj	Adj	[kırmızı:Adj] kırmızı:Adj
 sahne	sahne	Noun		Noun+A3sg+Nom	Noun	[sahne:Noun] sahne:Noun+A3sg
 seçildi	seçmek	Verb		Verb+Pass+Past	Verb	[seçmek:Verb] seç:Verb|il:Pass→Verb+di:Past+A3sg
-vardı	varmak	Verb		Verb+Past	Verb	[varmak:Verb] var:Verb+dı:Past+A3sg
+vardı	var	Adj		Adj+CopPast	Adj	[var:Adj] var:Adj|Zero→Verb+dı:Past+A3sg
 x	x	Noun	Abbrv	Noun+A3sg+Nom	Noun	[x:Noun,Abbrv] x:Noun+A3sg
 Çin	çin	Noun	Prop	Noun+A3sg+Nom	Noun	[Çin:Noun,Prop] çin:Noun+A3sg
 ülkeler	ülke	Noun		Noun+A3pl	Noun	[ülke:Noun] ülke:Noun+ler:A3pl
@@ -5244,7 +5244,7 @@ sahipliği	sahip	Noun		Noun+Ness+P3sg	Noun	[sahip:Noun] sahip:Noun+A3sg|liğ:Nes
 sporcu	sporcu	Noun		Noun+A3sg+Nom	Noun	[sporcu:Noun] sporcu:Noun+A3sg
 uçuş	uçmak	Verb		Verb+Manner	Noun	[uçmak:Verb] uç:Verb|uş:Inf3→Noun+A3sg
 Ödülleri	ödül	Noun		Noun+A3pl+P3sg	Noun	[ödül:Noun] ödül:Noun+ler:A3pl+i:P3sg
-Altın	alt	Noun		Noun+Gen	Noun	[alt:Noun] alt:Noun+A3sg+ın:Gen
+Altın	altın	Adj		Adj	Adj	[altın:Adj] altın:Adj
 Açık	açık	Adj		Adj	Adj	[açık:Adj] açık:Adj
 Bütün	bütün	Adj		Adj	Adj	[bütün:Adj] bütün:Adj
 James	james	Noun	Prop	Noun+A3sg+Nom	Noun	[James:Noun,Prop] james:Noun+A3sg
@@ -5253,7 +5253,7 @@ MS	ms	Noun	Abbrv	Noun+A3sg+Nom	Noun	[MS:Noun,Abbrv] ms:Noun+A3sg
 Odeon	odeon	Noun		Noun+A3sg+Nom	Noun	[odeon:Noun] odeon:Noun+A3sg
 Yarışmanın	yarışmak	Verb		Verb+ActN+Gen	Noun	[yarışmak:Verb] yarış:Verb|ma:Inf2→Noun+A3sg+nın:Gen
 Yuen	-	-	-	-	-	-
-altın	alt	Noun		Noun+Gen	Noun	[alt:Noun] alt:Noun+A3sg+ın:Gen
+altın	altın	Adj		Adj	Adj	[altın:Adj] altın:Adj
 başkanlığı	başkan	Noun		Noun+Ness+P3sg	Noun	[başkan:Noun] başkan:Noun+A3sg|lığ:Ness→Noun+A3sg+ı:P3sg
 futbol	futbol	Noun		Noun+A3sg+Nom	Noun	[futbol:Noun] futbol:Noun+A3sg
 insanı	insan	Noun		Noun+P3sg	Noun	[insan:Noun] insan:Noun+A3sg+ı:P3sg
@@ -5336,7 +5336,7 @@ Yörünge	yörünge	Noun		Noun+A3sg+Nom	Noun	[yörünge:Noun] yörünge:Noun+A3s
 açıklamıştır	açıklamak	Verb		Verb+Evid+CopPres3sg	Verb	[açıklamak:Verb] açıkla:Verb+mış:Narr+A3sg+tır:Cop
 açıklandı	açıklamak	Verb		Verb+Pass+Past	Verb	[açıklamak:Verb] açıkla:Verb|n:Pass→Verb+dı:Past+A3sg
 döndü	dönmek	Verb		Verb+Past	Verb	[dönmek:Verb] dön:Verb+dü:Past+A3sg
-gerçekleştirildi	gerçek	Adj		Adj+BecomeVerb+Caus+Pass+Past	Verb	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb|il:Pass→Verb+di:Past+A3sg
+gerçekleştirildi	gerçekleştirmek	Verb		Verb+Pass+Past	Verb	[gerçekleştirmek:Verb] gerçekleştir:Verb|il:Pass→Verb+di:Past+A3sg
 gümüş	gümüş	Adj		Adj	Adj	[gümüş:Adj] gümüş:Adj
 günümüze	gün	Noun	Time	Noun+P1pl+Dat	Noun	[gün:Noun,Time] gün:Noun+A3sg+ümüz:P1pl+e:Dat
 ideal	ideal	Adj		Adj	Adj	[ideal:Adj] ideal:Adj
@@ -5382,7 +5382,7 @@ Ev	ev	Noun		Noun+A3sg+Nom	Noun	[ev:Noun] ev:Noun+A3sg
 Fork	-	-	-	-	-	-
 Güreş	güreş	Noun		Noun+A3sg+Nom	Noun	[güreş:Noun] güreş:Noun+A3sg
 Kanada	kanada	Noun	Prop	Noun+A3sg+Nom	Noun	[Kanada:Noun,Prop] kanada:Noun+A3sg
-Katar	katmak	Verb		Verb+Aor	Verb	[katmak:Verb] kat:Verb+ar:Aor+A3sg
+Katar	katar	Noun	Prop	Noun+A3sg+Nom	Noun	[Katar:Noun,Prop] katar:Noun+A3sg
 Komitesi	komite	Noun		Noun+P3sg	Noun	[komite:Noun] komite:Noun+A3sg+si:P3sg
 Kurallarına	kural	Noun		Noun+A3pl+P3sg+Dat	Noun	[kural:Noun] kural:Noun+lar:A3pl+ı:P3sg+na:Dat
 Lig	lig	Noun		Noun+A3sg+Nom	Noun	[lig:Noun] lig:Noun+A3sg
@@ -5395,7 +5395,7 @@ atlet	atlet	Noun		Noun+A3sg+Nom	Noun	[atlet:Noun] atlet:Noun+A3sg
 deniz	deniz	Noun		Noun+A3sg+Nom	Noun	[deniz:Noun] deniz:Noun+A3sg
 dizisi	dizi	Noun		Noun+P3sg	Noun	[dizi:Noun] dizi:Noun+A3sg+si:P3sg
 finaliste	finalist	Adj		Adj+Dat	Noun	[finalist:Adj] finalist:Adj|Zero→Noun+A3sg+e:Dat
-gerçekleşti	gerçek	Adj		Adj+BecomeVerb+Past	Verb	[gerçek:Adj] gerçek:Adj|leş:Become→Verb+ti:Past+A3sg
+gerçekleşti	gerçekleşmek	Verb		Verb+Past	Verb	[gerçekleşmek:Verb] gerçekleş:Verb+ti:Past+A3sg
 kulüp	kulüp	Noun		Noun+A3sg+Nom	Noun	[kulüp:Noun] kulüp:Noun+A3sg
 kuvvetlerinin	kuvvet	Noun		Noun+A3pl+P3sg+Gen	Noun	[kuvvet:Noun] kuvvet:Noun+ler:A3pl+i:P3sg+nin:Gen
 off	off	Noun	Abbrv	Noun+A3sg+Nom	Noun	[OFF:Noun,Abbrv] off:Noun+A3sg
@@ -5547,7 +5547,7 @@ William	william	Noun	Prop	Noun+A3sg+Nom	Noun	[William:Noun,Prop] william:Noun+A3
 adayı	aday	Noun		Noun+P3sg	Noun	[aday:Noun] aday:Noun+A3sg+ı:P3sg
 anlaşması	anlaşmak	Verb		Verb+ActN+P3sg	Noun	[anlaşmak:Verb] anlaş:Verb|ma:Inf2→Noun+A3sg+sı:P3sg
 açtı	açmak	Verb		Verb+Past	Verb	[açmak:Verb] aç:Verb+tı:Past+A3sg
-gerçekleşir	gerçek	Adj		Adj+BecomeVerb+Aor	Verb	[gerçek:Adj] gerçek:Adj|leş:Become→Verb+ir:Aor+A3sg
+gerçekleşir	gerçekleşmek	Verb		Verb+Aor	Verb	[gerçekleşmek:Verb] gerçekleş:Verb+ir:Aor+A3sg
 getirdi	getirmek	Verb		Verb+Past	Verb	[getirmek:Verb] getir:Verb+di:Past+A3sg
 gördü	görmek	Verb		Verb+Past	Verb	[görmek:Verb] gör:Verb+dü:Past+A3sg
 göstermektedir	göstermek	Verb		Verb+Prog+CopPres3sg	Verb	[göstermek:Verb] göster:Verb+mekte:Prog2+A3sg+dir:Cop
@@ -5807,7 +5807,7 @@ düşürüldü	düşürmek	Verb		Verb+Pass+Past	Verb	[düşürmek:Verb] düşür
 ekonomist	ekonomist	Noun		Noun+A3sg+Nom	Noun	[ekonomist:Noun] ekonomist:Noun+A3sg
 galibiyet	galibiyet	Noun		Noun+A3sg+Nom	Noun	[galibiyet:Noun] galibiyet:Noun+A3sg
 gelmiştir	gelmek	Verb		Verb+Evid+CopPres3sg	Verb	[gelmek:Verb] gel:Verb+miş:Narr+A3sg+tir:Cop
-gerçekleştirmiştir	gerçek	Adj		Adj+BecomeVerb+Caus+Evid+CopPres3sg	Verb	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb+miş:Narr+A3sg+tir:Cop
+gerçekleştirmiştir	gerçekleştirmek	Verb		Verb+Evid+CopPres3sg	Verb	[gerçekleştirmek:Verb] gerçekleştir:Verb+miş:Narr+A3sg+tir:Cop
 golü	gol	Noun		Noun+P3sg	Noun	[gol:Noun] gol:Noun+A3sg+ü:P3sg
 gönderdi	göndermek	Verb		Verb+Past	Verb	[göndermek:Verb] gönder:Verb+di:Past+A3sg
 görülür	görmek	Verb		Verb+Pass+Aor	Verb	[görmek:Verb] gör:Verb|ül:Pass→Verb+ür:Aor+A3sg
@@ -5835,7 +5835,7 @@ töreni	tören	Noun		Noun+P3sg	Noun	[tören:Noun] tören:Noun+A3sg+i:P3sg
 ulaştı	ulaşmak	Verb		Verb+Past	Verb	[ulaşmak:Verb] ulaş:Verb+tı:Past+A3sg
 uçaklar	uçak	Noun		Noun+A3pl	Noun	[uçak:Noun] uçak:Noun+lar:A3pl
 yanlısı	yanlı	Noun		Noun+P3sg	Noun	[yanlı:Noun] yanlı:Noun+A3sg+sı:P3sg
-yetkilileri	yetkili	Adj		Adj+P3pl	Noun	[yetkili:Adj] yetkili:Adj|Zero→Noun+A3sg+leri:P3pl
+yetkilileri	yetkili	Adj		Adj+A3pl+P3sg	Noun	[yetkili:Adj] yetkili:Adj|Zero→Noun+ler:A3pl+i:P3sg
 yönetmenleri	yönetmen	Noun		Noun+A3pl+P3sg	Noun	[yönetmen:Noun] yönetmen:Noun+ler:A3pl+i:P3sg
 zu	-	-	-	-	-	-
 Ödüller	ödül	Noun		Noun+A3pl	Noun	[ödül:Noun] ödül:Noun+ler:A3pl
@@ -5967,7 +5967,7 @@ FIBA	fiba	Noun	Abbrv	Noun+A3sg+Nom	Noun	[FIBA:Noun,Abbrv] fiba:Noun+A3sg
 Finali	final	Noun		Noun+P3sg	Noun	[final:Noun] final:Noun+A3sg+i:P3sg
 Fiziksel	fizik	Noun		Noun+Related	Adj	[fizik:Noun] fizik:Noun+A3sg|sel:Related→Adj
 Gürcistan	gürcistan	Noun	Prop	Noun+A3sg+Nom	Noun	[Gürcistan:Noun,Prop] gürcistan:Noun+A3sg
-International	ınternational	Noun	Prop	Noun+A3sg+Nom	Noun	[International:Noun,Prop] ınternational:Noun+A3sg
+International	international	Noun	Prop	Noun+A3sg+Nom	Noun	[İnternational:Noun,Prop] international:Noun+A3sg
 Jones	jones	Noun	Prop	Noun+A3sg+Nom	Noun	[Jones:Noun,Prop] jones:Noun+A3sg
 Katolik	katolik	Noun	Prop	Noun+A3sg+Nom	Noun	[Katolik:Noun,Prop] katolik:Noun+A3sg
 Komünist	komünist	Noun		Noun+A3sg+Nom	Noun	[komünist:Noun] komünist:Noun+A3sg
@@ -6164,7 +6164,7 @@ yayınlandı	yayınlamak	Verb		Verb+Pass+Past	Verb	[yayınlamak:Verb] yayınla:V
 yaşındaki	yaş	Noun		Noun+P3sg+Loc+RelClitic	Adj	[yaş:Noun] yaş:Noun+A3sg+ı:P3sg+nda:Loc|ki:Rel→Adj
 yıllar	yıl	Noun	Time	Noun+A3pl	Noun	[yıl:Noun,Time] yıl:Noun+lar:A3pl
 Çin'de	çin	Noun	Prop	Noun+Loc	Noun	[Çin:Noun,Prop] çin:Noun+A3sg+de:Loc
-Örneğin	örnek	Noun		Noun+Gen	Noun	[örnek:Noun] örneğ:Noun+A3sg+in:Gen
+Örneğin	örneğin	Conj		Conj	Conj	[örneğin:Conj] örneğin:Conj
 çatışmalar	çatışmak	Verb		Verb+ActN+A3pl	Noun	[çatışmak:Verb] çatış:Verb|ma:Inf2→Noun+lar:A3pl
 önde	ön	Noun		Noun+Loc	Noun	[ön:Noun] ön:Noun+A3sg+de:Loc
 İsrailli	israil	Noun	Prop	Noun+With	Adj	[İsrail:Noun,Prop] israil:Noun+A3sg|li:With→Adj
@@ -6216,7 +6216,7 @@ Marchand	-	-	-	-	-	-
 Mayıs'ta	mayıs	Noun		Noun+Loc	Noun	[mayıs:Noun] mayıs:Noun+A3sg+ta:Loc
 McIntosh	-	-	-	-	-	-
 Mersin	mersin	Noun	Prop	Noun+A3sg+Nom	Noun	[Mersin:Noun,Prop] mersin:Noun+A3sg
-Minor	minor	Noun	Prop	Noun+A3sg+Nom	Noun	[Minor:Noun,Prop] minor:Noun+A3sg
+Minor	-	-	-	-	-	-
 Moldova	moldova	Noun	Prop	Noun+A3sg+Nom	Noun	[Moldova:Noun,Prop] moldova:Noun+A3sg
 Moskova	moskova	Noun	Prop	Noun+A3sg+Nom	Noun	[Moskova:Noun,Prop] moskova:Noun+A3sg
 North	north	Noun	Prop	Noun+A3sg+Nom	Noun	[North:Noun,Prop] north:Noun+A3sg
@@ -6256,9 +6256,9 @@ dünyanın	dünya	Noun		Noun+Gen	Noun	[dünya:Noun] dünya:Noun+A3sg+nın:Gen
 edebiyat	edebiyat	Noun		Noun+A3sg+Nom	Noun	[edebiyat:Noun] edebiyat:Noun+A3sg
 erdi	ermek	Verb		Verb+Past	Verb	[ermek:Verb] er:Verb+di:Past+A3sg
 eserleri	eser	Noun		Noun+A3pl+P3sg	Noun	[eser:Noun] eser:Noun+ler:A3pl+i:P3sg
-etkinlikleri	etkin	Adj		Adj+Ness+P3pl	Noun	[etkin:Adj] etkin:Adj|lik:Ness→Noun+A3sg+leri:P3pl
+etkinlikleri	etkin	Adj		Adj+Ness+A3pl+P3sg	Noun	[etkin:Adj] etkin:Adj|lik:Ness→Noun+ler:A3pl+i:P3sg
 finalleri	final	Noun		Noun+A3pl+P3sg	Noun	[final:Noun] final:Noun+ler:A3pl+i:P3sg
-gerçekleştirdi	gerçek	Adj		Adj+BecomeVerb+Caus+Past	Verb	[gerçek:Adj] gerçek:Adj|leş:Become→Verb|tir:Caus→Verb+di:Past+A3sg
+gerçekleştirdi	gerçekleştirmek	Verb		Verb+Past	Verb	[gerçekleştirmek:Verb] gerçekleştir:Verb+di:Past+A3sg
 golünü	gol	Noun		Noun+P3sg+Acc	Noun	[gol:Noun] gol:Noun+A3sg+ü:P3sg+nü:Acc
 göl	göl	Noun		Noun+A3sg+Nom	Noun	[göl:Noun] göl:Noun+A3sg
 göstererek	göstermek	Verb		Verb+AdvErek	Adv	[göstermek:Verb] göster:Verb|erek:ByDoingSo→Adv
@@ -6447,7 +6447,7 @@ etrafında	etraf	Noun		Noun+P3sg+Loc	Noun	[etraf:Noun] etraf:Noun+A3sg+ı:P3sg+n
 filmin	film	Noun		Noun+Gen	Noun	[film:Noun] film:Noun+A3sg+in:Gen
 geliştirdi	geliştirmek	Verb		Verb+Past	Verb	[geliştirmek:Verb] geliştir:Verb+di:Past+A3sg
 geride	geri	Noun		Noun+Loc	Noun	[geri:Noun] geri:Noun+A3sg+de:Loc
-gerçekleşmiştir	gerçek	Adj		Adj+BecomeVerb+Evid+CopPres3sg	Verb	[gerçek:Adj] gerçek:Adj|leş:Become→Verb+miş:Narr+A3sg+tir:Cop
+gerçekleşmiştir	gerçekleşmek	Verb		Verb+Evid+CopPres3sg	Verb	[gerçekleşmek:Verb] gerçekleş:Verb+miş:Narr+A3sg+tir:Cop
 gruplarında	grup	Noun		Noun+A3pl+P3sg+Loc	Noun	[grup:Noun] grup:Noun+lar:A3pl+ı:P3sg+nda:Loc
 hala	hala	Adv		Adv	Adv	[hâlâ:Adv] hala:Adv
 halife	halife	Noun		Noun+A3sg+Nom	Noun	[halife:Noun] halife:Noun+A3sg
@@ -6720,7 +6720,7 @@ rapçi	rapçi	Noun	Prop	Noun+A3sg+Nom	Noun	[Rapçi:Noun,Prop] rapçi:Noun+A3sg
 sabah	sabah	Adv		Adv	Adv	[sabah:Adv] sabah:Adv
 sahada	saha	Noun		Noun+Loc	Noun	[saha:Noun] saha:Noun+A3sg+da:Loc
 sahneye	sahne	Noun		Noun+Dat	Noun	[sahne:Noun] sahne:Noun+A3sg+ye:Dat
-sakinleri	sakin	Adj		Adj+P3pl	Noun	[sakin:Adj] sakin:Adj|Zero→Noun+A3sg+leri:P3pl
+sakinleri	sakin	Adj		Adj+A3pl+P3sg	Noun	[sakin:Adj] sakin:Adj|Zero→Noun+ler:A3pl+i:P3sg
 seferlerini	sefer	Noun		Noun+A3pl+P3sg+Acc	Noun	[sefer:Noun] sefer:Noun+ler:A3pl+i:P3sg+ni:Acc
 serisi	seri	Noun		Noun+P3sg	Noun	[seri:Noun] seri:Noun+A3sg+si:P3sg
 sezonudur	sezon	Noun	Time	Noun+P3sg+CopPres3sg	Noun	[sezon:Noun,Time] sezon:Noun+A3sg+u:P3sg|Zero→Verb+Pres+A3sg+dur:Cop
@@ -6749,9 +6749,9 @@ zamanlarda	zaman	Noun	Time	Noun+A3pl+Loc	Noun	[zaman:Noun,Time] zaman:Noun+lar:A
 çeken	çekmek	Verb		Verb+PresPart	Adj	[çekmek:Verb] çek:Verb|en:PresPart→Adj
 çekilmiştir	çekmek	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[çekmek:Verb] çek:Verb|il:Pass→Verb+miş:Narr+A3sg+tir:Cop
 çevrili	çevri	Noun		Noun+With	Adj	[çevri:Noun] çevri:Noun+A3sg|li:With→Adj
-çıkacağı	çıkacak	Noun		Noun+P3sg	Noun	[çıkacak:Noun] çıkacağ:Noun+A3sg+ı:P3sg
+çıkacağı	çıkmak	Verb		Verb+FutPart+P3sg	Noun	[çıkmak:Verb] çık:Verb|acağ:FutPart→Noun+A3sg+ı:P3sg
 çıkmış	çıkmak	Verb		Verb+Evid	Verb	[çıkmak:Verb] çık:Verb+mış:Narr+A3sg
-örneğin	örnek	Noun		Noun+Gen	Noun	[örnek:Noun] örneğ:Noun+A3sg+in:Gen
+örneğin	örneğin	Conj		Conj	Conj	[örneğin:Conj] örneğin:Conj
 özgün	özgün	Adj		Adj	Adj	[özgün:Adj] özgün:Adj
 ülkelere	ülke	Noun		Noun+A3pl+Dat	Noun	[ülke:Noun] ülke:Noun+ler:A3pl+e:Dat
 üssü	üs	Noun		Noun+P3sg	Noun	[üs:Noun] üss:Noun+A3sg+ü:P3sg
@@ -6871,7 +6871,7 @@ Savaşı'nın	savaş	Noun		Noun+P3sg+Gen	Noun	[savaş:Noun] savaş:Noun+A3sg+ı:
 Selim	selim	Noun	Prop	Noun+A3sg+Nom	Noun	[Selim:Noun,Prop] selim:Noun+A3sg
 Selçuklular	selçuklu	Noun	Prop	Noun+A3pl	Noun	[Selçuklu:Noun,Prop] selçuklu:Noun+lar:A3pl
 Semonides'in	semonides	Noun	Prop	Noun+Gen	Noun	[Semonides:Noun,Prop] semonides:Noun+A3sg+in:Gen
-Seribaşları	seribaşı	Adj		Adj+P3pl	Noun	[seribaşı:Adj] seribaş:Adj|Zero→Noun+A3sg+ları:P3pl
+Seribaşları	seribaşı	Adj		Adj+A3pl+P3sg	Noun	[seribaşı:Adj] seribaş:Adj|Zero→Noun+lar:A3pl+ı:P3sg
 Shi	shi	Noun	Abbrv	Noun+A3sg+Nom	Noun	[SHİ:Noun,Abbrv] shi:Noun+A3sg
 Site	site	Noun		Noun+A3sg+Nom	Noun	[site:Noun] site:Noun+A3sg
 Sopranos	sopranos	Noun	Prop	Noun+A3sg+Nom	Noun	[Sopranos:Noun,Prop] sopranos:Noun+A3sg

@@ -45,6 +45,19 @@ fn numbers_and_abbreviations_keep_their_suffixes() {
     assert_eq!(words("Ltd. Şti. ve San."), ["Ltd.", "Şti.", "ve", "San."]);
     // With a space after the period, the abbreviation is a token of its own.
     assert_eq!(words("TCK. Bu"), ["TCK.", "Bu"]);
+    // Review 3: amounts are numbers, not a time and a number; a dash between numbers is no
+    // sign; a single letter with a period is an abbreviation.
+    assert_eq!(words("12.500 TL"), ["12.500", "TL"]);
+    assert_eq!(words("1.250.000,00 TL"), ["1.250.000,00", "TL"]);
+    assert_eq!(words("15.30'da"), ["15.30'da"]);
+    assert_eq!(words("2005-2009 yılları"), ["2005", "-", "2009", "yılları"]);
+    assert_eq!(words("COVID-19 ve -5"), ["COVID", "-", "19", "ve", "-5"]);
+    assert_eq!(words("A. Yılmaz"), ["A.", "Yılmaz"]);
+    assert_eq!(words("HMK.'ya göre"), ["HMK.'ya", "göre"]);
+    assert_eq!(
+        words("Ankara‘ya ted\u{ad}birine"),
+        ["Ankara‘ya", "ted\u{ad}birine"]
+    );
 }
 
 #[test]

@@ -124,6 +124,25 @@ const TAGGED: [(&str, &[&str]); 14] = [
     ("Part", &["Part"]),
 ];
 
+/// Forms whose treebank tags choose the lemma as well as the class (review 3 RANK3-01): for
+/// them `twin_factors` splits the tags among all the readings that are not names, where it
+/// otherwise keeps each lemma's share. In the UD train and dev splits varsa is var 42 times
+/// and VERB 20 (vardı 382 / 211, vardır 147 / 19, mostly the existential var that some
+/// treebanks tag VERB), doğan the participle 13 times and the noun 3, örneğin the conjunction
+/// 56 times and örnek 13, altın 83 times and alt+Gen 24, bilir bilmek 58 times and the
+/// adjective once, çıktı çıkmak 239 times and the noun once. The court sample's own counts
+/// had read varsa (433 tokens) as varmak, doğan (770) as the falcon and örneğin as örnek+Gen.
+const ACROSS_LEMMAS: [&str; 8] = [
+    "altın",
+    "bilir",
+    "doğan",
+    "vardı",
+    "vardır",
+    "varsa",
+    "çıktı",
+    "örneğin",
+];
+
 /// Whether a reading can be what the treebanks tag as `TAGGED[tag]`.
 fn tagged_as(tag: usize, r: &Reading) -> bool {
     (0..CLASSES).any(|c| r.classes & (1 << c) != 0 && TAGGED[tag].1.contains(&PRIOR_CLASSES[c]))
@@ -138,22 +157,21 @@ fn tagged_as(tag: usize, r: &Reading) -> bool {
 /// be in proportion to their weight, and `weight` more tokens go to all of them so (the
 /// model's own split, which a word tagged a few times keeps close to). The names' weights, and
 /// those of a lemma whose classes the treebanks tag fewer than `MIN_TWIN_TOKENS` times, stand.
+/// With `across` ([`ACROSS_LEMMAS`]) the readings that are not names are one group.
 fn twin_factors(
     readings: &[Reading],
     weights: &[f64],
     seen: &[f64; TAGGED.len()],
     weight: f64,
+    across: bool,
 ) -> Vec<f64> {
     let mut factors = vec![1.0f64; readings.len()];
-    let mut lemmas: Vec<usize> = readings
-        .iter()
-        .filter(|r| !r.name)
-        .map(|r| r.lemma)
-        .collect();
+    let group = |r: &Reading| if across { 0 } else { r.lemma };
+    let mut lemmas: Vec<usize> = readings.iter().filter(|r| !r.name).map(group).collect();
     lemmas.sort_unstable();
     lemmas.dedup();
     for lemma in lemmas {
-        let member = |r: &Reading| !r.name && r.lemma == lemma;
+        let member = |r: &Reading| !r.name && group(r) == lemma;
         let common: f64 = readings
             .iter()
             .zip(weights)
@@ -277,7 +295,7 @@ struct Word {
 }
 
 fn main() {
-    let mut types_dir = String::from(".cache/morph_sample/train");
+    let mut types_dir = String::from("data/morphology/prior_train_types.tsv.gz");
     let mut out = String::from("crates/akana-core/src/morphology/prior.tsv.gz");
     let mut twins_file = String::from("data/morphology/pos_twins.tsv");
     let mut general_file = String::from("data/morphology/prior_general_types.tsv.gz");
@@ -499,7 +517,8 @@ fn main() {
             let weight = |r: &Reading| item_p[r.item] * shape_p[r.shape] * factor(w, r);
             let mut weights: Vec<f64> = w.readings.iter().map(weight).collect();
             if let Some(seen) = &w.twins {
-                let factors = twin_factors(&w.readings, &weights, seen, twin_weight);
+                let across = ACROSS_LEMMAS.contains(&w.word.as_str());
+                let factors = twin_factors(&w.readings, &weights, seen, twin_weight, across);
                 for (x, f) in weights.iter_mut().zip(factors) {
                     *x *= f;
                 }
@@ -640,7 +659,8 @@ fn main() {
             .zip(&w.copies)
             .map(|(&log, copies)| copies * (f64::from(log - best) / RANK_UNITS_PER_NAT).exp())
             .collect();
-        let factors = twin_factors(&w.readings, &weights, seen, twin_weight);
+        let across = ACROSS_LEMMAS.contains(&w.word.as_str());
+        let factors = twin_factors(&w.readings, &weights, seen, twin_weight, across);
         // Each lemma and class once: the first of its readings decides.
         let mut adds: Vec<(&str, usize, i32)> = Vec::new();
         for (r, f) in w.readings.iter().zip(factors) {

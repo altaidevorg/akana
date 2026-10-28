@@ -257,3 +257,43 @@ fn voice_suffix_chains() {
         "{short} → {long} took {t_short:.4} s → {t_long:.4} s ({ratio:.1}×)"
     );
 }
+
+#[test]
+fn backoff_of_long_unknown_words() {
+    // Every split of an unknown word was tried as a stem: a 40 KB token took seconds in the
+    // sparse encoder's backoff (review 3 MORPH3-01). Only the last letters can be inflections.
+    let morph = TurkishMorphology::new();
+    assert_linear(
+        "backoff stem",
+        2_000,
+        |n| format!("{}lerinden", "zorbant".repeat(n)),
+        |w| {
+            morph.backoff_stem(w);
+        },
+    );
+}
+
+// ------------------------------------------------------------------- tokenization
+
+#[test]
+fn dotted_abbreviation_runs() {
+    // Single capitals with periods (A. B. C. …), initials (A.Ş.) and abbreviations before a
+    // suffix (HMK.'ya) are each matched from the token where they start.
+    let tokenize = |t: &str| {
+        akana_core::TurkishTokenizer::tokenize_words(t);
+    };
+    let segment = |t: &str| {
+        akana_core::SentenceSegmenter::segment(t);
+    };
+    assert_linear("A. B. C.", 8_000, |n| "A. ".repeat(n), tokenize);
+    assert_linear("A.Ş.", 2_000, |n| "A.Ş.'nin ".repeat(n), tokenize);
+    assert_linear(
+        "A.B.C…",
+        2_000,
+        |n| format!("{}x", "A.".repeat(n)),
+        tokenize,
+    );
+    assert_linear("HMK.'ya", 2_000, |n| "HMK.'ya ".repeat(n), tokenize);
+    assert_linear("A. sentences", 8_000, |n| "A. ".repeat(n), segment);
+    assert_linear("ellipsis", 8_000, |n| "... 'nin ".repeat(n), segment);
+}

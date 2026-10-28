@@ -81,8 +81,16 @@ def tag_class(upos, feats):
     return CLASSES.get(upos)
 
 
+# analyzer.rs TIME_ADVERBS: time words whose time noun keeps its class.
+TIME_ADVERBS = {"bugün", "daha", "erken", "evvel", "önce", "sonra", "şimdi"}
+
+
 def reading_class(p):
-    if p["secondary_pos"] == "Time" and all(t in ("A3sg", "Pnon", "Nom") for t in p["morphemes"][1:]):
+    if (
+        p["secondary_pos"] == "Time"
+        and p["lemma"] not in TIME_ADVERBS
+        and all(t in ("A3sg", "Pnon", "Nom") for t in p["morphemes"][1:])
+    ):
         return "Adv"
     if p["primary_pos"] == "Verb":
         return {"Noun": "VerbNoun", "Adj": "VerbAdj", "Adv": "VerbAdv"}.get(p["pos"], "Verb")

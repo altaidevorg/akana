@@ -220,3 +220,44 @@ bilgilendirmek [A:Lexicalized]
 ## dolayı as a noun, for its possessive forms (dolayısı ile, dolayısıyla): Zemberek has only the
 ## postposition (plan step F, review 2 MORPH2-16).
 dolayı [P:Noun]
+
+## Review 3 (LEX3-03, LEX3-07, RANK3-04, RANK3-08, LEX3-08).
+## Adjectives Zemberek has only as names (person-names.dict: Ruhsal, Evrensel, which
+## akana-remove.dict drops), and haksız and rahatsız, which read as hak and rahat.
+ruhsal [P:Adj]
+evrensel [P:Adj]
+haksız [P:Adj]
+rahatsız [P:Adj]
+## Names Zemberek lacks: Katar the country (read katmak+Aor), Yüksel the name (yük+sAl).
+Katar [P:Noun,Prop]
+Yüksel [P:Noun,Prop]
+## Interjections that are inflected forms of a content word yield to it (sağlık-ınız-a,
+## güzel-im, baş üstü-ne, lav-a, can-a); efendim, mostly the interjection, stays.
+sağlığınıza [P:Interj; A:Rare]
+güzelim [P:Interj; A:Rare]
+başüstüne [P:Interj; A:Rare]
+lava [P:Interj; A:Rare]
+cana [P:Interj; A:Rare]
+## Rare words whose forms are a frequent word's: ekler "éclair" (dilekçe ve ekleri is ek, 790
+## court tokens), elem "grief" (eleme is elemek's), katar "train of animals" (Katar).
+ekler [A:Rare]
+elem [A:Rare]
+katar [A:Rare]
+## Medical words of expert reports and science words of RagTurk the dictionary lacks (LEX3-08);
+## glukoz is the common spelling of TDK's glikoz.
+tiroid
+endikasyon
+hematom
+karyotip
+trizomi
+fibula
+makroskopik [P:Adj]
+parsiyel [P:Adj]
+kompulsif [P:Adj]
+albedo
+ekliptik
+peptit
+dioksan
+fotometrik [P:Adj]
+mukarnas
+glukoz [Ref:glikoz]

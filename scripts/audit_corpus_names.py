@@ -2,7 +2,7 @@
 "Names only proper-from-corpus.dict lists" section of scripts/lexicon/akana-remove.dict (plan
 step E2, review 2 MLEX2-03).
 
-    python scripts/audit_corpus_names.py [--tsv OUT.tsv]
+    python scripts/audit_corpus_names.py [--tsv OUT.tsv] [--person-names]
 
 with akana importable (the extension built from this checkout), the corpus sample in
 .cache/morph_sample (scripts/morph_corpus_sample.py) and the pinned sources in
@@ -16,6 +16,10 @@ abbreviations.dict or akana's supplements), the analyzer gives it a common readi
   Sona, Verdi go);
 - seen fewer than 10 times, its common readings are a root with a suffix (Ruha, Satar), it is
   in no other name list, and it was seen in lower case at least as often as capitalised.
+
+With --person-names it audits person-names.dict by the same rule instead, which lists words as
+well as names (Sevgilim, Ruhsal; review 3 LEX3-03); its picks are reviewed by hand into the
+"Words person-names.dict lists as names" section.
 """
 
 import argparse
@@ -39,7 +43,9 @@ def lower(w):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--tsv", help="write every candidate with its counts here")
+    parser.add_argument("--person-names", action="store_true", help="audit person-names.dict instead")
     args = parser.parse_args()
+    audited = "person-names.dict" if args.person_names else "proper-from-corpus.dict"
     import akana
 
     # Common roots as the build's junk filter sees them, whose drops are not repeated here.
@@ -58,11 +64,12 @@ def main():
             e = b.make_entry(parsed[0], parsed[1], name)
             if e is None or e.secondary != "ProperNoun":
                 continue
-            if name == "proper-from-corpus.dict":
-                if not b.junk_proper(e, common):
+            if name == audited:
+                if name == "person-names.dict" or not b.junk_proper(e, common):
                     corpus.setdefault(e.root, e.word)
                     raw.setdefault(e.root, line.strip())
-            else:
+            elif name != "proper-from-corpus.dict":
+                # A corpus name does not vouch for a person-names.dict word.
                 curated.add(e.root)
     for name in b.SUPPLEMENTS:
         for e in b.read_entries(os.path.join(b.LEXICON_DIR, name), "akana:" + name):
@@ -79,7 +86,7 @@ def main():
             continue
         in_comment = False
         parsed = b.parse_line(line)
-        if parsed and not section.startswith("Names only proper-from-corpus.dict lists"):
+        if parsed and not section.startswith(("Names only proper-from-corpus.dict lists", "Words person-names.dict lists")):
             e = b.make_entry(parsed[0], parsed[1], "akana-remove")
             if e is not None:
                 elsewhere.add(e.root)

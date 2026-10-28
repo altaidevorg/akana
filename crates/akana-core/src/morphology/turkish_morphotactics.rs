@@ -644,7 +644,10 @@ pub fn build() -> (Graph, RootStates) {
     // bak-tık-ta, ol-acağ-a benziyor, ol-acak-la, oku-yacak-lar-ca; review 2 MORPH2-08).
     let not_participle = || ld(&[vPastPart_S, vFutPart_S]).not();
     let case = |c: Cond| c.and(not_participle());
-    g.add(pnon_S, dat_ST, "+yA", not_cp3sg());
+    // Not the dative right after -DIk: olduğa is a typo of olduğuna. After its plural
+    // (ettiklere) and after -(y)AcAk (olacağa) it stays (review 3 MORPH3-09).
+    let bare_dik = || ld(&[vPastPart_S]).and_not(cg(&[a3pl_S]));
+    g.add(pnon_S, dat_ST, "+yA", not_cp3sg().and_not(bare_dik()));
     g.add(pnon_S, abl_ST, ">dAn", not_cp3sg());
     g.add(pnon_S, loc_ST, ">dA", not_cp3sg());
     g.add(pnon_S, acc_ST, "+yI", case(not_cp3sg()));

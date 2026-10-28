@@ -178,3 +178,9 @@ kalbı
 3'ar
 onbeşa
 diyip
+
+# A bare dative right after -DIk: typos of olduğuna, yaptığına, dediğine (review 3 MORPH3-09).
+olduğa
+yaptığa
+dediğe
+geldiğe

@@ -13,6 +13,7 @@ crates/akana-core/src/readability/kalyoncu_words.txt -text
 crates/akana-core/src/pii/person_names.txt -text
 crates/akana-core/data/embeddings/** -text
 crates/akana-core/tests/data/** -text
+data/morphology/** -text
 
 # Licence notices: the copies in the crates and the Python package must stay identical to the
 # root file (CI compares them).

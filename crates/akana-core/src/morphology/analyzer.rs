@@ -687,11 +687,18 @@ pub const PRIOR_CLASSES: [&str; 15] = [
     "Postp", "Interj", "Part", "Other",
 ];
 
+/// Time words whose adverb the treebanks tag ADV, as `prior_class` reads them: their time
+/// noun keeps its class (önce: ADV 357, ADP 273, NOUN 10 in the UD train and dev splits).
+const TIME_ADVERBS: [&str; 7] = ["bugün", "daha", "erken", "evvel", "önce", "sonra", "şimdi"];
+
 /// A reading's class in [`PRIOR_CLASSES`]; the question particle is Part. A bare time noun is
 /// an adverb here: the treebanks tag yarın, dün and sabah NOUN where Zemberek (and akana) read
-/// them first as adverbs, so their tags do not choose between the two.
+/// them first as adverbs, so their tags do not choose between the two. The time words they tag
+/// as adverbs ([`TIME_ADVERBS`]) keep the noun apart, so that their tags do: as an adverb the
+/// time noun önce took the adverb's tags and read "Daha önce film çevirdi" (review 3 RANK3-04).
 pub fn prior_class(p: &MorphParse) -> usize {
     let bare_time = p.secondary_pos == SecondaryPos::Time
+        && !TIME_ADVERBS.contains(&p.lemma.as_str())
         && p.morpheme_tags
             .get(1..)
             .unwrap_or_default()
@@ -1054,21 +1061,53 @@ impl TurkishMorphology {
     /// The stem of a word the lexicon cannot read, as search should index it: the word without
     /// the inflections a noun takes (plural, possessive, case, -ki, copula), read through a
     /// noun guessed from what is left, as Zemberek's analysis of unknown words guesses one
-    /// (hiperbariğe: hiperbarik; istanbulda: istanbul; kampüsü: kampüs; dosyada: dosya).
-    /// Of the stems that read so ([`backoff_candidates`](Self::backoff_candidates)), the one
-    /// with the most inflections after it wins, then the one whose last four letters end the
-    /// most nouns and adjectives of the lexicon, then the longest (plan step D6). A derivation
-    /// is not taken off (kitapçı is no kitap). `None` when no ending reads so; the word's own
-    /// analyses are not looked at.
+    /// (hiperbariğe: hiperbarik; istanbulda: istanbul; dosyada: dosya).
+    ///
+    /// Of the stems that read so ([`backoff_candidates`](Self::backoff_candidates)) and the
+    /// word itself, the one with the most inflections after it wins, then the one whose last
+    /// four letters end the most nouns and adjectives of the lexicon, then the longest (plan
+    /// step D6). A single vowel right after a stem (the dative -A, the accusative or
+    /// possessive -I) does not count when the word could as well end in that vowel: the
+    /// vowel-final word (zorbanta) or a stem with it (zorbanta-lar) reads the same, and taking
+    /// it off made zorbanta and zorbantanın two terms (zorbant, zorbanta; review 3 MORPH3-02).
+    /// After ğ, which ends no word, it counts (hiperbariğe: hiperbarik). On 1.5 M court tokens of
+    /// known nouns read as if unknown, this finds the right stem for 85.3 % of tokens, and for
+    /// 93.9 % of bare forms, where counting the vowel found 77.1 % and 68.8 %.
+    ///
+    /// A derivation is not taken off (kitapçı is no kitap). `None` when the word itself wins;
+    /// the word's own analyses are not looked at.
     pub fn backoff_stem(&self, word: &str) -> Option<String> {
         let endings = &*ROOT_ENDINGS;
-        self.backoff_candidates(word)
-            .into_iter()
-            .max_by_key(|(stem, n)| {
-                let like = endings.get(last_letters(stem, 4)).copied().unwrap_or(0);
-                (*n, like, stem.chars().count())
-            })
-            .map(|(stem, _)| stem)
+        let candidates = self.backoff_candidates(word);
+        let lower = backoff_lower(word);
+        let chars: Vec<char> = lower.chars().collect();
+        let like = |stem: &str| endings.get(last_letters(stem, 4)).copied().unwrap_or(0);
+        // (inflections counted, ending likeness, length) of each candidate, and of the word.
+        let mut keys: Vec<((usize, u32, usize), Option<usize>)> = Vec::new();
+        for (i, (stem, n)) in candidates.iter().enumerate() {
+            let k = stem.chars().count().min(chars.len());
+            let prefix: String = chars[..k].iter().collect();
+            let ending = &chars[k..];
+            let mut counted = *n;
+            if let Some(&vowel) = ending.first() {
+                let alternative = format!("{prefix}{vowel}");
+                let ends_word = ending.len() == 1
+                    || candidates
+                        .iter()
+                        .any(|(s, m)| *s == alternative && m + 1 == *n);
+                if super::phonetics::is_vowel(vowel) && !prefix.ends_with('ğ') && ends_word {
+                    counted -= 1;
+                }
+            }
+            keys.push(((counted, like(stem), k), Some(i)));
+        }
+        if !candidates.is_empty() {
+            keys.push(((0, like(&lower), chars.len()), None));
+        }
+        keys.into_iter()
+            .max_by_key(|(key, _)| *key)
+            .and_then(|(_, i)| i)
+            .map(|i| candidates[i].0.clone())
     }
 
     /// The stems [`backoff_stem`](Self::backoff_stem) chooses from, each with the most
@@ -1077,21 +1116,16 @@ impl TurkishMorphology {
     /// also the stem unvoiced (vücud-una: vücut, sonuc-una: sonuç).
     #[doc(hidden)]
     pub fn backoff_candidates(&self, word: &str) -> Vec<(String, usize)> {
-        // Without circumflexes, as lexicon roots are (dâvaların: dava).
-        let lower: String = super::super::phonology::to_turkish_lower(word.trim())
-            .chars()
-            .map(|c| match c {
-                'â' => 'a',
-                'î' => 'i',
-                'û' => 'u',
-                c => c,
-            })
-            .collect();
+        let lower = backoff_lower(word);
         if !lower.chars().all(char::is_alphabetic) {
             return Vec::new();
         }
+        // Only the last letters can be inflections: trying every split of a long token made
+        // this quadratic in its length (review 3 MORPH3-01).
+        let n_chars = lower.chars().count();
+        let first_split = n_chars.saturating_sub(MAX_BACKOFF_ENDING).max(3);
         let mut out = Vec::new();
-        for (at, _) in lower.char_indices().skip(3) {
+        for (at, _) in lower.char_indices().skip(first_split) {
             let (stem, ending) = lower.split_at(at);
             if !stem.chars().any(super::phonetics::is_vowel)
                 || !word_final(stem)
@@ -1167,6 +1201,9 @@ impl TurkishMorphology {
     }
 
     pub(super) fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
+        if word.chars().any(needs_folding) {
+            return self.analyze_unranked(&fold_invisible_and_compatibility(word));
+        }
         let parses = self.analyze_written(word);
         // Text typed without the Turkish keyboard writes İ as I (KITAPLAR, INSAN, Internet), and
         // so do foreign acronyms (FBI, IMF), whose lemmas have i: a word with an I that its
@@ -1217,6 +1254,19 @@ impl TurkishMorphology {
             return Vec::new();
         }
 
+        // Characters with no visible form that word processors leave inside words (soft hyphen,
+        // zero-width space and joiners, BOM), and the compatibility forms of letters (the fi
+        // ligature, fullwidth letters) are taken out or folded, so ted\u{ad}birine is tedbirine
+        // and ＫＩＴＡＰ is KİTAP (review 3 MORPH3-12).
+        let visible: std::borrow::Cow<str> = if clean.chars().any(needs_folding) {
+            std::borrow::Cow::Owned(fold_invisible_and_compatibility(clean))
+        } else {
+            std::borrow::Cow::Borrowed(clean)
+        };
+        let clean = visible.trim();
+        if clean.is_empty() {
+            return Vec::new();
+        }
         // Decomposed input (I + U+0307, o + U+0308) is composed first, so İstanbul and göz
         // written that way are the same words.
         let composed: std::borrow::Cow<str> =
@@ -1282,7 +1332,10 @@ impl TurkishMorphology {
                 if parses.is_empty() {
                     parses = self.analyze_name_without_apostrophe(clean, &word);
                 }
-                if parses.is_empty() && word.ends_with('.') && self.analyze_roman(clean).is_none() {
+                if parses.is_empty()
+                    && word.ends_with('.')
+                    && (self.analyze_roman(clean).is_none() || letter_before_numeral(clean))
+                {
                     parses = self.analyze_dotted(clean, &word);
                 }
                 if parses.is_empty() {
@@ -1324,7 +1377,10 @@ impl TurkishMorphology {
                 (word, parses)
             }
         };
-        if let Some(roman) = self.analyze_roman(clean) {
+        if let Some(roman) = self
+            .analyze_roman(clean)
+            .filter(|_| !(letter_before_numeral(clean) && !parses.is_empty()))
+        {
             // A word the lexicon knows keeps its own readings first (MI, the question particle
             // in capitals; CD; XL, the size); otherwise the numeral replaces a guessed
             // abbreviation (II, XIX., IV'üncü), so II'nın is no word.
@@ -1716,6 +1772,26 @@ impl TurkishMorphology {
     fn analyze_dotted(&self, clean: &str, lower: &str) -> Vec<MorphParse> {
         let original = clean.strip_suffix('.').unwrap_or(clean);
         let stem = lower.strip_suffix('.').unwrap_or(lower);
+        if original.contains('.') && !original.contains('\'') {
+            // Initials with their periods (A.Ş., T.C.): the abbreviation of their letters (AŞ,
+            // TC), with the surface as written.
+            let pieces: Vec<&str> = original.split('.').collect();
+            if pieces.len() > 1
+                && pieces
+                    .iter()
+                    .all(|l| l.chars().count() == 1 && l.chars().all(char::is_uppercase))
+            {
+                let letters: String = pieces.concat();
+                let lower_letters = super::super::phonology::to_turkish_lower(&letters);
+                let mut parses =
+                    self.analyze_dotted(&format!("{letters}."), &format!("{lower_letters}."));
+                parses.retain(|p| p.secondary_pos == SecondaryPos::Abbreviation);
+                for p in &mut parses {
+                    p.surface = clean.to_string();
+                }
+                return parses;
+            }
+        }
         if original.is_empty() || original.contains(['.', '\'']) {
             return Vec::new();
         }
@@ -2032,6 +2108,7 @@ fn derived_verb_stems<'s>(graph: &'s Graph, steps: &'s [Step]) -> impl Iterator<
 /// letters are dotted too): the abbreviation without its periods, and the suffixes.
 fn dotted_suffix(word: &str) -> Option<(String, &str)> {
     let (abbreviation, ending) = word.rsplit_once('.')?;
+    let ending = ending.trim_start_matches(APOSTROPHES);
     if ending.is_empty() || !ending.chars().all(char::is_lowercase) {
         return None;
     }
@@ -2042,6 +2119,47 @@ fn dotted_suffix(word: &str) -> Option<(String, &str)> {
         && letters.chars().all(char::is_uppercase)
         && (solid || initials))
         .then_some((letters, ending))
+}
+
+/// A single capital C, D, L or M with its period, which court decisions write for an
+/// abbreviation (M. madde, C. Cumhuriyet) far more often than for a Roman numeral; I., V. and X.
+/// stay numerals (I. BÖLÜM; review 3 MORPH3-05).
+fn letter_before_numeral(clean: &str) -> bool {
+    matches!(clean, "C." | "D." | "L." | "M.")
+}
+
+/// Whether a character is taken out ([`fold_invisible_and_compatibility`]): one with no visible
+/// form, or a compatibility form of letters.
+fn needs_folding(c: char) -> bool {
+    matches!(
+        c,
+        '\u{ad}' | '\u{200b}' | '\u{200c}' | '\u{200d}' | '\u{2060}' | '\u{feff}'
+            | '\u{fb00}'..='\u{fb06}'
+            | '\u{ff01}'..='\u{ff5e}'
+    )
+}
+
+/// The word without soft hyphens, zero-width characters and BOMs, with the Latin ligatures (ﬁ,
+/// ﬂ, ﬀ …) spelled out and fullwidth forms (ＫＩＴＡＰ, ＇) folded to ASCII; a fullwidth
+/// apostrophe stays an apostrophe.
+fn fold_invisible_and_compatibility(word: &str) -> String {
+    let mut out = String::with_capacity(word.len());
+    for c in word.chars() {
+        match c {
+            '\u{ad}' | '\u{200b}' | '\u{200c}' | '\u{200d}' | '\u{2060}' | '\u{feff}' => {}
+            '\u{fb00}' => out.push_str("ff"),
+            '\u{fb01}' => out.push_str("fi"),
+            '\u{fb02}' => out.push_str("fl"),
+            '\u{fb03}' => out.push_str("ffi"),
+            '\u{fb04}' => out.push_str("ffl"),
+            '\u{fb05}' | '\u{fb06}' => out.push_str("st"),
+            '\u{ff01}'..='\u{ff5e}' => {
+                out.push(char::from_u32(c as u32 - 0xfee0).unwrap_or(c));
+            }
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// Whether a name's suffixes may be written without an apostrophe. Turkish spelling separates a
@@ -2608,6 +2726,24 @@ fn word_final(stem: &str) -> bool {
         && !(voiced_stop && !matches!(before, 'n' | 'r'))
 }
 
+/// The longest ending, in letters, [`TurkishMorphology::backoff_candidates`] tries to take off:
+/// a noun's longest inflection chain (-lerimizdekilerden) has 17.
+const MAX_BACKOFF_ENDING: usize = 20;
+
+/// A word as the backoff reads it: lower-cased, without circumflexes, as lexicon roots are
+/// (dâvaların: dava).
+fn backoff_lower(word: &str) -> String {
+    super::super::phonology::to_turkish_lower(word.trim())
+        .chars()
+        .map(|c| match c {
+            'â' => 'a',
+            'î' => 'i',
+            'û' => 'u',
+            c => c,
+        })
+        .collect()
+}
+
 /// The inflections [`TurkishMorphology::backoff_stem`] takes off an unknown word: plural,
 /// possessive (but the singular first and second persons'), case, -ki and the third person's
 /// copula. -m and -n are left on, as more often the end of a foreign word (bitcoin is no
@@ -2708,6 +2844,37 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
         .collect();
     let mut first = first.into_iter();
     results.retain(|_| first.next().unwrap_or(true));
+    // Readings that differ only in silent morphemes (a CompoundP3sg noun's bare form as Pnon
+    // and with its own silent P3sg; bir-lik through two paths) show the same in every field but
+    // `analysis`, and split the word's score as if it were ambiguous (milletvekili 0.5/0.5).
+    // One reading stands for them: the one with the fewest silent morphemes, the shortest
+    // analysis (review 3 MORPH3-03). Homographs (kalp "heart", kalp "counterfeit") stay apart.
+    let mut keep = vec![true; results.len()];
+    for i in 0..results.len() {
+        if !keep[i] {
+            continue;
+        }
+        for j in i + 1..results.len() {
+            let (a, b) = (&results[i], &results[j]);
+            if keep[j]
+                && a.formatted == b.formatted
+                && a.pos == b.pos
+                && a.secondary_pos == b.secondary_pos
+                && a.lemma == b.lemma
+                && a.root == b.root
+                && a.homograph == b.homograph
+                && a.nonstandard == b.nonstandard
+            {
+                if b.analysis.len() < a.analysis.len() {
+                    keep[i] = false;
+                    break;
+                }
+                keep[j] = false;
+            }
+        }
+    }
+    let mut keep = keep.into_iter();
+    results.retain(|_| keep.next().unwrap_or(true));
     results
 }
 
@@ -2724,8 +2891,11 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
 /// 76.5 % are plural with a 3sg possessor, 14.6 % plural accusatives, 2.7 % plural with a 3pl
 /// possessor and 1.6 % singular with a 3pl possessor; before a case (-lArInA) the shares are
 /// 77 %, 14 % and 4 % for A3pl+P3sg, A3pl+P3pl and P3pl. Of 1,166 -lIğI, 77 % are P3sg and 14 %
-/// Acc. Context still chooses among them in the disambiguator. The -lArI set is a noun's only:
-/// a participle's P3pl is its subject (git-tik-leri "that they went").
+/// Acc. Context still chooses among them in the disambiguator. The -lArI set is a noun's, an
+/// adjective's (diğer-ler-i "the others", mensup-lar-ı) and a present participle's
+/// (ol-an-lar-ı, çalış-an-lar-ı), which took P3pl "their other" by having the fewest tags
+/// (review 3 RANK3-05); a -DIk or -AcAk participle's P3pl is its subject (git-tik-leri "that
+/// they went").
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct CoOccurring {
     /// The tags `start..end` are the ambiguous part.
@@ -2759,19 +2929,37 @@ fn co_occurring(p: &MorphParse) -> Option<CoOccurring> {
     {
         return set(n - 1, n, 1, u8::from(tags[n - 1] == "Acc"));
     }
-    // A noun's: a participle's P3pl is its subject (git-tik-leri "that they went").
-    if p.primary_pos != PrimaryPos::Noun {
-        return None;
-    }
-    let Some(i) = tags.iter().position(|t| t == "P3pl" || t == "P3sg") else {
-        return (n >= 2 && tags[n - 2] == "A3pl" && tags[n - 1] == "Acc").then_some(CoOccurring {
-            start: n - 2,
-            end: n,
-            set: 0,
-            place: 1,
+    // A noun's, an adjective's and a present participle's: the P3pl of a -DIk or -AcAk
+    // participle is its subject (git-tik-leri "that they went").
+    let from = match p.primary_pos {
+        PrimaryPos::Noun | PrimaryPos::Adj => 1,
+        // Most verb readings have no -(y)An: look for it before for the last derivation.
+        PrimaryPos::Verb => {
+            let k = tags.iter().rposition(|t| t == "PresPart")?;
+            if tags[k + 1..].iter().any(|t| is_derivational_tag(t)) {
+                return None;
+            }
+            k + 1
+        }
+        _ => return None,
+    };
+    let Some(i) = tags
+        .iter()
+        .skip(from)
+        .position(|t| t == "P3pl" || t == "P3sg")
+        .map(|i| i + from)
+    else {
+        // Lazily: a bare adjective has one tag, and n - 2 would underflow.
+        return (n >= from + 2 && tags[n - 2] == "A3pl" && tags[n - 1] == "Acc").then(|| {
+            CoOccurring {
+                start: n - 2,
+                end: n,
+                set: 0,
+                place: 1,
+            }
         });
     };
-    let plural = i > 0 && tags[i - 1] == "A3pl";
+    let plural = i > from && tags[i - 1] == "A3pl";
     match (plural, tags[i].as_str()) {
         (true, "P3sg") => set(i - 1, i + 1, 0, 0),
         (true, _) => set(i - 1, i + 1, 0, 2),

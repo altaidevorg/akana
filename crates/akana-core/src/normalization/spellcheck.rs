@@ -30,10 +30,14 @@ impl Vocabulary {
 }
 
 /// The vocabulary of the built-in lexicon, built once per process and shared by every checker
-/// until it adds a word of its own (copy-on-write).
+/// until it adds a word of its own (copy-on-write). A nonstandard item is no spelling (herşey,
+/// whose lemma is its own).
 static DEFAULT_VOCABULARY: LazyLock<Arc<Vocabulary>> = LazyLock::new(|| {
     let mut vocabulary = Vocabulary::default();
     for line in crate::morphology::ZEMBEREK_LEXICON.lines() {
+        if line.split_whitespace().any(|f| f == "Nonstandard") {
+            continue;
+        }
         if let Some(first_word) = line.split_whitespace().next() {
             vocabulary.add(super::super::phonology::to_turkish_lower(first_word));
         }

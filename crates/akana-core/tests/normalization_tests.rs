@@ -41,6 +41,35 @@ fn test_spellchecker() {
 }
 
 #[test]
+fn misspellings_the_lexicon_lists_are_not_correct() {
+    // Review 3 LEX3-01, NORM3-01: Zemberek's non-TDK misspellings and the corpus "names" that
+    // were common words without their Turkish letters made these correct.
+    let checker = TurkishSpellChecker::new();
+    for word in [
+        "şöför",
+        "döküman",
+        "orjinal",
+        "ünvan",
+        "herşey",
+        "motorsiklet",
+        "egitim",
+    ] {
+        assert!(!checker.is_correct(word), "{word}");
+    }
+    for word in [
+        "şoför",
+        "doküman",
+        "orijinal",
+        "unvan",
+        "motosiklet",
+        "eğitim",
+        "hükümet",
+    ] {
+        assert!(checker.is_correct(word), "{word}");
+    }
+}
+
+#[test]
 fn test_informal_normalizer() {
     assert_eq!(
         TurkishInformalNormalizer::deduplicate_repeated_chars("çooookkkk"),

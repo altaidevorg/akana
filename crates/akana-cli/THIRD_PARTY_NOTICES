@@ -22,10 +22,12 @@ Licence:    Apache License 2.0 (full text at the end of this file).
 Shipped as: crates/akana-core/src/morphology/zemberek_lexicon.txt, compiled into the library.
             scripts/build_full_lexicon.py builds it from the Zemberek dictionaries.
 Changes:    duplicate entries merged; corpus-collected proper nouns that are inflected common
-            words, and roots with stray characters, dropped; entries added, replaced and
-            removed by akana's own supplements (scripts/lexicon/akana-legal.dict,
-            akana-extra.dict, akana-remove.dict, which carry akana's own attributes
-            Lexicalized, NotLexicalized and Rare); written in akana's one-line format.
+            words or common words without their Turkish letters, and roots with stray
+            characters, dropped; Zemberek's Ref: pointers made lemmas; entries added, replaced,
+            respelled and removed by akana's own supplements (scripts/lexicon/akana-legal.dict,
+            akana-extra.dict, akana-variants.dict, akana-spelling.dict, akana-remove.dict,
+            which carry akana's own attributes Lexicalized, NotLexicalized, Rare and
+            Nonstandard); homographs numbered; written in akana's one-line format.
 
 Shipped as: crates/akana-core/src/pii/person_names.txt, compiled into the library: the given
             names of Zemberek's person-names.dict (morphology/src/main/resources/tr), which PII
