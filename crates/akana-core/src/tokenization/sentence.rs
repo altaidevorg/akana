@@ -16,7 +16,8 @@ impl<'a> Sentence<'a> {
 }
 
 /// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
-/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+/// detector's inputs and fails `style::ai_detector::tests::inputs_match_drift_canary` (and
+/// `outputs_match_training_reference` when its sample shows it).
 pub struct SentenceSegmenter;
 
 impl SentenceSegmenter {

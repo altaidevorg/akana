@@ -122,6 +122,13 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
 readability metrics (Kalyoncu word lists and grade), and PII masks (leak fixes) give
 different results.
 
+**AI-text detector.** Its model is unchanged. It reads the shared lexicon and the sentence
+segmenter, so this release moves some of its inputs on most texts: `oov_rate` and the
+sentence statistics. On a 1,928-text sample no verdict changed and the probability moved
+by at most 0.034. The model will be retrained on this release's inputs. A drift canary now
+fails on any further input change, so each change is recorded on purpose
+(`tests/data/ai_detector_canary.jsonl`).
+
 ### Added
 
 - `akana.encoder_info()` and `akana.check_encoder()`; in Rust, `embeddings::spec`

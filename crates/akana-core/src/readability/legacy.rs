@@ -8,7 +8,8 @@ pub struct LegacyReadability;
 /// `198.825 − 40.175 · syllables per word − 2.610 · words per sentence`.
 ///
 /// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
-/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+/// detector's inputs and fails `style::ai_detector::tests::inputs_match_drift_canary` (and
+/// `outputs_match_training_reference` when its sample shows it).
 pub(crate) fn atesman_score(syllables_per_word: f64, words_per_sentence: f64) -> f64 {
     198.825 - (40.175 * syllables_per_word) - (2.610 * words_per_sentence)
 }
