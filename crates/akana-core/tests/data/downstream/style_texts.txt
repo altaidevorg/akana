@@ -1,0 +1,13 @@
+# Synthetic texts whose readability and rule-based style audit `style_snapshot.txt` records
+# (tests/downstream_snapshot.rs; review 3 STYLE3-06), beside 20 paragraphs of five
+# sentences of grammar_clean_court.txt. One text per line.
+1. Başvurucu geldi. 2. Mahkeme reddetti. 3. Karar kesinleşti.
+A. Olaylar. B. Değerlendirme. Başvuru reddedildi.
+Hikâye güzel. Kâğıt aldım. İmkân var.
+Hikaye güzel. Kağıt aldım. İmkan var.
+Karar mahkeme tarafından verildi. Dava bu nedenle reddedildi. Süre içinde başvurulmadı. Bunun üzerine dosya incelendi.
+Ödemelerin yapılması ve gelişmelere göre çalışmaların sürdürülmesi gerekir.
+Ali top oynadı. Ayşe eve geldi ve yemek yedi. Güneş açtı, hava çok güzel oldu.
+Elbette! İşte size kapsamlı bir rehber: Öncelikle, şunu belirtmek isterim ki bu konu son derece önemlidir. Sonuç olarak, her zaman dikkatli olmak gerekir.
+... !!! ???
+123 456 789

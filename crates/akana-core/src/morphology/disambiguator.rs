@@ -80,6 +80,20 @@ impl MorphologicalDisambiguator {
         for (s, a) in sentence.iter().zip(&addressing) {
             addressing_in[*s] += usize::from(*a);
         }
+        // Whether a noun phrase head follows from each position on, and whether the next
+        // sentence end from each position on is "!", each in one pass from the right: scanned
+        // from every word, a long run of adjectives without a head or an end was quadratic
+        // (review 3 STYLE3-07).
+        let mut noun_from = vec![false; n + 1];
+        let mut bang_from = vec![false; n + 1];
+        for k in (0..n).rev() {
+            noun_from[k] = noun_head(&analyses_per_token[k]).unwrap_or(noun_from[k + 1]);
+            bang_from[k] = match tokens[k] {
+                "!" => true,
+                "." | "?" => false,
+                _ => bang_from[k + 1],
+            };
+        }
 
         for i in 0..n {
             let parses = &analyses_per_token[i];
@@ -155,13 +169,13 @@ impl MorphologicalDisambiguator {
             let next_is_verb = next_parses
                 .first()
                 .is_some_and(|p| p.pos == PrimaryPos::Verb);
-            let modifies_noun = noun_ahead(following);
+            let modifies_noun = noun_from[i + 1];
             // An adjective modifies a noun phrase past the indefinite article ("uzun bir
             // süre", "önemli bir karar"); a determiner does not ("Bu bir kitap").
             let modifies_past_article = tokens
                 .get(i + 1)
                 .is_some_and(|t| to_turkish_lower(t) == "bir")
-                && noun_ahead(following.get(1..).unwrap_or_default());
+                && noun_from[(i + 2).min(n)];
             // Before olmak a word that is also an adjective is its predicate ("yazılı olmayan",
             // "sözlü olarak"), not the first half of a compound verb.
             let before_light_verb = next_parses.iter().any(|p| {
@@ -205,10 +219,7 @@ impl MorphologicalDisambiguator {
                     to_turkish_lower(tokens[i - 1]).as_str(),
                     "bu" | "şu" | "o" | "her" | "hangi"
                 );
-            let exclaims = tokens[i + 1..]
-                .iter()
-                .find(|t| matches!(**t, "." | "!" | "?"))
-                .is_some_and(|t| *t == "!");
+            let exclaims = bang_from[i + 1];
             let addresses = exclaims || addressing_in[sentence[i]] > usize::from(addressing[i]);
             // A correlative conjunction comes twice in its clause (ister ... ister(se), ya ...
             // ya, hem ... hem, ne ... ne, gerek ... gerek(se)): the word, or the word with -sA,
@@ -550,33 +561,29 @@ fn case_of(p: &MorphParse) -> Option<&str> {
     })
 }
 
-/// Whether the following tokens are a noun phrase head, possibly after a run of adjectives
-/// ("bu [güzel] kitap"). A token counts as a noun when it has a common-noun reading and no
-/// adjective reading; one that could be either continues the run. Ending the run without a
-/// noun ("Bu doğru") or meeting another determiner ("Bu bir kitap") means the word before is
-/// not a pre-nominal modifier.
-fn noun_ahead(following: &[Vec<MorphParse>]) -> bool {
-    for parses in following {
-        if is_function_word(parses) || parses.iter().any(|p| p.pos == PrimaryPos::Det) {
-            return false;
-        }
-        // A predicate (mi-yiz "we are the note mi", evde-yim) is not a noun phrase head.
-        let noun = parses.iter().any(|p| {
-            p.pos == PrimaryPos::Noun
-                && p.secondary_pos != SecondaryPos::ProperNoun
-                && !is_predicate(p)
-        });
-        let adj = parses
-            .iter()
-            .any(|p| p.pos == PrimaryPos::Adj && !adjective_twin(p, parses));
-        if noun && !adj {
-            return true;
-        }
-        if !adj {
-            return false;
-        }
+/// What a token says about a noun phrase head after a word: `Some(true)` a head (a common-noun
+/// reading and no adjective reading), `Some(false)` no head (a function word, a determiner as
+/// in "Bu bir kitap", or no adjective reading as in "Bu doğru"), `None` an adjective the run of
+/// modifiers goes on past ("bu [güzel] kitap"). The disambiguator reads it from the right for
+/// every position at once.
+fn noun_head(parses: &[MorphParse]) -> Option<bool> {
+    if is_function_word(parses) || parses.iter().any(|p| p.pos == PrimaryPos::Det) {
+        return Some(false);
     }
-    false
+    // A predicate (mi-yiz "we are the note mi", evde-yim) is not a noun phrase head.
+    let noun = parses.iter().any(|p| {
+        p.pos == PrimaryPos::Noun && p.secondary_pos != SecondaryPos::ProperNoun && !is_predicate(p)
+    });
+    let adj = parses
+        .iter()
+        .any(|p| p.pos == PrimaryPos::Adj && !adjective_twin(p, parses));
+    if noun && !adj {
+        return Some(true);
+    }
+    if !adj {
+        return Some(false);
+    }
+    None
 }
 
 /// Whether a participle or -IcI form modifies the words after it: a relative clause or an

@@ -1,13 +1,17 @@
 //! What PII masking and the dependency parser make of fixed synthetic sentences
 //! (`tests/data/downstream/`), as snapshots: both read the analyzer's readings, so a change of
 //! readings moved masked names and parse trees with no test noticing (review 2 PII2-03,
-//! PII2-04, PARSER2-01). A change here must be deliberate and listed in its commit.
+//! PII2-04, PARSER2-01). The same for readability and the rule-based style audit, which read
+//! the disambiguator, the segmenter and the tokenizer (review 3 STYLE3-06). A change here must
+//! be deliberate and listed in its commit.
 //!
 //! After a deliberate change: `AKANA_GOLD_WRITE=1 cargo test -p akana-core --test
 //! downstream_snapshot`, and give the diff of the snapshots in the commit message.
 
 use akana_core::parser::TurkishDependencyParser;
 use akana_core::pii::{PiiMode, TurkishPiiEngine};
+use akana_core::readability::analyze_readability;
+use akana_core::TurkishStyleAuditor;
 use std::path::PathBuf;
 
 fn data(name: &str) -> PathBuf {
@@ -82,4 +86,57 @@ fn parse_trees_stay_as_recorded() {
         now.push('\n');
     }
     check("parser_snapshot.conllu", &now);
+}
+
+#[test]
+fn readability_and_style_audit_stay_as_recorded() {
+    // Synthetic texts, and 20 paragraphs of five sentences of the CC0 court corpus.
+    let court = include_str!("data/grammar_clean_court.txt");
+    let court: Vec<&str> = court
+        .lines()
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect();
+    let mut texts = sentences("style_texts.txt");
+    texts.push(String::new());
+    texts.extend(court.chunks(5).take(20).map(|c| c.join(" ")));
+    let auditor = TurkishStyleAuditor::new();
+    let mut now = String::new();
+    for text in &texts {
+        let r = analyze_readability(text);
+        let s = &r.statistics;
+        let formula = |f: &akana_core::readability::FormulaResult| {
+            format!("{:.2} {}", f.score, f.grade_level)
+        };
+        let audit = auditor.audit(text);
+        let mut categories: Vec<&str> =
+            audit.findings.iter().map(|f| f.category.as_str()).collect();
+        categories.sort_unstable();
+        let shown: String = text.chars().take(80).collect();
+        now.push_str(&format!(
+            "> {shown}\n\
+             \tsentences {} words {} syllables {} unfamiliar {} fiilimsi {} complex {} polysyllabic {}\n\
+             \tatesman {} | cetinkaya {} | bezirci {}\n\
+             \tkalyoncu {} | {} | {} | {}\n\
+             \tstyle {:.1} {} [{}] {}\n",
+            s.total_sentences,
+            s.total_words,
+            s.total_syllables,
+            s.unfamiliar_words,
+            s.total_fiilimsiler,
+            s.complex_sentences,
+            s.polysyllabic_words,
+            formula(&r.legacy.atesman),
+            formula(&r.legacy.cetinkaya_uzun),
+            formula(&r.legacy.bezirci_yilmaz),
+            formula(&r.kalyoncu.formula1),
+            formula(&r.kalyoncu.formula2),
+            formula(&r.kalyoncu.formula3),
+            formula(&r.kalyoncu.formula4),
+            audit.ai_score,
+            audit.verdict,
+            categories.join(","),
+            serde_json::to_string(&audit.metrics).expect("serialisable metrics"),
+        ));
+    }
+    check("style_snapshot.txt", &now);
 }

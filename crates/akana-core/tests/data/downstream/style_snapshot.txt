@@ -1,0 +1,155 @@
+> 1. Başvurucu geldi. 2. Mahkeme reddetti. 3. Karar kesinleşti.
+	sentences 3 words 6 syllables 18 unfamiliar 2 fiilimsi 0 complex 0 polysyllabic 4
+	atesman 73.08 Kolay (5 ve 6. Sınıf) | cetinkaya 38.92 Öğretim Düzeyi (9 ve 12. Sınıf) | bezirci 11.55 Ortaokul Düzeyi
+	kalyoncu 104.88 Lisansüstü | 122.16 Lisansüstü | 121.55 Lisansüstü | 78.22 Lisans
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":9,"mean_sentence_length":3.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":3,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> A. Olaylar. B. Değerlendirme. Başvuru reddedildi.
+	sentences 3 words 6 syllables 16 unfamiliar 2 fiilimsi 0 complex 0 polysyllabic 4
+	atesman 86.47 Kolay (5 ve 6. Sınıf) | cetinkaya 47.58 Öğretim Düzeyi (9 ve 12. Sınıf) | bezirci 11.55 Ortaokul Düzeyi
+	kalyoncu 104.88 Lisansüstü | 122.16 Lisansüstü | 121.55 Lisansüstü | 78.22 Lisans
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":6,"mean_sentence_length":2.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":3,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Hikâye güzel. Kâğıt aldım. İmkân var.
+	sentences 3 words 6 syllables 12 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 1
+	atesman 100.00 Çok Kolay (4. Sınıf ve Altı) | cetinkaya 64.91 Bağımsız Okuma Düzeyi (8. Sınıf ve Altı) | bezirci 5.77 İlkokul Düzeyi
+	kalyoncu 87.95 Lisansüstü | 92.92 Lisansüstü | 93.75 Lisansüstü | 44.62 3 ve 4. Sınıf
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":6,"mean_sentence_length":2.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":3,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Hikaye güzel. Kağıt aldım. İmkan var.
+	sentences 3 words 6 syllables 12 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 1
+	atesman 100.00 Çok Kolay (4. Sınıf ve Altı) | cetinkaya 64.91 Bağımsız Okuma Düzeyi (8. Sınıf ve Altı) | bezirci 5.77 İlkokul Düzeyi
+	kalyoncu 87.95 Lisansüstü | 92.92 Lisansüstü | 93.75 Lisansüstü | 44.62 3 ve 4. Sınıf
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":6,"mean_sentence_length":2.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":3,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Karar mahkeme tarafından verildi. Dava bu nedenle reddedildi. Süre içinde başvur
+	sentences 4 words 15 syllables 44 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 9
+	atesman 71.19 Kolay (5 ve 6. Sınıf) | cetinkaya 38.95 Öğretim Düzeyi (9 ve 12. Sınıf) | bezirci 15.00 Lise Düzeyi
+	kalyoncu 70.92 11 ve 12. Sınıf | 84.60 Lisans | 84.61 Lisans | 45.71 3 ve 4. Sınıf
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":4,"total_words":15,"mean_sentence_length":3.8,"std_dev_sentence_length":0.5,"coefficient_of_variation":0.13,"short_sentences_count":4,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":4,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Ödemelerin yapılması ve gelişmelere göre çalışmaların sürdürülmesi gerekir.
+	sentences 1 words 8 syllables 30 unfamiliar 0 fiilimsi 2 complex 1 polysyllabic 6
+	atesman 27.29 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 13.60 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 24.49 Üniversite ve Akademik Düzey
+	kalyoncu 157.29 Lisansüstü | 94.92 Lisansüstü | 98.27 Lisansüstü | 48.36 3 ve 4. Sınıf
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":1,"total_words":8,"mean_sentence_length":8.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":1,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Ali top oynadı. Ayşe eve geldi ve yemek yedi. Güneş açtı, hava çok güzel oldu.
+	sentences 3 words 15 syllables 28 unfamiliar 0 fiilimsi 0 complex 1 polysyllabic 1
+	atesman 100.00 Çok Kolay (4. Sınıf ve Altı) | cetinkaya 65.46 Bağımsız Okuma Düzeyi (8. Sınıf ve Altı) | bezirci 5.77 İlkokul Düzeyi
+	kalyoncu 110.40 Lisansüstü | 93.92 Lisansüstü | 93.75 Lisansüstü | 46.49 3 ve 4. Sınıf
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":15,"mean_sentence_length":5.0,"std_dev_sentence_length":1.7,"coefficient_of_variation":0.35,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Elbette! İşte size kapsamlı bir rehber: Öncelikle, şunu belirtmek isterim ki bu 
+	sentences 3 words 23 syllables 53 unfamiliar 1 fiilimsi 3 complex 2 polysyllabic 10
+	atesman 86.24 Kolay (5 ve 6. Sınıf) | cetinkaya 51.50 Bağımsız Okuma Düzeyi (8. Sınıf ve Altı) | bezirci 18.26 Üniversite ve Akademik Düzey
+	kalyoncu 124.93 Lisansüstü | 92.81 Lisansüstü | 93.67 Lisansüstü | 52.53 5 ve 6. Sınıf
+	style 8.0 Doğal İnsan Metni [InflatedHedging] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":1},"rhythm":{"total_sentences":3,"total_words":23,"mean_sentence_length":7.7,"std_dev_sentence_length":7.0,"coefficient_of_variation":0.92,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> ... !!! ???
+	sentences 1 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
+	atesman 0.00 Yetersiz metin (sözcük yok) | cetinkaya 0.00 Yetersiz metin (sözcük yok) | bezirci 0.00 Yetersiz metin (sözcük yok)
+	kalyoncu 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok)
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":1,"total_words":0,"mean_sentence_length":0.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":0,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> 123 456 789
+	sentences 1 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
+	atesman 0.00 Yetersiz metin (sözcük yok) | cetinkaya 0.00 Yetersiz metin (sözcük yok) | bezirci 0.00 Yetersiz metin (sözcük yok)
+	kalyoncu 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok)
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":1,"total_words":3,"mean_sentence_length":3.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":0,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> 
+	sentences 1 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
+	atesman 0.00 Yetersiz metin (sözcük yok) | cetinkaya 0.00 Yetersiz metin (sözcük yok) | bezirci 0.00 Yetersiz metin (sözcük yok)
+	kalyoncu 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok)
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":0,"total_words":0,"mean_sentence_length":0.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":0,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Kabule göre de; yargılama giderlerinin davalı yerine davalı vekilinden tahsiline
+	sentences 6 words 86 syllables 282 unfamiliar 17 fiilimsi 16 complex 6 polysyllabic 59
+	atesman 29.68 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 19.69 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 31.36 Üniversite ve Akademik Düzey
+	kalyoncu 122.99 Lisansüstü | 91.84 Lisansüstü | 93.13 Lisansüstü | 72.24 Lisans
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":1},"rhythm":{"total_sentences":6,"total_words":90,"mean_sentence_length":15.0,"std_dev_sentence_length":8.0,"coefficient_of_variation":0.53,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":6,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Bu bağlamda çoğunluk kararında kurala ilişkin yapılan değerlendirmede kuralın de
+	sentences 5 words 80 syllables 269 unfamiliar 14 fiilimsi 21 complex 5 polysyllabic 62
+	atesman 21.98 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 15.91 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 35.21 Üniversite ve Akademik Düzey
+	kalyoncu 110.28 Lisansüstü | 84.54 Lisans | 88.69 Lisansüstü | 70.99 11 ve 12. Sınıf
+	style 22.0 Doğal İnsan Metni [BureaucraticConnector,RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":81,"mean_sentence_length":16.2,"std_dev_sentence_length":5.3,"coefficient_of_variation":0.32,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Davayı, yararlanma hakkı olan köy veya belediye tüzel kişiliği ya da Hazine açab
+	sentences 5 words 88 syllables 295 unfamiliar 26 fiilimsi 17 complex 5 polysyllabic 66
+	atesman 18.21 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 14.62 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 36.33 Üniversite ve Akademik Düzey
+	kalyoncu 121.30 Lisansüstü | 98.98 Lisansüstü | 100.35 Lisansüstü | 84.13 Lisans
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":90,"mean_sentence_length":18.0,"std_dev_sentence_length":6.7,"coefficient_of_variation":0.37,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Davalı, davaya cevap vermemiş, son celsede şirket temsilcisi 300 kasa komple şiş
+	sentences 9 words 82 syllables 243 unfamiliar 25 fiilimsi 11 complex 6 polysyllabic 53
+	atesman 55.99 Orta Güçlükte (7 ve 8. Sınıf) | cetinkaya 32.97 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 24.27 Üniversite ve Akademik Düzey
+	kalyoncu 98.23 Lisansüstü | 94.33 Lisansüstü | 93.50 Lisansüstü | 79.79 Lisans
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":9,"total_words":85,"mean_sentence_length":9.4,"std_dev_sentence_length":7.1,"coefficient_of_variation":0.75,"short_sentences_count":2,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":9,"mektedir_count":1,"mektedir_ratio":0.11},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Olay yerinde ölçümler yapılmış; olayın emniyet şeridinde meydana geldiği, kan bi
+	sentences 5 words 85 syllables 278 unfamiliar 13 fiilimsi 13 complex 4 polysyllabic 62
+	atesman 23.06 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 17.32 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 35.21 Üniversite ve Akademik Düzey
+	kalyoncu 101.02 Lisansüstü | 86.97 Lisansüstü | 87.37 Lisansüstü | 69.39 11 ve 12. Sınıf
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":88,"mean_sentence_length":17.6,"std_dev_sentence_length":7.1,"coefficient_of_variation":0.4,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> OLAY: Sanığın reşit olmayanla cinsel ilişki suçundan cezalandırması talebiyle aç
+	sentences 6 words 110 syllables 338 unfamiliar 25 fiilimsi 19 complex 5 polysyllabic 77
+	atesman 27.53 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 21.17 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 35.82 Üniversite ve Akademik Düzey
+	kalyoncu 108.66 Lisansüstü | 95.22 Lisansüstü | 96.17 Lisansüstü | 77.72 Lisans
+	style 28.0 Muhtemel İnsan / Hafif AI Düzenlemesi [BureaucraticConnector,PunctuationAnomaly] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":2},"rhythm":{"total_sentences":6,"total_words":115,"mean_sentence_length":19.2,"std_dev_sentence_length":10.4,"coefficient_of_variation":0.54,"short_sentences_count":1,"long_sentences_count":2,"is_low_burstiness":false},"predicates":{"total_predicates":6,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Diğer yandan, usulüne uygun tutulmuş ticari defterlerin birbirini doğrulaması ha
+	sentences 5 words 86 syllables 271 unfamiliar 19 fiilimsi 10 complex 5 polysyllabic 61
+	atesman 27.34 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 20.23 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 34.93 Üniversite ve Akademik Düzey
+	kalyoncu 123.67 Lisansüstü | 95.61 Lisansüstü | 94.36 Lisansüstü | 76.37 Lisans
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":89,"mean_sentence_length":17.8,"std_dev_sentence_length":6.9,"coefficient_of_variation":0.39,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Katılım payı için herhangi bir bedel ödenmez. Olayda, dava konusu bedelsiz konak
+	sentences 5 words 67 syllables 186 unfamiliar 14 fiilimsi 8 complex 3 polysyllabic 40
+	atesman 52.32 Orta Güçlükte (7 ve 8. Sınıf) | cetinkaya 33.67 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 28.28 Üniversite ve Akademik Düzey
+	kalyoncu 92.36 Lisansüstü | 91.12 Lisansüstü | 90.22 Lisansüstü | 72.79 Lisans
+	style 6.0 Doğal İnsan Metni [HumanAuthenticityMarker,PunctuationAnomaly] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":2},"rhythm":{"total_sentences":5,"total_words":75,"mean_sentence_length":15.0,"std_dev_sentence_length":8.9,"coefficient_of_variation":0.59,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Yukarıda belirtilen yasal ve maddi olgular dikkate alındığında, Hukuk Genel Kuru
+	sentences 5 words 100 syllables 297 unfamiliar 20 fiilimsi 14 complex 4 polysyllabic 62
+	atesman 27.31 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 22.22 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 35.21 Üniversite ve Akademik Düzey
+	kalyoncu 115.10 Lisansüstü | 99.76 Lisansüstü | 99.61 Lisansüstü | 76.01 Lisans
+	style 22.0 Doğal İnsan Metni [BureaucraticConnector,RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":105,"mean_sentence_length":21.0,"std_dev_sentence_length":7.7,"coefficient_of_variation":0.37,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Soruşturma kapsamında ayrıca kimyasal ve balistik inceleme raporlarının alındığı
+	sentences 5 words 66 syllables 199 unfamiliar 12 fiilimsi 18 complex 4 polysyllabic 41
+	atesman 43.24 Zor (9 ve 10. Sınıf) | cetinkaya 27.65 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 28.64 Üniversite ve Akademik Düzey
+	kalyoncu 110.54 Lisansüstü | 91.34 Lisansüstü | 95.23 Lisansüstü | 69.93 11 ve 12. Sınıf
+	style 34.0 Muhtemel İnsan / Hafif AI Düzenlemesi [BureaucraticConnector,PassiveInflation,PredicateRepetition] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":66,"mean_sentence_length":13.2,"std_dev_sentence_length":9.4,"coefficient_of_variation":0.71,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":2,"mektedir_ratio":0.4},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Uyuşmazlığın bu niteliği itibariyle hükmün temyiz incelenmesi görevi 7 .Hukuk Da
+	sentences 6 words 89 syllables 289 unfamiliar 26 fiilimsi 13 complex 5 polysyllabic 66
+	atesman 29.65 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 20.04 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 33.17 Üniversite ve Akademik Düzey
+	kalyoncu 101.88 Lisansüstü | 92.79 Lisansüstü | 92.18 Lisansüstü | 82.07 Lisans
+	style 12.0 Doğal İnsan Metni [PredicateRepetition] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":0},"rhythm":{"total_sentences":6,"total_words":92,"mean_sentence_length":15.3,"std_dev_sentence_length":6.9,"coefficient_of_variation":0.45,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":6,"mektedir_count":2,"mektedir_ratio":0.33},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Genel arazi kadastro işlemi 1959 yılında yapılarak kesinleşmiştir. Anayasa Mahke
+	sentences 5 words 58 syllables 204 unfamiliar 11 fiilimsi 11 complex 3 polysyllabic 43
+	atesman 27.24 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 16.16 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 29.33 Üniversite ve Akademik Düzey
+	kalyoncu 96.21 Lisansüstü | 90.87 Lisansüstü | 92.07 Lisansüstü | 69.72 11 ve 12. Sınıf
+	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":61,"mean_sentence_length":12.2,"std_dev_sentence_length":8.0,"coefficient_of_variation":0.65,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Devamlılığın objektif ölçüsü ise, ticari bir organizasyonun varlığıdır. Mahkemen
+	sentences 5 words 94 syllables 301 unfamiliar 26 fiilimsi 16 complex 5 polysyllabic 66
+	atesman 21.11 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 17.35 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 36.33 Üniversite ve Akademik Düzey
+	kalyoncu 124.94 Lisansüstü | 100.75 Lisansüstü | 101.43 Lisansüstü | 82.98 Lisans
+	style 18.0 Doğal İnsan Metni [RhythmMonotony,TricolonParallelList] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":1},"rhythm":{"total_sentences":5,"total_words":97,"mean_sentence_length":19.4,"std_dev_sentence_length":7.2,"coefficient_of_variation":0.37,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> YTL onama harcı peşin alındığından başkaca harç alınmasına yer olmadığına, 05.06
+	sentences 5 words 71 syllables 224 unfamiliar 11 fiilimsi 11 complex 5 polysyllabic 48
+	atesman 35.01 Zor (9 ve 10. Sınıf) | cetinkaya 23.05 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 30.98 Üniversite ve Akademik Düzey
+	kalyoncu 104.04 Lisansüstü | 78.58 Lisans | 78.80 Lisans | 67.85 11 ve 12. Sınıf
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":76,"mean_sentence_length":15.2,"std_dev_sentence_length":6.6,"coefficient_of_variation":0.43,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Böylece 285 sayılı KHK., olağanüstü hal bölge valisinin yargı denetimi dışında t
+	sentences 5 words 94 syllables 291 unfamiliar 27 fiilimsi 17 complex 4 polysyllabic 63
+	atesman 25.39 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 20.12 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 35.50 Üniversite ve Akademik Düzey
+	kalyoncu 112.08 Lisansüstü | 102.39 Lisansüstü | 103.50 Lisansüstü | 84.05 Lisans
+	style 22.0 Doğal İnsan Metni [PredicateRepetition,RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":96,"mean_sentence_length":19.2,"std_dev_sentence_length":10.2,"coefficient_of_variation":0.53,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":2,"mektedir_ratio":0.4},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> SONUÇ : Yukarıda açıklanan nedenlerle davalının temyiz isteminin mahkeme hükmünü
+	sentences 5 words 67 syllables 215 unfamiliar 21 fiilimsi 9 complex 4 polysyllabic 49
+	atesman 34.93 Zor (9 ve 10. Sınıf) | cetinkaya 22.42 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 31.30 Üniversite ve Akademik Düzey
+	kalyoncu 99.88 Lisansüstü | 93.30 Lisansüstü | 92.22 Lisansüstü | 83.32 Lisans
+	style 16.0 Doğal İnsan Metni [PunctuationAnomaly] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":2},"rhythm":{"total_sentences":5,"total_words":71,"mean_sentence_length":14.2,"std_dev_sentence_length":3.3,"coefficient_of_variation":0.24,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Bölgesinin nazım imar planı niteliğini taşıyan 1/5000 ölçekli planının bulunmadı
+	sentences 5 words 112 syllables 342 unfamiliar 25 fiilimsi 18 complex 5 polysyllabic 73
+	atesman 17.68 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 17.72 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 38.21 Üniversite ve Akademik Düzey
+	kalyoncu 108.08 Lisansüstü | 90.66 Lisansüstü | 91.11 Lisansüstü | 79.85 Lisans
+	style 22.0 Doğal İnsan Metni [BureaucraticConnector,RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":121,"mean_sentence_length":24.2,"std_dev_sentence_length":10.4,"coefficient_of_variation":0.43,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Somut olayda dava açıldıktan sonra yapılan yasal düzenleme nedeniyle davada haks
+	sentences 5 words 90 syllables 266 unfamiliar 26 fiilimsi 18 complex 5 polysyllabic 57
+	atesman 33.11 Zor (9 ve 10. Sınıf) | cetinkaya 24.54 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 33.76 Üniversite ve Akademik Düzey
+	kalyoncu 104.49 Lisansüstü | 89.44 Lisansüstü | 90.92 Lisansüstü | 83.72 Lisans
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":97,"mean_sentence_length":19.4,"std_dev_sentence_length":10.2,"coefficient_of_variation":0.53,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Davacının paydaşı bulunduğu kooperatifin kayıtlarını otobüs plakalarına göre düz
+	sentences 5 words 104 syllables 336 unfamiliar 25 fiilimsi 22 complex 5 polysyllabic 69
+	atesman 14.74 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 14.67 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 37.15 Üniversite ve Akademik Düzey
+	kalyoncu 116.39 Lisansüstü | 95.22 Lisansüstü | 98.02 Lisansüstü | 80.58 Lisans
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":105,"mean_sentence_length":21.0,"std_dev_sentence_length":7.0,"coefficient_of_variation":0.33,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+> Bu duruma göre, bir memur hakkında il veya ilçe idare kurulunca verilen ve kamu 
+	sentences 5 words 130 syllables 407 unfamiliar 29 fiilimsi 21 complex 5 polysyllabic 88
+	atesman 5.19 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 12.22 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 41.95 Üniversite ve Akademik Düzey
+	kalyoncu 96.28 Lisansüstü | 86.57 Lisansüstü | 87.02 Lisansüstü | 82.08 Lisans
+	style 54.0 Belirgin AI / Makine Dokunuşu [BureaucraticConnector,PredicateRepetition,RhythmMonotony,RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":133,"mean_sentence_length":26.6,"std_dev_sentence_length":6.0,"coefficient_of_variation":0.23,"short_sentences_count":0,"long_sentences_count":2,"is_low_burstiness":true},"predicates":{"total_predicates":5,"mektedir_count":2,"mektedir_ratio":0.4},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}

@@ -313,6 +313,14 @@ fails on any further input change, so each change is recorded on purpose
   vowel-dropped to `alnında`), which also removes the rule's cost on long tokens; a merged
   question particle is split after a name (`Ahmetmi`, `Türkiye'denmi`) and at the start of a
   sentence (`Varmı?`). `tests/data/grammar_recall.tsv` pins the exact corrections.
+- Readability: a paragraph's number or letter alone is no sentence (court decisions number
+  their paragraphs); the familiarity list is read without circumflexes (`hikaye` and `hikâye`
+  are familiar alike), and a postposition or adverb is familiar by the noun it is spelled
+  from (`tarafından`, `içinde`); a plural verbal noun is no fiilimsi (`ödemelerin`); a text
+  with no word gets "Yetersiz metin (sözcük yok)" and 0 instead of confident grades, and the
+  reported Ateşman score stays within 0-100. The disambiguator, and readability with it, is
+  linear on long runs of adjectives without a noun or a sentence end (`Ali` × 16,000 took
+  27 s).
 - `extract_keywords` returns the same keywords on every call (ties are in text order before
   `top_k` cuts), and a number's suffixes are no keyword (`1923'te`).
 - The dependency parser, the readability metrics and the syntactic analyzer share one

@@ -297,3 +297,28 @@ fn dotted_abbreviation_runs() {
     assert_linear("A. sentences", 8_000, |n| "A. ".repeat(n), segment);
     assert_linear("ellipsis", 8_000, |n| "... 'nin ".repeat(n), segment);
 }
+
+#[test]
+fn disambiguator_on_adjective_runs() {
+    // Every word that can be an adjective looked ahead over the whole run for a noun head, and
+    // every word for the sentence's end: "Ali " × 16,000 took 27 s in readability (review 3
+    // STYLE3-07).
+    let disambiguator = akana_core::morphology::MorphologicalDisambiguator::new();
+    assert_linear(
+        "Ali Ali …",
+        1_000,
+        |n| "Ali ".repeat(n),
+        |t| {
+            let tokens: Vec<&str> = t.split_whitespace().collect();
+            disambiguator.disambiguate(&tokens);
+        },
+    );
+    assert_linear(
+        "readability of Ali Ali …",
+        1_000,
+        |n| "Ali ".repeat(n),
+        |t| {
+            akana_core::readability::analyze_readability(t);
+        },
+    );
+}
