@@ -297,3 +297,14 @@ def test_hybrid_alpha_must_be_a_number():
         with pytest.raises(ValueError):
             akana.Embeddings().distance_hybrid(bytes(128), bytes(128), bad)
     assert akana.get_hybrid_metric_alpha() == before
+
+
+def test_mask_returns_the_vault_it_was_given():
+    """Review 4 BIND4-06: mask(vault=v) fills v and returns it, not a copy."""
+    engine = akana.TurkishPiiEngine()
+    vault = akana.PiiVault()
+    first = engine.mask("Ahmet Yılmaz geldi.", vault=vault)
+    assert first["vault"] is vault
+    second = engine.mask("Ahmet Yılmaz gitti.", vault=vault)
+    assert second["vault"] is vault
+    assert second["masked_text"].split()[0] == first["masked_text"].split()[0]

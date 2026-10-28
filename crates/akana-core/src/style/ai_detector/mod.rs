@@ -22,8 +22,9 @@
 //! Zemberek lexicon, the Ateşman formula, the embedding tokenizer) changes the model's inputs.
 //! Two tests guard them: `outputs_match_training_reference` pins every input to the training
 //! code's values on a committed sample (`tests/data/ai_detector_reference.json`), and
-//! `inputs_match_drift_canary` pins them on 100 court paragraphs and fingerprints the lexicon
-//! word sets (`tests/data/ai_detector_canary.jsonl`), so that every input change is recorded on
+//! `inputs_match_drift_canary` pins them on 100 court paragraphs and 48 paragraphs of other
+//! shapes (`tests/data/ai_detector_canary_texts.txt`), alone and in fours, and fingerprints the
+//! lexicon word sets (`tests/data/ai_detector_canary.jsonl`), so that every input change is recorded on
 //! purpose and the retrain planned with it.
 //!
 //! The embedded data (`data/ai_detector/model.json`, `data/ai_detector/tokens.bin.zz`, formats

@@ -1858,11 +1858,20 @@ impl PyTurkishPiiEngine {
             _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
         };
 
-        let vault: Option<&PyPiiVault> = vault.as_deref();
+        let shared: Option<&PyPiiVault> = vault.as_deref();
         let (result, offsets) = release(py, || {
             let engine = self.inner.get();
-            let result = match vault {
-                Some(v) => engine.mask_with_vault(text, pii_mode, &mut locked(&v.inner)),
+            let result = match shared {
+                // The text is read before the vault is taken (review 4 BIND4-06).
+                Some(v) => {
+                    let entities = engine.detect(text);
+                    akana_core::pii::TurkishPiiEngine::mask_detected(
+                        text,
+                        entities,
+                        pii_mode,
+                        &mut locked(&v.inner),
+                    )
+                }
                 None => engine.mask(text, pii_mode),
             };
             let offsets = entity_char_offsets(&result.original_text, &result.entities);
@@ -1904,7 +1913,11 @@ impl PyTurkishPiiEngine {
             ent_list.append(ent_dict)?;
         }
         dict.set_item("entities", ent_list)?;
-        dict.set_item("vault", Py::new(py, PyPiiVault::new_with(result.vault))?)?;
+        // The vault passed in, itself (review 4 BIND4-06); a new one otherwise.
+        match vault {
+            Some(v) => dict.set_item("vault", v.into_py(py))?,
+            None => dict.set_item("vault", Py::new(py, PyPiiVault::new_with(result.vault))?)?,
+        }
 
         Ok(dict)
     }

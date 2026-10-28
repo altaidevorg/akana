@@ -633,17 +633,27 @@ impl OrthographyRuleEngine {
             // "gelmişde") or on a word in a case ("ulaştığınıda", "evede"): only on a word the
             // analyser does not know, whose stem is a finite verb or case-marked. A word that has
             // a reading (kararda, altında, bulunduğunda) is a locative.
-            // A word in capitals is no name (ALİ GİTTİDE GELDİ; review 3 GRAM3-06), and a
-            // lower-case word with its suffix after an apostrophe right after a capitalised one
-            // is part of a name (Rossii po futbolu'da; review 3 GRAM3-01).
-            let name_inside_sentence = i > 0
-                && !matches!(tokens[i - 1], "." | "!" | "?" | "…")
-                && tok.chars().next().is_some_and(char::is_uppercase)
-                && tok.chars().any(char::is_lowercase);
-            let name_continues = i > 1
-                && tok.contains(['\'', '’'])
-                && tokens[i - 1].chars().next().is_some_and(char::is_uppercase)
-                && !matches!(tokens[i - 2], "." | "!" | "?" | "…");
+            // A word in capitals is no name (ALİ GİTTİDE GELDİ; review 3 GRAM3-06); a capitalised
+            // one inside a sentence is, but not at its start, where a merged clitic often stands
+            // before a name (Gerçektende Konya: eight GECTurk errors). A lower-case word with
+            // its suffix after an
+            // apostrophe continues a foreign name when one of the three words before it in its
+            // sentence is a capitalised word the analyzer does not know (Rossii po futbolu'da),
+            // not after a known name (Dün Ayşe bunu'da yaptı) (review 3 GRAM3-01, review 4
+            // DOWN4-11).
+            let sentence_end = |w: &str| matches!(w, "." | "!" | "?" | "…");
+            let title = |w: &str| {
+                w.chars().next().is_some_and(char::is_uppercase)
+                    && w.chars().any(char::is_lowercase)
+            };
+            let name_inside_sentence = title(tok) && i > 0 && !sentence_end(tokens[i - 1]);
+            let name_continues = tok.contains(['\'', '’'])
+                && (1..=3)
+                    .map_while(|back| i.checked_sub(back).map(|k| tokens[k]))
+                    .take_while(|&w| !sentence_end(w))
+                    .any(|w| {
+                        w.chars().next().is_some_and(char::is_uppercase) && !is_known(morphology, w)
+                    });
             if rules.contains(GrammarRule::DeDaAfterVerb)
                 && !name_inside_sentence
                 && !name_continues

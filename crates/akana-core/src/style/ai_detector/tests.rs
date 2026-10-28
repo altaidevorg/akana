@@ -104,10 +104,11 @@ fn sections_cover_long_texts_only() {
 #[test]
 fn label_colons_are_linear_in_a_line() {
     // Each colon looked through every sentence start of its line: colons × sentences. Four
-    // times the line may take at most 9× as long (linear 4×, the old loop 16×); best of five,
-    // as the other tests of the crate run beside it.
+    // times the line may take at most 12× as long (linear 4×, the old loop 16×); best of nine,
+    // as the other tests of the crate run beside it (9× and best of five failed under load;
+    // review 3 BIND3-10).
     let time = |text: &str| {
-        (0..5)
+        (0..9)
             .map(|_| {
                 let t = std::time::Instant::now();
                 assert!(super::morph::label_colon_counts(text).0 > 0);
@@ -119,7 +120,7 @@ fn label_colons_are_linear_in_a_line() {
     time(&small);
     let (t_small, t_large) = (time(&small), time(&large));
     assert!(
-        t_large <= 9.0 * t_small.max(1e-6),
+        t_large <= 12.0 * t_small.max(1e-6),
         "{t_small:.4} s → {t_large:.4} s"
     );
 }
@@ -254,9 +255,14 @@ fn rebaseline_training_reference() {
 }
 
 /// The drift canary's source: paragraphs of [`CANARY_SENTENCES`] consecutive sentences of the
-/// grammar gate's court corpus (CC0), so the canary needs no text of its own.
+/// grammar gate's court corpus (CC0), then [`CANARY_SHAPES`]' paragraphs, alone and in fours
+/// (most of one alone are too short for a verdict).
 const CANARY_SOURCE: &str = include_str!("../../../tests/data/grammar_clean_court.txt");
 const CANARY_SENTENCES: usize = 15;
+/// Paragraphs written for the canary in the shapes court text lacks, whose inputs are 0 on every
+/// court paragraph: questions, exclamations, ellipses, openers and closers, first and second
+/// persons, assistant-style answers, initials, Roman ordinals (review 4 DOWN4-05).
+const CANARY_SHAPES: &str = include_str!("../../../tests/data/ai_detector_canary_texts.txt");
 const CANARY_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/data/ai_detector_canary.jsonl"
@@ -267,10 +273,23 @@ fn canary_texts() -> Vec<String> {
         .lines()
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
         .collect();
-    lines
+    let mut texts: Vec<String> = lines
         .chunks(CANARY_SENTENCES)
         .map(|c| c.join(" "))
-        .collect()
+        .collect();
+    let shapes: Vec<String> = CANARY_SHAPES
+        .split("\n\n")
+        .map(|p| {
+            p.lines()
+                .filter(|l| !l.starts_with('#'))
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .filter(|p| !p.trim().is_empty())
+        .collect();
+    texts.extend(shapes.iter().cloned());
+    texts.extend(shapes.chunks(4).map(|group| group.join(" ")));
+    texts
 }
 
 /// A fingerprint of the word sets the detector reads from the shared lexicon ([`super::morph`]'s
@@ -352,11 +371,14 @@ fn canary_drift(old: &[CanaryRow], new: &[CanaryRow]) -> (usize, usize, f64) {
     (moved, verdicts, max_dp)
 }
 
-/// Pins the detector's inputs on 100 committed court paragraphs, and the lexicon word sets it
-/// reads (review 3 STYLE3-01). The model was trained on fixed inputs, and the 45-row training
-/// reference above sees few of the shared-code changes that move them: since review 2 the
-/// inputs moved on 55 % of a 1,928-text sample while it noticed 4 rows. This test fails on any
-/// such change, so it is recorded on purpose with
+/// Pins the detector's inputs on 100 committed court paragraphs and 48 of other shapes, alone
+/// and in 12 groups of four, and the lexicon word sets it reads (review 3 STYLE3-01, review 4 DOWN4-05).
+/// The model was trained on
+/// fixed inputs, and the 45-row training reference above sees few of the shared-code changes
+/// that move them: since review 2 the inputs moved on 55 % of a 1,928-text sample while it
+/// noticed 4 rows. This test fails on a change that moves an input on one of these texts, or
+/// the word sets; one that moves inputs only on texts unlike all of them passes. A change is
+/// recorded on purpose with
 /// `AKANA_AI_DETECTOR_CANARY="<why>" cargo test -p akana-core --lib -- --ignored
 /// rewrite_drift_canary`, and the model's retrain is planned with it.
 #[test]
@@ -404,8 +426,9 @@ fn rewrite_drift_canary() {
     let head = CanaryHead {
         about: "The AI-text detector's 75 inputs (x, model input order), probability (p) and \
                 verdict on paragraphs of 15 consecutive sentences of grammar_clean_court.txt \
-                (CC0), computed by the Rust implementation, and a fingerprint of the lexicon word \
-                sets it reads. A drift canary (style::ai_detector::tests::inputs_match_drift_canary), \
+                (CC0) and the paragraphs of ai_detector_canary_texts.txt, alone and in fours, \
+                computed by the Rust implementation, and a fingerprint of the lexicon word sets \
+                it reads. A drift canary (style::ai_detector::tests::inputs_match_drift_canary), \
                 not training-code parity: history records each deliberate input change."
             .to_string(),
         lexicon_sets: sets,

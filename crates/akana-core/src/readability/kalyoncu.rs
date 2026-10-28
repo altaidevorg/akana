@@ -89,6 +89,15 @@ impl KalyoncuAnalyzer {
                 if lower.chars().all(|c| !c.is_alphabetic()) {
                     continue;
                 }
+                // A letter with its period (a heading's A., an abbreviation's s.) is no word
+                // (review 4 DOWN4-13).
+                let mut chars = lower.chars();
+                if let (Some(letter), Some('.'), None) = (chars.next(), chars.next(), chars.next())
+                {
+                    if letter.is_alphabetic() {
+                        continue;
+                    }
+                }
 
                 sent_word_count += 1;
                 total_words += 1;
@@ -177,6 +186,8 @@ impl KalyoncuAnalyzer {
                 complex_sentences += 1;
             }
         }
+        // No text has no sentence (review 4 DOWN4-13); the ratios divide by one at least.
+        let reported_sentences = total_sentences;
         let total_sentences = total_sentences.max(1);
 
         let total_words_safe = total_words.max(1);
@@ -192,7 +203,7 @@ impl KalyoncuAnalyzer {
         let polysyllabic_word_ratio = (polysyllabic_words as f64 / total_words_safe as f64) * 100.0;
 
         TextStatistics {
-            total_sentences,
+            total_sentences: reported_sentences,
             total_words,
             total_syllables,
             words_per_sentence,
@@ -238,10 +249,15 @@ impl KalyoncuAnalyzer {
         let f4_score = 43.368 + (1.008 * kl) + (0.624 * ocu);
         let f4_grade = Self::grade_formula_4(f4_score);
 
-        // Without a word every formula grades the empty statistics (review 2 READ-05).
+        // Without a word every formula grades the empty statistics (review 2 READ-05). The
+        // formulas are linear regressions fitted on ordinary texts, so a score is no
+        // percentage: K1 exceeds 100 on ordinary court paragraphs and is reported so. Below 0 a
+        // score means nothing (an 8,000-word sentence gave K1 -5,236, its sentence-length term
+        // extrapolated) and is reported as 0; the grades are those of the unclamped scores
+        // (review 4 DOWN4-13).
         let no_text = stats.total_words == 0;
         let grade = |g: &'static str| if no_text { super::metrics::NO_TEXT } else { g };
-        let score = |s: f64| if no_text { 0.0 } else { s };
+        let score = |s: f64| if no_text { 0.0 } else { s.max(0.0) };
         let (f1_grade, f2_grade, f3_grade, f4_grade) = (
             grade(f1_grade),
             grade(f2_grade),

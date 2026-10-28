@@ -16,6 +16,7 @@ pub mod gazetteer;
 mod ids;
 pub mod morphology;
 mod names;
+pub(crate) use names::is_given_name;
 #[rustfmt::skip]
 mod names_data;
 mod normalize;
@@ -376,6 +377,18 @@ impl TurkishPiiEngine {
     /// Reuses existing placeholders for recurrent values and assigns sequential counters across conversation turns.
     pub fn mask_with_vault(&self, text: &str, mode: PiiMode, vault: &mut PiiVault) -> PiiResult {
         let entities = self.detect(text);
+        Self::mask_detected(text, entities, mode, vault)
+    }
+
+    /// [`mask_with_vault`](Self::mask_with_vault) with the entities [`detect`](Self::detect)
+    /// found in `text`, so that a vault shared between threads is held only while the values
+    /// are registered, not while the text is read (review 4 BIND4-06).
+    pub fn mask_detected(
+        text: &str,
+        entities: Vec<PiiEntity>,
+        mode: PiiMode,
+        vault: &mut PiiVault,
+    ) -> PiiResult {
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 

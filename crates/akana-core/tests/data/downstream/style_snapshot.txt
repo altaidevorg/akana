@@ -4,9 +4,9 @@
 	kalyoncu 104.88 Lisansüstü | 122.16 Lisansüstü | 121.55 Lisansüstü | 78.22 Lisans
 	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":9,"mean_sentence_length":3.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":3,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > A. Olaylar. B. Değerlendirme. Başvuru reddedildi.
-	sentences 3 words 6 syllables 16 unfamiliar 2 fiilimsi 0 complex 0 polysyllabic 4
-	atesman 86.47 Kolay (5 ve 6. Sınıf) | cetinkaya 47.58 Öğretim Düzeyi (9 ve 12. Sınıf) | bezirci 11.55 Ortaokul Düzeyi
-	kalyoncu 104.88 Lisansüstü | 122.16 Lisansüstü | 121.55 Lisansüstü | 78.22 Lisans
+	sentences 3 words 4 syllables 15 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 4
+	atesman 44.69 Zor (9 ve 10. Sınıf) | cetinkaya 20.08 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 11.55 Ortaokul Düzeyi
+	kalyoncu 88.39 Lisansüstü | 92.70 Lisansüstü | 93.75 Lisansüstü | 44.20 3 ve 4. Sınıf
 	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":3,"total_words":6,"mean_sentence_length":2.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":3,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > Hikâye güzel. Kâğıt aldım. İmkân var.
 	sentences 3 words 6 syllables 12 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 1
@@ -39,17 +39,17 @@
 	kalyoncu 124.93 Lisansüstü | 92.81 Lisansüstü | 93.67 Lisansüstü | 52.53 5 ve 6. Sınıf
 	style 8.0 Doğal İnsan Metni [InflatedHedging] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":1},"rhythm":{"total_sentences":3,"total_words":23,"mean_sentence_length":7.7,"std_dev_sentence_length":7.0,"coefficient_of_variation":0.92,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":3,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > ... !!! ???
-	sentences 1 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
+	sentences 0 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
 	atesman 0.00 Yetersiz metin (sözcük yok) | cetinkaya 0.00 Yetersiz metin (sözcük yok) | bezirci 0.00 Yetersiz metin (sözcük yok)
 	kalyoncu 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok)
 	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":1,"total_words":0,"mean_sentence_length":0.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":0,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > 123 456 789
-	sentences 1 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
+	sentences 0 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
 	atesman 0.00 Yetersiz metin (sözcük yok) | cetinkaya 0.00 Yetersiz metin (sözcük yok) | bezirci 0.00 Yetersiz metin (sözcük yok)
 	kalyoncu 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok)
 	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":1,"total_words":3,"mean_sentence_length":3.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":0,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > 
-	sentences 1 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
+	sentences 0 words 0 syllables 0 unfamiliar 0 fiilimsi 0 complex 0 polysyllabic 0
 	atesman 0.00 Yetersiz metin (sözcük yok) | cetinkaya 0.00 Yetersiz metin (sözcük yok) | bezirci 0.00 Yetersiz metin (sözcük yok)
 	kalyoncu 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok) | 0.00 Yetersiz metin (sözcük yok)
 	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":0,"total_words":0,"mean_sentence_length":0.0,"std_dev_sentence_length":0.0,"coefficient_of_variation":0.0,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":0,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}

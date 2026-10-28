@@ -61,6 +61,27 @@ struct Lexicon {
     collisions: HashSet<String>,
 }
 
+lazy_static! {
+    /// The curated Turkish given names, without places and the names more often something
+    /// else (RARE_NAMES): no analysis is needed to build it, as the PII lexicon's is.
+    static ref PERSON_GIVEN_NAMES: HashSet<String> = {
+        let rare: HashSet<String> = with_ascii(RARE_NAMES.iter().copied()).into_iter().collect();
+        GIVEN_NAMES
+            .iter()
+            .cloned()
+            .chain(with_ascii(COMMON_GIVEN_NAMES.iter().copied()))
+            .filter(|n| !rare.contains(n) && !PROVINCES.contains(n) && !DISTRICTS.contains(n))
+            .collect()
+    };
+}
+
+/// Whether `lower` (lower-cased) is a Turkish given name that is a person's more than a
+/// place's (Ahmet, Mustafa, Deniz; not Ankara or Güneş): the dependency parser's test for a
+/// person's name (review 4 DOWN4-07).
+pub(crate) fn is_given_name(lower: &str) -> bool {
+    PERSON_GIVEN_NAMES.contains(lower)
+}
+
 fn with_ascii<'a>(items: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     let mut out = Vec::new();
     for item in items {

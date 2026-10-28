@@ -183,13 +183,18 @@ different results.
 
 **Dependency trees.** `parse_conllu`, `analyze()` and `TurkishDependencyParser` give other
 trees, closer to UD Turkish: on the UD Turkish test splits (`scripts/parser_ud_eval.py`) UAS
-rose from 48.5 to 55.8 and LAS from 34.8 to 41.7.
-- `değil` is the copula (`AUX`, `cop`) of the nominal before it, which is the root: `Ali
-  öğretmen değil .` is rooted in `öğretmen`.
+rose from 48.5 to 55.9 and LAS from 34.8 to 41.9.
+- `değil` negates the nominal before it, which is the predicate (`AUX`, `aux`, as the UD
+  Turkish test splits label it 189 times against 27 `cop`): `Ali öğretmen değil .` is rooted
+  in `öğretmen`, and in each conjunct so (`Sanık suçlu değil , masumdur .` is rooted in
+  `suçlu`).
 - Clauses joined by a comma or a conjunction are conjuncts: the first predicate is the root
   and heads the others (`conj`), and each word attaches to its own clause's predicate.
 - New relations: `compound` for a bare noun before a light verb (`karar verdi`, `tebliğ
-  edildi`), `nummod`, and `flat` for the later words of a name (`Ahmet Yılmaz'ın`). A
+  edildi`, also passive, as the UD treebanks have it), `nummod`, and `flat` for the
+  later words of a name (`Ahmet Yılmaz'ın`, `Mustafa Kemal Atatürk`): names side by side
+  join up to a word with a case, which joins only a person's name, so `Ankara Türkiye'nin
+  başkentidir` has two. A
   participle the dictionary lists as an adjective (`gelen`) is a `VERB` `acl`, and a modifier
   reaches its noun past determiners and adjectives (`Bilinmeyen bir sebeple`).
 
@@ -197,8 +202,11 @@ rose from 48.5 to 55.8 and LAS from 34.8 to 41.7.
 segmenter, so this release moves some of its inputs on most texts: `oov_rate` and the
 sentence statistics. On a 1,928-text sample no verdict changed and the probability moved
 by at most 0.034. The model will be retrained on this release's inputs. A drift canary now
-fails on any further input change, so each change is recorded on purpose
-(`tests/data/ai_detector_canary.jsonl`).
+records the inputs on 160 texts (court paragraphs, and questions, exclamations, ellipses,
+assistant-style answers and other shapes court text lacks) and the lexicon word sets, and
+fails when one moves, so each such change is recorded on purpose
+(`tests/data/ai_detector_canary.jsonl`); a change that moves inputs only on texts unlike all of
+them passes it.
 
 ### Added
 
@@ -418,20 +426,28 @@ fails on any further input change, so each change is recorded on purpose
   no longer turns it into a name or an abbreviation (`Bu` stayed `Bu`, it gave `Bü`; `Cocuk`
   gives `Çocuk`, not `Çoçuk`); a capitalised word that is a name stays as it is (`Ali`,
   `Michael`); a capital I may be İ (`KITAP`: `KİTAP`, `Istanbul`: `İstanbul`); a word that
-  already has Turkish letters and reads is left alone, so the function is idempotent.
+  already has Turkish letters and reads, or has them in capitals, is left alone, İ among them
+  (`AİHM`, `İSKİ`, `İnsan`, which gave `AIHM`, `IŞKI`, `İnşan`), so the function is
+  idempotent; so is a word with a capital after a small letter (`iPhone`, `McDonald`).
 - Grammar: the de/da rule writes `onu da` for `onu'da` (it kept the apostrophe), cases the
   clitic like the word (`KİTABI DA`) and checks words written in capitals; a genitive with -da
   written on it is split again unless a frequent word of another root is one letter away
   (`ülkeninde`, `seninde`, `dosyanında` are split; `aranında`, `alınında` are not, nor
   vowel-dropped to `alnında`), which also removes the rule's cost on long tokens; a merged
   question particle is split after a name (`Ahmetmi`, `Türkiye'denmi`) and at the start of a
-  sentence (`Varmı?`). `tests/data/grammar_recall.tsv` pins the exact corrections.
+  sentence (`Varmı?`). A lower-case word with the clitic after an apostrophe is left alone
+  as part of a foreign name only when an unknown capitalised word stands within three words
+  before it (`Rossii po futbolu'da`), not after a known name (`Dün Ayşe bunu'da`: `bunu
+  da`). `tests/data/grammar_recall.tsv` pins the exact corrections.
 - Readability: a paragraph's number or letter alone is no sentence (court decisions number
   their paragraphs); the familiarity list is read without circumflexes (`hikaye` and `hikâye`
   are familiar alike), and a postposition or adverb is familiar by the noun it is spelled
   from (`tarafından`, `içinde`); a plural verbal noun is no fiilimsi (`ödemelerin`); a text
-  with no word gets "Yetersiz metin (sözcük yok)" and 0 instead of confident grades, and the
-  reported Ateşman score stays within 0-100. The disambiguator, and readability with it, is
+  with no word gets "Yetersiz metin (sözcük yok)", 0 instead of confident grades and no
+  sentence; a letter with its period (a heading's `A.`, `s.`) is no word; the reported
+  Ateşman score stays within 0-100, and a Kalyoncu score is never below 0 (an 8,000-word
+  sentence gave K1 -5,236; the four are linear regressions, so K1 exceeds 100 on ordinary
+  court text and is reported so). The disambiguator, and readability with it, is
   linear on long runs of adjectives without a noun or a sentence end (`Ali` × 16,000 took
   27 s).
 - The hybrid metric's alpha: NaN made every hybrid distance NaN. In Python a NaN or infinite

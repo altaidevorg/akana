@@ -96,11 +96,31 @@ impl TurkishDeasciifier {
             };
         }
 
-        // A word that already has Turkish letters and reads is as its writer meant it: olduğu
-        // is no öldüğü, and the output of this function stays as it is (review 3 NORM3-02).
+        // A word that already has Turkish letters, İ among them, and reads, or is written in
+        // capitals, is as its writer meant it: olduğu is no öldüğü, AİHM no AIHM, İSKİ no IŞKI,
+        // and the output of this function stays as it is (review 3 NORM3-02, review 4
+        // DOWN4-12). So is a word with a capital after a small letter (iPhone, McDonald), a
+        // name as written; a word in capitals with its suffix (ISTANBUL'da) is not one.
         let turkish_letter = |c: char| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı');
-        if lower.chars().any(turkish_letter) && !GLOBAL_MORPHOLOGY.analyze_standard(word).is_empty()
+        // Read in the word as written: a capital I lowers to ı and says nothing (KITAP).
+        let written_turkish = word
+            .chars()
+            .any(|c| turkish_letter(c) || matches!(c, 'Ç' | 'Ğ' | 'Ş' | 'Ö' | 'Ü' | 'İ'));
+        if written_turkish && (is_all_upper || !GLOBAL_MORPHOLOGY.analyze_standard(word).is_empty())
         {
+            return word.to_string();
+        }
+        let mut letters = word.chars();
+        let camel = letters.next().is_some_and(|first| {
+            letters
+                .scan(first, |before, c| {
+                    let lower_then_upper = before.is_lowercase() && c.is_uppercase();
+                    *before = c;
+                    Some(lower_then_upper)
+                })
+                .any(|x| x)
+        });
+        if camel {
             return word.to_string();
         }
         // So is a capitalised word that is a name as written (Ali, Michael, Chicago): its

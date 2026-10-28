@@ -107,7 +107,7 @@ impl TurkishDependencyParser {
                     PrimaryPos::Postp | PrimaryPos::Conj | PrimaryPos::Det
                 )
         };
-        let mut root_idx = (0..n)
+        let root_idx = (0..n)
             .rev()
             .filter(content)
             .find(|&i| predicate(&disambiguated[i]))
@@ -115,8 +115,10 @@ impl TurkishDependencyParser {
             .or_else(|| (0..n).rev().find(content))
             .or_else(|| (0..n).find(|&i| !punct(i)))
             .unwrap_or(0);
-        // değil is the copula of the nominal before it, which is the root (UD Turkish: "Ali
-        // öğretmen değil ." is rooted in öğretmen, değil AUX cop).
+        // değil after a nominal negates it, and the nominal is the predicate of its clause, in
+        // each conjunct (UD Turkish: "Ali öğretmen değil ." is rooted in öğretmen, değil AUX
+        // aux, as the test splits label it 189 times against 27 cop; "Sanık suçlu değil,
+        // masumdur." is rooted in suçlu; review 4 DOWN4-06).
         let copula = |i: usize| {
             i > 0
                 && disambiguated[i].lemma == "değil"
@@ -126,10 +128,7 @@ impl TurkishDependencyParser {
                 )
                 && !punct(i - 1)
         };
-        let negated = copula(root_idx).then_some(root_idx);
-        if let Some(d) = negated {
-            root_idx = d - 1;
-        }
+        let nominal = |k: usize| if copula(k) { k - 1 } else { k };
         // Coordinated clauses: a finite predicate before the root, followed by a comma or a
         // conjunction, is a conjunct; the first conjunct heads the others (UD conj; review 3
         // PARSER3-04). Each word attaches to the predicate of its own clause.
@@ -138,23 +137,25 @@ impl TurkishDependencyParser {
                 && (matches!(tokens[k + 1], "," | ";")
                     || disambiguated[k + 1].pos == PrimaryPos::Conj)
         };
-        let mut conjuncts: Vec<usize> = (0..root_idx)
+        // Where each clause ends: its predicate, or the değil after it.
+        let mut ends: Vec<usize> = (0..root_idx)
             .filter(|&k| content(&k) && predicate(&disambiguated[k]) && clause_end(k))
             .collect();
-        conjuncts.push(root_idx);
+        ends.push(root_idx);
+        let negated: Vec<usize> = ends.iter().copied().filter(|&k| copula(k)).collect();
+        let conjuncts: Vec<usize> = ends.iter().map(|&k| nominal(k)).collect();
+        let root_idx = nominal(root_idx);
         let first = conjuncts[0];
         let clause_of = |i: usize| {
-            conjuncts
-                .iter()
+            ends.iter()
                 .copied()
                 .find(|&k| k >= i)
-                .unwrap_or(root_idx)
+                .map_or(root_idx, nominal)
         };
         // The first word of a word's clause: past the comma or conjunction after the previous
         // conjunct.
         let clause_start = |i: usize| {
-            conjuncts
-                .iter()
+            ends.iter()
                 .rev()
                 .find(|&&k| k < i)
                 .map_or(0, |&k| (k + 2).min(i))
@@ -175,6 +176,7 @@ impl TurkishDependencyParser {
             }
             (j < n && matches!(disambiguated[j].pos, PrimaryPos::Noun)).then_some(j)
         };
+        let passive = |k: usize| disambiguated[k].morpheme_tags.iter().any(|t| t == "Pass");
         // A participle the dictionary lists as an adjective (gelen, geçen, bilinen) is still a
         // relative clause in UD: VERB acl.
         let lexical_participle = |p: &MorphParse| {
@@ -200,7 +202,7 @@ impl TurkishDependencyParser {
             // UD: infinitives, participles and converbs are VERB (with a VerbForm).
             let upos = match parse.pos {
                 _ if punct(i) => "PUNCT",
-                _ if negated == Some(i) => "AUX",
+                _ if negated.contains(&i) => "AUX",
                 _ if form_of_verb.is_some() || lexical_part => "VERB",
                 PrimaryPos::Noun => {
                     if parse.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun {
@@ -234,9 +236,9 @@ impl TurkishDependencyParser {
             if i == root_idx {
                 head = 0;
                 deprel = "root".to_string();
-            } else if negated == Some(i) {
+            } else if negated.contains(&i) {
                 head = i;
-                deprel = "cop".to_string();
+                deprel = "aux".to_string();
             } else if conjuncts.contains(&i) {
                 head = root_idx + 1;
                 deprel = "conj".to_string();
@@ -362,18 +364,16 @@ impl TurkishDependencyParser {
                 {
                     // A bare noun right before a light verb is a compound with it (karar ver-,
                     // söz et-): UD Turkish's compound, the commonest relation the parser never
-                    // gave (review 3 PARSER3-07).
+                    // gave (review 3 PARSER3-07). So it is before a passive one too (karar
+                    // verildi): the UD treebanks have compound 646 times there, nsubj 143.
                     head = i + 2;
                     deprel = "compound".to_string();
                 } else if bare && next_is_verb && !capitalised {
                     // Before another verb it is that verb's subject when the verb is passive
-                    // (karar açıklandı) and its object otherwise (kitap okudu).
-                    let passive = disambiguated[i + 1]
-                        .morpheme_tags
-                        .iter()
-                        .any(|t| t == "Pass");
+                    // (karar açıklandı; UD: nsubj 264 of 545) and its object otherwise (kitap
+                    // okudu).
                     head = i + 2;
-                    deprel = if passive { "nsubj" } else { "obj" }.to_string();
+                    deprel = if passive(i + 1) { "nsubj" } else { "obj" }.to_string();
                 } else {
                     // Nominative subject or object
                     // by its place in its own clause
@@ -400,17 +400,38 @@ impl TurkishDependencyParser {
             });
         }
 
-        // A name of several words (Ahmet Yılmaz'ın) is one: its first word heads it with the
-        // relation the last word's case gives, and the others are flat (UD; review 3
-        // PARSER3-07).
+        // A name of several words (Ahmet Yılmaz'ın, Piri Reis) is one: its first word heads it
+        // with the relation the last word's case gives, and the others are flat (UD; review 3
+        // PARSER3-07). Names side by side join up to a word with a case, which joins only a
+        // person's name, one that starts with a given name: Ankara Türkiye'nin başkentidir has
+        // two (review 4 DOWN4-07). Joining only people's names lost 124 of the 159 right flat
+        // arcs on the UD test splits, which use flat for every name of several words.
         let name = |i: usize| {
             disambiguated[i].secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun
                 && !punct(i)
         };
+        let given = |i: usize| {
+            name(i)
+                && crate::pii::is_given_name(&crate::phonology::to_turkish_lower(
+                    &disambiguated[i].lemma,
+                ))
+        };
+        let inflected = |i: usize| {
+            tokens[i].contains(['\'', '’'])
+                || disambiguated[i]
+                    .morpheme_tags
+                    .iter()
+                    .any(|t| matches!(t.as_str(), "Gen" | "Acc" | "Dat" | "Loc" | "Abl" | "Ins"))
+        };
         let mut a = 0;
         while a < n {
             let mut b = a;
-            while b + 1 < n && name(a) && name(b + 1) {
+            while b + 1 < n
+                && name(a)
+                && name(b + 1)
+                && !inflected(b)
+                && (given(a) || !inflected(b + 1))
+            {
                 b += 1;
             }
             if b > a && a != first && !(a + 1..=b).contains(&first) {

@@ -223,7 +223,7 @@
 # Ali öğretmen değil .
 1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	2	nsubj
 2	öğretmen	öğretmen	NOUN	Noun	Noun|A3sg|Nom	0	root
-3	değil	değil	AUX	Verb	Verb	2	cop
+3	değil	değil	AUX	Verb	Verb	2	aux
 4	.	.	PUNCT	Unk	Unk	2	punct
 
 # Ali geldi , Veli gitti .

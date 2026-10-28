@@ -48,7 +48,8 @@ fn nominal_predicates_are_roots_and_punctuation_never_is() {
     assert_eq!(root("Bugün okulda sınav var ."), "var");
     assert_eq!(root("Evde kimse yok ."), "yok");
     assert_eq!(root("Bu karar doğru mu ?"), "doğru");
-    // değil is the copula of the nominal before it, as in UD Turkish (review 3 PARSER3-03).
+    // değil negates the nominal before it, which is the predicate, as in UD Turkish (review 3
+    // PARSER3-03); UD labels it aux (review 4 DOWN4-06).
     assert_eq!(root("Ali öğretmen değil ."), "öğretmen");
     let tree = parser.parse(&["Ali", "öğretmen", "değil", "."]);
     assert_eq!(
@@ -57,7 +58,7 @@ fn nominal_predicates_are_roots_and_punctuation_never_is() {
             tree.nodes[2].deprel.as_str(),
             tree.nodes[2].head
         ),
-        ("AUX", "cop", 2)
+        ("AUX", "aux", 2)
     );
     // A postposition is no root, nor punctuation (review 3 PARSER3-03).
     assert_eq!(root("Bu senin için ."), "senin");
@@ -147,4 +148,40 @@ fn compounds_conjuncts_names_and_relative_clauses() {
         arc("İki yıl önce taşındı .", "İki"),
         (2, "nummod".to_string())
     );
+}
+
+/// Review 4 DOWN4-06/07/08: değil in each conjunct; names side by side join up to a case,
+/// which joins only a person's name; a bare noun before a passive verb is its subject, but a
+/// light verb's compound, as the UD treebanks mostly have it.
+#[test]
+fn conjunct_negation_person_names_and_passive_subjects() {
+    let parser = TurkishDependencyParser::new();
+    let parse = |sentence: &str| {
+        let tokens: Vec<&str> = sentence.split(' ').collect();
+        parser.parse(&tokens)
+    };
+    let rel = |tree: &DependencyTree, form: &str| {
+        let node = tree.nodes.iter().find(|n| n.form == form).unwrap();
+        let head = match node.head {
+            0 => "ROOT".to_string(),
+            h => tree.nodes[h - 1].form.clone(),
+        };
+        (node.deprel.clone(), head)
+    };
+    let tree = parse("Sanık suçlu değil , masumdur .");
+    assert_eq!(rel(&tree, "suçlu"), ("root".into(), "ROOT".into()));
+    assert_eq!(rel(&tree, "değil"), ("aux".into(), "suçlu".into()));
+    assert_eq!(rel(&tree, "masumdur"), ("conj".into(), "suçlu".into()));
+    let tree = parse("Mustafa Kemal Atatürk geldi .");
+    assert_eq!(rel(&tree, "Kemal"), ("flat".into(), "Mustafa".into()));
+    assert_eq!(rel(&tree, "Atatürk"), ("flat".into(), "Mustafa".into()));
+    let tree = parse("Ankara Türkiye'nin başkentidir .");
+    assert_ne!(rel(&tree, "Türkiye'nin").0, "flat");
+    assert_ne!(rel(&tree, "Ankara").0, "nmod:poss");
+    let tree = parse("Ahmet Yılmaz'ın kitabı geldi .");
+    assert_eq!(rel(&tree, "Yılmaz'ın"), ("flat".into(), "Ahmet".into()));
+    let tree = parse("Karar açıklandı .");
+    assert_eq!(rel(&tree, "Karar").0, "nsubj");
+    let tree = parse("Karar verildi .");
+    assert_eq!(rel(&tree, "Karar").0, "compound");
 }

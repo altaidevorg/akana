@@ -48,7 +48,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - Trained AI-text detector in every audit report (`report.ai_detection`, next to the rule-based `ai_score`, which counts style findings): calibrated probability that the text is AI-written, from 500 gradient-boosted trees over 75 signals (content statistics, mined AI phrases such as *"Elbette"*, *"önemli bir rol oynar"*, token-transition scores over Akana's own embedding tokenizer), with a Turkish "why AI" report. On a held-out OpenAI evaluation set it flags about 95 of 100 AI texts long enough to judge (65+ words), at 1% false alarms on separate human texts. Not proof of authorship; poems get no decision, academic text a warning, shorter or highly repetitive texts are not judged.
   - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
-  - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.8 % of words to the right head (UAS) and 41.7 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.0 against 51.3) none. Trained parsers do much better: use it for rough structure.
+  - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.9 % of words to the right head (UAS) and 41.9 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.8 against 51.3) none. Trained parsers do much better: use it for rough structure.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).
@@ -179,7 +179,7 @@ A rule is **on by default** only if it raises a false alarm on at most 1 in 1,00
 | Split | Rules | Precision | Recall | F0.5 | Error-free sentences flagged |
 | :--- | :--- | ---: | ---: | ---: | ---: |
 | Test set (20,769) | before | 79.5 % | 38.1 % | 65.3 % | 8.0 % |
-| Test set (20,769) | default | **97.9 %** | 37.6 % | **74.1 %** | **0.8 %** |
+| Test set (20,769) | default | **97.9 %** | 37.7 % | **74.2 %** | **0.8 %** |
 | Test set (20,769) | all (`--experimental`) | 96.4 % | 37.6 % | 73.4 % | 1.5 % |
 | Movie reviews (300) | before | 63.8 % | 53.8 % | 61.5 % | 21.3 % |
 | Movie reviews (300) | default | **98.1 %** | 55.2 % | **84.9 %** | **1.3 %** |

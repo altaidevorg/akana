@@ -68,7 +68,7 @@ jobs:
       # The parser's attachment on the held-out UD test splits may not fall below the
       # recorded figure (review 3 PARSER3-01).
       - name: Dependency parser on UD Turkish
-        run: python scripts/parser_ud_eval.py --min-las 41.5
+        run: python scripts/parser_ud_eval.py --min-las 41.7
 
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
