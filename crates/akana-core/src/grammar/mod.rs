@@ -328,6 +328,16 @@ impl TurkishGrammarChecker {
                 && a.category == b.category
         });
 
+        // A finding's original_text is the text its offsets cover, whatever spacing the rule
+        // read between its words ("hiç\nbir"; review 3 BIND3-09).
+        for f in &mut findings {
+            if let Some(span) = text.get(f.start_offset..f.end_offset) {
+                if f.original_text != span {
+                    f.original_text = span.to_string();
+                }
+            }
+        }
+
         // Pass 5: Synthesize corrected sentence
         let corrected = Self::apply_corrections(text, &findings);
 

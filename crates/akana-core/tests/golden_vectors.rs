@@ -8,17 +8,32 @@
 //! `embeddings/spec.rs`), record the class in the commit, and rewrite the file:
 //! `UPDATE_GOLDEN=1 cargo test -p akana-core --test golden_vectors`.
 
+#[path = "../src/fingerprint.rs"]
+#[allow(dead_code)]
+mod fingerprint;
+
+use akana_core::embeddings::spec::SPARSE_SPEC;
 use akana_core::embeddings::{encoder_info, MorphologicalSparseEncoder, TurkishHybridEmbeddings};
 use serde_json::{json, Value};
 use std::path::PathBuf;
+
+/// Each sparse spec major's release fixture (`golden-<major>.0.jsonl`: the vectors of the
+/// release that froze it) and the fingerprint of the file as that release wrote it, so that it
+/// is never rewritten (review 4 CONTRACT4-02). The release that bumps the major adds its file
+/// and its line.
+const RELEASE_FIXTURES: &[(u16, &str)] = &[(1, "a10c2a2a8c6aaa4a80f47fcd728f1978")];
+
+/// A release fixture holds at least this many texts: a truncated one bounds nothing.
+const RELEASE_MIN_ROWS: usize = 150;
 
 fn golden_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/embeddings/golden.jsonl")
 }
 
-/// The vectors of the release that froze sparse spec 1, never rewritten after it.
-fn release_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/embeddings/golden-1.0.jsonl")
+/// The vectors of the release that froze sparse spec `major`, never rewritten after it.
+fn release_path(major: u16) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(format!("tests/data/embeddings/golden-{major}.0.jsonl"))
 }
 
 /// A text's vectors as the golden file holds them.
@@ -54,22 +69,51 @@ fn resources() -> Value {
 /// Review 3 MSTAB3-03: a build may move at most 5 % of the golden texts' vectors away from the
 /// release that froze its sparse spec major; more is a major change, which needs a new
 /// `SPARSE_SPEC` major (and that release's own fixture). `UPDATE_GOLDEN` does not touch the
-/// release fixture, so rewriting the golden file cannot hide such a change.
+/// release fixture, and the fixture's own fingerprint is pinned, so rewriting either golden
+/// file cannot hide such a change (review 4 CONTRACT4-02).
 #[test]
 fn the_spec_release_bounds_the_change() {
-    let content = std::fs::read_to_string(release_path()).expect("read golden-1.0.jsonl");
+    let major = SPARSE_SPEC.0;
+    let path = release_path(major);
+    let pinned = RELEASE_FIXTURES
+        .iter()
+        .find(|(m, _)| *m == major)
+        .map(|(_, f)| *f)
+        .unwrap_or_else(|| {
+            panic!(
+                "no release fixture for sparse spec {major}: the release that sets the major \
+                 writes {} and pins it in RELEASE_FIXTURES",
+                path.display()
+            )
+        });
+    let content =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    assert_eq!(
+        fingerprint::of(content.as_bytes()),
+        pinned,
+        "{} differs from the file the release of spec {major} wrote: it is never rewritten",
+        path.display()
+    );
     let mut lines = content.lines();
     let header: Value = serde_json::from_str(lines.next().expect("header")).expect("header json");
-    let major = |spec: &str| spec.split('.').next().map(str::to_string);
     let stored = header["sparse_spec"].as_str().expect("sparse_spec");
-    if major(stored) != major(&encoder_info().sparse_spec) {
-        return;
-    }
+    assert_eq!(
+        stored.split('.').next(),
+        Some(major.to_string().as_str()),
+        "{} was written for spec {stored}",
+        path.display()
+    );
     let sparse = MorphologicalSparseEncoder::new();
     let hybrid = TurkishHybridEmbeddings::new();
     let rows: Vec<Value> = lines
         .map(|l| serde_json::from_str(l).expect("row json"))
         .collect();
+    assert!(
+        rows.len() >= RELEASE_MIN_ROWS,
+        "{} holds {} texts, fewer than {RELEASE_MIN_ROWS}",
+        path.display(),
+        rows.len()
+    );
     let changed = rows
         .iter()
         .filter(|row| {

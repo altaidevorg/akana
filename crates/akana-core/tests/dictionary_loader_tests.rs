@@ -59,6 +59,41 @@ fn zemberek_lines_read_as_the_build_reads_them() {
     assert!(load("kahvaltı [P:Noun; A:NoVoicing] # a comment").is_ok());
     // Zemberek's attributes that akana has no use for are allowed.
     assert!(load("abartı [P:Noun; A:Ext, NoQuote]").is_ok());
+    // Ref: gives the lemma and its spelling, and the root keeps the variant; a Zemberek item
+    // name is its word (review 4 MORPH4-09).
+    let driver = load("şöför [A:Nonstandard; Ref:şoför]").unwrap();
+    assert_eq!(
+        (driver.lemma.as_str(), driver.root.as_str()),
+        ("şoför", "şöför")
+    );
+    assert!(driver.attributes.contains(RootAttr::NONSTANDARD));
+    let lock = load("kitlemek [Ref:kilitlemek_Verb]").unwrap();
+    assert_eq!(
+        (lock.lemma.as_str(), lock.root.as_str(), lock.primary_pos),
+        ("kilitlemek", "kitle", PrimaryPos::Verb)
+    );
+    let government = load("hükümet [Ref:hükûmet]").unwrap();
+    assert_eq!(
+        (
+            government.lemma.as_str(),
+            government.display_lemma().as_ref()
+        ),
+        ("hükumet", "hükûmet")
+    );
+    // Recip and Reflex on a verb are its voice, in both formats, not a secondary POS; on a
+    // pronoun they are its secondary POS.
+    for line in [
+        "zorbantlaşmak [P:Verb; A:Recip]",
+        "zorbantlaşmak zorbantlaş Verb Recip",
+    ] {
+        let verb = load(line).unwrap();
+        assert_eq!(verb.secondary_pos, SecondaryPos::None, "{line}");
+        assert!(verb.attributes.contains(RootAttr::RECIPROCAL), "{line}");
+    }
+    assert_eq!(
+        load("kendi kendi Pron Reflex").unwrap().secondary_pos,
+        SecondaryPos::from_name("Reflex").unwrap()
+    );
 }
 
 #[test]
@@ -71,8 +106,13 @@ fn lines_that_cannot_be_read_in_full_are_returned() {
         "foo [P:Noun,Bogus]",
         "foo [P:Noun; Prr:fu]",
         "foo foo Noun pron=fu",
-        // a voice name on a noun
+        // a voice name on a noun, long or short
         "kalemlik [P:Noun; A:Reflexive]",
+        "kalemlik [P:Noun; A:Recip]",
+        // attributes that contradict each other (review 4 MORPH4-09)
+        "kitapçığımsı [P:Noun; A:Voicing, NoVoicing]",
+        "kitapçığımsı kitapçığımsı Noun Voicing NoVoicing",
+        "zorbalamak [A:Aorist_A, Aorist_I]",
         // text after the bracket that is no comment
         "foo [P:Noun] bar",
         // roots no word reaches: empty, a ligature, a control character

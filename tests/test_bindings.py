@@ -58,6 +58,8 @@ def test_grammar_offsets_after_non_ascii():
         "Çiçekler'de güzel, Ünal'lar da geldi mi?",
         "Şükrü geldi, Ali de geldi, Veli te geldi.",
         "Öğretmen geldi. Evi terketmek zorunda kaldı ve 1923'de kurulan cumhuriyeti andık.",
+        # across a newline (review 3 BIND3-09)
+        "Bu konuda hiç\nbir şey söylemedi.",
     ],
 )
 def test_grammar_offsets_slice_the_text(text):

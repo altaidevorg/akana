@@ -15,13 +15,15 @@ results change, and indexes built with 0.8.0 must be rebuilt: see *Migrating fro
   When the index is opened, pass the stored value and what the index holds (`"sparse"`,
   `"dense"` or `"hybrid"`, the default) to `akana.check_encoder()`
   (`embeddings::compatibility_of`). It returns one of three values:
-  - `"identical"`: built from the same inputs (resources, the source of the analysis and
-    encoder path, `Cargo.lock`, the Unicode version): the vectors are the same.
-  - `"compatible"`: sparse or hybrid vectors with the same sparse spec major (and hybrid
-    layout and dense model); the vectors may differ within the bump policy of
-    `embeddings/spec.rs`, and no rebuild is needed.
-  - `"rebuild"`, also for a record `encoder_info()` did not write. A dense index is identical
-    or rebuilt.
+  - `"identical"`: built from the same inputs as that kind of vector needs (resources, the
+    source of its encoders, akana's own `Cargo.lock`, the Unicode version): the vectors are
+    the same.
+  - `"compatible"`: the same sparse spec major (sparse), the same dense model, tokenizer and
+    weights (dense), both and the hybrid layout (hybrid); the vectors may differ within the
+    bump policy of `embeddings/spec.rs`, and no rebuild is needed.
+  - `"rebuild"`, also for a record `encoder_info()` did not write.
+  The stored value may be the dict or its JSON text, with fields of the index's own and
+  numpy numbers; fingerprints compare without regard to case.
 - An index without stored info should be treated as `"rebuild"`.
 - What the rebuild is worth, measured with `scripts/encoder_churn.py` (0.8.0 against 0.9.0,
   the same texts; exact search unless HNSW is named): every sparse and hybrid vector changes
@@ -102,8 +104,10 @@ the lines they could not read in full, where they returned nothing, and such a l
 nothing:
 - an unknown POS (0.8.0 read it as a noun), attribute, secondary POS or field (a misspelt
   `A:Voicng` was dropped silently), a missing column, an unclosed `[`, text after `]` other
-  than a `# comment`, a voice attribute on a word that is neither a verb nor a pronoun, or a
-  root with characters no Turkish word has (a ligature, a control character, nothing);
+  than a `# comment`, a voice attribute on a word that is neither a verb nor a pronoun,
+  attributes that contradict each other (`Voicing` with `NoVoicing`, `AoristA` with
+  `AoristI`), or a root with characters no Turkish word has (a ligature, a control character,
+  nothing);
 - a UTF-8 byte-order mark is skipped, and a line is read as Unicode NFC (a decomposed `ş`
   finds the word).
 
@@ -111,9 +115,11 @@ They also take Zemberek's own syntax (`kriptopara [P:Noun; A:CompoundP3sg;
 Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 misread, and read its lines as
 akana's lexicon build does: a capitalised word is a proper noun and never a verb
 (`Kızılırmak`), a postposition takes its case (`ait [P:Postp,PCDat]`), the first secondary POS
-counts, an acronym's Latin I is i (`IBAN`: `iban`), and Zemberek's attributes that akana does
-not use (`Ext`, `NoQuote`) are allowed. Every line of Zemberek's dictionaries that the build
-reads as it is loads as the same item.
+counts, an acronym's Latin I is i (`IBAN`: `iban`), `Ref:` gives the lemma and spelling of
+the word a variant spells while the root keeps the variant (`şöför [A:Nonstandard;
+Ref:şoför]`), `Recip` and `Reflex` on a verb are its voice (not a secondary POS), and
+Zemberek's attributes that akana does not use (`Ext`, `NoQuote`) are allowed. Every line of
+Zemberek's dictionaries that the build reads as it is loads as the same item.
 
 **Syntactic morphology.** `SyntacticMorphology` and `syntactic_analyze` report UD features:
 `Number`, `Person`, `Number[psor]`, `Person[psor]` and `VerbForm`, where 0.8.0 had
@@ -135,11 +141,16 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
 - Tags match in any case (`noun`, `P1SG`).
 - A name or an abbreviation comes back as the dictionary spells it, with the apostrophe
   before its case, possessive and copula, and suffixes that follow its pronunciation
-  (`Türkiye'de`, `Ali'nin`, `ABD'nin`, `TBMM'de`, but `Ankaralı`). A request written with a
-  capital prefers the name (`ABD` the abbreviation, `abd` the common noun).
+  (`Türkiye'de`, `Ali'nin`, `ABD'nin`, `TBMM'de`, but `Ankaralı`), or as the request does when
+  that differs only in capitals (`NATO'nun`, not `Nato'nun`). A request written with a
+  capital prefers the name (`ABD` the abbreviation, `abd` the common noun); a common word
+  asked for with a capital keeps it (`Yönetmeliğin`), in capitals all of it (`KİTABA`).
 - The lemma may be spelt as `display_lemma` gives it or folded (`kâğıt` or `kağıt`,
-  `e-posta`, `Fin-Ugor`); the word comes back folded (`kağıtta`), a name as the dictionary
-  spells it (`Hakkâri'de`).
+  `e-posta`, `Fin-Ugor`, `FIFA` with a Latin I); the word comes back folded (`kağıtta`), a
+  name as the dictionary spells it (`Hakkâri'de`). Among homographs the one spelt as asked
+  comes first (`dâhil`: `dahilinde`).
+- A case the word may leave implicit is shown (`karşı` with `Dat` is `karşıya`), and a
+  pronoun's instrumental is the full form (`bununla`, `benimle`, not `bunla`, `benle`).
 - `Prog` is the -Iyor progressive, also on a stem that changes (`gidiyorum`, `ediyor`,
   `diyor`), where it gave -mAktA (`gitmekteyim`, `demekte`), except before the copula -DIr
   (`CopPres3sg`), where written Turkish has -mAktA (`gelmektedir`, not `geliyordur`). The
@@ -194,11 +205,15 @@ fails on any further input change, so each change is recorded on purpose
 - `akana.encoder_info()` and `akana.check_encoder(stored, kind)`; in Rust, `embeddings::spec`
   (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
   `encoder_info_json`, `IndexKind`, `compatibility_of`). The record carries the akana and
-  Unicode versions and three fingerprints: sparse (the analyses, the term tables and
-  constants, the source of the encoder path, `Cargo.lock`, the Unicode version and the probe
-  set's sparse vectors), dense (the model, its tokenizer and weights, the probe set's dense
-  vectors) and the hybrid one over both. A build script hashes the source of the analysis and
-  encoder path, so code a probe text does not exercise still changes the fingerprints.
+  Unicode versions and three fingerprints: sparse (the analyses, the term tables, stopwords
+  and compound rules, the source of the sparse path, akana's own `Cargo.lock`, the Unicode
+  version and the probe set's sparse vectors), dense (the model, its tokenizer and weights,
+  the source of the dense path, the lock, the Unicode version, the probe set's dense vectors)
+  and the hybrid one over both and the packer. A build script hashes each path's source, so
+  code a probe text does not exercise still changes the fingerprint of that kind only, and a
+  build without akana's own lock file (another project's dependency) gets a fingerprint of
+  its own. The probe set includes characters the dense tokenizer normalises (`…`, `ﬁ`, `½`,
+  fullwidth letters).
 - `MorphParse::analysis`, `MorphParse::nonstandard`, `MorphParse::display_lemma()`,
   `TurkishMorphology::analyze_standard` and `TurkishMorphology::backoff_stem`, and the Python
   keys `analysis`, `pos`, `display_lemma` and `nonstandard`.
@@ -213,9 +228,13 @@ fails on any further input change, so each change is recorded on purpose
   The benchmark reads the 300 RagTurk articles pinned in `scripts/ragturk_articles.tsv` (name
   and SHA-256) and fails with `--readme` instead of falling back to its synthetic corpus.
   `scripts/encoder_churn.py` measures sparse and hybrid churn and stale-index MRR@10 per
-  corpus, refuses missing data, and with `--declared CLASS` exits non-zero above the class.
+  corpus on pinned texts (it refuses other or missing data unless told `--unpinned`), classes
+  a change of the dense model, tokenizer, weights, stopwords or compound rules major, exits 3
+  above a `--declared CLASS` and 4 when a kind of vector moved under the same fingerprint.
   `scripts/parser_ud_eval.py` measures the dependency parser on the UD Turkish test splits
-  (UAS and LAS per treebank and per relation; `--min-las` fails below a floor).
+  (UAS and LAS per treebank and per relation, beside attaching each word to the next word
+  that is not punctuation; a sentence it cannot score counts as wrong; `--min-las` fails
+  below a floor).
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
   Zemberek dictionaries and morphotactics (Apache 2.0), and the UD-derived function-lemma
   table, morphology prior and the parser's light verbs (CC BY-SA 4.0).
@@ -330,7 +349,9 @@ fails on any further input change, so each change is recorded on purpose
     whether `tarafından` was a term depended on the reading the disambiguator picked.
 - **Version.** Every version string is 0.9.0, and `akana.__version__` is the compiled
   library's. A release tag must name it; the release workflow runs the tests in the release
-  profile and the Python tests against each built wheel before publishing.
+  profile and the Python tests against each built wheel (on Python 3.10 and 3.12) and against
+  the sdist built into a library, and publishes only from a pushed tag (a manual run on a
+  tag publishes nothing).
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'
@@ -341,7 +362,8 @@ fails on any further input change, so each change is recorded on purpose
   stop lemmas and the lemma weights of the sparse encoder are committed tables
   (`stop_lemmas.txt`, `lemma_weights.tsv`) that a test derives from the lexicon, so a lexicon
   edit cannot move them unnoticed. `golden-1.0.jsonl` keeps the vectors of the release that
-  froze spec 1.0, and CI fails when more than 5 % of them change within the spec. CI also
+  froze spec 1.0 (its fingerprint pinned, at least 150 texts; each spec major gets its own
+  file), and CI fails when more than 5 % of them change within the spec. CI also
   regenerates the prior's UD-derived inputs from the pinned treebanks, runs the golden
   vectors in the release profile and from Python, and holds the parser's UD LAS to a floor.
 - **Performance.** The quadratic and cubic public paths are linear. The lexicon and the
@@ -415,12 +437,23 @@ fails on any further input change, so each change is recorded on purpose
 - The hybrid metric's alpha: NaN made every hybrid distance NaN. In Python a NaN or infinite
   alpha raises `ValueError`; in Rust `set_hybrid_metric_alpha(NaN)` leaves the alpha as it was
   and `hybrid_distance_128` reads NaN as the default 0.5.
-- Python objects can be configured while other threads use them:
-  `Morphology.load_dictionary_*`, `SpellChecker.add_word`, `GrammarChecker.enable_rule`,
-  `disable_rule` and `enable_experimental`, and `TurkishPiiEngine.enable_type`,
-  `disable_type` and `set_type_enabled` wait for the calls in progress on the object, where
-  they raised `RuntimeError: Already borrowed`; a `PiiVault` that threads share serves one
-  `mask` at a time.
+- Python objects can be configured while other threads use them, where the configuration
+  call raised `RuntimeError: Already borrowed`. `Morphology.load_dictionary_*` and
+  `SpellChecker.add_word` wait for the calls in progress on the object, and the calls after
+  them wait for them. `GrammarChecker.enable_rule`, `disable_rule` and `enable_experimental`
+  and `TurkishPiiEngine.enable_type`, `disable_type` and `set_type_enabled` make no call wait:
+  the checker's calls copy its rules, and the PII engine's configuration is copy-on-write
+  (`is_type_enabled` held a lock with the GIL and could stall the process for a second). A
+  `PiiVault` that threads share serves one `mask` at a time, and only while the mask
+  registers its values: the text is read before the vault is taken, and `mask(vault=v)`
+  returns `v` itself as its `vault`.
+- `number_to_words` gives words for -2^63 (it overflowed); `currency_to_words` rounds to
+  whole kuruş once (`2.999` is `üç lira`, it gave `iki lira yüz kuruş`; `-1.5` keeps its
+  `elli kuruş`) and raises `ValueError` for an amount that is not finite or too large (Rust:
+  `try_currency_to_words` returns `None`, `currency_to_words` an empty string);
+  `similarity_vectors` raises `ValueError` for vectors of two lengths, which it compared over
+  their common part; a grammar finding's `original_text` is the text its offsets cover, also
+  across a newline (`hiç\nbir`).
 - `extract_keywords` returns the same keywords on every call (ties are in text order before
   `top_k` cuts), and a number's suffixes are no keyword (`1923'te`).
 - The dependency parser, the readability metrics and the syntactic analyzer share one

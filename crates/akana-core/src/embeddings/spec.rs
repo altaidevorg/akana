@@ -3,15 +3,16 @@
 //! An index stores [`encoder_info`] when it is built and compares it with the running library's
 //! when it is opened ([`compatibility_of`]), for what it holds ([`IndexKind`]):
 //! - the same fingerprint of that kind: the library was built from the same inputs (resources,
-//!   the source of the analysis and encoder path, `Cargo.lock`, the Unicode version) and
+//!   the source of that kind's vectors, akana's own `Cargo.lock`, the Unicode version) and
 //!   produces exactly the vectors the index holds;
-//! - sparse or hybrid vectors with the same [`SPARSE_SPEC`] major (and [`HYBRID_LAYOUT`], and
-//!   dense model and weights, for hybrids): vectors may differ slightly. Each release that
-//!   changes them reports how many, and keeps a stale index's retrieval within 0.005 MRR@10 of
-//!   a rebuilt one (the bump policy below), so the index needs no rebuild;
+//! - the same [`SPARSE_SPEC`] major for sparse vectors, the same [`DENSE_MODEL`], tokenizer and
+//!   weights for dense ones, both and [`HYBRID_LAYOUT`] for hybrids: vectors may differ
+//!   slightly (code or a dependency changed). Each release that changes them reports how many,
+//!   and keeps a stale index's retrieval within 0.005 MRR@10 of a rebuilt one (the bump policy
+//!   below), so the index needs no rebuild;
 //! - anything else, a record that is not one [`encoder_info`] wrote included: term ids, term
 //!   definitions, the dense model or the vector layout changed, and old and new vectors do not
-//!   match. Rebuild. A dense index is identical or rebuilt: its vectors are the model's.
+//!   match. Rebuild.
 //!
 //! Bump policy for a release, measured with `scripts/encoder_churn.py` (`--declared` exits
 //! non-zero above the declared class):
@@ -22,7 +23,8 @@
 //!   each of court, RagTurk and Turkuaz, and a stale index's MRR@10 (hybrid, and sparse by dot
 //!   product) is within 0.005 of a rebuilt one on RagTurk and Turkuaz;
 //! - major: anything else, and any change to term ids, the hybrid layout, the tokenizer, the
-//!   dense model, the lemma conventions, the stopwords or the compound rules.
+//!   dense model, the lemma conventions, the stopwords or the compound rules. [`DENSE_MODEL`]
+//!   is the dense vectors' spec: a change beyond minor in them renames it.
 //!
 //! CI holds a release to its spec: more than 5 % of the golden texts with other vectors than
 //! the release that froze the spec (`tests/data/embeddings/golden-1.0.jsonl`, never rewritten)
@@ -42,11 +44,16 @@
 //! FNV-1a of its string ([`super::hash_term_32bit`]); its value is BM25-saturated term
 //! frequency (k1 = 1.2) times its POS weight times its function-lemma weight.
 //!
-//! The hybrid vector packs the 2-bit dense embedding (64 bytes) with the 16 heaviest sparse
-//! terms, ties going to the lower 32-bit id. Each is a 24-bit id ([`super::term_id_24bit`]: the
-//! 32-bit id xor its top byte, masked to 24 bits, 0 read as 1) and an 8-bit weight (the value
-//! / 4 · 255 in f32, truncated and clamped to [1, 255]), in ascending 24-bit id; of two of the
-//! 16 whose 24-bit ids collide the lighter is dropped, and its slot stays empty (zero bytes).
+//! The hybrid vector is 128 bytes. Bytes 0..64 are the 2-bit dense embedding: each of the 256
+//! coordinates of the dense vector is 0, 1, 2 or 3 below -σ, below 0, below σ or above
+//! (σ = 1/16, [`super::EMBEDDING_SCALE_2BIT`]), four to a byte, the first coordinate in the
+//! low two bits. Bytes 64..128 are 16 slots of 4 bytes for the 16 heaviest sparse terms, ties
+//! going to the lower 32-bit id: a 24-bit id ([`super::term_id_24bit`]: the 32-bit id xor its
+//! top byte, masked to 24 bits, 0 read as 1) in 3 bytes, most significant first, then an 8-bit
+//! weight (the value / 4 · 255 in f32, truncated and clamped to [1, 255]). The slots are in
+//! ascending 24-bit id; of two of the 16 whose 24-bit ids collide the lighter is dropped. The
+//! slots after the last term (a text with fewer than 16 terms, or a collision) are zero bytes,
+//! which no term is.
 
 use crate::fingerprint::Fingerprint;
 use serde::Serialize;
@@ -54,7 +61,9 @@ use std::sync::LazyLock;
 
 /// The sparse encoder's spec version (major, minor); see the module docs. 1.0 is frozen as
 /// released with akana 0.9.0: a later change that moves vectors follows the bump policy
-/// above, and the golden fixtures record each one.
+/// above, and the golden fixtures record each one. A release whose change is of the minor
+/// class raises the minor; one of the major class raises the major and sets the minor to 0;
+/// a patch keeps both.
 pub const SPARSE_SPEC: (u16, u16) = (1, 0);
 
 /// The hybrid vector's byte layout (64-byte 2-bit dense half, 16 slots of 24-bit id + 8-bit
@@ -80,16 +89,19 @@ pub struct EncoderInfo {
     pub analysis_version: &'static str,
     /// [`crate::morphology::analysis_fingerprint`].
     pub analysis_fingerprint: String,
-    /// What sparse vectors depend on: the sparse spec, the analyses, the function-lemma table,
-    /// the constants that define terms and weights, the source of the encoder path,
+    /// What sparse vectors depend on: the sparse spec, the analyses, the term tables, the
+    /// constants that define terms and weights, the source of the sparse path, akana's
     /// `Cargo.lock`, the Unicode version, and the sparse vectors of a built-in probe set.
     pub sparse_fingerprint: String,
-    /// What dense vectors depend on: the dense model, its tokenizer and weights, the Unicode
-    /// version, and the dense vectors (float and packed) of the probe set.
+    /// What dense vectors depend on: the dense model, its tokenizer and weights, the source of
+    /// the dense path, akana's `Cargo.lock`, the Unicode version, and the dense vectors (float
+    /// and packed) of the probe set.
     pub dense_fingerprint: String,
-    /// Both, the hybrid layout and the probe set's hybrid vectors.
+    /// Both, the hybrid layout, the packer's source and the probe set's hybrid vectors.
     pub fingerprint: String,
-    /// Each embedded resource's fingerprint, by name.
+    /// Each resource's fingerprint, by name: the embedded files, the stopword list and the
+    /// compound rules (`stopwords`, `compounds`: a change to either is a major one) and the
+    /// analyses (`analysis`).
     pub resources: Vec<(&'static str, String)>,
 }
 
@@ -114,6 +126,9 @@ pub enum IndexKind {
     /// Hybrid vectors (`embed_hybrid`).
     Hybrid,
 }
+
+/// The resources a dense vector is made with: another one is another model.
+const DENSE_RESOURCES: [&str; 2] = ["tokenizer.json", "turboquant_weights.npz"];
 
 impl IndexKind {
     /// `sparse`, `dense` or `hybrid`.
@@ -206,6 +221,8 @@ const PROBE_TEXTS: &[&str] = &[
     "Tarım ve Orman Bakanlığı kuraklıkla mücadele planını açıkladı.",
     "Gelmeyecekmişsiniz gibi davranmayın, hepinizi bekliyoruz.",
     "Avrupalılaştıramadıklarımızdanmışsınızcasına konuşuyorsunuz.",
+    // characters the dense tokenizer's NFKC changes (review 4 CONTRACT4-01)
+    "Karar… 5 m² alan, %\u{a0}20 pay ve ﬁyat ½ oranında; ＫＡＲＡＲ ① ²",
 ];
 
 /// The probe set's sparse vectors (ids, value bits, terms) as bytes.
@@ -248,7 +265,8 @@ fn hybrid_probe_bytes() -> Vec<u8> {
         .collect()
 }
 
-/// The Unicode version of the standard library this was built with (`16.0.0`).
+/// The Unicode version of the standard library this was built with (`17.0.0` with Rust
+/// 1.99).
 fn unicode_version() -> String {
     let (major, minor, update) = char::UNICODE_VERSION;
     format!("{major}.{minor}.{update}")
@@ -277,6 +295,14 @@ static ENCODER_INFO: LazyLock<EncoderInfo> = LazyLock::new(|| {
             crate::fingerprint::of(super::sparse::LEMMA_WEIGHTS_TSV.as_bytes()),
         ),
         (
+            "stopwords",
+            crate::fingerprint::of(crate::morphology::stopwords_fingerprint_constants().as_bytes()),
+        ),
+        (
+            "compounds",
+            crate::fingerprint::of(crate::morphology::compound_fingerprint_constants().as_bytes()),
+        ),
+        (
             "analysis",
             crate::morphology::analysis_fingerprint().to_string(),
         ),
@@ -298,15 +324,9 @@ static ENCODER_INFO: LazyLock<EncoderInfo> = LazyLock::new(|| {
         .section("lemma_weights.tsv", resource("lemma_weights.tsv"))
         .section("analysis", resource("analysis"))
         .section("sparse", super::sparse::fingerprint_constants().as_bytes())
-        .section(
-            "stopwords",
-            crate::morphology::stopwords_fingerprint_constants().as_bytes(),
-        )
-        .section(
-            "compounds",
-            crate::morphology::compound_fingerprint_constants().as_bytes(),
-        )
-        .section("sources", env!("AKANA_ENCODER_SOURCES").as_bytes())
+        .section("stopwords", resource("stopwords"))
+        .section("compounds", resource("compounds"))
+        .section("sources", env!("AKANA_SPARSE_SOURCES").as_bytes())
         .section("Cargo.lock", env!("AKANA_CARGO_LOCK").as_bytes())
         .section("unicode", unicode.as_bytes())
         .section("probe", &sparse_probe_bytes())
@@ -315,6 +335,8 @@ static ENCODER_INFO: LazyLock<EncoderInfo> = LazyLock::new(|| {
         .section("model", DENSE_MODEL.as_bytes())
         .section("tokenizer.json", resource("tokenizer.json"))
         .section("turboquant_weights.npz", resource("turboquant_weights.npz"))
+        .section("sources", env!("AKANA_DENSE_SOURCES").as_bytes())
+        .section("Cargo.lock", env!("AKANA_CARGO_LOCK").as_bytes())
         .section("unicode", unicode.as_bytes())
         .section("probe", &dense_probe_bytes())
         .hex();
@@ -322,6 +344,7 @@ static ENCODER_INFO: LazyLock<EncoderInfo> = LazyLock::new(|| {
         .section("layout", &HYBRID_LAYOUT.to_le_bytes())
         .section("sparse", sparse.as_bytes())
         .section("dense", dense.as_bytes())
+        .section("sources", env!("AKANA_HYBRID_SOURCES").as_bytes())
         .section("probe", &hybrid_probe_bytes())
         .hex();
     EncoderInfo {
@@ -353,25 +376,55 @@ pub fn encoder_info() -> &'static EncoderInfo {
 ///
 /// - Sparse: rebuild unless the sparse spec major is this one's; identical with the same
 ///   `sparse_fingerprint`; else compatible.
-/// - Dense: identical with the same `dense_model` and `dense_fingerprint`; else rebuild.
+/// - Dense: rebuild unless the `dense_model` and the tokenizer and weights resources are this
+///   one's; identical with the same `dense_fingerprint`; else compatible.
 /// - Hybrid: rebuild unless the layout, the sparse spec major and the dense part are this
 ///   one's; identical with the same `fingerprint`; else compatible.
+///
+/// Fingerprints compare without regard to case.
 pub fn compatibility_of(kind: IndexKind, stored: &serde_json::Value) -> Compatibility {
     let info = encoder_info();
     let text = |key: &str| stored.get(key).and_then(serde_json::Value::as_str);
-    let fingerprint =
-        |key: &str| text(key).filter(|f| f.len() == 32 && f.bytes().all(|b| b.is_ascii_hexdigit()));
+    let hex = |f: &str| {
+        (f.len() == 32 && f.bytes().all(|b| b.is_ascii_hexdigit())).then(|| f.to_ascii_lowercase())
+    };
+    let fingerprint = |key: &str| text(key).and_then(hex);
+    // major.minor in plain digits (1.0, 2.13; not +1.0 or 01.0)
+    let number = |n: &str| {
+        let plain = n.bytes().all(|b| b.is_ascii_digit()) && (n == "0" || !n.starts_with('0'));
+        if plain {
+            n.parse::<u16>().ok()
+        } else {
+            None
+        }
+    };
     let spec_major = text("sparse_spec").and_then(|spec| {
         let (major, minor) = spec.split_once('.')?;
-        minor.parse::<u16>().ok()?;
-        major.parse::<u16>().ok()
+        number(minor)?;
+        number(major)
     });
     let layout = stored
         .get("hybrid_layout")
         .and_then(serde_json::Value::as_u64);
     let sparse_same_major = spec_major == Some(SPARSE_SPEC.0);
-    let dense_same = text("dense_model") == Some(info.dense_model)
-        && fingerprint("dense_fingerprint") == Some(info.dense_fingerprint.as_str());
+    // The same model: its name and the hashes of its tokenizer and weights.
+    let resource = |name: &str| {
+        stored
+            .get("resources")
+            .and_then(|r| r.get(name))
+            .and_then(serde_json::Value::as_str)
+            .and_then(hex)
+    };
+    let same_model = text("dense_model") == Some(info.dense_model)
+        && DENSE_RESOURCES.iter().all(|name| {
+            let ours = info
+                .resources
+                .iter()
+                .find(|(n, _)| n == name)
+                .map(|(_, h)| h);
+            resource(name).as_ref() == ours
+        });
+    let dense_recorded = same_model && fingerprint("dense_fingerprint").is_some();
     match kind {
         IndexKind::Sparse => match fingerprint("sparse_fingerprint") {
             Some(f) if sparse_same_major && f == info.sparse_fingerprint => {
@@ -380,11 +433,14 @@ pub fn compatibility_of(kind: IndexKind, stored: &serde_json::Value) -> Compatib
             Some(_) if sparse_same_major => Compatibility::Compatible,
             _ => Compatibility::Rebuild,
         },
-        IndexKind::Dense if dense_same => Compatibility::Identical,
-        IndexKind::Dense => Compatibility::Rebuild,
+        IndexKind::Dense => match fingerprint("dense_fingerprint") {
+            Some(f) if same_model && f == info.dense_fingerprint => Compatibility::Identical,
+            Some(_) if same_model => Compatibility::Compatible,
+            _ => Compatibility::Rebuild,
+        },
         IndexKind::Hybrid => {
             let parts_same = sparse_same_major
-                && dense_same
+                && dense_recorded
                 && layout == Some(u64::from(info.hybrid_layout))
                 && fingerprint("sparse_fingerprint").is_some();
             match fingerprint("fingerprint") {
@@ -437,7 +493,7 @@ mod tests {
         ] {
             assert_eq!(f.len(), 32);
         }
-        assert_eq!(info.resources.len(), 6);
+        assert_eq!(info.resources.len(), 8);
         assert_eq!(sparse_probe_bytes(), sparse_probe_bytes());
         assert_eq!(dense_probe_bytes(), dense_probe_bytes());
     }
@@ -470,11 +526,35 @@ mod tests {
         assert_eq!(check(&sparse_moved), [Compatible, Identical, Compatible]);
         // Another dense model or other weights: dense and hybrid indexes are rebuilt, sparse
         // ones are untouched (a release that swaps the dense model keeps the sparse spec).
+        let mut other_weights = stored.clone();
+        other_weights["resources"]["turboquant_weights.npz"] = other.clone();
         for record in [
             with("dense_model", serde_json::json!("other-model-512")),
-            with("dense_fingerprint", other.clone()),
+            other_weights,
         ] {
             assert_eq!(check(&record), [Identical, Rebuild, Rebuild]);
+        }
+        // The same model through other code or dependencies: compatible (review 4
+        // CONTRACT4-01).
+        let mut dense_moved = with("dense_fingerprint", other.clone());
+        dense_moved["fingerprint"] = other.clone();
+        assert_eq!(check(&dense_moved), [Identical, Compatible, Compatible]);
+        // Fingerprints in capitals are the same; a spec number written otherwise is none
+        // (review 4 CONTRACT4-06).
+        let upper = with(
+            "sparse_fingerprint",
+            serde_json::json!(stored["sparse_fingerprint"]
+                .as_str()
+                .unwrap()
+                .to_ascii_uppercase()),
+        );
+        assert_eq!(check(&upper), [Identical, Identical, Identical]);
+        for spec in ["+1.0", "01.0", "1.x", " 1.0"] {
+            assert_eq!(
+                check(&with("sparse_spec", serde_json::json!(spec))),
+                [Rebuild, Identical, Rebuild],
+                "{spec}"
+            );
         }
         // Another sparse spec major: sparse and hybrid indexes are rebuilt.
         assert_eq!(

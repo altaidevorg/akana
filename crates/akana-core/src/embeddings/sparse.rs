@@ -10,7 +10,7 @@
 //! - its BM25-saturated occurrence count, `tf * (k1 + 1) / (tf + k1)` with `k1 = 1.2`,
 //! - times a part-of-speech weight (proper nouns and numbers > nouns > verbs > adverbs): the
 //!   class of the lemma in the lexicon, not of the reading the disambiguator picked, so that a
-//!   ranking change (yeni the adverb or the adjective, devam the interjection or the noun) does
+//!   ranking change (yeni the adverb or the adjective, yazık the interjection or the noun) does
 //!   not move the vector,
 //! - times an IDF weight, below 1 only for the function lemmas: those in more than one
 //!   256-token chunk in ten of both a court and a general sample (`function_lemmas.tsv`, frozen
@@ -438,7 +438,7 @@ fn class_weight(pos: PrimaryPos, secondary: SecondaryPos) -> f32 {
 /// When the lexicon's items for one lemma fall in different classes, the class its term
 /// weighs as: the first of these that one of them has. Common items come before proper nouns
 /// (kanun the noun, not a surname Kanun), content classes before function classes, and the
-/// interjection last (devam, ileri, ay).
+/// interjection last (yazık, merhaba, imdat).
 const CLASS_PRECEDENCE: &[PrimaryPos] = &[
     PrimaryPos::Noun,
     PrimaryPos::Adj,
@@ -459,7 +459,7 @@ pub(crate) const LEMMA_WEIGHTS_TSV: &str = include_str!("lemma_weights.tsv");
 pub(crate) const STOP_LEMMAS_TXT: &str = include_str!("stop_lemmas.txt");
 
 /// The weight of each lemma whose lexicon items fall in more than one weight class (yeni Adj and
-/// Adv, devam Noun and Interj, Kanun Noun and Prop), by [`CLASS_PRECEDENCE`]. A lemma not in it
+/// Adv, yazık Noun and Interj, Kanun Noun and Prop), by [`CLASS_PRECEDENCE`]. A lemma not in it
 /// has items of one class, which its reading's class gives. Read from `lemma_weights.tsv`, which
 /// a test derives from the lexicon (`committed_tables_are_what_the_lexicon_gives`): a lexicon
 /// edit does not move a weight unless the table is rewritten on purpose (review 3 MSTAB3-08).

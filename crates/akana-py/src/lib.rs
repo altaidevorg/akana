@@ -10,9 +10,13 @@
 //! - Module-level functions use engines built once per process.
 //! - A class with configuration calls (`SpellChecker.add_word`, `Morphology.load_dictionary_*`,
 //!   `GrammarChecker.enable_rule`, `TurkishPiiEngine.disable_type`, a `PiiVault` that `mask`
-//!   adds to) is a frozen pyclass with its state behind a lock: calls read it with the GIL
-//!   released, and a configuration call waits for them, where PyO3's borrow checking made it
-//!   fail with "Already borrowed" while another thread used the object (review 3 BIND3-04).
+//!   adds to) is a frozen pyclass with its state behind a lock, where PyO3's borrow checking
+//!   made a configuration call fail with "Already borrowed" while another thread used the
+//!   object (review 3 BIND3-04). A lock held while a call runs is taken with the GIL released.
+//!   `SpellChecker` and `Morphology`: a configuration call waits for the calls running on the
+//!   object, and the calls after it wait for it. `GrammarChecker` copies its rules out, and the
+//!   PII engine's configuration is copy-on-write ([`Shared`]): no call on them waits for
+//!   another (review 4 BIND4-01/02).
 #![allow(clippy::useless_conversion)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::redundant_closure)]
@@ -39,6 +43,37 @@ fn write<T>(lock: &RwLock<T>) -> RwLockWriteGuard<'_, T> {
 /// A vault's state, for one call at a time.
 fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
     lock.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// A value that calls use without holding a lock while they run: a call takes the current
+/// value (a reference count, under a lock held for no longer than that), and a configuration
+/// call builds the next value from it and swaps it in; configuration calls take turns. A long
+/// call never holds up a configuration call, nor a configuration call the calls after it, as
+/// a read-write lock did (review 4 BIND4-02).
+struct Shared<T> {
+    current: RwLock<Arc<T>>,
+    writer: Mutex<()>,
+}
+
+impl<T: Clone> Shared<T> {
+    fn new(value: T) -> Self {
+        Self {
+            current: RwLock::new(Arc::new(value)),
+            writer: Mutex::new(()),
+        }
+    }
+
+    fn get(&self) -> Arc<T> {
+        Arc::clone(&read(&self.current))
+    }
+
+    fn update<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        let _turn = locked(&self.writer);
+        let mut next = self.get();
+        let out = f(Arc::make_mut(&mut next));
+        *write(&self.current) = next;
+        out
+    }
 }
 
 /// A `RuntimeError` for a Rust panic, with the panic message.
@@ -300,11 +335,11 @@ impl PyMorphology {
     /// with any dictionary it has loaded: `generate("kitap", ["Noun", "P1sg", "Dat"])` gives
     /// `"kitabıma"`.
     ///
-    /// The first tag is the POS; the others are the tags `analyze` shows in `morphemes`, in
-    /// any case (A3sg, Pnon and Nom may be left out). The copula after a verb is CopPres3sg
+    /// The tags are a reading's `morphemes` as `analyze` shows them, the root's POS first
+    /// (`["Noun", "P1sg", "Dat"]`), in any case; A3sg, Pnon and Nom may be left out. The copula after a verb is CopPres3sg
     /// (`gelmektedir`), CopPast, CopEvid or CopCond. Prog is -Iyor (`diyor`), or -mAktA before
     /// CopPres3sg; Prog1 and Prog2 ask for -Iyor or -mAktA. The lemma may be spelt as
-    /// `display_lemma` gives it (`kâğıt`, `e-posta`) or folded (`kağıt`); the word comes back
+    /// `display_lemma` gives it (`kâğıt`, `e-posta`, `FIFA`) or folded (`kağıt`); the word comes back
     /// folded, a name as the dictionary spells it with its apostrophe (`Hakkâri'de`). Returns
     /// None for an unknown word, POS or tag, or a form the morphotactics cannot build.
     fn generate(&self, py: Python<'_>, lemma: &str, tags: Vec<String>) -> PyResult<Option<String>> {
@@ -521,11 +556,29 @@ fn ordinal_to_words(n: i64) -> PyResult<String> {
     guard(|| akana_core::normalization::TurkishNumberConverter::ordinal_to_words(n))
 }
 
+/// The amount in words; `ValueError` for an amount that is not finite or too large (review 3
+/// BIND3-08).
 #[pyfunction]
 #[pyo3(signature = (amount, currency=None))]
 fn currency_to_words(amount: f64, currency: Option<&str>) -> PyResult<String> {
     let curr = currency.unwrap_or("TL");
-    guard(|| akana_core::normalization::TurkishNumberConverter::currency_to_words(amount, curr))
+    guard(|| {
+        akana_core::normalization::TurkishNumberConverter::try_currency_to_words(amount, curr)
+    })?
+    .ok_or_else(|| PyValueError::new_err(format!("no words for the amount {amount}")))
+}
+
+/// The cosine of two vectors of the same length; `ValueError` for two lengths, which the
+/// product of their common part only pretended to compare (review 3 BIND3-08).
+fn cosine_of(vec_a: &[f32], vec_b: &[f32]) -> PyResult<f32> {
+    if vec_a.len() != vec_b.len() {
+        return Err(PyValueError::new_err(format!(
+            "vectors of {} and {} dimensions",
+            vec_a.len(),
+            vec_b.len()
+        )));
+    }
+    guard(|| akana_core::cosine_similarity(vec_a, vec_b))
 }
 
 #[pyfunction]
@@ -925,7 +978,7 @@ impl PyEmbeddings {
 
     #[staticmethod]
     fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> PyResult<f32> {
-        guard(|| akana_core::cosine_similarity(&vec_a, &vec_b))
+        cosine_of(&vec_a, &vec_b)
     }
 
     #[getter]
@@ -1100,7 +1153,7 @@ fn similarity(py: Python<'_>, text_a: &str, text_b: &str) -> PyResult<f32> {
 
 #[pyfunction]
 fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> PyResult<f32> {
-    guard(|| akana_core::cosine_similarity(&vec_a, &vec_b))
+    cosine_of(&vec_a, &vec_b)
 }
 
 fn parse_threshold_mode(
@@ -1679,7 +1732,7 @@ impl PyPiiVault {
 
 #[pyclass(name = "TurkishPiiEngine", frozen)]
 pub struct PyTurkishPiiEngine {
-    inner: RwLock<akana_core::pii::TurkishPiiEngine>,
+    inner: Shared<akana_core::pii::TurkishPiiEngine>,
 }
 
 #[pymethods]
@@ -1710,14 +1763,16 @@ impl PyTurkishPiiEngine {
             }
         }
         Ok(Self {
-            inner: RwLock::new(engine),
+            inner: Shared::new(engine),
         })
     }
 
     fn disable_type(&self, py: Python<'_>, pii_type: &str) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
             release(py, || {
-                write(&self.inner).disable_type(pt);
+                self.inner.update(|e| {
+                    e.disable_type(pt);
+                })
             })
         } else {
             Err(PyValueError::new_err(format!(
@@ -1730,7 +1785,9 @@ impl PyTurkishPiiEngine {
     fn enable_type(&self, py: Python<'_>, pii_type: &str) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
             release(py, || {
-                write(&self.inner).enable_type(pt);
+                self.inner.update(|e| {
+                    e.enable_type(pt);
+                })
             })
         } else {
             Err(PyValueError::new_err(format!(
@@ -1743,7 +1800,9 @@ impl PyTurkishPiiEngine {
     fn set_type_enabled(&self, py: Python<'_>, pii_type: &str, enabled: bool) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
             release(py, || {
-                write(&self.inner).set_type_enabled(pt, enabled);
+                self.inner.update(|e| {
+                    e.set_type_enabled(pt, enabled);
+                })
             })
         } else {
             Err(PyValueError::new_err(format!(
@@ -1755,7 +1814,7 @@ impl PyTurkishPiiEngine {
 
     fn is_type_enabled(&self, pii_type: &str) -> bool {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            read(&self.inner).is_type_enabled(pt)
+            self.inner.get().is_type_enabled(pt)
         } else {
             false
         }
@@ -1763,7 +1822,7 @@ impl PyTurkishPiiEngine {
 
     fn detect<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyList>> {
         let (entities, offsets) = release(py, || {
-            let entities = read(&self.inner).detect(text);
+            let entities = self.inner.get().detect(text);
             let offsets = entity_char_offsets(text, &entities);
             (entities, offsets)
         })?;
@@ -1801,7 +1860,7 @@ impl PyTurkishPiiEngine {
 
         let vault: Option<&PyPiiVault> = vault.as_deref();
         let (result, offsets) = release(py, || {
-            let engine = read(&self.inner);
+            let engine = self.inner.get();
             let result = match vault {
                 Some(v) => engine.mask_with_vault(text, pii_mode, &mut locked(&v.inner)),
                 None => engine.mask(text, pii_mode),
@@ -1874,7 +1933,9 @@ impl PyTurkishPiiEngine {
         if let Ok(vault) = mapping_or_vault.extract::<PyRef<PyPiiVault>>() {
             let vault: &PyPiiVault = &vault;
             release(py, || {
-                read(&self.inner).restore_response(llm_response, &locked(&vault.inner))
+                self.inner
+                    .get()
+                    .restore_response(llm_response, &locked(&vault.inner))
             })
         } else if let Ok(dict) = mapping_or_vault.downcast::<PyDict>() {
             let map = mapping_from_dict(dict)?;
@@ -1884,7 +1945,7 @@ impl PyTurkishPiiEngine {
         } else if let Ok(json_str) = mapping_or_vault.extract::<&str>() {
             release(py, || {
                 if let Ok(vault) = serde_json::from_str::<akana_core::pii::PiiVault>(json_str) {
-                    Some(read(&self.inner).restore_response(llm_response, &vault))
+                    Some(self.inner.get().restore_response(llm_response, &vault))
                 } else if let Ok(map) =
                     serde_json::from_str::<std::collections::HashMap<String, String>>(json_str)
                 {
@@ -1911,7 +1972,9 @@ impl PyTurkishPiiEngine {
         vault: &PyPiiVault,
     ) -> PyResult<String> {
         release(py, || {
-            read(&self.inner).restore_response(llm_response, &locked(&vault.inner))
+            self.inner
+                .get()
+                .restore_response(llm_response, &locked(&vault.inner))
         })
     }
 }

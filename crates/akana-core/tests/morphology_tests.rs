@@ -306,6 +306,20 @@ fn generation_writes_names_progressives_and_compounds() {
         ("hâkim", "Noun+Acc", Some("hakimi")),
         ("e-posta", "Noun+Dat", Some("epostaya")),
         ("Hakkâri", "Noun+Loc", Some("Hakkâri'de")),
+        // An acronym as display_lemma spells it, with a Latin I (review 4 BIND4-05).
+        ("FIFA", "Noun+Dat", Some("FIFA'ya")),
+        ("IBAN", "Noun+Gen", Some("IBAN'ın")),
+        ("ışık", "Noun+Loc", Some("ışıkta")),
+        // Review 4 MORPH4-08: an overt dative, a pronoun's full instrumental, the item spelt
+        // as asked, the request's capitals.
+        ("karşı", "Noun+Dat", Some("karşıya")),
+        ("bu", "Pron+Ins", Some("bununla")),
+        ("o", "Pron+Ins", Some("onunla")),
+        ("ben", "Pron+A1sg+Ins", Some("benimle")),
+        ("dâhil", "Noun+P3sg+Loc", Some("dahilinde")),
+        ("NATO", "Noun+Gen", Some("NATO'nun")),
+        ("Yönetmelik", "Noun+Gen", Some("Yönetmeliğin")),
+        ("KİTAP", "Noun+Dat", Some("KİTABA")),
     ] {
         assert_eq!(generate(word, tags).as_deref(), expected, "{word} {tags}");
     }

@@ -8,6 +8,7 @@ parallel, and an internal error in the native code raises ``RuntimeError``.
 
 import functools
 import json
+from collections.abc import Mapping
 from typing import Any
 
 try:
@@ -385,32 +386,63 @@ def grammar_rules() -> list[dict[str, Any]]:
 
 
 def encoder_info() -> dict[str, Any]:
-    """What this library's sparse and hybrid encoders are, for an index to store when it is
-    built: ``sparse_spec`` (major.minor), ``hybrid_layout``, ``dense_model``,
-    ``analysis_version``, ``analysis_fingerprint``, ``fingerprint`` and the fingerprint of each
-    embedded ``resources`` file. Pass the stored dict to :func:`check_encoder` when the index is
-    opened."""
+    """What this library's encoders are, for an index to store when it is built:
+    ``akana_version``, ``unicode_version``, ``sparse_spec`` (major.minor), ``hybrid_layout``,
+    ``dense_model``, ``analysis_version``, the fingerprints ``analysis_fingerprint``,
+    ``sparse_fingerprint`` (sparse vectors and BM25 terms), ``dense_fingerprint`` (``embed``)
+    and ``fingerprint`` (both), and the fingerprint of each embedded ``resources`` file. Pass the
+    stored dict to :func:`check_encoder` when the index is opened."""
     return json.loads(encoder_info_json())
+
+
+# The fields of an encoder_info() record that check_encoder reads.
+_ENCODER_KEYS = (
+    "sparse_spec",
+    "hybrid_layout",
+    "dense_model",
+    "sparse_fingerprint",
+    "dense_fingerprint",
+    "fingerprint",
+    "resources",
+)
+
+
+def _json_scalar(value: Any) -> Any:
+    """A numpy scalar (an int64 read back through pandas or pyarrow) as its Python value."""
+    item = getattr(value, "item", None)
+    if callable(item):
+        return item()
+    raise TypeError(f"{type(value).__name__} is not JSON serializable")
 
 
 def check_encoder(stored: Any, kind: str = "hybrid") -> str:
     """How an index of ``kind`` (``"sparse"``: sparse vectors or a BM25 index of their terms,
-    ``"dense"``: ``embed`` and the packed vectors, ``"hybrid"``) built with ``stored`` (the
-    :func:`encoder_info` dict it saved) relates to this library:
+    ``"dense"``: ``embed`` and the packed vectors, ``"hybrid"``) built with ``stored`` relates
+    to this library. ``stored`` is the :func:`encoder_info` dict the index saved, or that dict as
+    JSON text; numpy scalars and fields of its own do not matter.
 
     - ``"identical"``: built from the same inputs, so the same vectors;
-    - ``"compatible"``: sparse or hybrid vectors with the same sparse spec major (and hybrid
-      layout and dense model): some vectors may differ, within the bump policy, and the index
-      needs no rebuild;
-    - ``"rebuild"``: anything else, a record that is not such a dict included. A dense index is
-      identical or rebuilt.
+    - ``"compatible"``: the same sparse spec major (sparse), the same dense model, tokenizer and
+      weights (dense), both and the hybrid layout (hybrid): some vectors may differ, within the
+      bump policy, and the index needs no rebuild;
+    - ``"rebuild"``: anything else, a record that is not such a dict included.
 
-    Raises ``ValueError`` for an unknown ``kind``."""
+    Raises ``ValueError`` for an unknown ``kind``; nothing else."""
+    if isinstance(stored, (str, bytes, bytearray)):
+        try:
+            stored = json.loads(stored)
+        except (ValueError, RecursionError):
+            stored = None
+    record = (
+        {key: stored[key] for key in _ENCODER_KEYS if key in stored}
+        if isinstance(stored, Mapping)
+        else None
+    )
     try:
-        record = json.dumps(stored, allow_nan=False)
-    except (TypeError, ValueError):
-        record = "null"
-    return encoder_compatibility(record, kind)
+        text = json.dumps(record, allow_nan=False, default=_json_scalar)
+    except (TypeError, ValueError, RecursionError):
+        text = "null"
+    return encoder_compatibility(text, kind)
 
 
 # The version of the compiled library, which Cargo.toml and pyproject.toml share.

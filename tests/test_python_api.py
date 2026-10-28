@@ -2,6 +2,8 @@
 Comprehensive Python unit test suite for Akana.
 """
 
+import json
+
 import pytest
 
 import akana
@@ -396,3 +398,27 @@ def test_encoder_info_and_check():
         assert akana.check_encoder(record) == "rebuild", record
     with pytest.raises(ValueError):
         akana.check_encoder(info, "bm25")
+    # Review 4 BIND4-04 / CONTRACT4-06: what an index stores is read as it comes back.
+    np = pytest.importorskip("numpy")
+    assert check({**info, "hybrid_layout": np.int64(1)}) == ["identical"] * 3
+    assert check({**info, "note": float("nan"), "built": "2026-10-28"}) == ["identical"] * 3
+    assert check(json.dumps(info)) == ["identical"] * 3
+    assert check({**info, "fingerprint": info["fingerprint"].upper()}) == ["identical"] * 3
+    deep = {}
+    for _ in range(5000):
+        deep = {"x": deep}
+    assert akana.check_encoder({**info, "resources": deep}) == "rebuild"
+    assert akana.check_encoder({**info, "sparse_spec": "+1.0"}) == "rebuild"
+
+
+def test_numbers_currency_and_vectors_at_the_edges():
+    """Review 3 BIND3-08: i64::MIN, amounts without words, vectors of two lengths."""
+    assert akana.number_to_words(-(2**63)).startswith("eksi dokuz kentilyon")
+    assert akana.currency_to_words(2.999) == "üç lira"
+    assert akana.currency_to_words(-1.5) == "eksi bir lira elli kuruş"
+    for amount in (float("nan"), float("inf"), 1e300):
+        with pytest.raises(ValueError):
+            akana.currency_to_words(amount)
+    with pytest.raises(ValueError):
+        akana.similarity_vectors([1.0, 0.0], [1.0, 0.0, 0.0])
+    assert akana.similarity_vectors([1.0, 0.0], [1.0, 0.0]) == pytest.approx(1.0)

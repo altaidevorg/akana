@@ -27,12 +27,21 @@ It records each text's sparse vector (ids, f32 bits, terms) and hybrid bytes, an
   - patch: no vector changed;
   - minor: at most 5 % of the documents' sparse vectors and of their hybrid vectors changed in
     every set (court, RagTurk, Turkuaz), and every stale MRR@10 is within 0.005 of rebuilt;
-  - major: anything else, or a different spec major, hybrid layout or dense part.
+  - major: anything else, or a different spec major, hybrid layout, dense model, tokenizer or
+    weights, stopword list (`stop_lemmas.txt`, `stopwords`) or compound rules, as the dumps'
+    `encoder_info` records them (review 4 CONTRACT4-03).
 
-With `--declared CLASS` it exits 3 when the measured class is above the declared one, so a
-release script can stop on it. `dump` refuses (exit 1) when a set is missing or incomplete:
-the court sample's five subsets, the 300 pinned RagTurk articles and the 500 Turkuaz samples;
-`compare` refuses (exit 2) dumps of different or missing texts (review 3 MSTAB3-03, BIND3-03).
+Exit status:
+- 1: `dump` refuses data other than the pinned texts (`PINNED`: the court sample of
+  `scripts/morph_corpus_sample.py`, the 300 pinned RagTurk articles, Turkuaz's first 500
+  samples), a missing or short set included; `--unpinned` dumps other data, which only a dump
+  of the same data compares with;
+- 2: `compare` refuses dumps of different or missing texts (review 3 MSTAB3-03, BIND3-03);
+- 3: with `--declared CLASS`, the measured class is above the declared one, so a release script
+  can stop on it;
+- 4: a kind of vector (sparse; dense, the hybrid vector's first 64 bytes; hybrid) changed while
+  its fingerprint (`sparse_fingerprint`, `dense_fingerprint`, `fingerprint`) did not: the
+  fingerprint misses an input.
 
 Run the commands from the repository root (the court sample is `.cache/morph_sample/eval`).
 """
@@ -51,6 +60,25 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 COURT_SUBSETS = ["aym_bb", "aym_norm", "danistay", "emsal", "yargitay"]
+# The SHA-256 of each set's texts (joined with NUL), as dump records them: the data every
+# release's dump encodes, so that dumps made apart compare (review 4 CONTRACT4-03).
+PINNED = {
+    "court": {
+        "docs": "f6a7884e38faa39c2444b0a71533419c17d19cabf09e0fef6e1c44a3d1fde8b7",
+        "queries": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    },
+    "ragturk": {
+        "docs": "f51beebcf7f5ee0a83537908fea282d05ee424b026f450256004f3e0d1c163a7",
+        "queries": "71ee1d7829e793fa147497e90d05f7e3e3e7a450476868393a8ee198b76f0aab",
+    },
+    "turkuaz": {
+        "docs": "0b5ecf99e32ad60cff1eaec844183c16d2f177800cd744f70bb10f44d8b349fd",
+        "queries": "422980222c2798e876aeccb1c71d7c241a689fd2bbb2411111ee047b8b4a09d7",
+    },
+}
+# What a dump's encoder_info records whose change is major whatever the vectors do.
+MAJOR_RESOURCES = ("tokenizer.json", "turboquant_weights.npz", "stop_lemmas.txt", "stopwords", "compounds")
+DENSE_HEX = 128  # the hybrid vector's 2-bit dense half, 64 bytes
 CHUNKS_PER_SUBSET = 1000
 CHUNK_WORDS = 256
 SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
@@ -137,11 +165,19 @@ def dump(args) -> None:
             "queries": [q["question"] for q in queries],
             "gold": [sorted(position[k] for k in q["gold_keys"]) for q in queries],
         }
+    digests = {
+        name: {k: hashlib.sha256("\x00".join(s[k]).encode("utf-8")).hexdigest() for k in ("docs", "queries")}
+        for name, s in sets.items()
+    }
+    other = [f"{name} {k}" for name in PINNED for k in ("docs", "queries") if digests[name][k] != PINNED[name][k]]
+    if other and not args.unpinned:
+        sizes = ", ".join(f"{n} {len(s['docs'])} docs / {len(s['queries'])} questions" for n, s in sets.items())
+        sys.exit(f"the data differs from the pinned texts ({', '.join(other)}; read {sizes}): "
+                 "complete the court sample and the RagTurk/Turkuaz caches, or pass --unpinned")
     with gzip.open(args.out, "wt", encoding="utf-8") as f:
         f.write(json.dumps({"encoder_info": build_info()}) + "\n")
         for name, s in sets.items():
-            digests = {k: hashlib.sha256("\x00".join(s[k]).encode("utf-8")).hexdigest() for k in ("docs", "queries")}
-            f.write(json.dumps({"set": name, "gold": s["gold"], "texts": digests}) + "\n")
+            f.write(json.dumps({"set": name, "gold": s["gold"], "texts": digests[name]}) + "\n")
             for kind in ("docs", "queries"):
                 for i, v in enumerate(encode(s[kind])):
                     f.write(json.dumps({"set": name, "kind": kind, "i": i, **v}) + "\n")
@@ -221,16 +257,23 @@ def compare(args) -> int:
     if empty:
         print(f"the dumps hold no {', '.join(empty)} documents: dump both builds with the full data")
         return 2
-    major = (
-        info_a["sparse_spec"].split(".")[0] != info_b["sparse_spec"].split(".")[0]
-        or info_a["hybrid_layout"] != info_b["hybrid_layout"]
-        # A build from before the spec (0.8.0) records no dense model, and one from 0.9.0's
-        # development no dense fingerprint: what is not recorded is not compared.
-        or any(
-            None not in (info_a.get(key), info_b.get(key)) and info_a[key] != info_b[key]
-            for key in ("dense_model", "dense_fingerprint")
-        )
-    )
+    # A build from before the spec (0.8.0) records no dense model or resources: what is not
+    # recorded is not compared.
+    res_a, res_b = info_a.get("resources") or {}, info_b.get("resources") or {}
+    reasons = [
+        key
+        for key, x, y in [
+            ("sparse spec major", info_a["sparse_spec"].split(".")[0], info_b["sparse_spec"].split(".")[0]),
+            ("hybrid layout", info_a["hybrid_layout"], info_b["hybrid_layout"]),
+            ("dense model", info_a.get("dense_model"), info_b.get("dense_model")),
+            *((name, res_a.get(name), res_b.get(name)) for name in MAJOR_RESOURCES),
+        ]
+        if None not in (x, y) and x != y
+    ]
+    major = bool(reasons)
+    if major:
+        print(f"major by definition: {', '.join(reasons)} changed")
+    moved = {"sparse": False, "dense": False, "hybrid": False}
     changed_any = False
     worst_share = 0.0
     worst_gap = 0.0
@@ -242,6 +285,10 @@ def compare(args) -> int:
                 continue
             hybrid = sum(x["hybrid"] != y["hybrid"] for x, y in zip(va, vb))
             sparse = sum(x["sparse"] != y["sparse"] for x, y in zip(va, vb))
+            dense = sum(x["hybrid"][:DENSE_HEX] != y["hybrid"][:DENSE_HEX] for x, y in zip(va, vb))
+            moved["sparse"] |= sparse > 0
+            moved["dense"] |= dense > 0
+            moved["hybrid"] |= hybrid > 0
             terms = sum({t for *_, t in x["sparse"]} != {t for *_, t in y["sparse"]} for x, y in zip(va, vb))
             changed_any |= hybrid > 0 or sparse > 0
             print(f"{name} {kind}: hybrid changed {hybrid}/{len(va)} ({100 * hybrid / len(va):.2f} %), "
@@ -268,8 +315,13 @@ def compare(args) -> int:
         cls = "major"
     print(f"class: {cls} (largest share of changed document vectors {100 * worst_share:.2f} %, "
           f"largest stale gap {worst_gap:.4f})")
-    if changed_any and info_a.get("fingerprint") == info_b.get("fingerprint"):
-        print("the vectors changed but the fingerprint did not: the fingerprint misses an input")
+    missed = [
+        key
+        for kind, key in (("sparse", "sparse_fingerprint"), ("dense", "dense_fingerprint"), ("hybrid", "fingerprint"))
+        if moved[kind] and info_a.get(key) is not None and info_a.get(key) == info_b.get(key)
+    ]
+    if missed:
+        print(f"vectors changed but {', '.join(missed)} did not: the fingerprint misses an input")
         return 4
     if args.declared and CLASSES.index(cls) > CLASSES.index(args.declared):
         print(f"the change is {cls}, above the declared {args.declared}")
@@ -283,6 +335,7 @@ def main() -> None:
     d = sub.add_parser("dump")
     d.add_argument("--out", required=True)
     d.add_argument("--sample", default=".cache/morph_sample/eval")
+    d.add_argument("--unpinned", action="store_true", help="dump data other than the pinned texts")
     c = sub.add_parser("compare")
     c.add_argument("old")
     c.add_argument("new")

@@ -255,8 +255,10 @@ fn attribute_by_name(name: &str) -> Option<RootAttr> {
         "progressivevoweldrop" => RootAttr::PROGRESSIVE_VOWEL_DROP,
         "passivein" | "passive_in" => RootAttr::PASSIVE_IN,
         "causativet" | "causative_t" => RootAttr::CAUSATIVE_T,
-        "reflexive" => RootAttr::REFLEXIVE,
-        "reciprocal" => RootAttr::RECIPROCAL,
+        // the short names too, which name the voice of a verb as `analyze` tags it (review 4
+        // MORPH4-09) and a pronoun's secondary POS (kendi, birbiri)
+        "reflexive" | "reflex" => RootAttr::REFLEXIVE,
+        "reciprocal" | "recip" => RootAttr::RECIPROCAL,
         "nonreciprocal" => RootAttr::NON_RECIPROCAL,
         "implicitp1sg" => RootAttr::IMPLICIT_P1SG,
         "implicitp2sg" => RootAttr::IMPLICIT_P2SG,
@@ -391,14 +393,20 @@ impl RootLexicon {
     /// says otherwise, and never a verb; a word alone is a verb when it is written in lower
     /// case, ends in -mAk, has more than three letters and is no `CompoundP3sg`; the first
     /// secondary POS counts; `PCDat` and the like give a postposition's case; an abbreviation
-    /// written with a Latin I has i in its lemma (`IBAN`: `iban`); a `# comment` may follow
-    /// the `]`. A line is read as Unicode NFC, and a leading byte-order mark is skipped.
+    /// written with a Latin I has i in its lemma (`IBAN`: `iban`); `Ref:` names the word a
+    /// variant spells, which gives the lemma and its spelling while the root keeps the
+    /// variant (`şöför [A:Nonstandard; Ref:şoför]`: lemma şoför, root şöför; a Zemberek
+    /// item name such as `kilitlemek_Verb` is its word); a `# comment` may follow the `]`.
+    /// `Recip` and `Reflex` on a verb are its voice, as `Reciprocal` and `Reflexive` are, and
+    /// a pronoun's secondary POS. A line is read as Unicode NFC, and a leading byte-order mark
+    /// is skipped.
     ///
     /// Returns the lines it could not read in full, which add no item: an unknown POS, a
     /// missing column, an unclosed `[`, an unknown attribute, secondary POS or field (a
     /// misspelt `Voicng`), a voice attribute on a word that is neither a verb nor a pronoun,
-    /// and a root with characters no Turkish word has (review 2 MORPH2-12, review 3 LEX3-05,
-    /// BIND3-05).
+    /// attributes that contradict each other (`Voicing` and `NoVoicing`, `AoristA` and
+    /// `AoristI`), and a root with characters no Turkish word has (review 2 MORPH2-12,
+    /// review 3 LEX3-05, BIND3-05, review 4 MORPH4-09).
     pub fn load_from_str(&mut self, text: &str) -> Vec<String> {
         // About one item per 40 bytes of the built-in lexicon.
         self.index.reserve(text.len() / 40);
@@ -486,7 +494,18 @@ fn parse_akana_line(line: &str) -> Option<(&str, DictionaryItem)> {
             return None;
         }
     }
-    root_letters(&item.root).then_some((lemma, item))
+    (root_letters(&item.root) && consistent(&item)).then_some((lemma, item))
+}
+
+/// Whether an item's attributes can hold together: a root does not both voice and keep its
+/// final consonant, nor take both aorist classes (review 4 MORPH4-09).
+fn consistent(item: &DictionaryItem) -> bool {
+    !item
+        .attributes
+        .contains(RootAttr::VOICING | RootAttr::NO_VOICING)
+        && !item
+            .attributes
+            .contains(RootAttr::AORIST_A | RootAttr::AORIST_I)
 }
 
 /// A line in Zemberek's syntax (`word [P:..; A:..; Pr:..; Roots:..; Index:..]`), read as
@@ -515,6 +534,7 @@ fn parse_zemberek_line(line: &str) -> Option<(Cow<'_, str>, DictionaryItem)> {
     let mut pronunciation = None;
     let mut roots = None;
     let mut homograph = 0;
+    let mut reference = None;
     for field in meta.into_iter().flat_map(|m| m.split(';')) {
         let Some((key, value)) = field.split_once(':') else {
             if field.trim().is_empty() {
@@ -550,8 +570,8 @@ fn parse_zemberek_line(line: &str) -> Option<(Cow<'_, str>, DictionaryItem)> {
                 })
             }
             "Index" => homograph = value.trim().parse().ok()?,
-            // Ref (a spelling of another item's lemma) adds nothing here.
-            "Ref" => {}
+            // the word this one spells; a Zemberek item name has its POS after `_`
+            "Ref" => reference = value.trim().split('_').next().filter(|r| !r.is_empty()),
             _ => return None,
         }
     }
@@ -592,6 +612,8 @@ fn parse_zemberek_line(line: &str) -> Option<(Cow<'_, str>, DictionaryItem)> {
     if !root_letters(&root) {
         return None;
     }
+    // The word a Ref: names gives the lemma; the root keeps the variant (şöför: şoför).
+    let lemma = reference.map_or(lemma, normalize_word);
     let mut item = DictionaryItem::new(lemma, root, primary, SecondaryPos::None, RootAttr::NONE);
     if secondary != SecondaryPos::None && !add_name(&mut item, secondary.as_str()) {
         return None;
@@ -600,6 +622,9 @@ fn parse_zemberek_line(line: &str) -> Option<(Cow<'_, str>, DictionaryItem)> {
         if !add_name(&mut item, name) {
             return None;
         }
+    }
+    if !consistent(&item) {
+        return None;
     }
     if pronunciation.is_none() && latin_i {
         let guessed = guess_abbreviation(&letter_reading);
@@ -613,7 +638,9 @@ fn parse_zemberek_line(line: &str) -> Option<(Cow<'_, str>, DictionaryItem)> {
     item.compound_roots = roots;
     item.homograph = homograph;
     item.governed_case = governed_case;
-    let written = if latin_i {
+    let written = if let Some(reference) = reference {
+        Cow::Owned(reference.to_string())
+    } else if latin_i {
         Cow::Owned(
             word.chars()
                 .map(|c| {

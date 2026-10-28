@@ -8,8 +8,11 @@
 with akana importable (the extension built from this checkout) and the pinned treebanks in
 .cache/morph_sources/ud (scripts/fetch_morph_sources.py). The parser gets the treebank's word
 forms (a multiword token's parts), so tokenization does not count. LAS compares the universal
-relation (nsubj for nsubj:pass). With --min-las it exits 1 when the overall LAS is below N, as
-a ratchet for the gates. Only test splits are read; IMST is evaluation-only data.
+relation (nsubj for nsubj:pass). A sentence whose parse has another number of words than the
+treebank's is not scored, and its words count as wrong: the scores are over every word, so that
+the parser cannot gain by failing on hard sentences (review 4 CONTRACT4-07). With --min-las it
+exits 1 when the overall LAS is below N, as a ratchet for the gates. Only test splits are read;
+IMST is evaluation-only data.
 
 --light-verbs writes the parser's light verbs instead, from the train splits of the six
 treebanks other than IMST: the verbs (by lemma) with at least 15 bare nouns right before them
@@ -126,7 +129,13 @@ def main():
             ]
             if len(rows) != len(words):
                 c["skipped"] += 1
+                scored = sum(rel != "punct" for _, _, rel in words)
+                c["words"] += scored
+                c["skipped_words"] += scored
                 continue
+            # The baseline attaches each word to the next word that is not punctuation, the
+            # last to the root (review 4 DOWN4-04).
+            content = [j for j, (w, _, _) in enumerate(words, 1) if any(ch.isalnum() for ch in w)]
             for k, ((_, head, rel), row) in enumerate(zip(words, rows)):
                 if rel == "punct":
                     continue
@@ -134,16 +143,17 @@ def main():
                 c["words"] += 1
                 c["uas"] += got_head == head
                 c["las"] += got_head == head and got_rel == rel
-                c["next"] += head == (k + 2 if k + 1 < len(words) else 0)
+                c["next"] += head == next((j for j in content if j > k + 1), 0)
                 by_rel[rel]["gold"] += 1
                 by_rel[rel]["right"] += got_head == head and got_rel == rel
         by_bank[bank] = c
         totals.update(c)
     pct = lambda c, k: 100.0 * c[k] / max(c["words"], 1)  # noqa: E731
-    print(f"{'treebank':12} {'words':>7} {'UAS':>6} {'LAS':>6} {'next-word UAS':>14}")
+    print(f"{'treebank':12} {'words':>7} {'UAS':>6} {'LAS':>6} {'next-word UAS':>14}  (next word: not punctuation)")
     for bank, c in [*by_bank.items(), ("all", totals)]:
         uas, las, nxt = pct(c, "uas"), pct(c, "las"), pct(c, "next")
         print(f"{bank:12} {c['words']:7d} {uas:6.1f} {las:6.1f} {nxt:14.1f}")
+    print(f"sentences not scored: {totals['skipped']} ({totals['skipped_words']} words, counted wrong)")
     print("relations (gold count, labelled attachment %):")
     for rel, c in sorted(by_rel.items(), key=lambda kv: -kv[1]["gold"])[:16]:
         print(f"  {rel:10} {c['gold']:6d} {100.0 * c['right'] / c['gold']:5.1f}")

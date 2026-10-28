@@ -48,7 +48,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - Trained AI-text detector in every audit report (`report.ai_detection`, next to the rule-based `ai_score`, which counts style findings): calibrated probability that the text is AI-written, from 500 gradient-boosted trees over 75 signals (content statistics, mined AI phrases such as *"Elbette"*, *"önemli bir rol oynar"*, token-transition scores over Akana's own embedding tokenizer), with a Turkish "why AI" report. On a held-out OpenAI evaluation set it flags about 95 of 100 AI texts long enough to judge (65+ words), at 1% false alarms on separate human texts. Not proof of authorship; poems get no decision, academic text a warning, shorter or highly repetitive texts are not judged.
   - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
-  - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.8 % of words to the right head (UAS) and 41.7 % with the right relation too (LAS), where attaching every word to the next gets 42.0 % UAS (`scripts/parser_ud_eval.py`). Trained parsers do much better: use it for rough structure.
+  - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.8 % of words to the right head (UAS) and 41.7 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.0 against 51.3) none. Trained parsers do much better: use it for rough structure.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).
@@ -278,19 +278,19 @@ info = akana.encoder_info()   # save this dict next to the index when you build 
 #  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
 #  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 
-status = akana.check_encoder(stored_info, "hybrid")   # when you open it
+status = akana.check_encoder(stored_info, "hybrid")   # when you open it: the dict, or its JSON text
 ```
 
 The second argument is what the index holds: `"sparse"` (`sparse_embed` vectors, or a BM25 index of their terms), `"dense"` (`embed` and the packed 2-bit and 1-bit vectors) or `"hybrid"` (the default). Each is judged by what its vectors depend on, so a new dense model asks dense and hybrid indexes to rebuild but leaves sparse ones alone.
 
-- `"identical"`: this library was built from the same inputs (the resources, the source of the analysis and encoder path, `Cargo.lock`, the Unicode version) and produces exactly the vectors the index holds.
-- `"compatible"`: sparse or hybrid vectors with the same sparse spec major (and hybrid layout and dense model). Some vectors differ: releases that change them say how many, and keep at most 5 % of documents' vectors changed and a stale index's MRR@10 within 0.005 of a rebuilt one, so no rebuild is needed.
-- `"rebuild"`: term ids, term definitions, the dense model or the vector layout changed, or the stored record is not one `encoder_info()` wrote. Re-embed the documents. A dense index is identical or rebuilt.
+- `"identical"`: this library was built from the same inputs as that kind of vector needs (the resources, the source of its encoders, akana's own `Cargo.lock`, the Unicode version) and produces exactly the vectors the index holds.
+- `"compatible"`: the same sparse spec major (sparse vectors), the same dense model, tokenizer and weights (dense vectors), both and the hybrid layout (hybrid vectors). Some vectors differ, as code or a dependency changed: releases that change them say how many, and keep at most 5 % of documents' vectors changed and a stale index's MRR@10 within 0.005 of a rebuilt one, so no rebuild is needed.
+- `"rebuild"`: term ids, term definitions, the dense model or the vector layout changed, or the stored record is not one `encoder_info()` wrote. Re-embed the documents.
 
 An index built with 0.8.0 or earlier stores no encoder info and must be rebuilt; `CHANGELOG.md`
 lists what else changed since 0.8.0 and how to migrate.
 
-`Cargo.lock` and `rust-toolchain.toml` pin what the vectors depend on (the Unicode tables of the Rust standard library included), and ranking inside the analyzer and disambiguator is done in integers. The published wheels are built with that toolchain and lock file and tested against the golden vectors on Linux, macOS and Windows before release. A build with another toolchain or dependency set (from the sdist, or from crates.io) reports another fingerprint: `check_encoder` then says `"compatible"`, not `"identical"`.
+`Cargo.lock` and `rust-toolchain.toml` pin what the vectors depend on (the Unicode tables of the Rust standard library included), and ranking inside the analyzer and disambiguator is done in integers. The published wheels, and the sdist built into a wheel, are built with that toolchain and lock file and tested against the golden vectors on Linux, macOS and Windows before release. The fingerprints also cover the Unicode version and a probe set's vectors, so a build with another toolchain reports another fingerprint when either differs; a build without akana's own lock file (from crates.io, or as another project's dependency, whose resolved versions it cannot see) always reports one of its own: `check_encoder` then says `"compatible"`, not `"identical"`.
 
 The hybrid metric's alpha (`set_hybrid_metric_alpha`, `get_usearch_metric_pointer_hybrid(alpha)`) is one value for the whole process: setting it changes the metric of every open index that uses it. It must be a number in [0, 1] (outside it is clamped; NaN raises `ValueError`).
 

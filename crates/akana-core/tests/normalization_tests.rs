@@ -145,3 +145,27 @@ fn test_number_converter() {
         1923
     );
 }
+
+/// Review 3 BIND3-08: i64::MIN, and amounts that round or have no words.
+#[test]
+fn number_and_currency_words_at_the_edges() {
+    assert_eq!(
+        TurkishNumberConverter::number_to_words(i64::MIN),
+        "eksi dokuz kentilyon iki yüz yirmi üç katrilyon üç yüz yetmiş iki trilyon otuz altı \
+         milyar sekiz yüz elli dört milyon yedi yüz yetmiş beş bin sekiz yüz sekiz"
+    );
+    assert_eq!(
+        TurkishNumberConverter::number_to_words(i64::MAX),
+        "dokuz kentilyon iki yüz yirmi üç katrilyon üç yüz yetmiş iki trilyon otuz altı milyar \
+         sekiz yüz elli dört milyon yedi yüz yetmiş beş bin sekiz yüz yedi"
+    );
+    let words = |amount: f64| TurkishNumberConverter::try_currency_to_words(amount, "TL");
+    assert_eq!(words(2.999).as_deref(), Some("üç lira"));
+    assert_eq!(words(-1.5).as_deref(), Some("eksi bir lira elli kuruş"));
+    assert_eq!(words(-0.001).as_deref(), Some("sıfır lira"));
+    assert_eq!(words(0.07).as_deref(), Some("sıfır lira yedi kuruş"));
+    for amount in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, 1e300, -1e17] {
+        assert_eq!(words(amount), None, "{amount}");
+        assert_eq!(TurkishNumberConverter::currency_to_words(amount, "TL"), "");
+    }
+}

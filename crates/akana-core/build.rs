@@ -13,15 +13,25 @@ use std::path::{Path, PathBuf};
 
 /// The source the analyses depend on: the analyzer and disambiguator and their phonology.
 const ANALYSIS: &[&str] = &["src/morphology", "src/phonology"];
-/// The source the sparse and hybrid vectors depend on: the analyses, the tokenizer and
-/// sentence segmenter, the encoders themselves and the hash they use.
-const ENCODERS: &[&str] = &[
+/// The source the sparse vectors depend on: the analyses, the tokenizer and sentence segmenter,
+/// the sparse encoder and the hash it uses.
+const SPARSE: &[&str] = &[
     "src/morphology",
     "src/phonology",
     "src/tokenization",
-    "src/embeddings",
+    "src/embeddings/sparse.rs",
     "src/fingerprint.rs",
 ];
+/// The source the dense vectors depend on: the model's tokenizer, the weights reader, the
+/// pooling and the 2-bit and 1-bit quantisers (review 4 CONTRACT4-01).
+const DENSE: &[&str] = &[
+    "src/embeddings/mod.rs",
+    "src/embeddings/tokenizer.rs",
+    "src/embeddings/weights.rs",
+    "src/fingerprint.rs",
+];
+/// The source the hybrid vectors add: the packer.
+const HYBRID: &[&str] = &["src/embeddings/hybrid.rs"];
 
 fn rust_files(path: &Path, out: &mut Vec<PathBuf>) {
     if path.is_dir() {
@@ -63,31 +73,43 @@ fn sources(crate_dir: &Path, roots: &[&str]) -> String {
     fp.hex()
 }
 
+/// The hash of akana's own `Cargo.lock`, or, for a build that has none of its own (from the
+/// published crate, as a git or vendored dependency of another project), a value of this build
+/// alone: the dependencies it resolved are unknown, so two such builds never read "identical"
+/// (review 4 CONTRACT4-04).
+fn lock(crate_dir: &Path) -> String {
+    let workspace = crate_dir.join("../../Cargo.toml");
+    let own = std::fs::read_to_string(&workspace)
+        .is_ok_and(|toml| toml.contains("[workspace]") && toml.contains("\"crates/akana-core\""));
+    if own {
+        if let Ok(bytes) = std::fs::read(crate_dir.join("../../Cargo.lock")) {
+            println!("cargo:rerun-if-changed=../../Cargo.lock");
+            println!("cargo:rerun-if-changed=../../Cargo.toml");
+            let text: Vec<u8> = bytes.into_iter().filter(|&b| b != b'\r').collect();
+            return fingerprint::Fingerprint::new()
+                .section("Cargo.lock", &text)
+                .hex();
+        }
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    format!("unlocked-{now}")
+}
+
 fn main() {
     let crate_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("set by cargo"));
-    for root in ENCODERS {
+    for root in SPARSE.iter().chain(DENSE).chain(HYBRID) {
         println!("cargo:rerun-if-changed={root}");
     }
-    println!(
-        "cargo:rustc-env=AKANA_ANALYSIS_SOURCES={}",
-        sources(&crate_dir, ANALYSIS)
-    );
-    println!(
-        "cargo:rustc-env=AKANA_ENCODER_SOURCES={}",
-        sources(&crate_dir, ENCODERS)
-    );
-    // The resolved dependencies (regex, unicode-normalization) move vectors too. A build from
-    // the published crate has no workspace lock file, and says so.
-    let lock = crate_dir.join("../../Cargo.lock");
-    let locked = match std::fs::read(&lock) {
-        Ok(bytes) => {
-            println!("cargo:rerun-if-changed=../../Cargo.lock");
-            let text: Vec<u8> = bytes.into_iter().filter(|&b| b != b'\r').collect();
-            fingerprint::Fingerprint::new()
-                .section("Cargo.lock", &text)
-                .hex()
-        }
-        Err(_) => "none".to_string(),
-    };
-    println!("cargo:rustc-env=AKANA_CARGO_LOCK={locked}");
+    for (name, roots) in [
+        ("AKANA_ANALYSIS_SOURCES", ANALYSIS),
+        ("AKANA_SPARSE_SOURCES", SPARSE),
+        ("AKANA_DENSE_SOURCES", DENSE),
+        ("AKANA_HYBRID_SOURCES", HYBRID),
+    ] {
+        println!("cargo:rustc-env={name}={}", sources(&crate_dir, roots));
+    }
+    // The resolved dependencies (regex, unicode-normalization) move vectors too.
+    println!("cargo:rustc-env=AKANA_CARGO_LOCK={}", lock(&crate_dir));
 }

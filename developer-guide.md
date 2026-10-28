@@ -81,17 +81,26 @@ any change to the lexicon, the morphotactics or the ranking, in this order:
    `python scripts/encoder_churn.py dump` (it needs the court sample of
    `scripts/morph_corpus_sample.py` and the cached RagTurk and Turkuaz sets) and run
    `encoder_churn.py compare OLD NEW --declared <class>`. Patch: no vector moved; minor: at most
-   5 % of each corpus's documents and 0.005 stale MRR@10; major otherwise, which needs a new
-   `SPARSE_SPEC` major. `tests/data/embeddings/golden-1.0.jsonl` holds the vectors of the
-   release that froze spec 1.0 and is never rewritten after that release: CI fails when more
-   than 5 % of them move within the spec.
-7. **AI detector**: its drift canary fails when its inputs move. Rewrite it once per commit with
+   5 % of each corpus's documents and 0.005 stale MRR@10; major otherwise, and always for a new
+   dense model, tokenizer, weights, stopword list or compound rules, which needs a new
+   `SPARSE_SPEC` major (a dense change beyond minor renames `DENSE_MODEL`). `dump` refuses
+   texts other than the pinned ones (`PINNED`; `--unpinned` for other data). `compare` exits 2
+   for dumps of other texts, 3 above the declared class and 4 when a kind of vector moved
+   while its fingerprint did not (a fingerprint misses an input: fix `build.rs` or
+   `spec.rs`). `tests/data/embeddings/golden-<major>.0.jsonl` holds the vectors of the
+   release that froze that spec major and is never rewritten after that release: its
+   fingerprint is pinned in `RELEASE_FIXTURES` (`tests/golden_vectors.rs`), and CI fails when
+   more than 5 % of its texts move within the spec. The release that bumps the major writes
+   its own file and pins it.
+7. **AI detector**: its drift canary fails when its inputs move on one of its texts (court
+   paragraphs and `tests/data/ai_detector_canary_texts.txt`). Rewrite it once per commit with
    `AKANA_AI_DETECTOR_CANARY="<why>" cargo test -p akana-core --lib -- --ignored
    rewrite_drift_canary`.
 
-The encoder fingerprints also hash the Rust source of the analysis and encoder path and
-`Cargo.lock` (`crates/akana-core/build.rs`), so any build from other inputs reports
-`"compatible"` rather than `"identical"`.
+The encoder fingerprints also hash the Rust source of each kind's path (sparse, dense, the
+hybrid packer) and akana's own `Cargo.lock` (`crates/akana-core/build.rs`), so a build from
+other inputs reports `"compatible"` rather than `"identical"` for the kinds those inputs
+reach.
 
 ---
 
@@ -117,10 +126,10 @@ The release workflow (`.github/workflows/release.yml`) runs on a tag `v<version>
 1. it checks that the tag names the version of `Cargo.toml` and `pyproject.toml` (bump both together, with `Cargo.lock`);
 2. it runs the Rust tests in the release profile;
 3. it builds wheels for Linux (`x86_64`), Windows (`x86_64`) and macOS (`aarch64`), and the sdist;
-4. it installs each wheel and runs the golden-vector and Python API tests against it;
-5. only then, and only for a tag, it publishes to PyPI.
+4. it installs each wheel and runs the golden-vector and Python API tests against it, on Python 3.10 and 3.12, and builds the sdist into a library and runs them against that too;
+5. only then, and only for a pushed tag, it publishes to PyPI.
 
-A manual run builds and tests but publishes nothing. Configure the `PYPI_API_TOKEN` secret in the repository settings, then tag and push:
+A manual run builds and tests but publishes nothing, on a tag too. Configure the `PYPI_API_TOKEN` secret in the repository settings, then tag and push:
 ```bash
 git tag v0.9.0
 git push origin v0.9.0
@@ -155,4 +164,4 @@ cargo publish -p akana-core
 cargo publish -p akana-cli
 ```
 
-A build from the published crate has no workspace `Cargo.lock` and resolves its own dependencies: its fingerprints differ from the wheels', and indexes built with the wheels read as `"compatible"` there.
+A build from the published crate, or as another project's dependency, has no `Cargo.lock` of akana's own and resolves its own dependencies: its fingerprints are its build's own, and indexes built with the wheels read as `"compatible"` there.

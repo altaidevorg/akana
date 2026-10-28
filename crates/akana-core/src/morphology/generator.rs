@@ -21,6 +21,10 @@ const DEFAULT_TAGS: [&str; 3] = ["A3sg", "Pnon", "Nom"];
 /// The possessives, which a CompoundP3sg noun's plural always shows (cumhurbaşkan-lar-ı).
 const POSSESSIVES: [&str; 6] = ["P1sg", "P2sg", "P3sg", "P1pl", "P2pl", "P3pl"];
 
+/// How a homograph's word ranks, the smallest first: a name or not as the request's capital
+/// asks, spelt otherwise than asked, minus its log prior, length in characters.
+type Rank = (bool, bool, i32, usize);
+
 /// Every tag the analyzer shows, and Prog1 and Prog2, which a request may use to tell the
 /// two progressives apart (both are shown as Prog).
 static TAGS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
@@ -88,20 +92,33 @@ impl TurkishMorphology {
     ///   asks for the -mAktA one (bulunmaktadır), and Prog1 for -Iyor only.
     /// - The copula after a verb is shown as CopPres3sg (gelmektedir), CopPast (geliyordu),
     ///   CopEvid and CopCond, and after a nominal as Cop or CopPres3sg, as `analyze` shows it.
-    /// - A name or an abbreviation is written as the lexicon spells it, with an apostrophe
+    /// - A name or an abbreviation is written as the lexicon spells it, or as the request
+    ///   does when that differs only in capitals (NATO'nun, not Nato'nun), with an apostrophe
     ///   before its case, possessive and copula (Türkiye'de, Ali'nin, ABD'nin, TBMM'de), and
-    ///   its suffixes follow its pronunciation.
+    ///   its suffixes follow its pronunciation. A common word asked for with a capital keeps
+    ///   it (Yönetmelik: Yönetmeliğin), and in capitals all of it (KİTAP: KİTABA).
+    /// - A case is shown where the word may also leave it implicit (karşıya, not karşı), and a
+    ///   pronoun's instrumental is written in full (bununla, benimle; not bunla, benle).
     /// - A CompoundP3sg noun's plural keeps its own possessive (cumhurbaşkanı with A3pl and Dat
     ///   is cumhurbaşkanlarına).
     ///
     /// Among homographs of that POS it takes a common word before a name, or a name before a
-    /// common word when the request is written with a capital (Ali, ABD); then the item the
-    /// corpus prior finds most frequent (hak the noun: hakkım), then the shortest word (hal
-    /// "state": halinde, not hal "solution": hallinde). `None` for an unknown word, POS or tag,
-    /// or when no path of the graph renders the tags.
+    /// common word when the request is written with a capital (Ali, ABD); then the item spelt
+    /// as the request is (dâhil: dahilinde; dahil, the item with a vowel drop: dahlinde); then
+    /// the item the corpus prior finds most frequent (hak the noun: hakkım), then the shortest
+    /// word (hal "state": halinde, not hal "solution": hallinde). `None` for an unknown word,
+    /// POS or tag, or when no path of the graph renders the tags.
     pub fn generate(&self, word: &str, tags: &[&str]) -> Option<String> {
         let written = word.trim();
-        let lower = normalize_word(written);
+        let mut lower = normalize_word(written);
+        // An acronym typed with a Latin I (FIFA, CIA, as display_lemma spells them) is in the
+        // lexicon with i (review 4 BIND4-05).
+        if written.contains('I') && self.root_items(&lower).is_empty() {
+            let latin = lower.replace('ı', "i");
+            if !self.root_items(&latin).is_empty() {
+                lower = latin;
+            }
+        }
         let capitalised = crate::phonology::to_turkish_lower(written) != written;
         let (first, rest) = tags.split_first()?;
         let pos = PrimaryPos::from_name(first)?;
@@ -135,13 +152,14 @@ impl TurkishMorphology {
             )
             .filter(|i| i.primary_pos == pos);
         let prior = &*PRIOR;
-        let mut best: Option<((bool, bool, i32, usize), String)> = None;
+        // the rank, the word, and whether its item is a name
+        let mut best: Option<(Rank, String, bool)> = None;
         for item in items {
             let name = matches!(
                 item.secondary_pos,
                 SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
             );
-            let mut found = self.generate_item(item, &wanted, progressive);
+            let mut found = self.generate_item(item, &wanted, progressive, written);
             if found.is_none()
                 && item.attributes.contains(RootAttr::COMPOUND_P3SG)
                 && wanted.contains(&"A3pl")
@@ -150,21 +168,34 @@ impl TurkishMorphology {
                 let mut own = wanted.clone();
                 let at = own.iter().position(|t| *t == "A3pl").map_or(1, |i| i + 1);
                 own.insert(at, "P3sg");
-                found = self.generate_item(item, &own, progressive);
+                found = self.generate_item(item, &own, progressive, written);
             }
             if let Some(surface) = found {
                 let key = (
                     capitalised != name,
-                    name && item.display_lemma() != written,
+                    item.display_lemma() != written,
                     -prior.item_log_p(item),
                     surface.chars().count(),
                 );
-                if best.as_ref().is_none_or(|(b, _)| key < *b) {
-                    best = Some((key, surface));
+                if best.as_ref().is_none_or(|(b, _, _)| key < *b) {
+                    best = Some((key, surface, name));
                 }
             }
         }
-        best.map(|(_, surface)| surface)
+        let (_, surface, name) = best?;
+        if name || !written.starts_with(char::is_uppercase) {
+            return Some(surface);
+        }
+        let letters = || written.chars().filter(|c| c.is_alphabetic());
+        if letters().nth(1).is_some() && letters().all(char::is_uppercase) {
+            return Some(crate::phonology::to_turkish_upper(&surface));
+        }
+        let mut chars = surface.chars();
+        Some(chars.next().map_or_else(String::new, |first| {
+            let mut out = crate::phonology::to_turkish_upper_char(first).to_string();
+            out.push_str(chars.as_str());
+            out
+        }))
     }
 
     /// The word one item makes with the tags, if any path renders them.
@@ -173,11 +204,13 @@ impl TurkishMorphology {
         item: &DictionaryItem,
         wanted: &[&str],
         progressive: Option<M>,
+        request: &str,
     ) -> Option<String> {
         let roots = &ENGINE.roots;
         let mut search = Generation {
             wanted,
             progressive,
+            request,
             surface: String::new(),
             steps: Vec::new(),
             work: 0,
@@ -205,12 +238,27 @@ impl TurkishMorphology {
         // -mAktA (gidiyorum, not gitmekteyim; diyor, not demekte), but -mAktA first before the
         // copula -DIr (gelmektedir: 14,384 times in the court and RagTurk samples, geliyordur
         // once; geliyordu 337 times, gelmekteydi 72); then one on the root as spelt before one
-        // on a special stem (yukarıda, not yukarda); then the shortest is the unmarked one
-        // (gidin, not gitsenize).
+        // on a special stem (yukarıda, not yukarda); then a dative shown before an implicit
+        // one (karşıya, not karşı); then the shortest is the unmarked one (gidin, not
+        // gitsenize), but a pronoun's instrumental is the longest (bununla 830 times in the
+        // court sample; bunla, benle are spoken forms) (review 4 MORPH4-08).
         let mut candidates = search.candidates;
         let prefer_prog2 =
             progressive.is_none() && wanted.windows(2).any(|w| w == ["Prog", "CopPres3sg"]);
-        candidates.sort_by_key(|c| (c.prog2 != prefer_prog2, c.special, c.text.chars().count()));
+        let pronoun_instrumental = item.primary_pos == PrimaryPos::Pron && wanted.contains(&"Ins");
+        candidates.sort_by_key(|c| {
+            let length = c.text.chars().count() as isize;
+            (
+                c.prog2 != prefer_prog2,
+                c.special,
+                c.implicit_dative,
+                if pronoun_instrumental {
+                    -length
+                } else {
+                    length
+                },
+            )
+        });
         candidates.into_iter().map(|c| c.text).find(|text| {
             self.analyze_unranked(text).iter().any(|p| {
                 p.lemma == item.lemma
@@ -231,6 +279,8 @@ struct Generation<'a> {
     wanted: &'a [&'a str],
     /// The progressive asked for by name (Prog1 or Prog2), if any.
     progressive: Option<M>,
+    /// The word as the request writes it, whose capitals a name may take (NATO).
+    request: &'a str,
     surface: String,
     steps: Vec<Step>,
     work: usize,
@@ -246,6 +296,8 @@ struct Candidate {
     special: bool,
     /// Its progressive is -mAktA.
     prog2: bool,
+    /// Its dative is the implicit one of the root (karşı), with no suffix.
+    implicit_dative: bool,
 }
 
 impl Generation<'_> {
@@ -283,14 +335,20 @@ impl Generation<'_> {
             if rendered.eq(self.wanted.iter().copied()) {
                 let text = self.written(item, stem);
                 if !self.candidates.iter().any(|c| c.text == text) {
-                    let prog2 = self.steps.iter().any(|s| {
+                    let reaches = |s: &Step, m: M| {
                         let to = graph.transitions[s.transition as usize].to;
-                        graph.states[to.0 as usize].morpheme == M::Prog2
-                    });
+                        graph.states[to.0 as usize].morpheme == m
+                    };
+                    let prog2 = self.steps.iter().any(|s| reaches(s, M::Prog2));
+                    let implicit_dative = self
+                        .steps
+                        .iter()
+                        .any(|s| s.start == s.end && reaches(s, M::Dat));
                     self.candidates.push(Candidate {
                         text,
                         special: self.special,
                         prog2,
+                        implicit_dative,
                     });
                 }
             }
@@ -370,8 +428,9 @@ impl Generation<'_> {
         }
     }
 
-    /// The word as written: a name or an abbreviation on its root as the lexicon spells it,
-    /// with an apostrophe before the suffixes that take one (Ankara'ya, TBMM'de, but
+    /// The word as written: a name or an abbreviation on its root as the lexicon spells it, or
+    /// as the request does when that is the same letters in capitals (NATO, the lexicon's
+    /// Nato), with an apostrophe before the suffixes that take one (Ankara'ya, TBMM'de, but
     /// Ankaralı, Türkçenin).
     fn written(&self, item: &DictionaryItem, stem: &StemTransition) -> String {
         let name = matches!(
@@ -381,7 +440,18 @@ impl Generation<'_> {
         if !name || stem.surface.as_ref() != item.root {
             return self.surface.clone();
         }
-        let mut text = item.display_lemma().into_owned();
+        let display = item.display_lemma();
+        let lower = crate::phonology::to_turkish_lower;
+        let capitals = self
+            .request
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .all(char::is_uppercase);
+        let mut text = if capitals && lower(self.request) == lower(&display) {
+            self.request.to_string()
+        } else {
+            display.into_owned()
+        };
         if !suffixes_without_apostrophe(&ENGINE.graph, item, &self.steps) {
             text.push('\'');
         }

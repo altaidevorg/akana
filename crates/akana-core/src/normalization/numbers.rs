@@ -54,18 +54,15 @@ pub struct TurkishNumberConverter;
 impl TurkishNumberConverter {
     /// Converts an integer into Turkish written words.
     /// Example: 1923 -> "bin dokuz yüz yirmi üç", 105 -> "yüz beş", -42 -> "eksi kırk iki".
-    pub fn number_to_words(mut n: i64) -> String {
+    pub fn number_to_words(n: i64) -> String {
         if n == 0 {
             return "sıfır".to_string();
         }
 
         let is_negative = n < 0;
-        if is_negative {
-            n = -n;
-        }
-
-        let mut groups: Vec<i64> = Vec::new();
-        let mut temp = n;
+        // As u64: the magnitude of i64::MIN is no i64 (review 3 BIND3-08).
+        let mut groups: Vec<u64> = Vec::new();
+        let mut temp = n.unsigned_abs();
         while temp > 0 {
             groups.push(temp % 1000);
             temp /= 1000;
@@ -99,7 +96,7 @@ impl TurkishNumberConverter {
         }
     }
 
-    fn convert_triplet(n: i64) -> String {
+    fn convert_triplet(n: u64) -> String {
         let mut parts = Vec::new();
         let hundreds = n / 100;
         let remainder = n % 100;
@@ -174,10 +171,23 @@ impl TurkishNumberConverter {
     }
 
     /// Converts currency amounts into Turkish words.
-    /// Example: (1250.50, "TL") -> "bin iki yüz elli Türk lirası elli kuruş"
+    /// Example: (1250.50, "TL") -> "bin iki yüz elli lira elli kuruş". An amount
+    /// [`try_currency_to_words`](Self::try_currency_to_words) takes no words of is "".
     pub fn currency_to_words(amount: f64, currency: &str) -> String {
-        let main_unit = amount.trunc() as i64;
-        let cents = ((amount.fract() * 100.0).round()) as i64;
+        Self::try_currency_to_words(amount, currency).unwrap_or_default()
+    }
+
+    /// [`currency_to_words`](Self::currency_to_words), or `None` for an amount that is not
+    /// finite or has more kuruş than an `i64` holds. The amount is rounded to whole kuruş
+    /// once, so 2.999 is "üç lira" and -1.5 "eksi bir lira elli kuruş" (review 3 BIND3-08).
+    pub fn try_currency_to_words(amount: f64, currency: &str) -> Option<String> {
+        let kurus = (amount.abs() * 100.0).round();
+        if !kurus.is_finite() || kurus >= i64::MAX as f64 {
+            return None;
+        }
+        // Below 2^63, so the cast is exact up to f64's own precision.
+        let kurus = kurus as u64;
+        let (main_unit, cents) = (kurus / 100, kurus % 100);
 
         let (curr_name, sub_name) = match currency.to_uppercase().as_str() {
             "TL" | "TRY" => ("lira", "kuruş"),
@@ -188,15 +198,19 @@ impl TurkishNumberConverter {
         };
 
         let mut parts = Vec::new();
-        parts.push(Self::number_to_words(main_unit));
+        if amount < 0.0 && kurus > 0 {
+            parts.push("eksi".to_string());
+        }
+        // Both below 2^63 / 100.
+        parts.push(Self::number_to_words(main_unit as i64));
         parts.push(curr_name.to_string());
 
         if cents > 0 {
-            parts.push(Self::number_to_words(cents));
+            parts.push(Self::number_to_words(cents as i64));
             parts.push(sub_name.to_string());
         }
 
-        parts.join(" ")
+        Some(parts.join(" "))
     }
 
     /// Parses written Turkish number words back into an integer.
