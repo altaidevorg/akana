@@ -393,19 +393,28 @@ def encoder_info() -> dict[str, Any]:
     return json.loads(encoder_info_json())
 
 
-def check_encoder(stored: dict[str, Any]) -> str:
-    """How an index built with ``stored`` (an :func:`encoder_info` dict) relates to this library:
-    ``"identical"`` (the same vectors), ``"compatible"`` (the same spec major and layout: vectors
-    may differ slightly, within the bump policy, and the index needs no rebuild) or
-    ``"rebuild"``."""
-    return encoder_compatibility(
-        str(stored.get("sparse_spec", "")),
-        int(stored.get("hybrid_layout", 0)),
-        str(stored.get("fingerprint", "")),
-    )
+def check_encoder(stored: Any, kind: str = "hybrid") -> str:
+    """How an index of ``kind`` (``"sparse"``: sparse vectors or a BM25 index of their terms,
+    ``"dense"``: ``embed`` and the packed vectors, ``"hybrid"``) built with ``stored`` (the
+    :func:`encoder_info` dict it saved) relates to this library:
+
+    - ``"identical"``: built from the same inputs, so the same vectors;
+    - ``"compatible"``: sparse or hybrid vectors with the same sparse spec major (and hybrid
+      layout and dense model): some vectors may differ, within the bump policy, and the index
+      needs no rebuild;
+    - ``"rebuild"``: anything else, a record that is not such a dict included. A dense index is
+      identical or rebuilt.
+
+    Raises ``ValueError`` for an unknown ``kind``."""
+    try:
+        record = json.dumps(stored, allow_nan=False)
+    except (TypeError, ValueError):
+        record = "null"
+    return encoder_compatibility(record, kind)
 
 
-__version__ = "0.8.0"
+# The version of the compiled library, which Cargo.toml and pyproject.toml share.
+from akana._core import __version__  # noqa: E402
 __all__ = [
     "Chunk",
     "CompoundDecomposer",

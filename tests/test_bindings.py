@@ -282,3 +282,16 @@ def test_generate_takes_the_spellings_analyze_reports():
     assert m.generate("yemek", ["Verb", "Prog"]) == "yiyor"
     assert m.generate("gelmek", ["Verb", "Prog", "CopPres3sg"]) == "gelmektedir"
     assert m.generate("gelmek", ["Verb", "Prog", "CopPast"]) == "geliyordu"
+
+
+def test_hybrid_alpha_must_be_a_number():
+    # Review 2 EMB-06: a NaN alpha made every hybrid distance NaN.
+    before = akana.get_hybrid_metric_alpha()
+    for bad in [float("nan"), float("inf")]:
+        with pytest.raises(ValueError):
+            akana.set_hybrid_metric_alpha(bad)
+        with pytest.raises(ValueError):
+            akana.get_usearch_metric_pointer_hybrid(bad)
+        with pytest.raises(ValueError):
+            akana.Embeddings().distance_hybrid(bytes(128), bytes(128), bad)
+    assert akana.get_hybrid_metric_alpha() == before

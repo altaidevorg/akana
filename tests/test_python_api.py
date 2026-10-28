@@ -2,6 +2,8 @@
 Comprehensive Python unit test suite for Akana.
 """
 
+import pytest
+
 import akana
 
 
@@ -373,10 +375,24 @@ def test_encoder_info_and_check():
     info = akana.encoder_info()
     assert info["sparse_spec"].split(".")[0] == "1"
     assert info["hybrid_layout"] == 1
-    assert len(info["fingerprint"]) == 32
-    assert len(info["analysis_fingerprint"]) == 32
+    assert info["akana_version"] == akana.__version__
+    for key in ["fingerprint", "sparse_fingerprint", "dense_fingerprint", "analysis_fingerprint"]:
+        assert len(info[key]) == 32
     assert set(info["resources"]) >= {"tokenizer.json", "turboquant_weights.npz", "analysis"}
+    kinds = ["sparse", "dense", "hybrid"]
+    check = lambda record: [akana.check_encoder(record, kind) for kind in kinds]  # noqa: E731
+    other = "0123456789abcdef" * 2
+    assert check(info) == ["identical"] * 3
     assert akana.check_encoder(info) == "identical"
-    assert akana.check_encoder({**info, "fingerprint": "0"}) == "compatible"
-    assert akana.check_encoder({**info, "sparse_spec": "0.9"}) == "rebuild"
-    assert akana.check_encoder({}) == "rebuild"
+    moved = {**info, "fingerprint": other, "sparse_fingerprint": other}
+    assert check(moved) == ["compatible", "identical", "compatible"]
+    # Review 3 MSTAB3-01: another dense model is a rebuild for dense and hybrid indexes only.
+    assert check({**info, "dense_model": "other-model-512"}) == ["identical", "rebuild", "rebuild"]
+    assert check({**info, "sparse_spec": "0.9"}) == ["rebuild", "identical", "rebuild"]
+    # Review 3 MSTAB3-11: malformed records need a rebuild and raise nothing.
+    for record in [{}, None, "1.0", {**info, "hybrid_layout": None}, {**info, "hybrid_layout": -1},
+                   {**info, "hybrid_layout": 70000}, {**info, "sparse_spec": 1.0},
+                   {**info, "hybrid_layout": float("nan")}, {**info, "fingerprint": ""}]:
+        assert akana.check_encoder(record) == "rebuild", record
+    with pytest.raises(ValueError):
+        akana.check_encoder(info, "bm25")

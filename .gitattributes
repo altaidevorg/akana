@@ -9,6 +9,8 @@ scripts/lexicon/** -text
 crates/akana-core/src/morphology/zemberek_lexicon.txt -text
 crates/akana-core/src/morphology/prior.tsv.gz binary
 crates/akana-core/src/embeddings/function_lemmas.tsv -text
+crates/akana-core/src/embeddings/stop_lemmas.txt -text
+crates/akana-core/src/embeddings/lemma_weights.tsv -text
 crates/akana-core/src/readability/kalyoncu_words.txt -text
 crates/akana-core/src/pii/person_names.txt -text
 crates/akana-core/src/grammar/frequent_locatives.txt -text

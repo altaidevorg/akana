@@ -34,8 +34,8 @@ pub use sparse::{
     hash_term_32bit, term_id_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector,
 };
 pub use spec::{
-    compatibility, encoder_info, Compatibility, EncoderInfo, DENSE_MODEL, HYBRID_LAYOUT,
-    SPARSE_SPEC,
+    compatibility_of, encoder_info, encoder_info_json, Compatibility, EncoderInfo, IndexKind,
+    DENSE_MODEL, HYBRID_LAYOUT, SPARSE_SPEC,
 };
 use tokenizer::UnigramTokenizer;
 pub use usearch_metrics::{

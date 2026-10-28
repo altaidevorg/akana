@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "akana"
-version = "0.8.0"
+version = "0.9.0"
 description = "Modern and blazingly fast Turkish NLP toolkit in Rust & Python (PyO3) with StringZilla SIMD acceleration"
 readme = "README.md"
 authors = [
@@ -38,5 +38,8 @@ Issues = "https://github.com/altaidevorg/akana/issues"
 [tool.maturin]
 manifest-path = "crates/akana-py/Cargo.toml"
 module-name = "akana._core"
+# A build from the sdist uses the toolchain releases are built and tested with (review 3
+# MSTAB3-06): rustup reads it from the unpacked source.
+include = [{ path = "rust-toolchain.toml", format = "sdist" }]
 python-source = "python"
 features = ["pyo3/extension-module"]

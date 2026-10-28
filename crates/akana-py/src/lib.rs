@@ -741,40 +741,30 @@ fn correct_grammar(
     release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
 }
 
-/// The encoders' contract as JSON (`akana_core::embeddings::encoder_info`): spec, hybrid layout,
-/// dense model, analysis version and the fingerprints an index records.
+/// The encoders' contract as JSON (`akana_core::embeddings::encoder_info_json`): release,
+/// Unicode version, spec, hybrid layout, dense model, analysis version and the fingerprints an
+/// index records.
 #[pyfunction]
 fn encoder_info_json(py: Python<'_>) -> PyResult<String> {
     release(py, || {
-        let info = akana_core::embeddings::encoder_info();
-        let resources: serde_json::Map<String, serde_json::Value> = info
-            .resources
-            .iter()
-            .map(|(name, hash)| (name.to_string(), serde_json::Value::from(hash.as_str())))
-            .collect();
-        serde_json::json!({
-            "sparse_spec": info.sparse_spec,
-            "hybrid_layout": info.hybrid_layout,
-            "dense_model": info.dense_model,
-            "analysis_version": info.analysis_version,
-            "analysis_fingerprint": info.analysis_fingerprint,
-            "fingerprint": info.fingerprint,
-            "resources": resources,
-        })
-        .to_string()
+        akana_core::embeddings::encoder_info_json().to_string()
     })
 }
 
-/// `identical`, `compatible` or `rebuild`: how an index built with the given encoder info
-/// relates to this library (`akana_core::embeddings::compatibility`).
+/// `identical`, `compatible` or `rebuild`: how an index of `kind` (sparse, dense or hybrid)
+/// built by a library whose encoder info was `stored_json` relates to this one
+/// (`akana_core::embeddings::compatibility_of`); a record that is no such JSON object needs a
+/// rebuild.
 #[pyfunction]
-fn encoder_compatibility(
-    sparse_spec: &str,
-    hybrid_layout: u16,
-    fingerprint: &str,
-) -> PyResult<String> {
-    guard(|| {
-        akana_core::embeddings::compatibility(sparse_spec, hybrid_layout, fingerprint)
+fn encoder_compatibility(py: Python<'_>, stored_json: &str, kind: &str) -> PyResult<String> {
+    let kind = akana_core::embeddings::IndexKind::from_name(kind).ok_or_else(|| {
+        PyValueError::new_err(format!(
+            "unknown index kind {kind:?}: sparse, dense or hybrid"
+        ))
+    })?;
+    release(py, || {
+        let stored = serde_json::from_str(stored_json).unwrap_or(serde_json::Value::Null);
+        akana_core::embeddings::compatibility_of(kind, &stored)
             .as_str()
             .to_string()
     })
@@ -913,7 +903,8 @@ impl PyEmbeddings {
         let arr_b: &[u8; 128] = b
             .try_into()
             .map_err(|_| PyValueError::new_err("hybrid vectors must be exactly 128 bytes"))?;
-        let a_val = alpha.unwrap_or(0.5);
+        let a_val =
+            finite_alpha(alpha)?.unwrap_or(akana_core::embeddings::hybrid::DEFAULT_HYBRID_ALPHA);
         guard(|| akana_core::hybrid_distance_128(arr_a, arr_b, a_val))
     }
 
@@ -1033,14 +1024,30 @@ fn get_usearch_metric_pointer_1bit() -> PyResult<usize> {
     guard(akana_core::get_usearch_metric_pointer_1bit)
 }
 
+/// `alpha` when it is a number: NaN or infinity raises `ValueError` (review 2 EMB-06). A value
+/// outside `[0, 1]` is clamped.
+fn finite_alpha(alpha: Option<f32>) -> PyResult<Option<f32>> {
+    match alpha {
+        Some(a) if !a.is_finite() => Err(PyValueError::new_err(format!(
+            "alpha must be a finite number in [0, 1], not {a}"
+        ))),
+        _ => Ok(alpha),
+    }
+}
+
+/// The hybrid metric for USearch. Its alpha is one value for the whole process: passing one
+/// here sets it for every open index that uses the metric.
 #[pyfunction]
 #[pyo3(signature = (alpha=None))]
 fn get_usearch_metric_pointer_hybrid(alpha: Option<f32>) -> PyResult<usize> {
+    let alpha = finite_alpha(alpha)?;
     guard(|| akana_core::get_usearch_metric_pointer_hybrid(alpha))
 }
 
+/// Sets the hybrid metric's alpha for the whole process (every open index that uses it).
 #[pyfunction]
 fn set_hybrid_metric_alpha(alpha: f32) -> PyResult<()> {
+    finite_alpha(Some(alpha))?;
     guard(|| akana_core::set_hybrid_metric_alpha(alpha))
 }
 
@@ -1911,6 +1918,7 @@ impl PyTurkishPiiEngine {
 
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
     m.add_function(wrap_pyfunction!(to_turkish_upper, m)?)?;
     m.add_function(wrap_pyfunction!(to_turkish_title, m)?)?;

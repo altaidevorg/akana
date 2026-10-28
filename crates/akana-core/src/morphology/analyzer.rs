@@ -292,9 +292,10 @@ const PROBE_SENTENCES: &[&[&str]] = &[
     &["Mahkemenin", "kararı", "kesinleşti", "."],
 ];
 
-/// The analyses' fingerprint: the lexicon, the morphotactic graph, the prior and the analyses
-/// and disambiguations of a built-in probe set (32 hex digits). Two libraries with the same one
-/// analyse alike.
+/// The analyses' fingerprint: the lexicon, the morphotactic graph, the prior, the source of the
+/// analyzer and disambiguator, the Unicode version, and the analyses and disambiguations of a
+/// built-in probe set (32 hex digits). Two libraries with the same one were built from the same
+/// inputs and analyse alike (review 3 MSTAB3-02).
 pub fn analysis_fingerprint() -> &'static str {
     static FINGERPRINT: LazyLock<String> = LazyLock::new(|| {
         let morphology = TurkishMorphology::new();
@@ -324,6 +325,8 @@ pub fn analysis_fingerprint() -> &'static str {
             .section("lexicon", super::ZEMBEREK_LEXICON.as_bytes())
             .section("graph", graph_signature().as_bytes())
             .section("prior", PRIOR_GZ)
+            .section("sources", env!("AKANA_ANALYSIS_SOURCES").as_bytes())
+            .section("unicode", format!("{:?}", char::UNICODE_VERSION).as_bytes())
             .section("probe", probe.as_bytes())
             .hex()
     });

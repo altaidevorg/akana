@@ -5,6 +5,7 @@ licence of every file).
     python scripts/fetch_morph_sources.py            # download what is missing, verify all
     python scripts/fetch_morph_sources.py --check    # verify the cache, no network
     python scripts/fetch_morph_sources.py --pin      # resolve the pins below, rewrite the manifest
+    python scripts/fetch_morph_sources.py --only UD_Turkish   # only sources whose name starts so
 
 Sources (the user approved each on 2026-10-26):
 - UD Turkish BOUN, Kenet, Penn, Tourism, Atis, FrameNet (CC BY-SA 4.0) at UD release r2.18: their
@@ -125,9 +126,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true", help="verify the cache without network")
     parser.add_argument("--pin", action="store_true", help="resolve the pins and rewrite the manifest")
+    parser.add_argument("--only", metavar="PREFIX", help="only the sources whose name starts with PREFIX")
     args = parser.parse_args()
+    if args.pin and args.only:
+        parser.error("--pin rewrites the whole manifest: it takes no --only")
 
     manifest = pin() if args.pin else json.loads(MANIFEST.read_text(encoding="utf-8"))
+    if args.only:
+        manifest["sources"] = [s for s in manifest["sources"] if s["name"].startswith(args.only)]
+        if not manifest["sources"]:
+            print(f"no source's name starts with {args.only!r}")
+            return 1
     bad = 0
     for source in manifest["sources"]:
         for f in source["files"]:

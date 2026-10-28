@@ -41,6 +41,35 @@ jobs:
             --types data/morphology/prior_train_types.tsv.gz --out "$RUNNER_TEMP/prior.tsv.gz"
           cmp <(gunzip -c "$RUNNER_TEMP/prior.tsv.gz") <(gunzip -c crates/akana-core/src/morphology/prior.tsv.gz)
 
+      # The prior's inputs from the UD treebanks must be what the treebanks and the analyzer
+      # give: a lexicon or engine change that leaves the POS-twin table stale fails here
+      # (review 3 LEX3-04). The treebanks are fetched at their pinned release and checked
+      # against the manifest's SHA-256.
+      - name: Fetch the pinned UD Turkish treebanks
+        run: python scripts/fetch_morph_sources.py --only UD_Turkish
+
+      - name: The UD word counts equal the committed file
+        run: |
+          git show HEAD:data/morphology/prior_general_types.tsv.gz > "$RUNNER_TEMP/committed.tsv.gz"
+          python scripts/prior_general_types.py
+          cmp <(gunzip -c "$RUNNER_TEMP/committed.tsv.gz") <(gunzip -c data/morphology/prior_general_types.tsv.gz)
+
+      - name: Build the Python extension for the scripts that read the analyzer
+        run: |
+          python -m pip install maturin
+          maturin build --release --locked --out "$RUNNER_TEMP/wheels"
+          python -m pip install --no-index --find-links "$RUNNER_TEMP/wheels" akana
+
+      - name: The POS-twin table equals the committed file
+        run: |
+          python scripts/pos_twins.py
+          git diff --exit-code data/morphology/pos_twins.tsv
+
+      # The parser's attachment on the held-out UD test splits may not fall below the
+      # recorded figure (review 3 PARSER3-01).
+      - name: Dependency parser on UD Turkish
+        run: python scripts/parser_ud_eval.py --min-las 41.5
+
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -70,6 +99,11 @@ jobs:
 
       - name: Run Cargo Tests (Rust)
         run: cargo test -p akana-core --locked
+
+      # Releases are built with --release: the golden vectors must hold for that profile too
+      # (review 3 MSTAB3-06).
+      - name: Golden vectors in the release profile
+        run: cargo test --release -p akana-core --locked --test golden_vectors
 
       - name: Build Python extension & Run Pytest
         run: |

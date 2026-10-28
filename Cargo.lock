@@ -32,7 +32,7 @@ dependencies = [
 
 [[package]]
 name = "akana-cli"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "akana-core",
  "clap",
@@ -41,7 +41,7 @@ dependencies = [
 
 [[package]]
 name = "akana-core"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "ahash",
  "bitflags",
@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "akana-py"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "akana-core",
  "pyo3",

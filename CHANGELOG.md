@@ -11,19 +11,24 @@ results change, and indexes built with 0.8.0 must be rebuilt: see *Migrating fro
 **Indexes.**
 - Rebuild every sparse or hybrid index built with 0.8.0. Term ids are 32-bit now, the terms
   are disambiguated lemmas, and their weights changed.
-- Store `akana.encoder_info()` (Rust: `embeddings::encoder_info()`) with each new index. When
-  the index is opened, pass the stored value to `akana.check_encoder()`
-  (`embeddings::compatibility`). It returns one of three values:
-  - `"identical"`: the vectors are the same.
-  - `"compatible"`: same sparse spec major and hybrid layout; the vectors may differ within
-    the bump policy of `embeddings/spec.rs`, and no rebuild is needed.
-  - `"rebuild"`.
+- Store `akana.encoder_info()` (Rust: `embeddings::encoder_info_json()`) with each new index.
+  When the index is opened, pass the stored value and what the index holds (`"sparse"`,
+  `"dense"` or `"hybrid"`, the default) to `akana.check_encoder()`
+  (`embeddings::compatibility_of`). It returns one of three values:
+  - `"identical"`: built from the same inputs (resources, the source of the analysis and
+    encoder path, `Cargo.lock`, the Unicode version): the vectors are the same.
+  - `"compatible"`: sparse or hybrid vectors with the same sparse spec major (and hybrid
+    layout and dense model); the vectors may differ within the bump policy of
+    `embeddings/spec.rs`, and no rebuild is needed.
+  - `"rebuild"`, also for a record `encoder_info()` did not write. A dense index is identical
+    or rebuilt.
 - An index without stored info should be treated as `"rebuild"`.
 - What the rebuild is worth, measured with `scripts/encoder_churn.py` and
   `scripts/benchmark_rag_real_data.py` (0.8.0 against 0.9.0, the same texts): every sparse and
-  hybrid vector changes (court chunks, RagTurk and Turkuaz alike), and a 0.8.0 index queried
-  with 0.9.0 loses hybrid MRR@10 (RagTurk 0.738 against 0.790 rebuilt, Turkuaz 0.372 against
-  0.440). Rebuilt, retrieval improves: MRR@10 per question, paired, with 95 % intervals, BM25
+  hybrid vector changes (court chunks, RagTurk and Turkuaz alike). A 0.8.0 hybrid index
+  queried with 0.9.0 loses MRR@10 (RagTurk 0.738 against 0.790 rebuilt, Turkuaz 0.372 against
+  0.439), and a 0.8.0 sparse index (its `sparse_embed` vectors, or a BM25 index of their terms)
+  finds nothing: MRR@10 0.000 on both, as every term id changed. Rebuilt, retrieval improves: MRR@10 per question, paired, with 95 % intervals, BM25
   +0.031 [+0.014, +0.048] on RagTurk and +0.024 [+0.010, +0.039] on Turkuaz, the 128-byte
   hybrid +0.031 [+0.010, +0.051] and +0.042 [+0.017, +0.066]; dense vectors are unchanged and
   RRF moves within noise (0.8.0's RRF was not deterministic).
@@ -176,10 +181,14 @@ fails on any further input change, so each change is recorded on purpose
 
 ### Added
 
-- `akana.encoder_info()` and `akana.check_encoder()`; in Rust, `embeddings::spec`
+- `akana.encoder_info()` and `akana.check_encoder(stored, kind)`; in Rust, `embeddings::spec`
   (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
-  `compatibility`). Their fingerprints hash the embedded resources, the encoders' constants
-  and the analyses of a probe set.
+  `encoder_info_json`, `IndexKind`, `compatibility_of`). The record carries the akana and
+  Unicode versions and three fingerprints: sparse (the analyses, the term tables and
+  constants, the source of the encoder path, `Cargo.lock`, the Unicode version and the probe
+  set's sparse vectors), dense (the model, its tokenizer and weights, the probe set's dense
+  vectors) and the hybrid one over both. A build script hashes the source of the analysis and
+  encoder path, so code a probe text does not exercise still changes the fingerprints.
 - `MorphParse::analysis`, `MorphParse::nonstandard`, `MorphParse::display_lemma()`,
   `TurkishMorphology::analyze_standard` and `TurkishMorphology::backoff_stem`, and the Python
   keys `analysis`, `pos`, `display_lemma` and `nonstandard`.
@@ -191,6 +200,10 @@ fails on any further input change, so each change is recorded on purpose
   `scripts/benchmark_rag_real_data.py`, which prints the README's retrieval table. The
   retrieval benchmark caches Turkuaz on disk after the first run and has an exact FP32 row.
   The README's retrieval, morphology and embedding-cost figures are regenerated with them.
+  The benchmark reads the 300 RagTurk articles pinned in `scripts/ragturk_articles.tsv` (name
+  and SHA-256) and fails with `--readme` instead of falling back to its synthetic corpus.
+  `scripts/encoder_churn.py` measures sparse and hybrid churn and stale-index MRR@10 per
+  corpus, refuses missing data, and with `--declared CLASS` exits non-zero above the class.
   `scripts/parser_ud_eval.py` measures the dependency parser on the UD Turkish test splits
   (UAS and LAS per treebank and per relation; `--min-las` fails below a floor).
 - THIRD_PARTY_NOTICES in the repository, the crates and the Python package. It covers the
@@ -289,13 +302,22 @@ fails on any further input change, so each change is recorded on purpose
     `için`, `bu`, `kendi`, `uyarınca`), and `bir`, `değil`, `diye`, `önce`, `sonra`,
     `tarafından` and `üzere`. Before, the stopword list was a list of surface words, and
     whether `tarafından` was a term depended on the reading the disambiguator picked.
+- **Version.** Every version string is 0.9.0, and `akana.__version__` is the compiled
+  library's. A release tag must name it; the release workflow runs the tests in the release
+  profile and the Python tests against each built wheel before publishing.
 - **Builds.** Cargo.lock is committed, the toolchain is pinned (rust-toolchain.toml), and
   embedded data keeps its line endings on every platform. Golden vectors, a frequent-type
   analysis snapshot and review gold sets fail CI on any unintended change of the encoders'
   output, and downstream snapshots on any change of the parser's trees (with XPOS and FEATS)
   and of `analyze_document` on court texts. `AKANA_GOLD_WRITE` names the fixtures it rewrites
   (`downstream`, `morphology_gold`, `morphology_snapshot`, `review_gold`, `pii_view`,
-  comma-separated), so a run of the whole crate rewrites only those.
+  `sparse_tables`, comma-separated), so a run of the whole crate rewrites only those. The
+  stop lemmas and the lemma weights of the sparse encoder are committed tables
+  (`stop_lemmas.txt`, `lemma_weights.tsv`) that a test derives from the lexicon, so a lexicon
+  edit cannot move them unnoticed. `golden-1.0.jsonl` keeps the vectors of the release that
+  froze spec 1.0, and CI fails when more than 5 % of them change within the spec. CI also
+  regenerates the prior's UD-derived inputs from the pinned treebanks, runs the golden
+  vectors in the release profile and from Python, and holds the parser's UD LAS to a floor.
 - **Performance.** The quadratic and cubic public paths are linear. The lexicon and the
   embedding weights are built once per process, and the Python bindings release the GIL.
 
@@ -358,6 +380,9 @@ fails on any further input change, so each change is recorded on purpose
   reported Ateşman score stays within 0-100. The disambiguator, and readability with it, is
   linear on long runs of adjectives without a noun or a sentence end (`Ali` × 16,000 took
   27 s).
+- The hybrid metric's alpha: NaN made every hybrid distance NaN. In Python a NaN or infinite
+  alpha raises `ValueError`; in Rust `set_hybrid_metric_alpha(NaN)` leaves the alpha as it was
+  and `hybrid_distance_128` reads NaN as the default 0.5.
 - Python objects can be configured while other threads use them:
   `Morphology.load_dictionary_*`, `SpellChecker.add_word`, `GrammarChecker.enable_rule`,
   `disable_rule` and `enable_experimental`, and `TurkishPiiEngine.enable_type`,

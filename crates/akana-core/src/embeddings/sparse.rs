@@ -326,9 +326,9 @@ const PROPER_NOUN_WEIGHT: f32 = 1.8;
 ///
 /// Numbers weigh 1.6, which gives them 11.8 % of court hybrid slots (terms with a digit). Plan
 /// step G5 (review 2 MSTAB-08) measured 1.3, 1.0 and a cap of two number slots against it:
-/// each lowered exact-search hybrid MRR@10 (RagTurk 0.7900 at 1.6 against 0.7877, 0.7807 and
-/// 0.7870; Turkuaz 0.4400 against 0.4384, 0.4404 and 0.4392), so 1.6 is kept and frozen with
-/// spec 1.
+/// each lowered exact-search hybrid MRR@10 on RagTurk (0.7900 at 1.6 against 0.7877, 0.7807 and
+/// 0.7870); on Turkuaz 1.3 and the cap were lower and 1.0 within noise above (0.4400 against
+/// 0.4384, 0.4392 and 0.4404). 1.6 is kept and frozen with spec 1.
 const POS_WEIGHTS: &[(PrimaryPos, f32)] = &[
     (PrimaryPos::Num, 1.6),
     (PrimaryPos::Noun, 1.3),
@@ -379,11 +379,30 @@ const CLASS_PRECEDENCE: &[PrimaryPos] = &[
     PrimaryPos::Interj,
 ];
 
+/// `lemma_weights.tsv`: [`LEMMA_WEIGHTS`] as committed.
+pub(crate) const LEMMA_WEIGHTS_TSV: &str = include_str!("lemma_weights.tsv");
+/// `stop_lemmas.txt`: [`STOP_LEMMAS`] as committed.
+pub(crate) const STOP_LEMMAS_TXT: &str = include_str!("stop_lemmas.txt");
+
 /// The weight of each lemma whose lexicon items fall in more than one weight class (yeni Adj and
 /// Adv, devam Noun and Interj, Kanun Noun and Prop), by [`CLASS_PRECEDENCE`]. A lemma not in it
-/// has items of one class, which its reading's class gives. Built from the built-in lexicon
-/// once.
+/// has items of one class, which its reading's class gives. Read from `lemma_weights.tsv`, which
+/// a test derives from the lexicon (`committed_tables_are_what_the_lexicon_gives`): a lexicon
+/// edit does not move a weight unless the table is rewritten on purpose (review 3 MSTAB3-08).
 static LEMMA_WEIGHTS: LazyLock<HashMap<String, f32>> = LazyLock::new(|| {
+    LEMMA_WEIGHTS_TSV
+        .lines()
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| {
+            let (lemma, weight) = l.split_once('\t')?;
+            Some((lemma.to_string(), weight.parse().ok()?))
+        })
+        .collect()
+});
+
+/// [`LEMMA_WEIGHTS`] as the built-in lexicon gives it.
+#[cfg(test)]
+fn derive_lemma_weights() -> HashMap<String, f32> {
     let mut classes: HashMap<String, Vec<(PrimaryPos, SecondaryPos)>> = HashMap::new();
     let morphology = TurkishMorphology::new();
     for item in morphology.lexicon().items() {
@@ -415,7 +434,7 @@ static LEMMA_WEIGHTS: LazyLock<HashMap<String, f32>> = LazyLock::new(|| {
             Some((lemma, weight))
         })
         .collect()
-});
+}
 
 /// Classes of function words: a lemma whose dictionary items are all in them is no term (ve,
 /// için, bu, kendi, mi).
@@ -443,8 +462,19 @@ const LISTED_STOP_LEMMAS: &[&str] = &[
 
 /// The lemmas that are no term ([`FUNCTION_CLASSES`], [`LISTED_STOP_LEMMAS`]): decided
 /// by the lemma, so a word's term does not come and go with the reading its context picks
-/// (tarafından the adverb or taraf-ı-ndan the noun).
+/// (tarafından the adverb or taraf-ı-ndan the noun). Read from `stop_lemmas.txt`, which the
+/// same test derives from the lexicon (review 3 MSTAB3-08).
 static STOP_LEMMAS: LazyLock<HashSet<String>> = LazyLock::new(|| {
+    STOP_LEMMAS_TXT
+        .lines()
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(str::to_string)
+        .collect()
+});
+
+/// [`STOP_LEMMAS`] as the built-in lexicon gives it.
+#[cfg(test)]
+fn derive_stop_lemmas() -> HashSet<String> {
     let mut classes: HashMap<String, bool> = HashMap::new();
     let morphology = TurkishMorphology::new();
     for item in morphology.lexicon().items() {
@@ -456,7 +486,7 @@ static STOP_LEMMAS: LazyLock<HashSet<String>> = LazyLock::new(|| {
         .filter_map(|(lemma, function)| function.then_some(lemma))
         .chain(LISTED_STOP_LEMMAS.iter().map(|l| l.to_string()))
         .collect()
-});
+}
 
 /// The term of a word the dictionary lists as an adverb or a postposition, written as that word,
 /// whichever reading its context picks: the readings are in every such word, and their order
@@ -552,6 +582,48 @@ pub(crate) fn fingerprint_constants() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Review 3 MSTAB3-08: the committed tables are what the lexicon gives. A lexicon edit that
+    /// moves a stop lemma or a weight fails here; such a change moves vectors and follows the
+    /// bump policy (`spec.rs`). `AKANA_GOLD_WRITE=sparse_tables` rewrites both files.
+    #[test]
+    fn committed_tables_are_what_the_lexicon_gives() {
+        let mut stop: Vec<String> = derive_stop_lemmas().into_iter().collect();
+        stop.sort();
+        let mut weights: Vec<(String, f32)> = derive_lemma_weights().into_iter().collect();
+        weights.sort_by(|a, b| a.0.cmp(&b.0));
+        let stop_txt = format!(
+            "# The lemmas that are no sparse term (embeddings::sparse::STOP_LEMMAS), derived from \
+             the built-in lexicon; AKANA_GOLD_WRITE=sparse_tables rewrites this file.\n{}\n",
+            stop.join("\n")
+        );
+        let weights_tsv = format!(
+            "# Lemmas whose lexicon items differ in weight class, and their weight \
+             (embeddings::sparse::LEMMA_WEIGHTS), derived from the built-in lexicon; \
+             AKANA_GOLD_WRITE=sparse_tables rewrites this file.\n{}\n",
+            weights
+                .iter()
+                .map(|(l, w)| format!("{l}\t{w}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        if std::env::var("AKANA_GOLD_WRITE")
+            .is_ok_and(|v| v.split(',').any(|s| s.trim() == "sparse_tables"))
+        {
+            let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/embeddings/");
+            std::fs::write(format!("{dir}stop_lemmas.txt"), &stop_txt).unwrap();
+            std::fs::write(format!("{dir}lemma_weights.tsv"), &weights_tsv).unwrap();
+            return;
+        }
+        assert!(
+            stop_txt == STOP_LEMMAS_TXT && weights_tsv == LEMMA_WEIGHTS_TSV,
+            "the lexicon gives other stop lemmas or lemma weights than the committed tables: \
+             measure the vector change (scripts/encoder_churn.py), then rewrite them with \
+             AKANA_GOLD_WRITE=sparse_tables cargo test -p akana-core --lib committed_tables"
+        );
+        assert_eq!(STOP_LEMMAS.len(), stop.len());
+        assert_eq!(LEMMA_WEIGHTS.len(), weights.len());
+    }
 
     fn term_values(vec: MorphologicalSparseVector) -> HashMap<String, f32> {
         vec.terms.into_iter().zip(vec.values).collect()
@@ -715,7 +787,8 @@ mod tests {
         ] {
             assert!(STOP_LEMMAS.contains(lemma), "{lemma}");
         }
-        // A lemma with a content reading stays a term.
+        // A lemma with a content reading is no stop lemma (çok, karşı and kadar are still no
+        // term: the surface stopword list drops them; review 3 MSTAB3-07b).
         for lemma in ["çok", "karar", "devam", "mahkeme", "karşı", "kadar"] {
             assert!(!STOP_LEMMAS.contains(lemma), "{lemma}");
         }

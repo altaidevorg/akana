@@ -274,20 +274,25 @@ An index stores what built it, and checks it when it is opened:
 import akana
 
 info = akana.encoder_info()   # save this dict next to the index when you build it
-# {'sparse_spec': '1.0', 'hybrid_layout': 1, 'dense_model': ..., 'analysis_version': '1.0',
-#  'analysis_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
+# {'akana_version': '0.9.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
+#  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
+#  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 
-status = akana.check_encoder(stored_info)   # when you open it
+status = akana.check_encoder(stored_info, "hybrid")   # when you open it
 ```
 
-- `"identical"`: this library produces exactly the vectors the index holds.
-- `"compatible"`: the same sparse spec major and hybrid layout. Some vectors differ: releases that change them say how many, and keep a stale index's MRR@10 within 0.005 of a rebuilt one, so no rebuild is needed.
-- `"rebuild"`: term ids, term definitions or the vector layout changed. Re-embed the documents.
+The second argument is what the index holds: `"sparse"` (`sparse_embed` vectors, or a BM25 index of their terms), `"dense"` (`embed` and the packed 2-bit and 1-bit vectors) or `"hybrid"` (the default). Each is judged by what its vectors depend on, so a new dense model asks dense and hybrid indexes to rebuild but leaves sparse ones alone.
+
+- `"identical"`: this library was built from the same inputs (the resources, the source of the analysis and encoder path, `Cargo.lock`, the Unicode version) and produces exactly the vectors the index holds.
+- `"compatible"`: sparse or hybrid vectors with the same sparse spec major (and hybrid layout and dense model). Some vectors differ: releases that change them say how many, and keep at most 5 % of documents' vectors changed and a stale index's MRR@10 within 0.005 of a rebuilt one, so no rebuild is needed.
+- `"rebuild"`: term ids, term definitions, the dense model or the vector layout changed, or the stored record is not one `encoder_info()` wrote. Re-embed the documents. A dense index is identical or rebuilt.
 
 An index built with 0.8.0 or earlier stores no encoder info and must be rebuilt; `CHANGELOG.md`
 lists what else changed since 0.8.0 and how to migrate.
 
-`Cargo.lock` and `rust-toolchain.toml` pin what the vectors depend on (the Unicode tables of the Rust standard library included), and ranking inside the analyzer and disambiguator is done in integers, so a release gives the same vectors on Linux, macOS and Windows.
+`Cargo.lock` and `rust-toolchain.toml` pin what the vectors depend on (the Unicode tables of the Rust standard library included), and ranking inside the analyzer and disambiguator is done in integers. The published wheels are built with that toolchain and lock file and tested against the golden vectors on Linux, macOS and Windows before release. A build with another toolchain or dependency set (from the sdist, or from crates.io) reports another fingerprint: `check_encoder` then says `"compatible"`, not `"identical"`.
+
+The hybrid metric's alpha (`set_hybrid_metric_alpha`, `get_usearch_metric_pointer_hybrid(alpha)`) is one value for the whole process: setting it changes the metric of every open index that uses it. It must be a number in [0, 1] (outside it is clamped; NaN raises `ValueError`).
 
 #### Comparison with RAGTurk (`arXiv:2602.03652`) & Heavy Neural Pipelines
 

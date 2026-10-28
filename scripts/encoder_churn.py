@@ -19,14 +19,20 @@ It records each text's sparse vector (ids, f32 bits, terms) and hybrid bytes, an
 `akana.encoder_info()`, so a dump says which build made it.
 
 `compare` reports:
-- the share of changed vectors;
-- exact-search hybrid MRR@10 of B's questions against B's documents (rebuilt) and against A's
-  documents (stale);
+- the share of changed vectors, sparse and hybrid, per set;
+- exact-search MRR@10 of B's questions against B's documents (rebuilt) and against A's
+  documents (stale): hybrid vectors, and sparse vectors scored by their dot product (what a
+  sparse or BM25-style index of the terms sees);
 - the class:
   - patch: no vector changed;
-  - minor: at most 5 % of court hybrid vectors changed, and stale MRR@10 within 0.005 of
-    rebuilt on every set;
-  - major: anything else, or a different spec major or hybrid layout.
+  - minor: at most 5 % of the documents' sparse vectors and of their hybrid vectors changed in
+    every set (court, RagTurk, Turkuaz), and every stale MRR@10 is within 0.005 of rebuilt;
+  - major: anything else, or a different spec major, hybrid layout or dense part.
+
+With `--declared CLASS` it exits 3 when the measured class is above the declared one, so a
+release script can stop on it. `dump` refuses (exit 1) when a set is missing or incomplete:
+the court sample's five subsets, the 300 pinned RagTurk articles and the 500 Turkuaz samples;
+`compare` refuses (exit 2) dumps of different or missing texts (review 3 MSTAB3-03, BIND3-03).
 
 Run the commands from the repository root (the court sample is `.cache/morph_sample/eval`).
 """
@@ -72,7 +78,7 @@ def court_chunks(sample_dir: Path) -> list[str]:
     for subset in COURT_SUBSETS:
         path = sample_dir / f"{subset}.txt"
         if not path.exists():
-            continue
+            sys.exit(f"missing {path}: the court sample has five subsets (scripts/morph_corpus_sample.py)")
         chunks = []
         # Documents are separated by a line holding only \x1e (scripts/morph_corpus_sample.py).
         for decision in path.read_text(encoding="utf-8").split("\n\x1e\n"):
@@ -120,8 +126,10 @@ def dump(args) -> None:
     from benchmark_rag_real_data import fetch_ragturk_dataset
 
     sets = {"court": {"docs": court_chunks(Path(args.sample)), "queries": [], "gold": []}}
-    r_docs, r_queries = fetch_ragturk_dataset(max_articles=300)
+    r_docs, r_queries = fetch_ragturk_dataset(max_articles=300, strict=True)
     t_docs, t_queries = turkuaz()
+    if len(t_queries) == 0 or not r_queries:
+        sys.exit("RagTurk or Turkuaz is unavailable: run benchmark_rag_real_data.py online once to cache them")
     for name, docs, queries in (("ragturk", r_docs, r_queries), ("turkuaz", t_docs, t_queries)):
         position = {d["key"]: i for i, d in enumerate(docs)}
         sets[name] = {
@@ -168,6 +176,32 @@ def mrr_at_10(queries: list[bytes], docs: list[bytes], gold: list[list[int]]) ->
     return total / max(1, len(queries))
 
 
+def sparse_values(row: dict) -> dict[int, float]:
+    return {i: struct.unpack("<f", struct.pack("<I", bits))[0] for i, bits, _ in row["sparse"]}
+
+
+def sparse_mrr_at_10(queries: list[dict], docs: list[dict], gold: list[list[int]]) -> float:
+    """MRR@10 of the sparse vectors scored by their dot product, as a sparse index ranks them
+    (documents that share no term with the question are not ranked)."""
+    postings: dict[int, list[tuple[int, float]]] = {}
+    for n, d in enumerate(docs):
+        for i, w in sparse_values(d).items():
+            postings.setdefault(i, []).append((n, w))
+    total = 0.0
+    for q, g in zip(queries, gold):
+        scores: dict[int, float] = {}
+        for i, w in sparse_values(q).items():
+            for n, dw in postings.get(i, ()):
+                scores[n] = scores.get(n, 0.0) + w * dw
+        scored = sorted(scores, key=lambda n: (-scores[n], n))[:10]
+        rank = next((r for r, n in enumerate(scored, 1) if n in g), None)
+        total += 1.0 / rank if rank else 0.0
+    return total / max(1, len(queries))
+
+
+CLASSES = ["patch", "minor", "major"]
+
+
 def compare(args) -> int:
     info_a, a = load(args.old)
     info_b, b = load(args.new)
@@ -183,12 +217,22 @@ def compare(args) -> int:
     if differ:
         print(f"the dumps encode different texts ({', '.join(differ)}): dump both builds from the same data")
         return 2
+    empty = [name for name in ("court", "ragturk", "turkuaz") if not a.get(name, {}).get("docs")]
+    if empty:
+        print(f"the dumps hold no {', '.join(empty)} documents: dump both builds with the full data")
+        return 2
     major = (
         info_a["sparse_spec"].split(".")[0] != info_b["sparse_spec"].split(".")[0]
         or info_a["hybrid_layout"] != info_b["hybrid_layout"]
+        # A build from before the spec (0.8.0) records no dense model, and one from 0.9.0's
+        # development no dense fingerprint: what is not recorded is not compared.
+        or any(
+            None not in (info_a.get(key), info_b.get(key)) and info_a[key] != info_b[key]
+            for key in ("dense_model", "dense_fingerprint")
+        )
     )
     changed_any = False
-    court_share = 0.0
+    worst_share = 0.0
     worst_gap = 0.0
     for name in sorted(set(a) & set(b)):
         sa, sb = a[name], b[name]
@@ -202,23 +246,34 @@ def compare(args) -> int:
             changed_any |= hybrid > 0 or sparse > 0
             print(f"{name} {kind}: hybrid changed {hybrid}/{len(va)} ({100 * hybrid / len(va):.2f} %), "
                   f"sparse values {sparse} ({100 * sparse / len(va):.2f} %), term sets {terms} ({100 * terms / len(va):.2f} %)")
-            if name == "court" and kind == "docs":
-                court_share = hybrid / len(va)
+            if kind == "docs":
+                worst_share = max(worst_share, hybrid / len(va), sparse / len(va))
         if sb["queries"] and not major:
             q = [bytes.fromhex(x["hybrid"]) for x in sb["queries"]]
             rebuilt = mrr_at_10(q, [bytes.fromhex(x["hybrid"]) for x in sb["docs"]], sb["gold"])
             stale = mrr_at_10(q, [bytes.fromhex(x["hybrid"]) for x in sa["docs"]], sb["gold"])
             worst_gap = max(worst_gap, abs(rebuilt - stale))
             print(f"{name}: hybrid MRR@10 rebuilt {rebuilt:.4f}, stale {stale:.4f} (gap {rebuilt - stale:+.4f})")
+            s_rebuilt = sparse_mrr_at_10(sb["queries"], sb["docs"], sb["gold"])
+            s_stale = sparse_mrr_at_10(sb["queries"], sa["docs"], sb["gold"])
+            worst_gap = max(worst_gap, abs(s_rebuilt - s_stale))
+            print(f"{name}: sparse MRR@10 rebuilt {s_rebuilt:.4f}, stale {s_stale:.4f} (gap {s_rebuilt - s_stale:+.4f})")
     if major:
         cls = "major"
     elif not changed_any:
         cls = "patch"
-    elif court_share <= 0.05 and worst_gap <= 0.005:
+    elif worst_share <= 0.05 and worst_gap <= 0.005:
         cls = "minor"
     else:
         cls = "major"
-    print(f"class: {cls} (court hybrid vectors changed {100 * court_share:.2f} %, largest stale gap {worst_gap:.4f})")
+    print(f"class: {cls} (largest share of changed document vectors {100 * worst_share:.2f} %, "
+          f"largest stale gap {worst_gap:.4f})")
+    if changed_any and info_a.get("fingerprint") == info_b.get("fingerprint"):
+        print("the vectors changed but the fingerprint did not: the fingerprint misses an input")
+        return 4
+    if args.declared and CLASSES.index(cls) > CLASSES.index(args.declared):
+        print(f"the change is {cls}, above the declared {args.declared}")
+        return 3
     return 0
 
 
@@ -231,6 +286,7 @@ def main() -> None:
     c = sub.add_parser("compare")
     c.add_argument("old")
     c.add_argument("new")
+    c.add_argument("--declared", choices=CLASSES, help="exit 3 when the change is above this class")
     args = parser.parse_args()
     sys.exit({"dump": dump, "compare": compare}[args.command](args) or 0)
 

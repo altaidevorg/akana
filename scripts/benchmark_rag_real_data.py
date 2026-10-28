@@ -15,6 +15,7 @@ Benchmark Datasets:
 
 import argparse
 import ast
+import hashlib
 import json
 import os
 import sys
@@ -38,21 +39,45 @@ CACHE_DIR = Path(".cache/rag_benchmarks")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 RAGTURK_BASE_URL = "https://huggingface.co/datasets/metunlp/ragturk/raw/main/formal_5k/dataset/json"
+# The articles the README's figures and scripts/encoder_churn.py read, with the SHA-256 of
+# each one's canonical JSON (review 3 BIND3-03).
+RAGTURK_PIN = Path(__file__).resolve().parent / "ragturk_articles.tsv"
+
+
+def pinned_ragturk_articles() -> list[tuple[str, str]]:
+    lines = RAGTURK_PIN.read_text(encoding="utf-8").splitlines()
+    return [tuple(line.split("\t")) for line in lines if line and not line.startswith("#")]
+
+
+def canonical_sha256(data: Any) -> str:
+    text = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Akana-Benchmark/1.0"}
 
 
-def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def fetch_ragturk_dataset(
+    max_articles: int = 25, strict: bool = False
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
-    Downloads or loads cached RagTurk articles and extracts chunks and questions.
+    Downloads or loads cached RagTurk articles and extracts chunks and questions. Up to 300
+    articles are the pinned ones (`scripts/ragturk_articles.tsv`), each checked against its
+    SHA-256. With `strict`, an article that cannot be had or differs from its pin raises
+    `RuntimeError`, so a measurement never runs on fewer or other texts than it says.
     Returns:
         (documents, questions)
     """
     ragturk_dir = CACHE_DIR / "ragturk"
     ragturk_dir.mkdir(parents=True, exist_ok=True)
+    pinned = pinned_ragturk_articles()
+    expected = dict(pinned[:max_articles]) if max_articles <= len(pinned) else {}
+    if strict and not expected:
+        raise RuntimeError(f"only {len(pinned)} RagTurk articles are pinned, not {max_articles}")
 
     # First discover file list from HuggingFace dataset repo
     index_cache = ragturk_dir / "file_list.json"
-    if index_cache.exists():
+    if expected:
+        file_names = list(expected)
+    elif index_cache.exists():
         with open(index_cache, "r", encoding="utf-8") as f:
             file_names = json.load(f)
     else:
@@ -103,6 +128,7 @@ def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]],
     all_docs = []
     all_queries = []
     doc_id_counter = 0
+    problems = []
 
     print(f"Loading {len(selected_files)} RagTurk article files...")
     for fname in selected_files:
@@ -112,17 +138,22 @@ def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]],
             try:
                 r = requests.get(url, headers=HEADERS, timeout=10)
                 if r.status_code == 200:
-                    with open(cached_file, "w", encoding="utf-8") as f:
-                        f.write(r.text)
+                    cached_file.write_bytes(r.content)
                 else:
+                    problems.append(f"{fname}: HTTP {r.status_code}")
                     continue
-            except Exception:
+            except Exception as e:
+                problems.append(f"{fname}: {e}")
                 continue
 
         try:
             with open(cached_file, "r", encoding="utf-8") as f:
                 article_data = json.load(f)
-        except Exception:
+        except Exception as e:
+            problems.append(f"{fname}: {e}")
+            continue
+        if fname in expected and canonical_sha256(article_data) != expected[fname]:
+            problems.append(f"{fname}: differs from its pinned SHA-256")
             continue
 
         chunk_id_to_key = {}
@@ -153,6 +184,11 @@ def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]],
                     "category": q.get("category", "GENERAL"),
                 })
 
+    if problems:
+        message = f"{len(problems)} of {len(selected_files)} RagTurk articles left out: {problems[:3]}"
+        if strict:
+            raise RuntimeError(message)
+        print(f"⚠️ {message}")
     return all_docs, all_queries
 
 
@@ -555,22 +591,32 @@ def main():
     parser.add_argument("--dataset", choices=["ragturk", "turkuaz", "synthetic", "all"], default="ragturk")
     parser.add_argument("--max-articles", type=int, default=300)
     parser.add_argument("--max-turkuaz", type=int, default=500)
-    parser.add_argument("--readme", action="store_true", help="with --dataset all, also print the README's table")
+    parser.add_argument(
+        "--readme",
+        action="store_true",
+        help="with --dataset all, also print the README's table; fails when a dataset is missing",
+    )
     args = parser.parse_args()
 
     if args.dataset in ("ragturk", "all"):
-        docs, queries = fetch_ragturk_dataset(max_articles=args.max_articles)
-        if not queries:
-            print("⚠️ Could not fetch RagTurk. Falling back to synthetic corpus...")
+        docs, queries = fetch_ragturk_dataset(max_articles=args.max_articles, strict=args.readme)
+        if queries:
+            evaluate_retrieval(docs, queries, "RagTurk (metunlp/ragturk)")
+        else:
+            print("⚠️ Could not fetch RagTurk. Falling back to the synthetic corpus...")
             docs, queries = get_synthetic_hard_turkish_corpus()
-        evaluate_retrieval(docs, queries, "RagTurk (metunlp/ragturk)")
+            evaluate_retrieval(docs, queries, "Synthetic corpus (RagTurk unavailable)")
 
     if args.dataset in ("turkuaz", "all"):
         docs, queries = fetch_turkuaz_dataset(max_samples=args.max_turkuaz)
         if queries:
             evaluate_retrieval(docs, queries, "Turkuaz-RAG (eneSadi/turkuaz-rag)")
+        elif args.readme:
+            sys.exit("Turkuaz is unavailable: the README table needs both datasets")
 
-    if args.readme and len(RESULTS) == 2:
+    if args.readme:
+        if len(RESULTS) != 2:
+            sys.exit("the README table needs RagTurk and Turkuaz: run with --dataset all")
         print_readme_table("RagTurk (metunlp/ragturk)", "Turkuaz-RAG (eneSadi/turkuaz-rag)")
 
     if args.dataset == "synthetic":

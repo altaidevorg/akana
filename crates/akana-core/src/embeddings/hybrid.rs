@@ -28,17 +28,27 @@ pub const HYBRID_SPARSE_BYTES: usize = 64;
 /// Maximum number of unhashed sparse terms packed in the buffer (16 terms).
 pub const HYBRID_MAX_SPARSE_SLOTS: usize = 16;
 
+/// The hybrid metric's default alpha.
+pub const DEFAULT_HYBRID_ALPHA: f32 = 0.5;
+
 /// Global tunable alpha weight for the C-ABI hybrid metric (default 0.5).
 /// Stored as bits of f32 for thread-safe lock-free atomic access.
 static HYBRID_ALPHA_BITS: AtomicU32 = AtomicU32::new(0x3f000000); // 0.5f32
 
-/// Set the global alpha parameter for `akana_usearch_metric_hybrid`.
+/// Set the global alpha parameter for `akana_usearch_metric_hybrid`. It is one value for the
+/// whole process: every open index that uses the metric sees the change.
 ///
 /// Alpha controls the balance between dense (semantic) and sparse (lexical) distance:
 /// - `alpha = 0.0`: Pure dense 2-bit search
 /// - `alpha = 0.5`: Balanced hybrid (default)
 /// - `alpha = 1.0`: Pure sparse morphological BM25 search
+///
+/// A value outside `[0, 1]` is clamped; NaN is ignored, and the alpha stays as it was (it made
+/// every distance NaN; review 2 EMB-06).
 pub fn set_hybrid_metric_alpha(alpha: f32) {
+    if alpha.is_nan() {
+        return;
+    }
     let clamped = alpha.clamp(0.0, 1.0);
     HYBRID_ALPHA_BITS.store(clamped.to_bits(), Ordering::Relaxed);
 }
@@ -138,13 +148,19 @@ pub fn pack_hybrid_vector(
 
 /// Compute distance between two 128-byte hybrid vectors.
 ///
-/// Returns a distance scalar in `[0.0, 2.0]`. Identical vectors return `0.0`.
+/// Returns a distance scalar in `[0.0, 2.0]`. Identical vectors return `0.0`. `alpha` is
+/// clamped to `[0, 1]`, and NaN counts as [`DEFAULT_HYBRID_ALPHA`].
 #[inline]
 pub fn hybrid_distance_128(
     a: &[u8; HYBRID_VECTOR_BYTES],
     b: &[u8; HYBRID_VECTOR_BYTES],
     alpha: f32,
 ) -> f32 {
+    let alpha = if alpha.is_nan() {
+        DEFAULT_HYBRID_ALPHA
+    } else {
+        alpha.clamp(0.0, 1.0)
+    };
     let dense_a = &a.as_chunks::<64>().0[0];
     let dense_b = &b.as_chunks::<64>().0[0];
 
@@ -221,8 +237,7 @@ pub fn hybrid_distance_128(
         }
     };
 
-    let a_clamped = alpha.clamp(0.0, 1.0);
-    (1.0 - a_clamped) * dense_dist + a_clamped * sparse_dist
+    (1.0 - alpha) * dense_dist + alpha * sparse_dist
 }
 
 // ── C-ABI Exported Function for USearch CompiledMetric ───────────────────────
@@ -288,6 +303,21 @@ mod tests {
             dist_related < dist_unrelated,
             "expected related 'ev/kredi' distance ({dist_related}) < unrelated ({dist_unrelated})"
         );
+    }
+
+    /// Review 2 EMB-06: a NaN alpha never reaches a distance.
+    #[test]
+    fn nan_alpha_is_ignored() {
+        let engine = TurkishHybridEmbeddings::new();
+        let a = engine.embed_hybrid("Davacı vekili temyiz etti.");
+        let b = engine.embed_hybrid("Kira bedelinin tespiti istendi.");
+        assert_eq!(
+            hybrid_distance_128(&a, &b, f32::NAN),
+            hybrid_distance_128(&a, &b, DEFAULT_HYBRID_ALPHA)
+        );
+        let before = get_hybrid_metric_alpha();
+        set_hybrid_metric_alpha(f32::NAN);
+        assert_eq!(get_hybrid_metric_alpha(), before);
     }
 
     #[test]
