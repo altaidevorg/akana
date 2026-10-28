@@ -103,3 +103,75 @@ Dr. {{AD_1}} hastayı muayene etti.
 > Prof. Dr. Nurten Aksoy konferans verdi.
 Prof. Dr. {{AD_1}} konferans verdi.
 	AD	Nurten Aksoy
+> Bu davada Tanıklar Ahmet Yılmaz ve Ayşe Kaya dinlendi.
+Bu davada Tanıklar {{AD_1}} ve {{AD_2}} dinlendi.
+	AD	Ahmet Yılmaz
+	AD	Ayşe Kaya
+> Bu davada Eşler Murat Çelik ve Elif Doğan boşandı.
+Bu davada Eşler {{AD_1}} ve {{AD_2}} boşandı.
+	AD	Murat Çelik
+	AD	Elif Doğan
+> Mahkeme, Davacılar Hasan Kara ve Mehmet Demir hakkında karar verdi.
+Mahkeme, Davacılar {{AD_1}} ve {{AD_2}} hakkında karar verdi.
+	AD	Hasan Kara
+	AD	Mehmet Demir
+> Bu davada İzzettin Demir haklıdır.
+Bu davada {{AD_1}} haklıdır.
+	AD	İzzettin Demir
+> Sanık Saadettin Doğan'ın temyiz talebi reddedildi.
+Sanık {{AD_1}}'ın temyiz talebi reddedildi.
+	AD	Saadettin Doğan
+> Tanık Cindi Yılmaz dinlendi.
+Tanık {{AD_1}} dinlendi.
+	AD	Cindi Yılmaz
+> Dün Deniz Pedersen ve Barış Boysan geldi.
+Dün {{AD_1}} ve {{AD_2}} geldi.
+	AD	Deniz Pedersen
+	AD	Barış Boysan
+> Raportör: Şebnem NEBİOĞLU ÖNER
+Raportör: {{AD_1}}
+	AD	Şebnem NEBİOĞLU ÖNER
+> Üyeler: Fatma Burcu NACAR YÜCE
+Üyeler: {{AD_1}}
+	AD	Fatma Burcu NACAR YÜCE
+> Başvurucu: Mustafa BAL
+Başvurucu: {{AD_1}}
+	AD	Mustafa BAL
+> Hicabi DURSUN
+{{AD_1}}
+	AD	Hicabi DURSUN
+> Hasan Tahsin GÖKCAN
+{{AD_1}}
+	AD	Hasan Tahsin GÖKCAN
+> Başvurucu: Bahadır YALÇINÖZ
+Başvurucu: {{AD_1}}
+	AD	Bahadır YALÇINÖZ
+> Davacı Cumali Yılmaz geldi.
+Davacı {{AD_1}} geldi.
+	AD	Cumali Yılmaz
+> Bu davada Davacı Kudret Demir itiraz etti.
+Bu davada Davacı {{AD_1}} itiraz etti.
+	AD	Kudret Demir
+> Bunu A. Yılmaz imzaladı.
+Bunu {{AD_1}} imzaladı.
+	AD	A. Yılmaz
+> ahmet yılmaz dün geldi.
+{{AD_1}} dün geldi.
+	AD	ahmet yılmaz
+> DAVACI AHMET YILMAZ VEKİLİ AV. MEHMET ÖZ
+DAVACI {{AD_1}} VEKİLİ AV. {{AD_2}}
+	AD	AHMET YILMAZ
+	AD	MEHMET ÖZ
+> Davalı Hayat Sigorta A.Ş. vekili cevap verdi.
+Davalı Hayat Sigorta A.Ş. vekili cevap verdi.
+> Ahmet Yılmaz İnşaat Ltd. Şti. davalıdır.
+{{AD_1}} İnşaat Ltd. Şti. davalıdır.
+	AD	Ahmet Yılmaz
+> E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
+E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
+> Kaya'nın ifadesi alındı.
+Kaya'nın ifadesi alındı.
+> Güneş'e bakmayın.
+Güneş'e bakmayın.
+> T.C. Anayasa Mahkemesi İkinci Bölüm
+T.C. Anayasa Mahkemesi İkinci Bölüm

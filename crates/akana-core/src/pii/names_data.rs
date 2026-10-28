@@ -59,6 +59,11 @@ pub(crate) const COMMON_GIVEN_NAMES: &[&str] = &[
     "selahaddin", "onurhan", "sabahat", "azize", "vecihe", "renas", "dıjvar", "serruh", "tugay",
     "gülşah", "yavuzhan", "erkam", "cebrail", "namık", "süreyya", "füsun", "abdulhakim", "mohammed",
     "rüştü", "fatin", "vural", "beyti", "muzaffer",
+    // Given names of official-form names in Constitutional Court headers that no list had
+    // (review 3 PII3-04).
+    "nejdet", "hüsamettin", "heysem", "nahit", "hamdullah", "gülbin", "abdulhalim", "feyzullah",
+    "fehmi", "ziver", "izzettin", "saadettin", "mecit", "veysi", "selami", "utku", "abdulkerim",
+    "cumali", "isa",
 ];
 
 /// Common Turkish surnames, in addition to gazetteer.rs's SURNAMES.
@@ -134,6 +139,8 @@ pub(crate) const AMBIGUOUS_NAMES: &[&str] = &[
     "yıldız", "zeki", "ela", "mine", "tuna", "hale", "nil", "bahar", "ada", "sevgi", "yaren",
     "aras", "christian", "austin", "charlotte", "carol", "heather", "harper", "jean",
     "hakkı",
+    // the same court headers' given names that are also everyday words (review 3 PII3-04)
+    "bahadır", "önder", "adil", "aziz", "ulaş", "servet", "halis", "şeref", "salim", "kudret",
 ];
 
 /// Given names that are far more often something else: a celestial body, a direction, a region
@@ -279,7 +286,19 @@ pub(crate) const NAME_STOPPERS: &[&str] = &[
     "grand", "prix", "bank", "kanun", "kanunu", "yönetmelik", "tüzük", "genelge", "kararname",
     "anayasa", "mahkeme", "daire", "kurul", "bakanlık", "kurum", "kurumu", "ticaret", "sanayi",
     "san.", "tic.", "idaresi", "idaresinde", "müdürlüğünde",
+    // A word's period is trimmed before the list is looked up (LTD. is ltd), and company words
+    // end a name (Hayat Sigorta A.Ş.; review 3 PII3-05, PII3-06).
+    "ltd", "şti", "tic", "sigorta", "sigortası", "sigortaları", "bankası", "inşaat", "holdingi",
     "diğerleri", "digerleri", "başvurusu", "basvurusu",
+];
+
+/// Words a company's name ends with (Hayat Sigorta, Axa Sigorta A.Ş., Koç Holding): the words
+/// before them name the company (Doğan Holding), unless one is a given name that is only a name
+/// (Ahmet Yılmaz İnşaat is a person's business; review 3 PII3-05). As `Word` reads them: lower case,
+/// without the period (A.Ş. is the initials a, ş).
+pub(crate) const COMPANY_WORDS: &[&str] = &[
+    "sigorta", "sigortası", "sigortaları", "bankası", "bank", "holding", "holdingi", "inşaat",
+    "ltd", "şti", "anonim", "limited", "şirketi", "ticaret", "tic", "sanayi", "san", "kooperatifi",
 ];
 
 /// Well-known public figures (historical, political, literary, artistic, scientific) whose

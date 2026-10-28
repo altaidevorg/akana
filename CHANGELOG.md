@@ -263,7 +263,19 @@ fails on any further input change, so each change is recorded on purpose
 - Crashes on statute headings and non-ASCII plates (PII), upper-case suffixes, non-ASCII
   spaces and overlapping edits (grammar), and cycles or extra roots in dependency trees.
 - PII leaks: upper-case Turkish triggers, and text that `restore` would turn into an earlier
-  value.
+  value. Names whose only common readings are copula forms are names again (`İzzettin
+  Demir`, `Cindi Yılmaz`), and a role plural mid-sentence no longer joins the name after it
+  (`Tanıklar`); the official form keeps its second and its short surnames (`Şebnem NEBİOĞLU
+  ÖNER`, `Mustafa BAL`) and ends at the line's end (two people on two lines are two names);
+  an initial is masked with its surname (`A. Yılmaz`); common given names no list had are
+  added (`Bahadır`, `Cumali`, `Nejdet` …), and a capitalised role before a name no longer hides
+  it (`Davacı Kudret Demir`).
+- PII over-masks: company names after `Davalı`/`Davacı` (`Hayat Sigorta A.Ş.`, `Axa Sigorta`)
+  and a company's legal form in a decision title (`LTD. ŞTİ. BAŞVURUSU`) are no names; a
+  person's business keeps its name masked (`Ahmet Yılmaz İnşaat`).
+- `PiiVault` serialises in one order on every run: its maps are ordered (`BTreeMap`;
+  Rust callers that name the field types must follow), and `from_mapping` reads its pairs in
+  placeholder order.
 - A plural role noun before a name (`Davacılar Ahmet Yılmaz`) is no longer masked as part of
   the name; a sentence without a verb (`Hava çok soğuk .`, `Evde kimse yok .`) has its predicate
   as the dependency root, never the punctuation, and a postposition attaches to its noun

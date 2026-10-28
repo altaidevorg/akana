@@ -6,7 +6,7 @@
 use super::morphology::{detect_suffix_case, harmonize_suffix};
 use super::validators::{validate_iban, validate_tckn};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// Masking / Pseudonymization mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,18 +32,20 @@ pub struct VaultEntry {
 }
 
 /// Bidirectional Session Vault holding mappings for prompt anonymization and response restoration.
+/// Its maps are ordered, so that the same session serialises to the same JSON on every run
+/// (review 3 PII3-07).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PiiVault {
     /// Maps placeholder (e.g. `"{{NAME_1}}"`) to VaultEntry
-    pub placeholder_to_entry: HashMap<String, VaultEntry>,
+    pub placeholder_to_entry: BTreeMap<String, VaultEntry>,
     /// Maps original text to placeholder (for consistent re-occurrence replacement within a session)
-    pub original_to_placeholder: HashMap<String, String>,
+    pub original_to_placeholder: BTreeMap<String, String>,
     /// Counts per entity label to produce sequential IDs (`NAME_1`, `NAME_2`, etc.)
-    label_counters: HashMap<String, usize>,
+    label_counters: BTreeMap<String, usize>,
     /// Tags (`[AD]`) issued for more than one original: restoring them would pick one of the
     /// originals for every occurrence, so `restore` leaves them as they are.
     #[serde(default)]
-    ambiguous: HashSet<String>,
+    ambiguous: BTreeSet<String>,
 }
 
 impl PiiVault {
@@ -283,13 +285,20 @@ impl PiiVault {
 
     /// Returns the detailed mapping containing full VaultEntry metadata.
     pub fn get_detailed_mapping(&self) -> HashMap<String, VaultEntry> {
-        self.placeholder_to_entry.clone()
+        self.placeholder_to_entry
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
     }
 
     /// Creates a PiiVault from a simple mapping { placeholder_or_surrogate: original_text }.
     pub fn from_mapping(mapping: &HashMap<String, String>) -> Self {
         let mut vault = Self::new();
-        for (placeholder, original) in mapping {
+        // In placeholder order, so that an original two placeholders share maps to the same
+        // one on every run.
+        let mut pairs: Vec<(&String, &String)> = mapping.iter().collect();
+        pairs.sort();
+        for (placeholder, original) in pairs {
             vault.placeholder_to_entry.insert(
                 placeholder.clone(),
                 VaultEntry {
@@ -537,6 +546,27 @@ mod tests {
         let restored = vault.restore(llm_resp);
 
         assert_eq!(restored, "Murat'a başarıyla iletildi.");
+    }
+
+    #[test]
+    fn a_vault_serialises_in_one_order() {
+        // Review 3 PII3-07: the same session gave a different JSON in every process.
+        let session = || {
+            let mut vault = PiiVault::new();
+            for (text, label) in [
+                ("Zeynep Kaya", "NAME"),
+                ("Ahmet Yılmaz", "NAME"),
+                ("0532 123 45 67", "PHONE"),
+                ("Mehmet Demir", "NAME"),
+            ] {
+                vault.register(text, label, text, None, PiiMode::Placeholder);
+            }
+            serde_json::to_string(&vault).unwrap()
+        };
+        let json = session();
+        assert_eq!(json, session());
+        let at = |key: &str| json.find(key).unwrap();
+        assert!(at("{{NAME_1}}") < at("{{NAME_2}}") && at("{{NAME_2}}") < at("{{PHONE_1}}"));
     }
 
     #[test]

@@ -40,3 +40,29 @@ Ahmet Bey 0532 123 45 67 numaralı telefondan aradı.
 Av. Mehmet Öz, Ankara Barosu'na kayıtlıdır.
 Dr. Selim Koç hastayı muayene etti.
 Prof. Dr. Nurten Aksoy konferans verdi.
+# --- review 3 PII3-03: the same classes mid-sentence, in capitals, in lower case and with an
+# apostrophe, and the paths the analyzer moved
+Bu davada Tanıklar Ahmet Yılmaz ve Ayşe Kaya dinlendi.
+Bu davada Eşler Murat Çelik ve Elif Doğan boşandı.
+Mahkeme, Davacılar Hasan Kara ve Mehmet Demir hakkında karar verdi.
+Bu davada İzzettin Demir haklıdır.
+Sanık Saadettin Doğan'ın temyiz talebi reddedildi.
+Tanık Cindi Yılmaz dinlendi.
+Dün Deniz Pedersen ve Barış Boysan geldi.
+Raportör: Şebnem NEBİOĞLU ÖNER
+Üyeler: Fatma Burcu NACAR YÜCE
+Başvurucu: Mustafa BAL
+Hicabi DURSUN
+Hasan Tahsin GÖKCAN
+Başvurucu: Bahadır YALÇINÖZ
+Davacı Cumali Yılmaz geldi.
+Bu davada Davacı Kudret Demir itiraz etti.
+Bunu A. Yılmaz imzaladı.
+ahmet yılmaz dün geldi.
+DAVACI AHMET YILMAZ VEKİLİ AV. MEHMET ÖZ
+Davalı Hayat Sigorta A.Ş. vekili cevap verdi.
+Ahmet Yılmaz İnşaat Ltd. Şti. davalıdır.
+E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
+Kaya'nın ifadesi alındı.
+Güneş'e bakmayın.
+T.C. Anayasa Mahkemesi İkinci Bölüm
