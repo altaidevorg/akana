@@ -107,6 +107,7 @@ impl MorphologicalDisambiguator {
                     yields: false,
                     rank: 0,
                     homograph: 0,
+                    not_tdk: false,
                 });
                 continue;
             }

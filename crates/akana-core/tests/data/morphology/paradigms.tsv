@@ -509,19 +509,6 @@ incelendikten	incele	Verb+Pass+PastPart+Abl
 Ahmetler	ahmet	Noun+A3pl
 Ankaralı	ankara	Noun+With
 
-# --- a name with its capital and a consonant-initial case or copula ending, written without the
-# apostrophe: read at a lower score when nothing else matches (plan step D1)
-Ankarada	ankara	Noun+Loc
-Türkiyede	türkiye	Noun+Loc
-Türkiyeyi	türkiye	Noun+Acc
-Avrupanın	avrupa	Noun+Gen
-Asyadan	asya	Noun+Abl
-Asyadaki	asya	Noun+Loc+RelClitic
-Ankarayla	ankara	Noun+Ins
-Ermeniyim	ermeni	Noun+CopPres1sg
-TBMMde	tbmm	Noun+Loc
-TBMMnin	tbmm	Noun+Gen
-
 # --- an abbreviation's period and the suffixes court decisions write after it (plan step D2)
 Dr.	dr	Noun+A3sg+Nom
 vb.	vb	Noun+A3sg+Nom
@@ -531,18 +518,13 @@ H.U.M.K.nun	humk	Noun+Gen
 İİK.nın	iik	Noun+Gen
 
 # --- numbers and letters (plan step D4): a time on the hour by its hour, the distributive on
-# digits, numerals written as one word, Roman numerals in lower case, list letters, sizes, TL
-# read as lira
+# digits, Roman numerals in lower case, list letters, sizes, TL read as lira (numerals written
+# as one word are in as_found.tsv)
 17.00'ye	17.00	Num+Dat
 22.00'den	22.00	Num+Abl
 3'er	3	Num
 2'şer	2	Num
 %50'şer	%50	Num
-onbeş	onbeş	Num
-onbeşe	onbeş	Num+Dat
-onüçüncü	onüçüncü	Num
-yirmidört	yirmidört	Num
-beşbin	beşbin	Num
 ii	II	Num
 xiv	XIV	Num
 ü	ü	Noun+A3sg+Nom

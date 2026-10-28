@@ -32,8 +32,18 @@ fn test_spellchecker() {
     let checker = TurkishSpellChecker::new();
     assert!(checker.is_correct("kitap"));
     assert!(checker.is_correct("kitaplar"));
-    assert!(checker.is_correct("türkiye"));
+    assert!(checker.is_correct("Türkiye"));
+    assert!(checker.is_correct("TBMM"));
     assert!(!checker.is_correct("ktap"));
+    // Review 3 NORM3-01: a name or an abbreviation in lower case is no spelling, and no
+    // suggestion for a misspelt common word.
+    assert!(!checker.is_correct("türkiye"));
+    assert!(!checker.is_correct("varmı"));
+    assert!(!checker.is_correct("cbk"));
+    // (The edit distance counts bytes, so c for ç costs 2.)
+    let cok = checker.suggest("cok", 2, 500);
+    assert!(cok.iter().any(|s| s.word == "çok"), "{cok:?}");
+    assert!(cok.iter().all(|s| s.word != "cbk"), "{cok:?}");
 
     let suggestions = checker.suggest("ktap", 2, 5);
     assert!(!suggestions.is_empty());
@@ -66,6 +76,35 @@ fn misspellings_the_lexicon_lists_are_not_correct() {
         "hükümet",
     ] {
         assert!(checker.is_correct(word), "{word}");
+    }
+    // Review 3 NORM3-04, MORPH3-10: what the analyzer reads only as text is found (a name
+    // without its apostrophe, I for İ, a numeral as one word) or through a rare productive path
+    // is no spelling; a foreign acronym with its Latin I is.
+    for word in [
+        "Türkiyede",
+        "Ankarada",
+        "KITAPLAR",
+        "Istanbulda",
+        "onbeş",
+        "yirmidört",
+        "kedilen",
+        "maddemsi",
+        "tarafınsan",
+        "varasında",
+    ] {
+        assert!(!checker.is_correct(word), "{word}");
+    }
+    for word in [
+        "Türkiye'de",
+        "KİTAPLAR",
+        "on beş",
+        "FBI",
+        "IMF'nin",
+        "edilen",
+        "yeşilimsi",
+        "benimsin",
+    ] {
+        assert!(word.split(' ').all(|w| checker.is_correct(w)), "{word}");
     }
 }
 

@@ -61,3 +61,29 @@ fn test_keywords_and_summarizer_unit() {
     let summary = summarizer.summarize(text, 2);
     assert_eq!(summary.len(), 2);
 }
+
+#[test]
+fn keywords_are_the_same_on_every_call_and_skip_number_suffixes() {
+    // Review 3 NORM3-03: phrases tied on score came in hash order, top_k cut inside the tie, and
+    // a number's suffixes became words (1923'te: te).
+    let text = "1923'te kurulan Cumhuriyet, %50'sini 3'er ay arayla ödedi. Dava açıldı. \
+        Karar verildi. Bilirkişi geldi. Tanık dinlendi. Rapor alındı.";
+    let extractor = TurkishKeywordExtractor::new();
+    let words = |kw: Vec<akana_core::analysis::KeywordScore>| -> Vec<String> {
+        kw.into_iter().map(|k| k.keyword).collect()
+    };
+    let first = words(extractor.extract_keywords(text, 4));
+    for _ in 0..20 {
+        assert_eq!(
+            words(TurkishKeywordExtractor::new().extract_keywords(text, 4)),
+            first
+        );
+    }
+    let all = words(extractor.extract_keywords(text, 50)).join(" ");
+    for fragment in ["te", "sin", "er"] {
+        assert!(
+            !all.split(' ').any(|w| w == fragment),
+            "{fragment} in {all}"
+        );
+    }
+}

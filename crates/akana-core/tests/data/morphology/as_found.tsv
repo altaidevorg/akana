@@ -1,0 +1,23 @@
+# Forms the analyzer reads as text has them, though TDK spells them otherwise: word, root, tags
+# (as paradigms.tsv). tests/morphology_gold.rs checks that `analyze` has the reading and that
+# `analyze_standard` has none: they are no spellings to the spell checker, the grammar rules or
+# the deasciifier (review 3 NORM3-04).
+# --- a name with its capital and a consonant-initial case or copula ending, written without the
+# apostrophe: read at a lower score when nothing else matches (plan step D1)
+Ankarada	ankara	Noun+Loc
+Türkiyede	türkiye	Noun+Loc
+Türkiyeyi	türkiye	Noun+Acc
+Avrupanın	avrupa	Noun+Gen
+Asyadan	asya	Noun+Abl
+Asyadaki	asya	Noun+Loc+RelClitic
+Ankarayla	ankara	Noun+Ins
+Ermeniyim	ermeni	Noun+CopPres1sg
+TBMMde	tbmm	Noun+Loc
+TBMMnin	tbmm	Noun+Gen
+
+# --- numerals written as one word (plan step D4)
+onbeş	onbeş	Num
+onbeşe	onbeş	Num+Dat
+onüçüncü	onüçüncü	Num
+yirmidört	yirmidört	Num
+beşbin	beşbin	Num

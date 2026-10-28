@@ -19,6 +19,7 @@ use unicode_normalization::UnicodeNormalization;
 
 const PARADIGMS: &str = include_str!("data/morphology/paradigms.tsv");
 const REJECT: &str = include_str!("data/morphology/reject.txt");
+const AS_FOUND: &str = include_str!("data/morphology/as_found.tsv");
 const DISAMBIGUATION: &str = include_str!("data/morphology/disambiguation.tsv");
 const PARTICIPLES: &str = include_str!("data/morphology/participles.tsv");
 const FREQUENT_TYPES: &str = include_str!("data/morphology/frequent_types.tsv");
@@ -110,6 +111,23 @@ fn current_failures() -> BTreeSet<String> {
     for word in data_lines(REJECT) {
         if !morphology.analyze_standard(word).is_empty() {
             failures.insert(format!("reject\t{word}"));
+        }
+    }
+    // Read as found, but no spelling.
+    for line in data_lines(AS_FOUND) {
+        let fields: Vec<&str> = line.split('\t').collect();
+        let [word, root, tags] = fields[..] else {
+            panic!("malformed as_found.tsv line: {line:?}");
+        };
+        let read = morphology
+            .analyze(word)
+            .iter()
+            .any(|p| p.root == root && p.morpheme_tags.join("+") == tags);
+        if !read {
+            failures.insert(format!("read\t{word}\t{root}\t{tags}"));
+        }
+        if !morphology.analyze_standard(word).is_empty() {
+            failures.insert(format!("standard\t{word}"));
         }
     }
     let disambiguator = MorphologicalDisambiguator::new();

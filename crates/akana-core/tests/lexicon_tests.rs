@@ -229,7 +229,8 @@ fn spellings_are_judged_in_the_case_they_are_written_in() {
     let morph = TurkishMorphology::new();
     let standard = |w: &str| !morph.analyze_standard(w).is_empty();
     assert!(standard("Ankara'da") && !standard("ankara'da"));
-    assert!(standard("Türkiyede") && !morph.analyze("Türkiyede").is_empty());
+    // A name without its apostrophe reads, but is no spelling (review 3 NORM3-04).
+    assert!(!standard("Türkiyede") && !morph.analyze("Türkiyede").is_empty());
     assert!(!morph.analyze("varmı").is_empty() && !standard("varmı"));
     // Abbreviations the dictionary spells in lower case, and dotted ones, are spellings.
     for word in ["km", "vb", "bkz", "vb.", "TBMM'de"] {

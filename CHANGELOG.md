@@ -71,7 +71,11 @@ A:CompoundP3sg; Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 mis
   score, with the new key `nonstandard` set. The spell checker, the grammar rules and the
   deasciifier ignore such readings: `kitapı` and `olmıyan` are still misspellings to them.
   `Morphology.analyze` returns them; code that judges spellings should skip them, as
-  `TurkishMorphology::analyze_standard` does in Rust.
+  `TurkishMorphology::analyze_standard` does in Rust. `analyze_standard` also leaves out what
+  the analyzer reads only as text is found (a name without its apostrophe, `Türkiyede`; a capital
+  I typed for İ, `KITAPLAR`, but not a foreign acronym's, `FBI`; a numeral written as one word,
+  `onbeş`) and a few rare productive paths that mostly read misspellings of frequent words
+  (`kedilen`, `maddemsi`, `tarafınsan`).
 - Misspellings Zemberek lists as words read the same way, with the TDK lemma (`şöför`:
   `şoför`, `döküman`: `doküman`, `orjinal`: `orijinal`, `ünvan`: `unvan`; `herşey` keeps its
   lemma), and so do the words Zemberek refers to another spelling (`motorsiklet`:
@@ -294,6 +298,23 @@ fails on any further input change, so each change is recorded on purpose
   (they came in hash order, so the same inputs gave different rankings), an id listed twice in
   one list counts once, and a `k` that is not positive and finite, or an `alpha` that is not
   finite, is rejected (`ValueError` in Python) where it returned infinite scores.
+- Spell checker: its vocabulary holds common words only, so a lower-cased name or abbreviation
+  is no spelling (`türkiye`, `varmı`, `cbk`) and no suggestion; `Türkiye` and `TBMM` as written
+  still are.
+- Deasciifier: a word is judged in lower case first, so a capital at the start of a sentence
+  no longer turns it into a name or an abbreviation (`Bu` stayed `Bu`, it gave `Bü`; `Cocuk`
+  gives `Çocuk`, not `Çoçuk`); a capitalised word that is a name stays as it is (`Ali`,
+  `Michael`); a capital I may be İ (`KITAP`: `KİTAP`, `Istanbul`: `İstanbul`); a word that
+  already has Turkish letters and reads is left alone, so the function is idempotent.
+- Grammar: the de/da rule writes `onu da` for `onu'da` (it kept the apostrophe), cases the
+  clitic like the word (`KİTABI DA`) and checks words written in capitals; a genitive with -da
+  written on it is split again unless a frequent word of another root is one letter away
+  (`ülkeninde`, `seninde`, `dosyanında` are split; `aranında`, `alınında` are not, nor
+  vowel-dropped to `alnında`), which also removes the rule's cost on long tokens; a merged
+  question particle is split after a name (`Ahmetmi`, `Türkiye'denmi`) and at the start of a
+  sentence (`Varmı?`). `tests/data/grammar_recall.tsv` pins the exact corrections.
+- `extract_keywords` returns the same keywords on every call (ties are in text order before
+  `top_k` cuts), and a number's suffixes are no keyword (`1923'te`).
 - The dependency parser, the readability metrics and the syntactic analyzer share one
   inventory of non-finite verb forms (`morphology::verb_form`), the full set the analyzer
   emits: -DIkçA, -cAsInA, -AmAdAn, -AsIyA converbs and -mIş, -Ar/-mAz, -AsI participles were

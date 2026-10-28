@@ -104,9 +104,10 @@ fn sections_cover_long_texts_only() {
 #[test]
 fn label_colons_are_linear_in_a_line() {
     // Each colon looked through every sentence start of its line: colons × sentences. Four
-    // times the line may take at most 9× as long (linear 4×, the old loop 16×); best of three.
+    // times the line may take at most 9× as long (linear 4×, the old loop 16×); best of five,
+    // as the other tests of the crate run beside it.
     let time = |text: &str| {
-        (0..3)
+        (0..5)
             .map(|_| {
                 let t = std::time::Instant::now();
                 assert!(super::morph::label_colon_counts(text).0 > 0);

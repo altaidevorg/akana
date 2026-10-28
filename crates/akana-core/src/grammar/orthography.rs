@@ -92,26 +92,44 @@ fn only_genitive(morphology: &TurkishMorphology, lower: &str) -> bool {
     cases.peek().is_some() && cases.all(|c| c == "Gen")
 }
 
-/// Whether a word one letter away from `lower` (a letter changed, dropped or added) is a known
-/// word's possessed locative, -(s)I-ndA: `lower` is then likelier that word misspelt than a
-/// genitive with -da written on it (alınında for alan-ı-nda, aranında for oran-ı-nda,
-/// bölünmeninde for bölünme-si-nde; review 2 GN2-03). Not a neighbour the edit makes through
-/// another possessive or a derivation (hakkınızda, fatura-sız-ı-nda for hakkınında and
-/// faturasınında, which are genitives). It costs the rare genitive that has such a neighbour
-/// (borçlununda: borçlu-su-nda).
-fn misspelt_locative(morphology: &TurkishMorphology, lower: &str) -> bool {
+/// Lower-case word forms ending in -ndA that the court sample writes at least 50 times
+/// (scripts/frequent_locatives.py).
+static FREQUENT_LOCATIVES: std::sync::LazyLock<std::collections::HashSet<&'static str>> =
+    std::sync::LazyLock::new(|| {
+        include_str!("frequent_locatives.txt")
+            .lines()
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .collect()
+    });
+
+/// Whether a word one letter away from `lower` (a letter changed, dropped or added) is a
+/// frequent word's possessed locative, -(s)I-ndA, of a root none of `own_roots`: `lower` is then
+/// likelier that word misspelt than a genitive with -da written on it, or than a vowel-drop
+/// error (aranında for oran-ı-nda, alınında for alan-ı-nda; review 2 GN2-03). A rare neighbour
+/// is no evidence (seninde is no misspelt eninde, ülkeninde no üleninde), nor the token's own
+/// root's locative (mahkemeninde is mahkeme-nin-de misspelt, not mahkemesinde; review 3
+/// GRAM3-02). Not a neighbour the edit makes through another possessive or a derivation
+/// (hakkınızda, fatura-sız-ı-nda for hakkınında and faturasınında, which are genitives).
+/// Neighbours are looked up in [`FREQUENT_LOCATIVES`] before they are analysed.
+pub(crate) fn misspelt_locative(
+    morphology: &TurkishMorphology,
+    lower: &str,
+    own_roots: &[String],
+) -> bool {
     const LETTERS: &str = "abcçdefgğhıijklmnoöprsştuüvyz";
     let chars: Vec<char> = lower.chars().collect();
     let locative = |word: Vec<char>| {
         let word: String = word.into_iter().collect();
-        morphology.analyze_standard(&word).iter().any(|p| {
-            p.morpheme_tags
-                .ends_with(&["P3sg".to_string(), "Loc".to_string()])
-                && !p.morpheme_tags.iter().any(|t| {
-                    crate::morphology::is_derivational_tag(t)
-                        && !matches!(t.as_str(), "ActN" | "Inf")
-                })
-        })
+        FREQUENT_LOCATIVES.contains(word.as_str())
+            && morphology.analyze_standard(&word).iter().any(|p| {
+                p.morpheme_tags
+                    .ends_with(&["P3sg".to_string(), "Loc".to_string()])
+                    && !own_roots.contains(&p.root)
+                    && !p.morpheme_tags.iter().any(|t| {
+                        crate::morphology::is_derivational_tag(t)
+                            && !matches!(t.as_str(), "ActN" | "Inf")
+                    })
+            })
     };
     for i in 0..chars.len() {
         let mut dropped = chars.clone();
@@ -134,6 +152,17 @@ fn misspelt_locative(morphology: &TurkishMorphology, lower: &str) -> bool {
             locative(added)
         })
     })
+}
+
+/// The roots of a stem's genitive readings (alının: alın), which a misspelt locative's
+/// neighbour must not share ([`misspelt_locative`]).
+fn genitive_roots(morphology: &TurkishMorphology, stem: &str) -> Vec<String> {
+    morphology
+        .analyze_standard(stem)
+        .into_iter()
+        .filter(|p| p.morpheme_tags.iter().any(|t| t == "Gen"))
+        .map(|p| p.root)
+        .collect()
 }
 
 /// The vowel a suffix harmonises with after `lower`: its last vowel, made front when `lower`
@@ -325,6 +354,14 @@ impl OrthographyRuleEngine {
             "mılar",
         ];
 
+        // Whether a token is a word as written. At the start of a sentence its capital says
+        // nothing, and the corpus names Varmı and Yokmu do not make Varmı? a word (review 3
+        // GRAM3-03): it must read in lower case too.
+        let known_as_written = |i: usize, word: &str| {
+            let sentence_start = i == 0 || matches!(tokens[i - 1], "." | "!" | "?" | "…" | ":");
+            is_known(morphology, word)
+                && (!sentence_start || is_known(morphology, &to_turkish_lower(word)))
+        };
         for (i, &tok) in tokens.iter().enumerate() {
             let (start, end) = token_spans[i];
             let trimmed_tok = tok.trim_end_matches(|c: char| {
@@ -368,9 +405,11 @@ impl OrthographyRuleEngine {
                                 || stem.ends_with('m')
                                 || stem.ends_with('ş')
                                 || stem.ends_with('l'))
-                            // a word that ends like it is no merged particle: hükmü, filmi, yirmi
-                            && !is_known(morphology, trimmed_tok)
-                            && is_known(morphology, stem)
+                            // a word that ends like it is no merged particle: hükmü, filmi, yirmi;
+                            // the stem as written, so that a name's counts (Ahmetmi, Türkiye'denmi;
+                            // review 3 GRAM3-03)
+                            && !known_as_written(i, trimmed_tok)
+                            && is_known(morphology, split_lower_suffix(trimmed_tok, p.len()).0)
                         {
                             // the particle as written (Mİ in GELDİNMİ), which is `expected_p`
                             let (original_stem, original_p) =
@@ -395,8 +434,8 @@ impl OrthographyRuleEngine {
                 if rules.contains(GrammarRule::MiMergedPerson)
                     && lower.ends_with(suf)
                     && lower.len() > suf.len() + 2
-                    && !is_known(morphology, trimmed_tok)
-                    && is_known(morphology, &lower[..lower.len() - suf.len()])
+                    && !known_as_written(i, trimmed_tok)
+                    && is_known(morphology, split_lower_suffix(trimmed_tok, suf.len()).0)
                 {
                     let (original_stem, original_suf) = split_lower_suffix(trimmed_tok, suf.len());
                     let replacement = format!("{original_stem} {original_suf}{punct}");
@@ -594,11 +633,20 @@ impl OrthographyRuleEngine {
             // "gelmişde") or on a word in a case ("ulaştığınıda", "evede"): only on a word the
             // analyser does not know, whose stem is a finite verb or case-marked. A word that has
             // a reading (kararda, altında, bulunduğunda) is a locative.
+            // A word in capitals is no name (ALİ GİTTİDE GELDİ; review 3 GRAM3-06), and a
+            // lower-case word with its suffix after an apostrophe right after a capitalised one
+            // is part of a name (Rossii po futbolu'da; review 3 GRAM3-01).
             let name_inside_sentence = i > 0
                 && !matches!(tokens[i - 1], "." | "!" | "?" | "…")
-                && tok.chars().next().is_some_and(char::is_uppercase);
+                && tok.chars().next().is_some_and(char::is_uppercase)
+                && tok.chars().any(char::is_lowercase);
+            let name_continues = i > 1
+                && tok.contains(['\'', '’'])
+                && tokens[i - 1].chars().next().is_some_and(char::is_uppercase)
+                && !matches!(tokens[i - 2], "." | "!" | "?" | "…");
             if rules.contains(GrammarRule::DeDaAfterVerb)
                 && !name_inside_sentence
+                && !name_continues
                 && (lower.ends_with("de")
                     || lower.ends_with("da")
                     || lower.ends_with("te")
@@ -612,9 +660,16 @@ impl OrthographyRuleEngine {
                         || (lower.ends_with("de") || lower.ends_with("da"))
                             && is_case_marked(morphology, stem)
                             && !(only_genitive(morphology, stem)
-                                && misspelt_locative(morphology, &lower)))
+                                && misspelt_locative(
+                                    morphology,
+                                    &lower,
+                                    &genitive_roots(morphology, stem),
+                                )))
                 {
+                    // without the apostrophe the clitic was written after: onu'da is onu da
+                    // (review 3 GRAM3-01)
                     let (original_stem, _) = split_lower_suffix(tok, 2);
+                    let original_stem = original_stem.trim_end_matches(['\'', '’']);
                     let correct_clitic = if let Some(v) = last_vowel(stem) {
                         if is_front_vowel(v) {
                             "de"
@@ -623,6 +678,13 @@ impl OrthographyRuleEngine {
                         }
                     } else {
                         "de"
+                    };
+                    // in the token's case: KİTABI DA (review 3 GRAM3-06)
+                    let all_caps = !tok.chars().any(char::is_lowercase);
+                    let correct_clitic = if all_caps {
+                        crate::phonology::to_turkish_upper(correct_clitic)
+                    } else {
+                        correct_clitic.to_string()
                     };
                     let replacement = format!("{original_stem} {correct_clitic}");
                     findings.push(GrammarFinding::new(

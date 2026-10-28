@@ -199,6 +199,8 @@ impl PhonologicalRuleEngine {
             if lower.starts_with(root) && lower.len() > root.len() {
                 let suf = &lower[root.len()..];
                 let fixed_lower = format!("{contracted}{suf}");
+                // Not a frequent word's locative misspelt (alınında for alanında; review 3
+                // GRAM3-02).
                 if suf.chars().next().is_some_and(is_turkish_vowel)
                     && misspelling_of(
                         morphology,
@@ -206,6 +208,11 @@ impl PhonologicalRuleEngine {
                         &fixed_lower,
                         root,
                         Some(PrimaryPos::Noun),
+                    )
+                    && !super::orthography::misspelt_locative(
+                        morphology,
+                        lower,
+                        &[root.to_string(), contracted.to_string()],
                     )
                 {
                     {

@@ -30,12 +30,18 @@ impl Vocabulary {
 }
 
 /// The vocabulary of the built-in lexicon, built once per process and shared by every checker
-/// until it adds a word of its own (copy-on-write). A nonstandard item is no spelling (herşey,
-/// whose lemma is its own).
+/// until it adds a word of its own (copy-on-write): its common words. A nonstandard item is no
+/// spelling (herşey, whose lemma is its own), and names and abbreviations are judged as written
+/// by the analyzer (`Türkiye`, `TBMM`): in this lower-cased list the corpus names made
+/// misspellings words (egitim, varmı) and abbreviations made suggestions (cok: cbk; review 3
+/// NORM3-01).
 static DEFAULT_VOCABULARY: LazyLock<Arc<Vocabulary>> = LazyLock::new(|| {
     let mut vocabulary = Vocabulary::default();
     for line in crate::morphology::ZEMBEREK_LEXICON.lines() {
-        if line.split_whitespace().any(|f| f == "Nonstandard") {
+        let mut fields = line.split_whitespace();
+        if matches!(fields.nth(3), Some("ProperNoun" | "Abbrv"))
+            || line.split_whitespace().any(|f| f == "Nonstandard")
+        {
             continue;
         }
         if let Some(first_word) = line.split_whitespace().next() {

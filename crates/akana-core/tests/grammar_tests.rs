@@ -469,6 +469,29 @@ fn misspelt_locatives_are_not_split_as_genitives() {
     assert!(split("Faturasınında ödenmesi gerekir."));
     assert!(split("Evede gitti."));
     assert!(!split("Faiz aranında artış oldu."));
-    assert!(!split("Bölünmeninde etkisi var."));
     assert!(!split("Davanın alınında görüldüğü gibi."));
+    // Review 3 GRAM3-02: only a frequent word of another root is a likelier reading; the
+    // token's own root's locative (bölünmesinde) or a rare word (eninde, izinde) is not.
+    assert!(split("Bölünmeninde etkisi var."));
+    assert!(split("Benim seninde gelmeni isterim."));
+    assert!(split("Bu ülkeninde vatandaşıydı."));
+}
+
+#[test]
+fn corrections_stay_as_recorded() {
+    // Review 3 GRAM3-04: what the checker writes for sentences with an error and for their
+    // look-alikes, exactly; the precision gate guards only clean text.
+    let checker = TurkishGrammarChecker::new();
+    let mut wrong = Vec::new();
+    for line in include_str!("data/grammar_recall.tsv")
+        .lines()
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+    {
+        let (input, expected) = line.split_once('\t').expect("input<TAB>expected");
+        let got = checker.correct(input);
+        if got != expected {
+            wrong.push(format!("{input:?}: {got:?}, recorded {expected:?}"));
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
 }

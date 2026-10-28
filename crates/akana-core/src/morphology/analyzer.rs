@@ -83,6 +83,13 @@ pub struct MorphParse {
     /// The dictionary item's homograph index ([`DictionaryItem::homograph`]).
     #[serde(skip)]
     pub(crate) homograph: u8,
+    /// Whether the analyzer reads the word only through a path for text as it is found, not
+    /// as TDK spells it: a name without its apostrophe (Türkiyede), a capital I typed for İ
+    /// (KITAPLAR, Istanbul; not a foreign acronym's, FBI), a numeral written as one word
+    /// (onbeş). Unlike `nonstandard` it moves no score: `analyze_standard` drops such
+    /// readings (review 3 NORM3-04).
+    #[serde(skip)]
+    pub(crate) not_tdk: bool,
 }
 
 impl MorphParse {
@@ -1178,16 +1185,24 @@ impl TurkishMorphology {
 
     /// The readings of a word as TDK spells it, in the case it is written in:
     /// [`analyze`](Self::analyze) without the [`nonstandard`](MorphParse::nonstandard) ones,
-    /// and, for a word written all in lower case, without a name's reading or an
-    /// abbreviation's the dictionary spells in capitals (ankara is no spelling of Ankara, bü
-    /// none of BÜ; km, and vb. with its period, are). What the spell checker, the grammar rules
-    /// and the deasciifier judge a spelling by, so they pass the word as it is written.
+    /// without those read only through a path for text as it is found (a name without its
+    /// apostrophe, I typed for İ, a numeral written as one word: Türkiyede, KITAPLAR, onbeş) or
+    /// through a rare productive path that mostly reads misspellings of frequent words (a
+    /// noun's -lAn imperative, kedilen beside edilen; -msI on a noun, maddemsi beside maddesi; a
+    /// genitive with a 2nd-person copula, tarafınsan; -AsI with a 2nd-person possessive,
+    /// varasında; review 3 NORM3-04, MORPH3-10), and, for a word written all in lower case,
+    /// without a name's reading or an abbreviation's the dictionary spells in capitals (ankara
+    /// is no spelling of Ankara, bü none of BÜ; km, and vb. with its period, are). What the spell
+    /// checker, the grammar rules and the deasciifier judge a spelling by, so they pass the word
+    /// as it is written.
     pub fn analyze_standard(&self, word: &str) -> Vec<MorphParse> {
         let lower_case = !word.chars().any(char::is_uppercase);
         let dotted = word.contains('.');
         let mut parses = self.analyze(word);
         parses.retain(|p| {
             !p.nonstandard
+                && !p.not_tdk
+                && !rare_path(p)
                 && !(lower_case
                     && match p.secondary_pos {
                         SecondaryPos::ProperNoun => true,
@@ -1233,6 +1248,9 @@ impl TurkishMorphology {
             let mut readings = self.analyze_written(&dotted);
             for p in &mut readings {
                 p.surface = clean.to_string();
+                // A foreign acronym is written with its Latin I (FBI, IMF); any other word so
+                // is typed without the Turkish keyboard.
+                p.not_tdk = p.secondary_pos != SecondaryPos::Abbreviation;
             }
             if lexical(&readings) {
                 return readings;
@@ -1331,6 +1349,7 @@ impl TurkishMorphology {
                 let mut parses = self.analyze_normalized(clean, &word, false);
                 if parses.is_empty() {
                     parses = self.analyze_name_without_apostrophe(clean, &word);
+                    parses.iter_mut().for_each(|p| p.not_tdk = true);
                 }
                 if parses.is_empty()
                     && word.ends_with('.')
@@ -1340,6 +1359,7 @@ impl TurkishMorphology {
                 }
                 if parses.is_empty() {
                     parses = self.analyze_joined_numeral(clean, &word);
+                    parses.iter_mut().for_each(|p| p.not_tdk = true);
                 }
                 if parses.is_empty() {
                     parses = self.analyze_old_orthography(clean, &word);
@@ -2610,6 +2630,7 @@ pub(super) fn render(
         yields: false,
         rank,
         homograph: item.homograph,
+        not_tdk: false,
         path: MorphPath {
             root: Some(stem.to),
             steps: steps
@@ -2724,6 +2745,29 @@ fn word_final(stem: &str) -> bool {
     let voiced_stop = matches!(last, 'b' | 'c' | 'd' | 'g' | 'ğ');
     !(stop(before) && !(before == 'k' && last == 's'))
         && !(voiced_stop && !matches!(before, 'n' | 'r'))
+}
+
+/// Whether a reading goes through a productive path that mostly reads misspellings of frequent
+/// words ([`TurkishMorphology::analyze_standard`]): a noun's -lAn with a bare imperative
+/// (kedilen, berilen beside edilen, verilen), -msI on a noun (maddemsi, davamsı beside maddesi,
+/// davası), a noun's genitive with a 2nd-person copula (tarafınsan, tarafındın; not benimsin), -AsI with a 2nd-person
+/// possessive (varasında). Review 3 MORPH3-10: of 469,979 one-edit variants of the 1,500 most
+/// frequent words, 2.1 % read as standard words, most through these.
+fn rare_path(p: &MorphParse) -> bool {
+    let tags = &p.morpheme_tags;
+    let has = |t: &str| tags.iter().any(|x| x == t);
+    let after = |a: &str, later: &dyn Fn(&str) -> bool| {
+        tags.iter()
+            .position(|x| x == a)
+            .is_some_and(|i| tags[i + 1..].iter().any(|x| later(x)))
+    };
+    let second_person = |t: &str| matches!(t, "A2sg" | "A2pl" | "CopPres2sg" | "CopPres2pl");
+    (has("Acquire") && has("Imp"))
+        || (p.primary_pos == PrimaryPos::Noun && has("JustLike"))
+        || (p.primary_pos == PrimaryPos::Noun
+            && after("Gen", &|t: &str| t.starts_with("Cop") || second_person(t))
+            && tags.iter().any(|t| second_person(t)))
+        || (has("FeelLike") && has("P2sg"))
 }
 
 /// The longest ending, in letters, [`TurkishMorphology::backoff_candidates`] tries to take off:

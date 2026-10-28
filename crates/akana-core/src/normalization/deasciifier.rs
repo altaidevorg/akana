@@ -96,8 +96,29 @@ impl TurkishDeasciifier {
             };
         }
 
-        // A candidate is judged as the word is written: lower-case bü is no spelling of the
-        // abbreviation BÜ, while Istanbul's İstanbul is a name.
+        // A word that already has Turkish letters and reads is as its writer meant it: olduğu
+        // is no öldüğü, and the output of this function stays as it is (review 3 NORM3-02).
+        let turkish_letter = |c: char| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı');
+        if lower.chars().any(turkish_letter) && !GLOBAL_MORPHOLOGY.analyze_standard(word).is_empty()
+        {
+            return word.to_string();
+        }
+        // So is a capitalised word that is a name as written (Ali, Michael, Chicago): its
+        // twins with Turkish letters are other names or words (Alı, Mıchael).
+        if is_upper
+            && !is_all_upper
+            && GLOBAL_MORPHOLOGY
+                .analyze_standard(word)
+                .iter()
+                .any(|p| p.secondary_pos == crate::morphology::pos::SecondaryPos::ProperNoun)
+        {
+            return word.to_string();
+        }
+
+        // Candidates are judged in lower case, as common words: a capital at the start of a
+        // sentence or in a heading says nothing, and Bu is no Bü (the abbreviation BÜ), Cocuk no
+        // Çoçuk. Only when no candidate reads so is one judged as the word is written, a name
+        // (Istanbul: İstanbul), but never as an abbreviation in title case (review 3 NORM3-02).
         let cased = |w: &str| {
             if is_all_upper {
                 to_turkish_upper(w)
@@ -108,13 +129,16 @@ impl TurkishDeasciifier {
             }
         };
 
-        // Check if the word as-is is already a valid Turkish word
-        let direct_parses = GLOBAL_MORPHOLOGY.analyze_standard(word);
-
         // Find candidate letter substitutions: c->ç, g->ğ, s->ş, o->ö, u->ü, i->ı
         let mut ambiguous_positions: Vec<(usize, Vec<char>)> = Vec::new();
+        // A capital I typed without the Turkish keyboard may be İ: its lower case ı may be i
+        // (KITAP, Istanbul; review 3 NORM3-02).
+        let typed_i: Vec<bool> = word.chars().map(|c| c == 'I').collect();
         for (idx, ch) in lower.chars().enumerate() {
             match ch {
+                'ı' if typed_i.get(idx) == Some(&true) => {
+                    ambiguous_positions.push((idx, vec!['ı', 'i']))
+                }
                 'c' => ambiguous_positions.push((idx, vec!['c', 'ç'])),
                 'g' => ambiguous_positions.push((idx, vec!['g', 'ğ'])),
                 's' => ambiguous_positions.push((idx, vec!['s', 'ş'])),
@@ -149,31 +173,49 @@ impl TurkishDeasciifier {
             candidates = new_candidates;
         }
 
-        // Score candidates with morphological validation
-        let mut best_word = lower.clone();
-        let mut best_score = if direct_parses.is_empty() { -1.0 } else { 0.5 };
-
-        for cand in candidates {
-            if cand == lower && !direct_parses.is_empty() {
-                continue;
-            }
-            let parses = GLOBAL_MORPHOLOGY.analyze_standard(&cased(&cand));
-            if !parses.is_empty() {
-                let diacritic_count = cand
-                    .chars()
-                    .filter(|&c| matches!(c, 'ç' | 'ğ' | 'ş' | 'ö' | 'ü' | 'ı'))
-                    .count();
-                // Higher score for candidate matching morphotactics with more proper Turkish characters.
-                // A word's parse scores sum to its expected spelling factor (how cleanly it is
-                // written), whatever the number of readings.
-                let well_formed: f32 = parses.iter().map(|p| p.score).sum();
-                let score = 1.0 + (diacritic_count as f32 * 0.2) + well_formed;
-                if score > best_score {
-                    best_score = score;
-                    best_word = cand;
+        // Score candidates with morphological validation: the input is one of them, and a
+        // tie keeps it.
+        let score_of = |cand: &str, parses: &[crate::morphology::MorphParse]| {
+            let diacritic_count = cand.chars().filter(|&c| turkish_letter(c)).count();
+            // Higher score for candidate matching morphotactics with more proper Turkish characters.
+            // A word's parse scores sum to its expected spelling factor (how cleanly it is
+            // written), whatever the number of readings.
+            let well_formed: f32 = parses.iter().map(|p| p.score).sum();
+            1.0 + (diacritic_count as f32 * 0.2) + well_formed
+        };
+        let best = |judge: &dyn Fn(&str) -> Vec<crate::morphology::MorphParse>| {
+            let mut best: Option<(f32, &String)> = None;
+            for cand in &candidates {
+                let parses = judge(cand);
+                if parses.is_empty() {
+                    continue;
+                }
+                let score = score_of(cand, &parses);
+                if best
+                    .is_none_or(|(b, w)| score > b || (score == b && *cand == lower && *w != lower))
+                {
+                    best = Some((score, cand));
                 }
             }
-        }
+            best.map(|(_, w)| w.clone())
+        };
+        let common = |w: &str| GLOBAL_MORPHOLOGY.analyze_standard(w);
+        let as_written = |w: &str| {
+            let mut parses = GLOBAL_MORPHOLOGY.analyze_standard(&cased(w));
+            if is_upper && !is_all_upper {
+                parses.retain(|p| {
+                    p.secondary_pos != crate::morphology::pos::SecondaryPos::Abbreviation
+                });
+            }
+            parses
+        };
+        let best_word = best(&common)
+            .or_else(|| {
+                (is_upper || is_all_upper)
+                    .then(|| best(&as_written))
+                    .flatten()
+            })
+            .unwrap_or_else(|| lower.clone());
 
         // Reapply casing
         if is_all_upper {
