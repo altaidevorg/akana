@@ -6716,7 +6716,7 @@ oyunları	oyun	Noun		Noun+A3pl+P3sg	Noun	[oyun:Noun] oyun:Noun+lar:A3pl+ı:P3sg
 petrol	petrol	Noun		Noun+A3sg+Nom	Noun	[petrol:Noun] petrol:Noun+A3sg
 pilotu	pilot	Noun		Noun+P3sg	Noun	[pilot:Noun] pilot:Noun+A3sg+u:P3sg
 proIAPP	-	-	-	-	-	-
-rapçi	rapçi	Noun	Prop	Noun+A3sg+Nom	Noun	[Rapçi:Noun,Prop] rapçi:Noun+A3sg
+rapçi	rapçi	Noun		Noun+A3sg+Nom	Noun	[rapçi:Noun] rapçi:Noun+A3sg
 sabah	sabah	Adv		Adv	Adv	[sabah:Adv] sabah:Adv
 sahada	saha	Noun		Noun+Loc	Noun	[saha:Noun] saha:Noun+A3sg+da:Loc
 sahneye	sahne	Noun		Noun+Dat	Noun	[sahne:Noun] sahne:Noun+A3sg+ye:Dat

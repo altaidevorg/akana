@@ -404,3 +404,6 @@ SHÇEK [P:Abbrv; Pr:seheçek; Index:1]
 AOÇ [P:Abbrv; Pr:aoç]
 AOÇ [P:Abbrv; Pr:çiftliği; Index:1]
 TİKA [P:Abbrv; Pr:tika]
+## Borsa İstanbul: its Latin-I spelling BIST, lower-cased with Turkish rules (bıst), is dropped
+## from the corpus names beside it (review 4 MORPH4-07).
+BİST [P:Abbrv; Pr:bist]

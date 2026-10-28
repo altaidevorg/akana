@@ -303,6 +303,17 @@ lazy_static! {
     };
 }
 
+/// The letters of a token of initials with their periods (A.Ş., A.B., H.M.K.): AŞ, AB, HMK.
+fn dotted_initials(text: &str) -> Option<String> {
+    let body = text.strip_suffix('.')?;
+    let letters: Vec<&str> = body.split('.').collect();
+    (letters.len() > 1
+        && letters
+            .iter()
+            .all(|l| l.chars().count() == 1 && l.chars().all(char::is_uppercase)))
+    .then(|| letters.concat())
+}
+
 /// Whether a word in capitals is shaped like a surname rather than an acronym: four letters
 /// or more and two vowels (TOPAL, AKINCI; not GGM, KYO, HAGB, UWW).
 fn word_shaped_caps(w: &Word<'_>) -> bool {
@@ -446,6 +457,11 @@ impl Scan<'_, '_> {
     /// period (the A of "A. Yılmaz"): `i` itself where the tokenizer keeps them together as an
     /// abbreviation ("A."), or the period's token after the letter.
     fn initial_end(&self, i: usize) -> Option<usize> {
+        // Initials in one token (A.B. Yılmaz), but not a company's or the state's (A.Ş., T.C.);
+        // the word after them must be a surname (`surname_like`): review 4 DOWN4-09.
+        if let Some(letters) = dotted_initials(self.tokens[i].text) {
+            return (!matches!(letters.as_str(), "AŞ" | "TC")).then_some(i);
+        }
         let w = self.word(i)?;
         if w.letters != 1 || !w.cap || w.has_apostrophe {
             return None;
@@ -1072,6 +1088,9 @@ impl Scan<'_, '_> {
     }
 
     fn company_word(&self, k: usize) -> bool {
+        if dotted_initials(self.tokens[k].text).is_some_and(|l| l == "AŞ") {
+            return true; // A.Ş. as one token
+        }
         self.word(k).is_some_and(|w| {
             (w.cap && COMPANY_WORDS.contains(&w.lower.as_str()))
                 || (w.letters == 1

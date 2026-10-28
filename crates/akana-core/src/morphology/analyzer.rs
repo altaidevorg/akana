@@ -1329,9 +1329,12 @@ impl TurkishMorphology {
             let quoted = format!("{abbreviation}'{ending}");
             let stem = super::super::phonology::to_turkish_lower(&abbreviation);
             let ending = super::super::phonology::to_turkish_lower(ending);
+            // Only as the abbreviation: initials are never the word their letters and suffix
+            // spell (K.A.nın is no kan+Gen, A.Y.nin no ayni; review 4 MORPH4-04).
             return self
                 .analyze_with_apostrophe(&quoted, &stem, &ending)
                 .into_iter()
+                .filter(|p| p.root == stem)
                 .map(|mut p| {
                     p.surface = clean.to_string();
                     p
@@ -1356,7 +1359,9 @@ impl TurkishMorphology {
                 }
                 if parses.is_empty()
                     && word.ends_with('.')
-                    && (self.analyze_roman(clean).is_none() || letter_before_numeral(clean))
+                    && (self.analyze_roman(clean).is_none()
+                        || letter_before_numeral(clean)
+                        || self.abbreviation_before_numeral(&word))
                 {
                     parses = self.analyze_dotted(clean, &word);
                 }
@@ -1400,10 +1405,10 @@ impl TurkishMorphology {
                 (word, parses)
             }
         };
-        if let Some(roman) = self
-            .analyze_roman(clean)
-            .filter(|_| !(letter_before_numeral(clean) && !parses.is_empty()))
-        {
+        if let Some(roman) = self.analyze_roman(clean).filter(|_| {
+            !((letter_before_numeral(clean) || self.abbreviation_before_numeral(&stem))
+                && !parses.is_empty())
+        }) {
             // A word the lexicon knows keeps its own readings first (MI, the question particle
             // in capitals; CD; XL, the size); otherwise the numeral replaces a guessed
             // abbreviation (II, XIX., IV'üncü), so II'nın is no word.
@@ -1416,6 +1421,18 @@ impl TurkishMorphology {
             }
         }
         parses
+    }
+
+    /// Whether `lower` (with or without its period) is an abbreviation of the lexicon of two
+    /// letters or more that is also shaped like a Roman numeral (CD. Ceza Dairesi, MD. madde,
+    /// CM., MM.): the abbreviation, not the number (review 4 MORPH4-01).
+    fn abbreviation_before_numeral(&self, lower: &str) -> bool {
+        let stem = lower.strip_suffix('.').unwrap_or(lower);
+        stem.chars().nth(1).is_some()
+            && self
+                .root_items(stem)
+                .iter()
+                .any(|i| i.secondary_pos == SecondaryPos::Abbreviation)
     }
 
     /// A Roman numeral in capitals (II, XIX., IV'üncü), read as its number; the numeral as

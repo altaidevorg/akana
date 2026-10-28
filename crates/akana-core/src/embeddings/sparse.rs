@@ -137,9 +137,10 @@ impl MorphologicalSparseEncoder {
         }
     }
 
-    /// The text's terms, one per word occurrence and compound part, in text order, each with
-    /// the POS weight of the reading it comes from. Stopwords, punctuation and one-character
-    /// terms are left out.
+    /// The text's terms, one per word occurrence and compound part (two for an unknown word
+    /// at a sentence's start: its letters and its backoff stem), in text order, each with the
+    /// POS weight of the reading it comes from. Stopwords, punctuation and one-character terms
+    /// are left out.
     pub fn term_occurrences(&self, text: &str) -> Vec<(String, f32)> {
         let mut out = Vec::new();
         // Compound splits of the roots seen so far: splitting may analyse the root again.
@@ -148,13 +149,13 @@ impl MorphologicalSparseEncoder {
         let mut backoff: HashMap<String, String> = HashMap::new();
         // The fixed terms of the adverbs and postpositions seen so far ([`frozen_form`]).
         let mut frozen: HashMap<String, Option<(String, f32)>> = HashMap::new();
-        // The last token of the sentence before, which a suffix written apart may follow.
-        let mut before: Option<&str> = None;
+        // The last two tokens of the sentence before, which a suffix written apart may follow.
+        let mut before: [Option<&str>; 2] = [None, None];
         for sentence in SentenceSegmenter::segment(text) {
             let tokens = TurkishTokenizer::tokenize_words(sentence.text);
             let parses = self.disambiguator.disambiguate(&tokens);
             for (i, (token, parse)) in tokens.iter().zip(&parses).enumerate() {
-                let surface = to_turkish_lower(token.trim());
+                let surface = nfc(&to_turkish_lower(token.trim()));
                 if !self.is_term(&surface) || suffix_fragment(&tokens, i, before) {
                     continue;
                 }
@@ -162,33 +163,62 @@ impl MorphologicalSparseEncoder {
                     // A word the analyzer does not know is its backoff stem (hiperbariğe and
                     // hiperbarik are one term), or else itself, without the period of an
                     // abbreviation the tokenizer keeps (krş. and krş are one term). A name
-                    // the lexicon lacks, written with its capital inside a sentence (Larnaca,
-                    // Zelenski), keeps every letter: a name's suffixes follow an apostrophe,
+                    // the lexicon lacks, written with its capital (Larnaca, Zelenski), keeps
+                    // every letter: a name's suffixes follow an apostrophe,
                     // and the backoff made junk of it (larnaç; review 3 MORPH3-02).
                     // A name's suffixes after its apostrophe are no part of its term
-                    // (Trump'ın, Trump'a: trump).
-                    let bare = surface.trim_end_matches('.');
-                    let bare = bare
+                    // (Trump'ın, Trump'a: trump), and initials are their letters (T.A.Ş.'ne,
+                    // M.E.N.: taş, men; review 4 MORPH4-04).
+                    let bare = surface
                         .split(['\'', '’', '‘', '`', '´', '′', '＇'])
                         .next()
-                        .unwrap_or(bare);
-                    let name = i > 0
-                        && token.starts_with(char::is_uppercase)
-                        && token.chars().any(char::is_lowercase);
-                    let term = if name {
-                        bare.to_string()
-                    } else {
-                        backoff
+                        .unwrap_or(&surface);
+                    let bare = bare.trim_end_matches('.');
+                    // (also with a suffix glued after their last period: K.A.nın, M.E.N.nin)
+                    let pieces: Vec<&str> = bare.split('.').collect();
+                    let letters = match pieces.as_slice() {
+                        [head @ .., last] if last.chars().count() > 1 => head,
+                        all => all,
+                    };
+                    let initials;
+                    let bare =
+                        if letters.len() > 1 && letters.iter().all(|l| l.chars().count() == 1) {
+                            initials = letters.concat();
+                            initials.as_str()
+                        } else {
+                            bare
+                        };
+                    // A capitalised word inside a sentence or in capitals is a name, which keeps
+                    // its letters. At a sentence's start a capital says nothing: the word gives
+                    // its letters and its backoff stem, and meets both the name inside a
+                    // sentence (Bozboğa: bozboğa, not bozbok alone) and the word in lower case
+                    // (Makrofajlar: makrofaj) (review 4 MORPH4-02).
+                    let capital = token.starts_with(char::is_uppercase);
+                    let start = !tokens[..i]
+                        .iter()
+                        .any(|t| t.chars().any(char::is_alphabetic));
+                    let mixed = token.chars().any(char::is_lowercase);
+                    let mut terms = Vec::with_capacity(2);
+                    if capital {
+                        terms.push(bare.to_string());
+                    }
+                    if !capital || (start && mixed) {
+                        let stem = backoff
                             .entry(bare.to_string())
                             .or_insert_with_key(|w| {
                                 self.morphology.backoff_stem(w).unwrap_or_else(|| w.clone())
                             })
-                            .clone()
-                    };
+                            .clone();
+                        if !terms.contains(&stem) {
+                            terms.push(stem);
+                        }
+                    }
                     // A stem that is a function word is no term (itibarende: itibaren; review 3
                     // MSTAB3-07).
-                    if self.is_lemma_term(&term) {
-                        out.push((term, pos_weight(parse)));
+                    for term in terms {
+                        if self.is_lemma_term(&term) {
+                            out.push((term, pos_weight(parse)));
+                        }
                     }
                     continue;
                 }
@@ -201,7 +231,12 @@ impl MorphologicalSparseEncoder {
                     }
                     continue;
                 }
-                let lemma = to_turkish_lower(&parse.lemma);
+                let mut lemma = to_turkish_lower(&parse.lemma);
+                // A numeral's term has no period: II. and II are one term, and a numeral of one
+                // letter (I., V., X.) is no term, as one character is none (review 4 MORPH4-01).
+                if parse.primary_pos == PrimaryPos::Num && lemma.ends_with('.') {
+                    lemma.pop();
+                }
                 if self.is_lemma_term(&lemma) {
                     let weight = lemma_weight(&lemma, parse);
                     out.push((lemma, weight));
@@ -218,7 +253,11 @@ impl MorphologicalSparseEncoder {
                     }
                 }
             }
-            before = tokens.last().copied().or(before);
+            match tokens.as_slice() {
+                [] => {}
+                [only] => before = [before[1], Some(*only)],
+                [.., a, b] => before = [Some(*a), Some(*b)],
+            }
         }
         out
     }
@@ -276,33 +315,51 @@ impl MorphologicalSparseEncoder {
     }
 }
 
-/// Suffixes that, written apart from their word, are no word of their own.
+/// Suffixes that, written apart from their word, are no word of their own; ordinal endings
+/// (65 inci, 15 nci) and the possessive and case endings of a name or number written apart
+/// (%20 si, "Oy"unda) among them (review 4 MORPH4-03).
 const SUFFIX_FRAGMENTS: &[&str] = &[
     "da", "de", "ta", "te", "dan", "den", "tan", "ten", "nda", "nde", "ndan", "nden", "ın", "in",
     "un", "ün", "nın", "nin", "nun", "nün", "ya", "ye", "na", "ne", "yı", "yi", "yu", "yü", "nı",
     "ni", "nu", "nü", "la", "le", "yla", "yle", "lı", "li", "lu", "lü", "lık", "lik", "luk", "lük",
     "lar", "ler", "dır", "dir", "dur", "dür", "tır", "tir", "tur", "tür", "ki", "daki", "deki",
-    "taki", "teki",
+    "taki", "teki", "inci", "ıncı", "uncu", "üncü", "nci", "ncı", "ncu", "ncü", "si", "sı", "su",
+    "sü", "sini", "sını", "sunu", "sünü", "sine", "sına", "suna", "süne", "sinde", "sında",
+    "sunda", "sünde", "ini", "ını", "unu", "ünü", "ine", "ına", "una", "üne", "inde", "ında",
+    "unda", "ünde", "inden", "ından", "undan", "ünden", "iyle", "ıyla", "uyla", "üyle",
 ];
 
 /// Whether the token at `i` is a suffix written apart, which is no term: after an apostrophe
 /// (X ' nin, ... 'nin), a closing quote right before it (Sözleşmesi"nin), the period of an
-/// abbreviation or initials in capitals (TCK. nun, A.Ş. nin), or an acronym in capitals
-/// (TTK nın). `before` is the last token of the sentence before, for a sentence that starts
-/// with the suffix (review 3 MSTAB3-05).
-fn suffix_fragment(tokens: &[&str], i: usize, before: Option<&str>) -> bool {
-    let previous = match i.checked_sub(1) {
-        Some(p) => tokens.get(p).copied(),
-        None => before,
+/// abbreviation or initials in capitals (TCK. nun, A.Ş. nin, TTK. nun), an acronym in capitals
+/// (TTK nın), a number (65 inci, %20 si, 760. ncı), an ellipsis (... ın) or a period it
+/// touches (Şti.nin). `before` is the last two tokens of the sentence before, for a sentence
+/// that starts with the suffix (review 3 MSTAB3-05, review 4 MORPH4-03).
+fn suffix_fragment(tokens: &[&str], i: usize, before: [Option<&str>; 2]) -> bool {
+    let back = |k: usize| -> Option<&str> {
+        match i.checked_sub(k) {
+            Some(p) => tokens.get(p).copied(),
+            None => before[2 + i - k],
+        }
     };
-    let Some(previous) = previous else {
+    let Some(previous) = back(1) else {
         return false;
     };
     if !SUFFIX_FRAGMENTS.contains(&to_turkish_lower(tokens[i]).as_str()) {
         return false;
     }
+    let after_number = previous.chars().any(|c| c.is_ascii_digit())
+        && previous
+            .chars()
+            .all(|c| c.is_ascii_digit() || matches!(c, '.' | ',' | '%'));
+    let after_ellipsis = previous == "…" || (previous == "." && back(2) == Some("."));
+    let after_acronym_period = previous == "."
+        && back(2).is_some_and(|a| {
+            a.chars().nth(1).is_some() && a.chars().all(|c| c.is_uppercase() || c == '.')
+        });
     // Both are slices of the same text: the quote touches the suffix.
     let adjacent = previous.as_ptr() as usize + previous.len() == tokens[i].as_ptr() as usize;
+    let after_glued_period = adjacent && previous.ends_with('.');
     let after_apostrophe = matches!(previous, "'" | "’" | "‘" | "`" | "´" | "′" | "＇");
     let after_quote = adjacent && matches!(previous, "\"" | "”" | "“" | "»");
     let after_abbreviation = previous.strip_suffix('.').is_some_and(|a| {
@@ -315,7 +372,24 @@ fn suffix_fragment(tokens: &[&str], i: usize, before: Option<&str>) -> bool {
     let after_acronym = previous.chars().nth(1).is_some()
         && previous.chars().all(char::is_uppercase)
         && !tokens[i].chars().any(char::is_uppercase);
-    after_apostrophe || after_quote || after_abbreviation || after_acronym
+    after_apostrophe
+        || after_quote
+        || after_abbreviation
+        || after_acronym
+        || after_number
+        || after_ellipsis
+        || after_acronym_period
+        || after_glued_period
+}
+
+/// A term in composed (NFC) form: decomposed text (s + U+0327) gives the terms of composed.
+fn nfc(term: &str) -> String {
+    use unicode_normalization::{is_nfc_quick, IsNormalized, UnicodeNormalization};
+    if term.is_ascii() || is_nfc_quick(term.chars()) == IsNormalized::Yes {
+        term.to_string()
+    } else {
+        term.nfc().collect()
+    }
 }
 
 /// How much a word's reading counts: names and numbers most, function words least.

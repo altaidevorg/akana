@@ -23,15 +23,19 @@ results change, and indexes built with 0.8.0 must be rebuilt: see *Migrating fro
   - `"rebuild"`, also for a record `encoder_info()` did not write. A dense index is identical
     or rebuilt.
 - An index without stored info should be treated as `"rebuild"`.
-- What the rebuild is worth, measured with `scripts/encoder_churn.py` and
-  `scripts/benchmark_rag_real_data.py` (0.8.0 against 0.9.0, the same texts): every sparse and
-  hybrid vector changes (court chunks, RagTurk and Turkuaz alike). A 0.8.0 hybrid index
-  queried with 0.9.0 loses MRR@10 (RagTurk 0.738 against 0.790 rebuilt, Turkuaz 0.372 against
-  0.439), and a 0.8.0 sparse index (its `sparse_embed` vectors, or a BM25 index of their terms)
-  finds nothing: MRR@10 0.000 on both, as every term id changed. Rebuilt, retrieval improves: MRR@10 per question, paired, with 95 % intervals, BM25
-  +0.031 [+0.014, +0.048] on RagTurk and +0.024 [+0.010, +0.039] on Turkuaz, the 128-byte
-  hybrid +0.031 [+0.010, +0.051] and +0.042 [+0.017, +0.066]; dense vectors are unchanged and
-  RRF moves within noise (0.8.0's RRF was not deterministic).
+- What the rebuild is worth, measured with `scripts/encoder_churn.py` (0.8.0 against 0.9.0,
+  the same texts; exact search unless HNSW is named): every sparse and hybrid vector changes
+  (court chunks, RagTurk and Turkuaz alike). A 0.8.0 hybrid index queried with 0.9.0 loses
+  MRR@10 (RagTurk 0.738 against 0.790 rebuilt, Turkuaz 0.372 against 0.439), and a 0.8.0
+  sparse index (its `sparse_embed` vectors, or a BM25 index of their terms) finds nothing:
+  MRR@10 0.000 on both, as every term id changed. Rebuilt, retrieval improves; MRR@10 per
+  question, paired, with 95 % intervals: BM25 +0.034 [+0.017, +0.052] on RagTurk and +0.024
+  [+0.009, +0.038] on Turkuaz; the 128-byte hybrid +0.035 [+0.015, +0.055] on RagTurk and
+  +0.008 [-0.007, +0.023] on Turkuaz, within noise. In the benchmark's HNSW index the hybrid
+  gains +0.031 [+0.010, +0.051] and +0.037 [+0.013, +0.060]: on Turkuaz the index finds the
+  new vectors' neighbours better than 0.8.0's (0.8.0 scores 0.431 by exact search and 0.407 in
+  HNSW). Dense vectors are unchanged and RRF moves within noise (0.8.0's RRF was not
+  deterministic).
 - Sparse spec 1.0 and analysis version 1.0 are frozen with this release: later releases
   report their vector changes against them under the bump policy.
 
@@ -247,8 +251,9 @@ fails on any further input change, so each change is recorded on purpose
     a converb (`gelmişken`).
   - Input as word processors leave it reads: soft hyphens and zero-width characters inside a
     word, ligatures and fullwidth letters (`tedbirine` with a soft hyphen, `ﬁkir` with the ﬁ ligature, `ＫＩＴＡＰ`). Initials read as
-    their abbreviation (`A.Ş.`, `T.C.`), and `C.`, `D.`, `L.`, `M.` as abbreviations rather
-    than Roman numerals when the lexicon has one. Readings that differ only in a silent
+    their abbreviation (`A.Ş.`, `T.C.`), and `C.`, `D.`, `L.`, `M.`, `CD.`, `MD.` as
+    abbreviations rather than Roman numerals when the lexicon has one; a dotted suffix keeps
+    the abbreviation's own reading (`Şti.nin`). Readings that differ only in a silent
     morpheme are one (`milletvekili`).
   - Lexicon: court and general words added (`kesinleşmek`, `gerçekleştirmek`,
     `kamulaştırmak`, `satın`, `giderim`, `uyarlık`, `ruhsal`, `evrensel`, `haksız`,
@@ -256,7 +261,9 @@ fails on any further input change, so each change is recorded on purpose
     readings of `OHAL'in`, `HUMK'nın`, `HGK'nun`, `HSK'nun`, `VUK'nun` and `YİDK'in`; `sakın`
     and `yaşasın` are interjections again; rare items no longer take a frequent word's forms
     (`ekleri` is `ek`, `eleme` is `elemek`). Homographs that shared a prior key have their own
-    (`dahil` and `dâhil`).
+    (`dahil` and `dâhil`). Words the lexicon had only as names read as words (`rücuan`,
+    `rızai`, `karz`, `meskeniyet`, `talasemi`, `rapçi`), and acronyms as abbreviations rather
+    than corpus names typed with ı (`IBAN`, `BİST`; the build drops such a name).
   - Ranking: the treebanks' tags choose between lemmas for `varsa`, `vardı`, `vardır`,
     `doğan`, `örneğin`, `altın`, `bilir` and `çıktı`; the time adverbs `önce`, `sonra`,
     `şimdi`, `bugün` and `daha` keep their time noun apart; an adjective's or a present
@@ -274,11 +281,18 @@ fails on any further input change, so each change is recorded on purpose
   Yılmaz`, `2019/12 E.`, `(d. 1950)`), except the pronoun `o`, and so are `md.`, `örn.`,
   `HD.`, `CD.`, `Bşk.` and `Müd.`. A byte order mark is no token. A dash right after a word
   or a number is no sign: `2005-2009` is `2005`, `-`, `2009` (it gave `-2009`), and
-  `COVID-19` has the number `19`.
+  `COVID-19` has the number `19`. Initials are one token, bare or with a suffix after their
+  last period (`H.M.K.`, `T.C.`, `K.A.nın`); a combining mark stays with its letter, so
+  decomposed text is not cut inside a word (`s` + U+0327, a decomposed `ş`); a date ends where
+  no digit follows (`15.30-17.00` is two times and a dash).
 - **Sentences.** An ellipsis inside a sentence no longer ends it (`davacı ...'nin vekili`,
   `davacı ... vekili`), nor does a court's or paragraph's number before a capital
   (`Ankara 3. Asliye Hukuk Mahkemesi`), a period right before a comma, or a period before an
-  apostrophe and its suffix (`2.'si`), which is no closing quote.
+  apostrophe and its suffix (`2.'si`), which is no closing quote. Nor does a redaction's
+  ellipsis before a capital (`Tire ... Asliye Ceza Mahkemesine`) or before a comma
+  (`E:..., K:...`), a period and a closing quote before a lower-case word (`belirler.''
+  şeklinde`), a Roman ordinal before a capital (`II. Dünya Savaşı`), an acronym's period
+  before a lower-case word (`TTK. nun`), or the dash after an amount (`12.500.-TL`).
 - **Sparse encoder.**
   - One disambiguated lemma per word occurrence, with 32-bit term ids.
   - The function-lemma weights come from a table frozen with the sparse spec.
@@ -287,11 +301,17 @@ fails on any further input change, so each change is recorded on purpose
   - A word the analyzer cannot read is indexed by its backoff stem (`hiperbariğe` and
     `hiperbarik` are one term; a vowel-final word and its forms are one, `zorbanta` and
     `zorbantanın`), an abbreviation has one term however it is written (`Av.`, `Av`), and a
-    suffix written apart (`1924 'te`, `TCK. nun`, `...'nin`, `Sözleşmesi"nin`, `TTK nın`) is no
-    term. A name the lexicon lacks, capitalised inside a sentence, keeps all its letters
-    (`Larnaca`), an unknown word's suffixes after its apostrophe are no part of its term
-    (`Trump'ın` is `trump`, where it was `trump'ın`), and a backoff stem that is a function
-    word is no term.
+    suffix written apart (`1924 'te`, `TCK. nun`, `...'nin`, `Sözleşmesi"nin`, `TTK nın`,
+    `65 inci`, `%20 si`, `... ın`, `Şti.nin`) is no term. A word the lexicon lacks, written
+    with a capital inside a sentence or in capitals, keeps all its letters (`Larnaca`,
+    `BOZBOĞA`); at a sentence's start, where a capital says nothing, it gives its letters and
+    its backoff stem (`Makrofajlar`: `makrofajlar` and `makrofaj`, which the word gives in
+    lower case). An unknown word's suffixes after its apostrophe are no part of its term
+    (`Trump'ın` is `trump`, where it was `trump'ın`), initials are their letters (`H.M.K.`
+    and `H.M.K.'nın`: `hmk`; `K.A.nın`: `ka`), and a backoff stem that is a function word is
+    no term. A numeral's term has no period (`XIX.` and `XIX` are one term), and a numeral of
+    one letter is none (`I.`, `V.`), as no one-character term is. Decomposed text gives the
+    terms of composed text.
   - A derived word the dictionary lists is its own lemma (`başvurucu`, `uyuşmazlık`,
     `yüklenici`, `gözlük`, `deyiş`), so that its lemma no longer turns with a re-estimated
     prior.

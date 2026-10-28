@@ -69,10 +69,10 @@
 	kalyoncu 121.30 Lisansüstü | 98.98 Lisansüstü | 100.35 Lisansüstü | 84.13 Lisans
 	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":90,"mean_sentence_length":18.0,"std_dev_sentence_length":6.7,"coefficient_of_variation":0.37,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":0,"mektedir_ratio":0.0},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > Davalı, davaya cevap vermemiş, son celsede şirket temsilcisi 300 kasa komple şiş
-	sentences 9 words 82 syllables 243 unfamiliar 25 fiilimsi 11 complex 6 polysyllabic 53
-	atesman 55.99 Orta Güçlükte (7 ve 8. Sınıf) | cetinkaya 32.97 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 24.27 Üniversite ve Akademik Düzey
-	kalyoncu 98.23 Lisansüstü | 94.33 Lisansüstü | 93.50 Lisansüstü | 79.79 Lisans
-	style 0.0 Doğal İnsan Metni [] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":9,"total_words":85,"mean_sentence_length":9.4,"std_dev_sentence_length":7.1,"coefficient_of_variation":0.75,"short_sentences_count":2,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":9,"mektedir_count":1,"mektedir_ratio":0.11},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+	sentences 5 words 82 syllables 243 unfamiliar 25 fiilimsi 11 complex 4 polysyllabic 53
+	atesman 36.97 Zor (9 ve 10. Sınıf) | cetinkaya 25.89 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 32.56 Üniversite ve Akademik Düzey
+	kalyoncu 103.19 Lisansüstü | 96.76 Lisansüstü | 95.71 Lisansüstü | 84.33 Lisans
+	style 10.0 Doğal İnsan Metni [RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":85,"mean_sentence_length":17.0,"std_dev_sentence_length":12.6,"coefficient_of_variation":0.74,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":1,"mektedir_ratio":0.2},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > Olay yerinde ölçümler yapılmış; olayın emniyet şeridinde meydana geldiği, kan bi
 	sentences 5 words 85 syllables 278 unfamiliar 13 fiilimsi 13 complex 4 polysyllabic 62
 	atesman 23.06 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 17.32 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 35.21 Üniversite ve Akademik Düzey
@@ -104,10 +104,10 @@
 	kalyoncu 110.54 Lisansüstü | 91.34 Lisansüstü | 95.23 Lisansüstü | 69.93 11 ve 12. Sınıf
 	style 34.0 Muhtemel İnsan / Hafif AI Düzenlemesi [BureaucraticConnector,PassiveInflation,PredicateRepetition] {"punctuation":{"em_dash_count":0,"semicolon_count":0,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":66,"mean_sentence_length":13.2,"std_dev_sentence_length":9.4,"coefficient_of_variation":0.71,"short_sentences_count":0,"long_sentences_count":1,"is_low_burstiness":false},"predicates":{"total_predicates":5,"mektedir_count":2,"mektedir_ratio":0.4},"bureaucratic_connectors_count":1,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > Uyuşmazlığın bu niteliği itibariyle hükmün temyiz incelenmesi görevi 7 .Hukuk Da
-	sentences 6 words 89 syllables 289 unfamiliar 26 fiilimsi 13 complex 5 polysyllabic 66
-	atesman 29.65 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 20.04 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 33.17 Üniversite ve Akademik Düzey
-	kalyoncu 101.88 Lisansüstü | 92.79 Lisansüstü | 92.18 Lisansüstü | 82.07 Lisans
-	style 12.0 Doğal İnsan Metni [PredicateRepetition] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":0},"rhythm":{"total_sentences":6,"total_words":92,"mean_sentence_length":15.3,"std_dev_sentence_length":6.9,"coefficient_of_variation":0.45,"short_sentences_count":1,"long_sentences_count":0,"is_low_burstiness":false},"predicates":{"total_predicates":6,"mektedir_count":2,"mektedir_ratio":0.33},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
+	sentences 5 words 89 syllables 289 unfamiliar 26 fiilimsi 13 complex 5 polysyllabic 66
+	atesman 21.91 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 17.15 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 36.33 Üniversite ve Akademik Düzey
+	kalyoncu 112.14 Lisansüstü | 93.78 Lisansüstü | 93.16 Lisansüstü | 83.92 Lisans
+	style 42.0 Muhtemel İnsan / Hafif AI Düzenlemesi [PredicateRepetition,RhythmMonotony,RhythmMonotony] {"punctuation":{"em_dash_count":0,"semicolon_count":1,"inline_colon_count":0},"rhythm":{"total_sentences":5,"total_words":92,"mean_sentence_length":18.4,"std_dev_sentence_length":4.0,"coefficient_of_variation":0.22,"short_sentences_count":0,"long_sentences_count":0,"is_low_burstiness":true},"predicates":{"total_predicates":5,"mektedir_count":2,"mektedir_ratio":0.4},"bureaucratic_connectors_count":0,"conclusion_cliches_count":0,"rhetorical_calques_count":0}
 > Genel arazi kadastro işlemi 1959 yılında yapılarak kesinleşmiştir. Anayasa Mahke
 	sentences 5 words 58 syllables 204 unfamiliar 11 fiilimsi 11 complex 3 polysyllabic 43
 	atesman 27.24 Çok Zor (Lisans ve Lisansüstü) | cetinkaya 16.16 Endişe / Zorluk Düzeyi (Lisans ve Üstü) | bezirci 29.33 Üniversite ve Akademik Düzey

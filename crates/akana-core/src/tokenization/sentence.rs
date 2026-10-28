@@ -108,7 +108,8 @@ impl<'a> Scan<'a> {
     }
 
     /// Whether the text goes on after an ellipsis ending at `end`, with token `next`: an
-    /// apostrophe joined to it and to the letters of a suffix, or a word in lower case.
+    /// apostrophe joined to it and to the letters of a suffix, a word in lower case, or a comma
+    /// or semicolon (E:..., K:...; review 4 MORPH4-06).
     fn continues_after(&mut self, next: usize, end: usize) -> bool {
         if !self.has(next) {
             return false;
@@ -118,7 +119,17 @@ impl<'a> Scan<'a> {
             t.token_type,
             TokenType::Word | TokenType::ProperNounWithApostrophe
         ) && t.text.starts_with(|c: char| c.is_lowercase());
-        lower_word || self.suffix_apostrophe(next, end)
+        lower_word || matches!(t.text, "," | ";") || self.suffix_apostrophe(next, end)
+    }
+
+    /// Whether token `i` is a word in lower case.
+    fn lower_word(&mut self, i: usize) -> bool {
+        self.has(i)
+            && matches!(
+                self.tokens[i].token_type,
+                TokenType::Word | TokenType::ProperNounWithApostrophe | TokenType::Abbreviation
+            )
+            && self.tokens[i].text.starts_with(|c: char| c.is_lowercase())
     }
 
     /// The next sentence, unless the scan first reaches a token starting at or after `stop`.
@@ -162,14 +173,35 @@ impl<'a> Scan<'a> {
                                 number.len() <= 2 && number.chars().all(|c| c.is_ascii_digit());
                             !next_first_char.is_lowercase() && !ordinal
                         } else {
-                            true
+                            // the dash of an amount right after its period (12.500.-TL)
+                            !(self.has(i + 1)
+                                && self.tokens[i + 1].start == token.end
+                                && self.tokens[i + 1].text == "-")
                         }
                     } else if self.has(i + 1)
                         && token.end == self.tokens[i + 1].start
-                        && matches!(self.tokens[i + 1].text, "," | ";" | ":")
+                        && matches!(self.tokens[i + 1].text, "," | ";" | ":" | "-")
                     {
                         // A comma or semicolon right after the period: no sentence starts with
-                        // one (an abbreviation the list lacks).
+                        // one (an abbreviation the list lacks); nor with the dash of an amount
+                        // (12.500.-TL).
+                        false
+                    } else if i > 0
+                        && self.tokens[i - 1].end == token.start
+                        && self.tokens[i - 1].text.chars().nth(1).is_some()
+                        && self.tokens[i - 1].text.chars().all(char::is_uppercase)
+                        && (self.lower_word(i + 1)
+                            || (self.has(i + 1)
+                                && self.tokens[i - 1]
+                                    .text
+                                    .chars()
+                                    .all(|c| matches!(c, 'I' | 'V' | 'X' | 'L' | 'C' | 'D' | 'M'))
+                                && self.tokens[i - 1].text.chars().count() <= 6
+                                && self.tokens[i + 1].text.starts_with(char::is_uppercase)))
+                    {
+                        // An acronym the abbreviation list lacks, its period and a word in
+                        // lower case (TTK. nun, İİK. m. 170), and a Roman ordinal before a
+                        // capital (II. Dünya Savaşı): no sentence end (review 4 MORPH4-06).
                         false
                     } else {
                         true
@@ -197,13 +229,25 @@ impl<'a> Scan<'a> {
                 // (davacı ... vekili). Ending the sentence there made the suffix open the
                 // next sentence and become a term (review 3 TOK3-01).
                 let ellipsis = dots >= 2 || token.text == "…";
-                if ellipsis && self.continues_after(next_i, end_idx) {
+                // An ellipsis that no word touches stands for words left out (Tire ... Asliye
+                // Ceza Mahkemesine ... Esas sayılı dosya; E:..., K:...): no sentence end. One
+                // that ends a word trails off (gelmedi... Sonra).
+                let redaction = ellipsis
+                    && !(i > 0
+                        && self.tokens[i - 1].end == token.start
+                        && self.tokens[i - 1]
+                            .text
+                            .chars()
+                            .last()
+                            .is_some_and(char::is_alphanumeric));
+                if ellipsis && (redaction || self.continues_after(next_i, end_idx)) {
                     self.i = next_i;
                     continue;
                 }
 
                 // Consume any trailing quotes / closing brackets, but not an apostrophe that
                 // joins a suffix (review 3 TOK3-01).
+                let before_quotes = next_i;
                 while self.has(next_i)
                     && matches!(
                         self.tokens[next_i].text,
@@ -213,6 +257,12 @@ impl<'a> Scan<'a> {
                 {
                     end_idx = self.tokens[next_i].end;
                     next_i += 1;
+                }
+                // A quotation that ends with its sentence's period and goes on in lower case
+                // (... belirler.'' şeklinde): one sentence (review 4 MORPH4-06).
+                if next_i > before_quotes && token.text == "." && self.lower_word(next_i) {
+                    self.i = next_i;
+                    continue;
                 }
 
                 let start = self.current_start;

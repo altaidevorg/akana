@@ -580,14 +580,16 @@ ASCII_NAMES = {
 FLATTEN = str.maketrans("çğıöşüâîû", "cgiosuaiu")
 
 
-def misspelt_name(entry, flattened, names):
+def misspelt_name(entry, flattened, names, abbreviations):
     """Whether a corpus-collected proper noun is a common word written without some of its
     Turkish letters (Egitim, Ayrica, Buyuk, Dogan: eğitim, ayrıca, büyük, doğan), or a name
     with the dotless ı an ASCII I gives in Turkish lower case beside its İ spelling (Istanbul,
     Ibrahim: ıstanbul beside istanbul). The spell checker took egitim for a word, and the
     analyzer read Istanbul as ıstanbul without trying İ (review 3 NORM3-01, MORPH3-06).
-    `flattened` maps a common root without Turkish letters to the roots; `names` holds every
-    name's root."""
+    An acronym typed with a Latin I and lower-cased with Turkish rules (IBAN: ıban) is dropped
+    beside the abbreviation the lexicon has (iban; review 4 MORPH4-07). `flattened` maps a
+    common root without Turkish letters to the roots; `names` holds every name's root and
+    `abbreviations` every abbreviation's."""
     w = entry.root
     same = flattened.get(w.translate(FLATTEN), ())
     if w in ASCII_NAMES or w in same:
@@ -597,6 +599,8 @@ def misspelt_name(entry, flattened, names):
     for c in same:
         if c != w and all(x == y or x == y.translate(FLATTEN) for x, y in zip(w, c)):
             return True
+    if "ı" in w and w.replace("ı", "i") in abbreviations:
+        return True
     if "ı" in w and "I" in entry.word:
         dotted = normalize_circumflex(turkish_lower(entry.word.replace("I", "İ").replace("'", "")))
         return dotted != w and (dotted in names or dotted in flattened.get(dotted.translate(FLATTEN), ()))
@@ -703,13 +707,21 @@ def main():
         if e.source in CURATED_NAMES or e.source in ("master-dictionary.dict", "non-tdk.dict")
         and e.secondary == "ProperNoun"
     }
-    flattened, names = {}, set()
+    flattened, names, abbreviations = {}, set(), set()
     for key in order:
         for e in items[key]:
             if e.secondary == "ProperNoun":
                 names.add(e.root)
+            elif e.secondary == "Abbrv":
+                abbreviations.add(e.root)
             elif e.source in ("master-dictionary.dict", "non-tdk.dict") and e.secondary != "Abbrv":
                 flattened.setdefault(e.root.translate(FLATTEN), set()).add(e.root)
+    for name in SUPPLEMENTS:
+        abbreviations.update(
+            e.root
+            for e in read_entries(os.path.join(LEXICON_DIR, name), "akana:" + name)
+            if e.secondary == "Abbrv"
+        )
     for key in order:
         kept = []
         for e in items[key]:
@@ -717,7 +729,7 @@ def main():
                 if junk_proper(e, common):
                     report.append(f"junk proper noun: dropped {e.word}")
                     continue
-                if misspelt_name(e, flattened, names):
+                if misspelt_name(e, flattened, names, abbreviations):
                     report.append(f"misspelt proper noun: dropped {e.word}")
                     continue
             kept.append(e)

@@ -8203,6 +8203,7 @@ bismillahirrahmanirrahim bismillahirrahmanirrahim Noun ProperNoun ProperNoun
 bison bison Noun ProperNoun ProperNoun
 biss biss Noun ProperNoun NoVoicing ProperNoun
 bissau bissau Noun ProperNoun ProperNoun
+bist bist Noun Abbrv NoVoicing pr=bist
 bist bist Noun ProperNoun NoVoicing ProperNoun
 bistami bistami Noun ProperNoun ProperNoun
 bistem bistem Noun ProperNoun ProperNoun
@@ -9936,7 +9937,6 @@ bırakım bırakım Noun None
 bırakınızcılık bırakınızcılık Noun None Voicing
 bırakıt bırakıt Noun None Voicing
 bırakışmak bırakış Verb None AoristI
-bıst bıst Noun ProperNoun NoVoicing ProperNoun
 bıyık bıyık Noun None Voicing
 bıyıklanmak bıyıklan Verb None AoristI
 bıyıklıoğlu bıyıklıoğlu Noun ProperNoun ProperNoun
@@ -29370,6 +29370,7 @@ karyoka karyoka Noun None
 karyokinez karyokinez Noun None
 karyola karyola Noun None
 karyotip karyotip Noun None Voicing
+karz karz Noun None NoVoicing
 karz karz Noun ProperNoun NoVoicing ProperNoun
 karzai karzai Noun ProperNoun ProperNoun
 karçiçeği karçiçeği Noun ProperNoun ProperNoun
@@ -37349,6 +37350,7 @@ mesih mesih Noun ProperNoun ProperNoun
 mesire mesire Noun None
 mesken mesken Noun None
 meskenet meskenet Noun None NoVoicing
+meskeniyet meskeniyet Noun None Voicing
 meskeniyet meskeniyet Noun ProperNoun ProperNoun
 meski meski Noun ProperNoun ProperNoun
 meskukat meskukat Noun None NoVoicing display=meskûkât
@@ -46053,6 +46055,7 @@ raptiyelemek raptiyele Verb None AoristI CausativeT PassiveIn ProgressiveVowelDr
 raptor raptor Noun ProperNoun ProperNoun
 raptors raptors Noun ProperNoun ProperNoun
 rapunzel rapunzel Noun ProperNoun ProperNoun
+rapçi rapçi Noun None
 rapçi rapçi Noun ProperNoun ProperNoun
 raquel raquel Noun ProperNoun ProperNoun
 ras ras Noun Abbrv NoVoicing pr=ras
@@ -47361,6 +47364,7 @@ röveşata röveşata Noun None
 röyalti röyalti Noun None
 rübap rübap Noun None Voicing
 rücu rücu Noun None
+rücuan rücuan Adv None
 rücuan rücuan Noun ProperNoun ProperNoun
 rücuen rücuen Adv None
 rücum rücum Noun ProperNoun ProperNoun
@@ -47421,6 +47425,7 @@ rıhtım rıhtım Noun None
 rıza rıza Noun None
 rıza rıza Noun ProperNoun ProperNoun
 rızaen rızaen Adv None
+rızai rızai Adj None
 rızai rızai Noun ProperNoun ProperNoun
 rızanur rızanur Noun ProperNoun ProperNoun
 rızkullah rızkullah Noun ProperNoun ProperNoun
@@ -53152,6 +53157,7 @@ talal talal Noun ProperNoun ProperNoun
 talan talan Noun None
 talanlamak talanla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 talas talas Noun ProperNoun ProperNoun
+talasemi talasemi Noun None
 talasemi talasemi Noun ProperNoun ProperNoun
 talat talat Noun ProperNoun ProperNoun
 talatpaşa talatpaşa Noun ProperNoun ProperNoun
@@ -64792,7 +64798,6 @@ zıypak zıypak Adj None Voicing
 ıarc ıarc Noun ProperNoun ProperNoun
 ıata ıata Noun ProperNoun ProperNoun
 ıbaka ıbaka Noun ProperNoun ProperNoun
-ıban ıban Noun ProperNoun ProperNoun
 ıbanez ıbanez Noun ProperNoun ProperNoun
 ıbex ıbex Noun ProperNoun ProperNoun
 ıcann ıcann Noun ProperNoun ProperNoun

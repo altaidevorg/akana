@@ -110,6 +110,16 @@ lazy_static! {
     /// STYLE3-02).
     static ref DOTTED_SUFFIX_REGEX: Regex =
         Regex::new(r"^(?:\p{Lu}{2,12}|(?:\p{Lu}\.){1,12}\p{Lu})\.['’‘`´′＇]?(\p{Ll}{1,6})").unwrap();
+    /// Initials with their periods (A.Ş., T.C., H.M.K.): one token, as the same initials with a
+    /// suffix are (H.M.K.'nın), so that a statute or a person reads alike with and without it
+    /// (review 4 MORPH4-04). Bounded like DOTTED_SUFFIX_REGEX.
+    static ref DOTTED_INITIALS_REGEX: Regex = Regex::new(r"^(?:\p{Lu}\.){2,12}").unwrap();
+}
+
+/// Whether a character continues a word: a letter, or a combining mark of decomposed (NFD) text
+/// (s + U+0327 for ş), which the analyzer composes (review 4 MORPH4-05).
+fn in_word(c: char) -> bool {
+    c.is_alphabetic() || unicode_normalization::char::is_combining_mark(c)
 }
 
 /// The end of a number, date or time token whose digits end at `end`: after its suffixes, if
@@ -213,7 +223,14 @@ impl<'a> Iterator for Tokens<'a> {
                     .next_back()
                     .is_some_and(char::is_alphanumeric);
             if (first_char.is_ascii_digit() || first_char == '+' || first_char == '-') && !dash {
-                if let Some(mat) = DATE_REGEX.find(remaining) {
+                // A date ends where its digits end: 15.30-17.00 is two times, not the date
+                // 15.30-17 and 00 (review 4 MORPH4-06).
+                if let Some(mat) = DATE_REGEX.find(remaining).filter(|m| {
+                    let rest = &remaining[m.end()..];
+                    !rest.starts_with(|c: char| c.is_ascii_digit())
+                        && !(rest.starts_with(['.', ','])
+                            && rest[1..].starts_with(|c: char| c.is_ascii_digit()))
+                }) {
                     self.idx = with_number_suffix(text, start_idx + mat.end());
                     let token_text = &text[start_idx..self.idx];
                     return Some(Token::new(token_text, TokenType::Date, start_idx, self.idx));
@@ -283,6 +300,18 @@ impl<'a> Iterator for Tokens<'a> {
                             ));
                         }
                     }
+                    if let Some(mat) = DOTTED_INITIALS_REGEX
+                        .find(remaining)
+                        .filter(|m| !remaining[m.end()..].starts_with(|c: char| c.is_alphabetic()))
+                    {
+                        self.idx = start_idx + mat.end();
+                        return Some(Token::new(
+                            mat.as_str(),
+                            TokenType::Abbreviation,
+                            start_idx,
+                            self.idx,
+                        ));
+                    }
                 }
 
                 // Zero-allocation zero-copy Word Scanner
@@ -292,7 +321,7 @@ impl<'a> Iterator for Tokens<'a> {
 
                 let mut chars_iter = remaining.char_indices().peekable();
                 while let Some((offset, c)) = chars_iter.next() {
-                    if c.is_alphabetic() {
+                    if in_word(c) {
                         word_end = idx + offset + c.len_utf8();
                     } else if APOSTROPHES.contains(&c) {
                         // Turkish proper noun apostrophe (e.g. İstanbul'da)

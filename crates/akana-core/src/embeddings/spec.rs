@@ -33,7 +33,10 @@
 //! (lower-case, no circumflex), plus the parts of a compound (the lexicon's, and those listed
 //! in `morphology::compound`, but not a compound that is a word of its own: anayasa), but for
 //! a word the dictionary lists as a postposition or an adverb, whose term is fixed (that word,
-//! or the verb an adverb is a form of: `sparse::frozen_form`); stopwords and function lemmas
+//! or the verb an adverb is a form of: `sparse::frozen_form`); a word the analyzer does not
+//! know is its backoff stem, or, written with a capital, its letters (initials without their
+//! periods, a name without the suffixes after its apostrophe), and both at a sentence's start;
+//! a numeral's term has no period; stopwords and function lemmas
 //! (`sparse::STOP_LEMMAS`: a lemma whose items are all pronouns, conjunctions, postpositions,
 //! determiners or question particles, and a listed few) are dropped; a term's id is the 32-bit
 //! FNV-1a of its string ([`super::hash_term_32bit`]); its value is BM25-saturated term

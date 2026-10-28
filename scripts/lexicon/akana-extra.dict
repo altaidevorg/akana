@@ -268,3 +268,12 @@ glukoz [Ref:glikoz]
 psikomotor [P:Adj]
 ayrıksı [P:Adj]
 acenta [Ref:acente]
+
+## Words the lexicon had only as corpus names, so that in lower case the spell checker rejected
+## them (review 4 DOWN4-10).
+rücuan [P:Adv]
+rızai [P:Adj]
+karz
+meskeniyet
+talasemi
+rapçi
