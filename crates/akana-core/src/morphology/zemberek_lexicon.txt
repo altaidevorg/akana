@@ -416,6 +416,7 @@ acemi acemi Noun None
 acemkürdi acemkürdi Noun None display=acemkürdî
 acemlale acemlale Noun None
 acemoğlu acemoğlu Noun ProperNoun ProperNoun
+acente acenta Noun None
 acente acente Noun None
 acep acep Adv None
 acer acer Noun ProperNoun ProperNoun
@@ -3157,6 +3158,7 @@ aobp aobp Noun Abbrv pr=aobepe
 aort aort Noun None NoVoicing
 aosb aosb Noun Abbrv pr=aosebe
 aoç aoç Noun Abbrv pr=aoç
+aoç aoç Noun Abbrv pr=çiftliği idx=1
 ap ap Noun Abbrv pr=ape
 apache apache Noun ProperNoun ProperNoun
 apacı apacı Adj None
@@ -4237,6 +4239,7 @@ atina atina Noun ProperNoun ProperNoun
 atipik atipik Noun None Voicing
 atiye atiye Noun ProperNoun ProperNoun
 atk atk Noun Abbrv pr=ateka
+atk atk Noun Abbrv pr=kurumu idx=1
 atkaracalar atkaracalar Noun ProperNoun ProperNoun
 atkaya atkaya Noun ProperNoun ProperNoun
 atkestanesi atkestanesi Noun None CompoundP3sg roots=at-kestane
@@ -4755,6 +4758,7 @@ ayrıcalık ayrıcalık Noun None Voicing
 ayrık ayrık Adj None Voicing
 ayrık ayrık Noun None Voicing
 ayrıkotu ayrıkotu Noun None CompoundP3sg roots=ayrık-ot
+ayrıksı ayrıksı Adj None
 ayrıkvadi ayrıkvadi Noun ProperNoun ProperNoun
 ayrılmak ayrıl Verb None AoristI CausativeT PassiveIn
 ayrılık ayrılık Noun None Voicing
@@ -6716,6 +6720,7 @@ bbsk bbsk Noun Abbrv pr=bebeseka
 bbva bbva Noun Abbrv pr=bebevea
 bd bd Noun Abbrv pr=bede
 bddk bddk Noun Abbrv pr=bededeka
+bddk bddk Noun Abbrv pr=kurumu idx=1
 bde bde Noun Abbrv pr=bedee
 bdortmund bdortmund Noun ProperNoun ProperNoun
 bdp bdp Noun Abbrv pr=bedepe
@@ -10532,6 +10537,7 @@ cb cb Noun Abbrv pr=cebe
 cbk cbk Noun Abbrv pr=cebeka
 cbk cbk Noun Abbrv pr=kanunu idx=1
 cbs cbs Noun Abbrv pr=cebese
+cbs cbs Noun Abbrv pr=başsavcılığı idx=1
 cbü cbü Noun Abbrv pr=cebeü
 cc cc Noun None pr=cece
 ccleaner ccleaner Noun ProperNoun ProperNoun
@@ -11396,6 +11402,7 @@ cm cm Noun Abbrv pr=ceme display=cm
 cmas cmas Noun ProperNoun NoVoicing ProperNoun
 cmk cmk Noun Abbrv pr=cemeka
 cmk cmk Noun Abbrv pr=kanunu idx=1
+cmk cmk Noun Abbrv pr=kanun idx=2
 cmos cmos Noun ProperNoun NoVoicing ProperNoun
 cmr cmr Noun Abbrv pr=cemere
 cmuk cmuk Noun Abbrv pr=cemeuka
@@ -11976,6 +11983,7 @@ cyril cyril Noun ProperNoun NoVoicing ProperNoun
 cyrus cyrus Noun ProperNoun NoVoicing ProperNoun
 cyuy cyuy Noun ProperNoun NoVoicing ProperNoun
 cyy cyy Noun Abbrv pr=ceyeye
+cyy cyy Noun Abbrv pr=yasa idx=1
 czanne czanne Noun ProperNoun ProperNoun
 cömert cömert Adj None Voicing
 cömert cömert Noun ProperNoun ProperNoun
@@ -16671,6 +16679,7 @@ enöz enöz Noun ProperNoun ProperNoun
 eoka eoka Noun Abbrv pr=eoka
 eosen eosen Noun None
 epdk epdk Noun Abbrv pr=epedeka
+epdk epdk Noun Abbrv pr=kurumu idx=1
 epe epe Noun None
 eper eper Noun None
 epey epey Adv None
@@ -19606,6 +19615,7 @@ fryer fryer Noun ProperNoun NoVoicing ProperNoun
 früktoz früktoz Noun None
 fsb fsb Noun Abbrv pr=fesebe
 fsek fsek Noun Abbrv pr=fısek
+fsek fsek Noun Abbrv pr=kanunu idx=1
 fsek fsek Noun ProperNoun NoVoicing ProperNoun
 fsm fsm Noun Abbrv pr=feseme
 ftse ftse Noun Abbrv pr=fetesee
@@ -21457,6 +21467,7 @@ gsyiad gsyiad Noun Abbrv pr=geseyeiade
 gsyih gsyih Noun Abbrv pr=geseyeihe
 gt gt Noun Abbrv pr=gete
 gtip gtip Noun Abbrv pr=geteipe
+gtip gtip Noun Abbrv pr=getip idx=1
 gto gto Noun Abbrv pr=geteo
 gu gu Noun Abbrv pr=geu
 guadalajara guadalajara Noun ProperNoun ProperNoun
@@ -24676,6 +24687,7 @@ hleb hleb Noun ProperNoun NoVoicing ProperNoun
 hm hm Interj ProperNoun ProperNoun pr=heme
 hmk hmk Noun Abbrv pr=hemeka
 hmk hmk Noun Abbrv pr=kanunu idx=1
+hmk hmk Noun Abbrv pr=kanun idx=2
 hmm hmm Interj ProperNoun ProperNoun pr=hememe
 hms hms Noun Abbrv pr=hemese
 hmuk hmuk Noun ProperNoun NoVoicing ProperNoun
@@ -25747,6 +25759,7 @@ ihzari ihzari Noun None display=ihzarî
 iibf iibf Noun Abbrv pr=iibefe
 iik iik Noun Abbrv pr=iika
 iik iik Noun Abbrv pr=kanunu idx=1
+iik iik Noun Abbrv pr=kanun idx=2
 iit iit Noun Abbrv pr=iit
 ik ik Noun Abbrv pr=ika
 ika ika Noun None
@@ -30638,6 +30651,7 @@ keşşaf keşşaf Noun None
 kfar kfar Noun ProperNoun NoVoicing ProperNoun
 kfor kfor Noun ProperNoun NoVoicing ProperNoun
 kg kg Noun Abbrv pr=kege display=kg
+kg kg Noun Abbrv pr=kilogram idx=1 display=kg
 kg kg Noun None pr=kege
 kgaö kgaö Noun ProperNoun ProperNoun
 kgb kgb Noun Abbrv pr=kegebe
@@ -38289,6 +38303,7 @@ miğfer miğfer Noun None
 mişa mişa Noun ProperNoun ProperNoun
 mişel mişel Noun ProperNoun ProperNoun
 mk mk Noun Abbrv pr=meka
+mk mk Noun Abbrv pr=kanunu idx=1
 mke mke Noun Abbrv pr=mekee
 mkek mkek Noun ProperNoun NoVoicing ProperNoun
 mkhitaryan mkhitaryan Noun ProperNoun ProperNoun
@@ -38739,6 +38754,7 @@ mp3 mp3 Noun Abbrv pr=mepeüç
 mpeg mpeg Noun Abbrv pr=mepeege
 mpenza mpenza Noun ProperNoun ProperNoun
 mr mr Noun Abbrv pr=mere
+mr mr Noun Abbrv pr=emar idx=1
 mri mri Noun Abbrv pr=mereı display=MRI
 mrquez mrquez Noun ProperNoun ProperNoun
 mrs mrs Noun Abbrv pr=merese
@@ -39413,6 +39429,7 @@ muştulamak muştula Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 mv mv Noun Abbrv pr=meve
 mvp mvp Noun Abbrv pr=mevepe
 mw mw Noun Abbrv pr=medabılyu
+mw mw Noun Abbrv pr=megavat idx=1
 mwai mwai Noun ProperNoun ProperNoun
 my my Noun Abbrv pr=meye
 myanmar myanmar Noun ProperNoun ProperNoun
@@ -45355,6 +45372,7 @@ psikolojikman psikolojikman Adv None
 psikolojikman psikolojikman Noun None
 psikolojizm psikolojizm Noun None
 psikometri psikometri Noun None
+psikomotor psikomotor Adj None
 psikopat psikopat Noun None NoVoicing
 psikopati psikopati Noun None
 psikopatik psikopatik Noun None Voicing
@@ -49937,6 +49955,7 @@ sg220 sg220 Noun Abbrv pr=segeikiyüzyirmi
 sgaraj sgaraj Noun ProperNoun ProperNoun
 sgdp sgdp Noun Abbrv pr=segedepe
 sgk sgk Noun Abbrv pr=segeka
+sgk sgk Noun Abbrv pr=kurumu idx=1
 sh sh Noun Abbrv pr=sehe
 shabab shabab Noun ProperNoun ProperNoun
 shabani shabani Noun ProperNoun ProperNoun
@@ -50096,6 +50115,7 @@ shuttle shuttle Noun ProperNoun ProperNoun
 shvedova shvedova Noun ProperNoun ProperNoun
 shyamalan shyamalan Noun ProperNoun ProperNoun
 shçek shçek Noun Abbrv pr=seheçeeka
+shçek shçek Noun Abbrv pr=seheçek idx=1
 shıeld shıeld Noun ProperNoun ProperNoun
 si si Noun Abbrv pr=sei
 si si Noun None NoVoicing
@@ -50716,6 +50736,7 @@ smoking smoking Noun ProperNoun ProperNoun
 smolensk smolensk Noun ProperNoun ProperNoun
 smooth smooth Noun ProperNoun ProperNoun
 sms sms Noun Abbrv pr=semese
+sms sms Noun Abbrv pr=esemes idx=1
 smyrna smyrna Noun ProperNoun NoVoicing ProperNoun
 sn sn Noun Abbrv pr=sene display=sn
 snackbar snackbar Noun None display=snack-bar
@@ -51257,6 +51278,7 @@ spirou spirou Noun ProperNoun ProperNoun
 spitz spitz Noun ProperNoun NoVoicing ProperNoun
 spitzer spitzer Noun ProperNoun ProperNoun
 spk spk Noun Abbrv pr=sepeka
+spk spk Noun Abbrv pr=kurulu idx=1
 splash splash Noun ProperNoun NoVoicing ProperNoun
 splinter splinter Noun ProperNoun ProperNoun
 split split Noun ProperNoun NoVoicing ProperNoun
@@ -53940,6 +53962,7 @@ tbbl tbbl Noun Abbrv pr=tebebele
 tbf tbf Noun Abbrv pr=tebefe
 tbk tbk Noun Abbrv pr=tebeka
 tbk tbk Noun Abbrv pr=kanunu idx=1
+tbk tbk Noun Abbrv pr=kanun idx=2
 tbkp tbkp Noun Abbrv pr=tebekepe
 tbmm tbmm Noun Abbrv pr=tebememe
 tbwa tbwa Noun Abbrv pr=tebedabılyua
@@ -53950,10 +53973,13 @@ tchaikovsky tchaikovsky Noun ProperNoun ProperNoun
 tchibo tchibo Noun ProperNoun ProperNoun
 tck tck Noun Abbrv pr=teceka
 tck tck Noun Abbrv pr=kanunu idx=1
+tck tck Noun Abbrv pr=kanun idx=2
 tckn tckn Noun Abbrv pr=tecekene
 tcmb tcmb Noun Abbrv pr=tecemebe
+tcmb tcmb Noun Abbrv pr=banka idx=1
 tcsg tcsg Noun Abbrv pr=tecesege
 tcy tcy Noun Abbrv pr=teceye
+tcy tcy Noun Abbrv pr=yasa idx=1
 td td Noun Abbrv pr=tede
 tdci tdci Noun Abbrv pr=tedecei
 tdh tdh Noun Abbrv pr=tedehe
@@ -55120,6 +55146,7 @@ teşvikkar teşvikkar Noun None display=teşvikkâr
 teşviş teşviş Noun None
 teşyi teşyi Noun None
 tff tff Noun Abbrv pr=tefefe
+tff tff Noun Abbrv pr=federasyonu idx=1
 tffhgd tffhgd Noun Abbrv pr=tefefehegede
 tfmd tfmd Noun Abbrv pr=tefemede
 tfsi tfsi Noun Abbrv pr=tefeseı display=TFSI
@@ -55272,6 +55299,7 @@ tihv tihv Noun ProperNoun NoVoicing ProperNoun
 tijen tijen Noun ProperNoun ProperNoun
 tijuana tijuana Noun ProperNoun ProperNoun
 tik tik Noun None NoVoicing
+tika tika Noun Abbrv pr=tika
 tikad tikad Noun ProperNoun ProperNoun
 tikağacı tikağacı Noun None CompoundP3sg roots=tik-ağaç
 tike tike Noun None
@@ -55447,11 +55475,13 @@ tizen tizen Noun ProperNoun ProperNoun
 tişört tişört Noun None NoVoicing
 tjikuzu tjikuzu Noun ProperNoun ProperNoun
 tk tk Noun Abbrv pr=teka
+tk tk Noun Abbrv pr=kanunu idx=1
 tkbb tkbb Noun Abbrv pr=tekebebe
 tkbl tkbl Noun Abbrv pr=tekebele
 tkdk tkdk Noun Abbrv pr=tekedeka
 tkfe tkfe Noun Abbrv pr=tekefee
 tkhk tkhk Noun Abbrv pr=tekeheka
+tkhk tkhk Noun Abbrv pr=kanunu idx=1
 tki tki Noun Abbrv pr=tekei
 tkp tkp Noun Abbrv pr=tekepe
 tkyd tkyd Noun Abbrv pr=tekeyede
@@ -57548,6 +57578,7 @@ usbay usbay Noun ProperNoun ProperNoun
 usberk usberk Noun ProperNoun ProperNoun
 usbey usbey Noun ProperNoun ProperNoun
 usd usd Noun Abbrv pr=usede
+usd usd Noun Abbrv pr=dolar idx=1
 usdtry usdtry Noun ProperNoun NoVoicing ProperNoun
 usdışı usdışı Noun None CompoundP3sg roots=us-dış
 user user Noun ProperNoun ProperNoun
@@ -60260,6 +60291,7 @@ ycgk ycgk Noun Abbrv pr=yecegeka
 yd yd Noun Abbrv pr=yede
 ydg ydg Noun Abbrv pr=yedege
 ydk ydk Noun Abbrv pr=yedeka
+ydk ydk Noun Abbrv pr=kurulu idx=1
 ydp ydp Noun Abbrv pr=yedepe
 yds yds Noun Abbrv pr=yedese
 yeah yeah Noun ProperNoun ProperNoun
@@ -60672,6 +60704,7 @@ yibo yibo Noun ProperNoun ProperNoun
 yid yid Noun Abbrv NoVoicing pr=yid
 yidk yidk Noun Abbrv pr=yeideka
 yidk yidk Noun Abbrv NoVoicing pr=yidk idx=1
+yidk yidk Noun Abbrv pr=kurulu idx=2
 yigal yigal Noun ProperNoun ProperNoun
 yik yik Noun Abbrv NoVoicing pr=yik
 yilbik yilbik Noun None Voicing
@@ -60887,6 +60920,7 @@ yrd yrd Noun Abbrv pr=yerede
 ysk ysk Noun Abbrv pr=yeseka
 yt yt Noun Abbrv pr=yete
 ytl ytl Noun Abbrv pr=yetele
+ytl ytl Noun Abbrv pr=lira idx=1
 ytl ytl Noun None pr=yetele
 ytong ytong Noun ProperNoun NoVoicing ProperNoun
 ytp ytp Noun Abbrv pr=yetepe
@@ -63652,6 +63686,7 @@ zıypak zıypak Adj None Voicing
 öho öho Noun Abbrv pr=öho
 öhö öhö Interj None
 öib öib Noun Abbrv pr=öibe
+öib öib Noun Abbrv pr=başkanlığı idx=1
 öiv öiv Noun Abbrv pr=öive
 ök ök Noun Abbrv pr=öka
 öke öke Noun None

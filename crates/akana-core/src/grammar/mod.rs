@@ -1,6 +1,6 @@
 //! Turkish Grammatical Error Correction (GEC) and Detection (GED) Module.
 //!
-//! A rule-and-morphology-driven grammar checker: 32 rules ([`GrammarRule`]) in 17 error
+//! A rule-and-morphology-driven grammar checker: 33 rules ([`GrammarRule`]) in 17 error
 //! categories. A check runs a [`RuleSet`]; the default one holds only the rules that measured
 //! precise enough on correct text, and the rest are experimental (see [`rules`]).
 

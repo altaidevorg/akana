@@ -191,6 +191,7 @@ cm [P:Abbrv; Pr:ceme]
 mm [P:Abbrv; Pr:meme]
 km [P:Abbrv; Pr:keme]
 kg [P:Abbrv; Pr:kege]
+kg [P:Abbrv; Pr:kilogram; Index:1]
 mg [P:Abbrv; Pr:mege]
 ml [P:Abbrv; Pr:mele]
 lt [P:Abbrv; Pr:lete]
@@ -261,3 +262,9 @@ dioksan
 fotometrik [P:Adj]
 mukarnas
 glukoz [Ref:glikoz]
+
+## Words of court decisions that only the approved Google and TRmorph lexicons have (review 3
+## LEX3-08): psikomotor, ayrıksı, and acenta, which TDK refers to acente.
+psikomotor [P:Adj]
+ayrıksı [P:Adj]
+acenta [Ref:acente]

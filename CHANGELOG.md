@@ -85,6 +85,12 @@ lemmas against stems should match `root`.
 - Corpus "names" that were common words without their Turkish letters (`egitim`, `ayrica`,
   `Dogan`) or ASCII-I twins of a name (`ıstanbul`) are gone: `Istanbul` reads `istanbul`, and
   the spell checker no longer accepts `egitim`.
+- Abbreviations read as the court inflects them, by the last word of what they stand for as
+  well as letter by letter: `SGK'nun`, `ATK'nun` (Kurumu), `SPK'nun` (Kurulu), `TFF'nun`,
+  `TK'nun`, `İİK'un`, `TCMB'nın`, `YTL'nın`, `TCY'nın`, `CBS'nca`, `MR'da`, `SMS'te`; `TİKA`,
+  `psikomotor`, `ayrıksı` and `acenta` (lemma `acente`) are new. Of the apostrophe forms of
+  lexicon abbreviations in the court samples, the analyzer rejects 128 tokens, mostly typos,
+  where it rejected 306 (`scripts/audit_abbreviations.py`).
 
 **User dictionaries.** `Morphology.load_dictionary_str` and `load_dictionary_file` (Rust:
 `TurkishMorphology::load_dictionary_str`/`_file`, `RootLexicon::load_from_str`/`_file`) return
