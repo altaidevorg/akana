@@ -9,6 +9,7 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DictionaryItem {
@@ -183,7 +184,7 @@ pub fn infer_attributes(item: &mut DictionaryItem) {
 
 /// Lower-case without circumflexes, apostrophes or dashes, as Zemberek normalises dictionary
 /// words (Nikâh -> nikah, Kur'an -> kuran).
-fn normalize_word(word: &str) -> String {
+pub(crate) fn normalize_word(word: &str) -> String {
     // The built-in lexicon is already normal; checking is cheaper than rebuilding the string.
     if !word
         .chars()
@@ -201,6 +202,40 @@ fn normalize_word(word: &str) -> String {
             c => c,
         })
         .collect()
+}
+
+/// Zemberek root attributes akana has no use for, which its dictionaries name (Ext, NoQuote
+/// ...): a line may carry them. `None` is the secondary-POS column of a line without one.
+fn ignored_name(name: &str) -> bool {
+    let mut buf = [0u8; NAME_BUF];
+    matches!(
+        ascii_lower(name, &mut buf),
+        Some(
+            "none"
+                | "ext"
+                | "runtime"
+                | "dummy"
+                | "informal"
+                | "localeen"
+                | "pronunciationguessed"
+                | "noquote"
+                | "nounconsinsert_n"
+                | "compoundp3sgroot"
+                | "special"
+        )
+    )
+}
+
+/// The letters a root may have, as the lexicon build allows them (Turkish letters, q, w, x and
+/// digits, superscript ones too: m², km²): anything else, such as a ligature, a combining mark
+/// or a format character, would store a root no word reaches.
+fn root_letters(root: &str) -> bool {
+    !root.is_empty()
+        && root.chars().all(|c| {
+            c.is_ascii_digit()
+                || matches!(c, 'a'..='z' | 'ç' | 'ğ' | 'ı' | 'ö' | 'ş' | 'ü')
+                || matches!(c, '¹' | '²' | '³' | '⁰'..='⁹' | '₀'..='₉')
+        })
 }
 
 /// A root attribute by its akana or Zemberek name (case-insensitive).
@@ -345,35 +380,57 @@ impl RootLexicon {
     /// The secondary POS uses the names of [`SecondaryPos::from_name`] (`Prop`/`ProperNoun`,
     /// `Abbrv`, `Time`, `Pers`, ...); a secondary alone stands for a noun (`P:Abbrv`).
     /// Attributes take akana's or Zemberek's names (`VowelDrop` or `LastVowelDrop`, `AoristA`
-    /// or `Aorist_A`, `NoVoicing`, ...); unknown attributes are ignored. Lemma and root are
-    /// lower-cased and lose circumflexes, apostrophes and dashes, as `analyze` normalises
-    /// words; the attributes Zemberek infers (aorist class, voicing) are added when missing,
-    /// and an abbreviation without a pronunciation gets a guessed one (TBK -> tebeka).
+    /// or `Aorist_A`, `NoVoicing`, ...), and Zemberek's that akana does not use (`Ext`,
+    /// `NoQuote`) are allowed. Lemma and root are lower-cased and lose circumflexes,
+    /// apostrophes and dashes, as `analyze` normalises words; the attributes Zemberek infers
+    /// (aorist class, voicing) are added when missing, and an abbreviation without a
+    /// pronunciation gets a guessed one (TBK -> tebeka).
     ///
-    /// Returns the lines read neither way (an unknown POS, a missing column, an unclosed
-    /// `[`), which add no item (review 2 MORPH2-12).
+    /// A line in Zemberek's syntax is read as the lexicon build reads it
+    /// (`scripts/build_full_lexicon.py`): a word with a capital is a proper noun unless `P:`
+    /// says otherwise, and never a verb; a word alone is a verb when it is written in lower
+    /// case, ends in -mAk, has more than three letters and is no `CompoundP3sg`; the first
+    /// secondary POS counts; `PCDat` and the like give a postposition's case; an abbreviation
+    /// written with a Latin I has i in its lemma (`IBAN`: `iban`); a `# comment` may follow
+    /// the `]`. A line is read as Unicode NFC, and a leading byte-order mark is skipped.
+    ///
+    /// Returns the lines it could not read in full, which add no item: an unknown POS, a
+    /// missing column, an unclosed `[`, an unknown attribute, secondary POS or field (a
+    /// misspelt `Voicng`), a voice attribute on a word that is neither a verb nor a pronoun,
+    /// and a root with characters no Turkish word has (review 2 MORPH2-12, review 3 LEX3-05,
+    /// BIND3-05).
     pub fn load_from_str(&mut self, text: &str) -> Vec<String> {
         // About one item per 40 bytes of the built-in lexicon.
         self.index.reserve(text.len() / 40);
         self.buckets.reserve(text.len() / 40);
         let mut rejected = Vec::new();
-        for line in text.lines() {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
+        for written in text.lines() {
+            let written = written.trim_start_matches('\u{feff}').trim();
+            if written.is_empty() || written.starts_with('#') {
                 continue;
             }
+            let nfc: String;
+            let line = if written.is_ascii()
+                || unicode_normalization::is_nfc_quick(written.chars())
+                    == unicode_normalization::IsNormalized::Yes
+            {
+                written
+            } else {
+                nfc = written.nfc().collect();
+                &nfc
+            };
             let zemberek = line.contains('[') || line.split_whitespace().nth(1).is_none();
             let parsed = if zemberek {
                 parse_zemberek_line(line)
             } else {
-                parse_akana_line(line)
+                parse_akana_line(line).map(|(lemma, item)| (Cow::Borrowed(lemma), item))
             };
             match parsed {
-                Some((written, mut item)) => {
-                    finish_item(&mut item, written);
+                Some((spelled, mut item)) => {
+                    finish_item(&mut item, &spelled);
                     self.add_item(item);
                 }
-                None => rejected.push(line.to_string()),
+                None => rejected.push(written.to_string()),
             }
         }
         rejected
@@ -419,22 +476,33 @@ fn parse_akana_line(line: &str) -> Option<(&str, DictionaryItem)> {
                     });
                 }
                 "pc" => item.governed_case = Some(value.to_string()),
-                "idx" => item.homograph = value.parse().unwrap_or(0),
+                "idx" => item.homograph = value.parse().ok()?,
                 "display" => item.display = Some(value.to_string()),
-                _ => {}
+                _ => return None,
             }
             continue;
         }
-        add_name(&mut item, p);
+        if !add_name(&mut item, p) {
+            return None;
+        }
     }
-    Some((lemma, item))
+    root_letters(&item.root).then_some((lemma, item))
 }
 
-/// A line in Zemberek's syntax (`word [P:..; A:..; Pr:..; Roots:..; Index:..]`): the word as
-/// written and the item, or `None` for an unknown POS or a malformed bracket.
-fn parse_zemberek_line(line: &str) -> Option<(&str, DictionaryItem)> {
+/// A line in Zemberek's syntax (`word [P:..; A:..; Pr:..; Roots:..; Index:..]`), read as
+/// `pos_info` and `make_entry` of `scripts/build_full_lexicon.py` read it: the word as written
+/// (as the item displays it) and the item, or `None` for a line it cannot read in full.
+fn parse_zemberek_line(line: &str) -> Option<(Cow<'_, str>, DictionaryItem)> {
     let (word, meta) = match line.split_once('[') {
-        Some((word, rest)) => (word.trim(), Some(rest.trim_end().strip_suffix(']')?)),
+        Some((word, rest)) => {
+            // Text after the `]` may only be a comment.
+            let (meta, after) = rest.split_once(']')?;
+            let after = after.trim();
+            if !after.is_empty() && !after.starts_with('#') {
+                return None;
+            }
+            (word.trim(), Some(meta))
+        }
         None => (line, None),
     };
     if word.is_empty() || word.contains(char::is_whitespace) {
@@ -442,6 +510,7 @@ fn parse_zemberek_line(line: &str) -> Option<(&str, DictionaryItem)> {
     }
     let mut primary = None;
     let mut secondary = SecondaryPos::None;
+    let mut governed_case = None;
     let mut names: Vec<&str> = Vec::new();
     let mut pronunciation = None;
     let mut roots = None;
@@ -457,10 +526,18 @@ fn parse_zemberek_line(line: &str) -> Option<(&str, DictionaryItem)> {
         match key.trim() {
             "P" => {
                 for v in values {
+                    // The first primary POS, then the first secondary, count (Ques is both).
                     if let (None, Some(pos)) = (primary, PrimaryPos::from_name(v)) {
                         primary = Some(pos);
+                    } else if let Some(case) = v.strip_prefix("PC").filter(|c| {
+                        matches!(*c, "Dat" | "Abl" | "Nom" | "Gen" | "Ins" | "Acc" | "Loc")
+                    }) {
+                        governed_case = Some(case.to_string());
                     } else {
-                        secondary = SecondaryPos::from_name(v)?;
+                        let sec = SecondaryPos::from_name(v)?;
+                        if secondary == SecondaryPos::None {
+                            secondary = sec;
+                        }
                     }
                 }
             }
@@ -474,43 +551,102 @@ fn parse_zemberek_line(line: &str) -> Option<(&str, DictionaryItem)> {
             }
             "Index" => homograph = value.trim().parse().ok()?,
             // Ref (a spelling of another item's lemma) adds nothing here.
-            _ => {}
+            "Ref" => {}
+            _ => return None,
         }
     }
+    // TurkishDictionaryLoader.isVerb: written in lower case, more than three letters, -mAk; a
+    // CompoundP3sg -mAk word is a noun (ortaparmak).
+    let verb_ending = ["mak", "mek"].into_iter().find(|e| {
+        word.starts_with(char::is_lowercase) && word.chars().count() > 3 && word.ends_with(e)
+    });
+    let compound = names
+        .iter()
+        .any(|n| attribute_by_name(n) == Some(RootAttr::COMPOUND_P3SG));
+    let primary = match primary {
+        Some(p) => p,
+        None if verb_ending.is_some() && !compound => PrimaryPos::Verb,
+        None => PrimaryPos::Noun,
+    };
+    if secondary == SecondaryPos::None && word.starts_with(char::is_uppercase) {
+        secondary = SecondaryPos::ProperNoun;
+    }
+    // An acronym written with a Latin I has i in its lemma (IBAN, COVID; Fbı is FBI), and its
+    // guessed pronunciation reads the I as the letter ı (FBI "febeı") unless it reads as a
+    // word (IBAN "iban").
     let lemma = normalize_word(word);
-    let verb_ending = ["mak", "mek"].into_iter().find(|e| lemma.ends_with(e));
-    let primary = match (primary, secondary, verb_ending) {
-        (Some(p), _, _) => p,
-        (None, SecondaryPos::None, Some(_)) => PrimaryPos::Verb,
-        (None, _, _) => PrimaryPos::Noun,
+    let latin_i = secondary == SecondaryPos::Abbreviation
+        && word.chars().count() > 1
+        && (word.contains('I')
+            || (word.starts_with(char::is_uppercase) && word.chars().skip(1).any(|c| c == 'ı')));
+    let letter_reading = lemma.clone();
+    let lemma = if latin_i {
+        normalize_word(&word.replace('I', "İ")).replace('ı', "i")
+    } else {
+        lemma
     };
     let root = match verb_ending {
         Some(e) if primary == PrimaryPos::Verb => lemma[..lemma.len() - e.len()].to_string(),
         _ => lemma.clone(),
     };
+    if !root_letters(&root) {
+        return None;
+    }
     let mut item = DictionaryItem::new(lemma, root, primary, SecondaryPos::None, RootAttr::NONE);
-    if secondary != SecondaryPos::None {
-        add_name(&mut item, secondary.as_str());
+    if secondary != SecondaryPos::None && !add_name(&mut item, secondary.as_str()) {
+        return None;
     }
     for name in names {
-        add_name(&mut item, name);
+        if !add_name(&mut item, name) {
+            return None;
+        }
+    }
+    if pronunciation.is_none() && latin_i {
+        let guessed = guess_abbreviation(&letter_reading);
+        pronunciation = Some(if guessed == letter_reading {
+            guess_abbreviation(&item.root)
+        } else {
+            guessed
+        });
     }
     item.pronunciation = pronunciation;
     item.compound_roots = roots;
     item.homograph = homograph;
-    Some((word, item))
+    item.governed_case = governed_case;
+    let written = if latin_i {
+        Cow::Owned(
+            word.chars()
+                .map(|c| {
+                    if c == 'I' {
+                        c
+                    } else {
+                        to_turkish_upper_char(c)
+                    }
+                })
+                .collect(),
+        )
+    } else {
+        Cow::Borrowed(word)
+    };
+    Some((written, item))
 }
 
-/// Applies a secondary POS or an attribute named in a dictionary line; an unknown name is
-/// ignored.
-fn add_name(item: &mut DictionaryItem, name: &str) {
+/// Applies a secondary POS or an attribute named in a dictionary line. Returns false for a
+/// name that is neither (nor one of Zemberek's that akana ignores), and for a voice name on a
+/// word that is neither a verb nor a pronoun.
+fn add_name(item: &mut DictionaryItem, name: &str) -> bool {
     // Reflexive and Reciprocal name a pronoun's secondary POS (kendi, birbiri) but a verb's
     // root attribute: the verb carries the voice implicitly (yıkan-mak, atış-mak), which its
     // own root state gives every reading. Read as a secondary POS, 52 lexicon verbs lost it.
-    let voice = item.primary_pos == PrimaryPos::Verb
-        && attribute_by_name(name)
-            .is_some_and(|a| a.intersects(RootAttr::REFLEXIVE | RootAttr::RECIPROCAL));
-    match SecondaryPos::from_name(name).filter(|_| !voice) {
+    let attr = attribute_by_name(name);
+    let voice_name = attr.is_some_and(|a| {
+        a.intersects(RootAttr::REFLEXIVE | RootAttr::RECIPROCAL | RootAttr::NON_RECIPROCAL)
+    });
+    let verb = item.primary_pos == PrimaryPos::Verb;
+    if voice_name && !verb && item.primary_pos != PrimaryPos::Pron {
+        return false;
+    }
+    match SecondaryPos::from_name(name).filter(|_| !(verb && voice_name)) {
         Some(sec) => {
             if item.secondary_pos == SecondaryPos::None {
                 item.secondary_pos = sec;
@@ -518,12 +654,15 @@ fn add_name(item: &mut DictionaryItem, name: &str) {
             if sec == SecondaryPos::ProperNoun {
                 item.attributes |= RootAttr::PROPER_NOUN;
             }
+            true
         }
-        None => {
-            if let Some(attr) = attribute_by_name(name) {
+        None => match attr {
+            Some(attr) => {
                 item.attributes |= attr;
+                true
             }
-        }
+            None => ignored_name(name),
+        },
     }
 }
 

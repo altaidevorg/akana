@@ -212,3 +212,73 @@ def test_module_functions_reuse_engines():
         for _ in range(5):
             call()
         assert (time.perf_counter() - t0) / 5 < 0.05
+
+
+def test_configuration_calls_wait_for_calls_in_progress():
+    # Review 3 BIND3-04: a configuration call while other threads use the object waited for
+    # nothing and failed with "Already borrowed".
+    morphology = akana.Morphology()
+    speller = akana.SpellChecker()
+    checker = akana.GrammarChecker()
+    engine = akana.TurkishPiiEngine()
+    vault = akana.PiiVault()
+    text = "Ahmet Yılmaz dün İstanbul'a gitti, ve kitabıda aldı."
+    stop = threading.Event()
+    errors = []
+
+    def use():
+        try:
+            while not stop.is_set():
+                morphology.analyze("kitaplarımızdan")
+                speller.is_correct("kitapda")
+                json.loads(checker.check_json(text))
+                engine.mask(text, vault=vault)
+                vault.to_dict()
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    def configure():
+        try:
+            for i in range(40):
+                morphology.load_dictionary_str(f"zxq{i} [P:Noun]")
+                speller.add_word(f"zxq{i}")
+                if i % 2:
+                    checker.disable_rule("de-da-merged-fixed")
+                    engine.disable_type("PHONE")
+                else:
+                    checker.enable_rule("de-da-merged-fixed")
+                    engine.enable_type("PHONE")
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    users = [threading.Thread(target=use) for _ in range(4)]
+    for t in users:
+        t.start()
+    configure()
+    stop.set()
+    for t in users:
+        t.join()
+    assert errors == []
+    assert any(p["root"] == "zxq39" for p in morphology.analyze("zxq39lar"))
+    assert speller.is_correct("zxq39")
+
+
+def test_user_dictionary_returns_what_it_cannot_read():
+    # Review 3 BIND3-05: a byte-order mark is skipped; a misspelt attribute rejects its line.
+    m = akana.Morphology()
+    assert m.load_dictionary_str("﻿bomkelime [P:Noun]") == []
+    assert any(p["root"] == "bomkelime" for p in m.analyze("bomkelimeler"))
+    bad = "kitapçığımsı [P:Noun; A:Voicng]"
+    assert m.load_dictionary_str(bad) == [bad]
+
+
+def test_generate_takes_the_spellings_analyze_reports():
+    # Review 3 BIND3-06 / MORPH3-07: display_lemma spellings, de/ye with -Iyor, -mAktAdIr.
+    m = akana.Morphology()
+    assert m.generate("kâğıt", ["Noun", "Loc"]) == "kağıtta"
+    assert m.generate("kağıt", ["Noun", "Loc"]) == "kağıtta"
+    assert m.generate("e-posta", ["Noun", "Dat"]) == "epostaya"
+    assert m.generate("demek", ["Verb", "Prog"]) == "diyor"
+    assert m.generate("yemek", ["Verb", "Prog"]) == "yiyor"
+    assert m.generate("gelmek", ["Verb", "Prog", "CopPres3sg"]) == "gelmektedir"
+    assert m.generate("gelmek", ["Verb", "Prog", "CopPast"]) == "geliyordu"

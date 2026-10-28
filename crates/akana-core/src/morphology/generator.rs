@@ -9,7 +9,7 @@ use super::analyzer::{
     render, suffixes_without_apostrophe, tag_of, Step, TurkishMorphology, ENGINE, MAX_STATE_REPEAT,
     PRIOR,
 };
-use super::dictionary::DictionaryItem;
+use super::dictionary::{normalize_word, DictionaryItem};
 use super::morphotactics::{Context, Morpheme as M, PathView};
 use super::phonetics::{attributes_of, PhoneticAttrs as P};
 use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
@@ -79,10 +79,15 @@ impl TurkishGenerator {
 impl TurkishMorphology {
     /// Generates the word with akana's tags (`["Noun", "P1sg", "Dat"]`, in any case; the first
     /// tag is the POS, and the defaults A3sg, Pnon and Nom may be spelled out) from a root or a
-    /// lemma (kitap; gel or gelmek).
+    /// lemma (kitap; gel or gelmek), spelt as `analyze` reports it or folded as it folds words
+    /// (kâğıt or kağıt, e-posta or eposta, Fin-Ugor). The word comes back in the folded
+    /// spelling (kağıtta), a name's root as the dictionary spells it (Hakkâri'de).
     ///
-    /// - Prog is the -Iyor progressive (gidiyorum); Prog2 asks for the -mAktA one
-    ///   (bulunmaktadır), and Prog1 for -Iyor only.
+    /// - Prog is the -Iyor progressive (gidiyorum, diyor), except before the copula -DIr
+    ///   (CopPres3sg), where written Turkish has -mAktA (gelmektedir, not geliyordur); Prog2
+    ///   asks for the -mAktA one (bulunmaktadır), and Prog1 for -Iyor only.
+    /// - The copula after a verb is shown as CopPres3sg (gelmektedir), CopPast (geliyordu),
+    ///   CopEvid and CopCond, and after a nominal as Cop or CopPres3sg, as `analyze` shows it.
     /// - A name or an abbreviation is written as the lexicon spells it, with an apostrophe
     ///   before its case, possessive and copula (Türkiye'de, Ali'nin, ABD'nin, TBMM'de), and
     ///   its suffixes follow its pronunciation.
@@ -96,8 +101,8 @@ impl TurkishMorphology {
     /// or when no path of the graph renders the tags.
     pub fn generate(&self, word: &str, tags: &[&str]) -> Option<String> {
         let written = word.trim();
-        let lower = crate::phonology::to_turkish_lower(written);
-        let capitalised = written != lower;
+        let lower = normalize_word(written);
+        let capitalised = crate::phonology::to_turkish_lower(written) != written;
         let (first, rest) = tags.split_first()?;
         let pos = PrimaryPos::from_name(first)?;
         let mut wanted: Vec<&str> = vec![pos.as_str()];
@@ -195,17 +200,23 @@ impl TurkishMorphology {
             let ctx = Context::at_root(stem.to, root_morpheme);
             search.walk(&owner, &stem, ctx, stem.attrs, 1);
         }
-        // The analyzer must read the word back with the same item and tags. Of several
-        // spellings of the reading, one on the root as spelt comes before one on a special
-        // stem (yukarıda, not yukarda), -Iyor before -mAktA (gidiyorum, not gitmekteyim), then
-        // the shortest is the unmarked one (gidin, not gitsenize).
+        // The analyzer must read the word back with the same item, secondary POS (Hak the
+        // name is no hak) and tags. Of several spellings of the reading, -Iyor comes before
+        // -mAktA (gidiyorum, not gitmekteyim; diyor, not demekte), but -mAktA first before the
+        // copula -DIr (gelmektedir: 14,384 times in the court and RagTurk samples, geliyordur
+        // once; geliyordu 337 times, gelmekteydi 72); then one on the root as spelt before one
+        // on a special stem (yukarıda, not yukarda); then the shortest is the unmarked one
+        // (gidin, not gitsenize).
         let mut candidates = search.candidates;
-        candidates.sort_by_key(|c| (c.special, c.prog2, c.text.chars().count()));
+        let prefer_prog2 =
+            progressive.is_none() && wanted.windows(2).any(|w| w == ["Prog", "CopPres3sg"]);
+        candidates.sort_by_key(|c| (c.prog2 != prefer_prog2, c.special, c.text.chars().count()));
         candidates.into_iter().map(|c| c.text).find(|text| {
             self.analyze_unranked(text).iter().any(|p| {
                 p.lemma == item.lemma
                     && p.root == item.root
                     && p.primary_pos == item.primary_pos
+                    && p.secondary_pos == item.secondary_pos
                     && p.morpheme_tags
                         .iter()
                         .map(String::as_str)

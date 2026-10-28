@@ -270,12 +270,18 @@ fn generation_writes_names_progressives_and_compounds() {
         // The abbreviation when it is asked for in capitals, the common noun otherwise.
         ("ABD", "Noun+Gen", Some("ABD'nin")),
         ("abd", "Noun+Gen", Some("abdın")),
-        // Prog is -Iyor, also on a stem that changes; Prog2 is -mAktA.
+        // Prog is -Iyor, also on a stem that changes and on de-/ye- (review 3 MORPH3-07),
+        // but -mAktA before the copula -DIr, as written Turkish has it; Prog1 and Prog2 ask for
+        // one of the two.
         ("git", "Verb+Prog+A1sg", Some("gidiyorum")),
         ("et", "Verb+Prog", Some("ediyor")),
         ("tat", "Verb+Prog", Some("tadıyor")),
+        ("demek", "Verb+Prog", Some("diyor")),
+        ("yemek", "Verb+Prog+A3pl", Some("yiyorlar")),
         ("git", "Verb+Prog2+A1sg", Some("gitmekteyim")),
-        ("bulunmak", "Verb+Prog+CopPres3sg", Some("bulunuyordur")),
+        ("bulunmak", "Verb+Prog+CopPres3sg", Some("bulunmaktadır")),
+        ("bulunmak", "Verb+Prog1+CopPres3sg", Some("bulunuyordur")),
+        ("gelmek", "Verb+Prog+CopPast", Some("geliyordu")),
         ("bulunmak", "Verb+Prog2+CopPres3sg", Some("bulunmaktadır")),
         ("gerekmek", "Verb+Prog2+CopPres3sg", Some("gerekmektedir")),
         ("gel", "Verb+Prog1+A1sg", Some("geliyorum")),
@@ -294,6 +300,12 @@ fn generation_writes_names_progressives_and_compounds() {
         ("kitap", "noun+a3sg+p1sg+dat", Some("kitabıma")),
         ("kitap", "NOUN+P1SG+DAT", Some("kitabıma")),
         ("kitap", "Noun+Foo", None),
+        // The spellings analyze reports (display_lemma) are folded as analyze folds words
+        // (review 3 MORPH3-07, BIND3-06).
+        ("kâğıt", "Noun+Loc", Some("kağıtta")),
+        ("hâkim", "Noun+Acc", Some("hakimi")),
+        ("e-posta", "Noun+Dat", Some("epostaya")),
+        ("Hakkâri", "Noun+Loc", Some("Hakkâri'de")),
     ] {
         assert_eq!(generate(word, tags).as_deref(), expected, "{word} {tags}");
     }

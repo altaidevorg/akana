@@ -585,6 +585,7 @@ print(engine.mask("Nazım Hikmet'i en çok Ahmet Yılmaz okurdu.")["masked_text"
 
 - **Offsets are character offsets.** `text[start:end]` is the span for named entities (`start`/`end`), grammar findings (`start_offset`/`end_offset`), style findings (`start`/`end`), PII entities and chunks (`start_index`/`end_index`).
 - **Calls release the GIL**, so a thread pool (a FastAPI server, a `ThreadPoolExecutor` ingestion job) runs them in parallel. `embed_batch`, `embed_batch_hybrid` and the packed batch functions also split a batch of 512 or more texts across the CPU cores themselves.
+- **Objects can be configured while threads use them.** `Morphology.load_dictionary_*`, `SpellChecker.add_word`, `GrammarChecker.enable_rule`/`disable_rule` and `TurkishPiiEngine.enable_type`/`disable_type` wait for the calls in progress on that object, and the calls after them see the change. A `PiiVault` that threads share serves one `mask` at a time.
 - **Engines are built once per process.** The lexicon and the embedding weights are loaded on first use and shared by every object, so the module-level functions (`analyze`, `stem`, `audit_ai_style`, `chunk_*`, `pii_mask`, ...) and constructors are cheap to call repeatedly.
 - **An internal error raises `RuntimeError`** (not PyO3's `PanicException`, which `except Exception` does not catch).
 

@@ -48,11 +48,6 @@ lemmas against stems should match `root`.
 - Tags follow the morphotactics: `burnum` also reads as `CopPres1sg`, and `çalışkan` lost its
   `Verb+DevGen` readings.
 
-**User dictionaries.** `Morphology.load_dictionary_str` and `load_dictionary_file` (Rust:
-`TurkishMorphology::load_dictionary_str`/`_file`, `RootLexicon::load_from_str`/`_file`) return
-the lines they could not read, where they returned nothing; a line with an unknown POS is one of
-them (0.8.0 read it as a noun). They also take Zemberek's own syntax (`kriptopara [P:Noun;
-A:CompoundP3sg; Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 misread.
 - Parses are sorted by `score`, which is now the probability of the reading given the word,
   times a spelling factor; a word's scores sum to at most 1.
 - The parse dicts of `Morphology.analyze` and `Disambiguator.disambiguate` have new keys:
@@ -86,6 +81,25 @@ A:CompoundP3sg; Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 mis
   `Dogan`) or ASCII-I twins of a name (`ıstanbul`) are gone: `Istanbul` reads `istanbul`, and
   the spell checker no longer accepts `egitim`.
 
+**User dictionaries.** `Morphology.load_dictionary_str` and `load_dictionary_file` (Rust:
+`TurkishMorphology::load_dictionary_str`/`_file`, `RootLexicon::load_from_str`/`_file`) return
+the lines they could not read in full, where they returned nothing, and such a line adds
+nothing:
+- an unknown POS (0.8.0 read it as a noun), attribute, secondary POS or field (a misspelt
+  `A:Voicng` was dropped silently), a missing column, an unclosed `[`, text after `]` other
+  than a `# comment`, a voice attribute on a word that is neither a verb nor a pronoun, or a
+  root with characters no Turkish word has (a ligature, a control character, nothing);
+- a UTF-8 byte-order mark is skipped, and a line is read as Unicode NFC (a decomposed `ş`
+  finds the word).
+
+They also take Zemberek's own syntax (`kriptopara [P:Noun; A:CompoundP3sg;
+Roots:kripto-para]`, a verb's infinitive alone), which 0.8.0 misread, and read its lines as
+akana's lexicon build does: a capitalised word is a proper noun and never a verb
+(`Kızılırmak`), a postposition takes its case (`ait [P:Postp,PCDat]`), the first secondary POS
+counts, an acronym's Latin I is i (`IBAN`: `iban`), and Zemberek's attributes that akana does
+not use (`Ext`, `NoQuote`) are allowed. Every line of Zemberek's dictionaries that the build
+reads as it is loads as the same item.
+
 **Syntactic morphology.** `SyntacticMorphology` and `syntactic_analyze` report UD features:
 `Number`, `Person`, `Number[psor]`, `Person[psor]` and `VerbForm`, where 0.8.0 had
 `PersonNumber` and `Possessive`. `Possessive=Pnon` is gone. The inflectional groups come from
@@ -108,9 +122,15 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
   before its case, possessive and copula, and suffixes that follow its pronunciation
   (`Türkiye'de`, `Ali'nin`, `ABD'nin`, `TBMM'de`, but `Ankaralı`). A request written with a
   capital prefers the name (`ABD` the abbreviation, `abd` the common noun).
-- `Prog` is the -Iyor progressive, also on a stem that changes (`gidiyorum`, `ediyor`), where
-  it gave -mAktA (`gitmekteyim`). The request tags `Prog1` and `Prog2` ask for one of the two
-  (`Prog2`: `bulunmaktadır`); both still analyse as `Prog`.
+- The lemma may be spelt as `display_lemma` gives it or folded (`kâğıt` or `kağıt`,
+  `e-posta`, `Fin-Ugor`); the word comes back folded (`kağıtta`), a name as the dictionary
+  spells it (`Hakkâri'de`).
+- `Prog` is the -Iyor progressive, also on a stem that changes (`gidiyorum`, `ediyor`,
+  `diyor`), where it gave -mAktA (`gitmekteyim`, `demekte`), except before the copula -DIr
+  (`CopPres3sg`), where written Turkish has -mAktA (`gelmektedir`, not `geliyordur`). The
+  request tags `Prog1` and `Prog2` ask for one of the two (`Prog2`: `bulunmaktadır`); both
+  still analyse as `Prog`. After a verb the copula is `CopPres3sg`, `CopPast`, `CopEvid` or
+  `CopCond`, as `analyze` shows it.
 - A CompoundP3sg noun's plural keeps its own possessive (`cumhurbaşkanı` with `A3pl+Dat` is
   `cumhurbaşkanlarına`).
 
@@ -338,6 +358,12 @@ fails on any further input change, so each change is recorded on purpose
   reported Ateşman score stays within 0-100. The disambiguator, and readability with it, is
   linear on long runs of adjectives without a noun or a sentence end (`Ali` × 16,000 took
   27 s).
+- Python objects can be configured while other threads use them:
+  `Morphology.load_dictionary_*`, `SpellChecker.add_word`, `GrammarChecker.enable_rule`,
+  `disable_rule` and `enable_experimental`, and `TurkishPiiEngine.enable_type`,
+  `disable_type` and `set_type_enabled` wait for the calls in progress on the object, where
+  they raised `RuntimeError: Already borrowed`; a `PiiVault` that threads share serves one
+  `mask` at a time.
 - `extract_keywords` returns the same keywords on every call (ties are in text order before
   `top_k` cuts), and a number's suffixes are no keyword (`1923'te`).
 - The dependency parser, the readability metrics and the syntactic analyzer share one

@@ -8,6 +8,11 @@
 //! - Spans returned to Python (`start`/`end`, `start_offset`/`end_offset`) are character
 //!   offsets, so `text[start:end]` is the span; the core reports UTF-8 byte offsets.
 //! - Module-level functions use engines built once per process.
+//! - A class with configuration calls (`SpellChecker.add_word`, `Morphology.load_dictionary_*`,
+//!   `GrammarChecker.enable_rule`, `TurkishPiiEngine.disable_type`, a `PiiVault` that `mask`
+//!   adds to) is a frozen pyclass with its state behind a lock: calls read it with the GIL
+//!   released, and a configuration call waits for them, where PyO3's borrow checking made it
+//!   fail with "Already borrowed" while another thread used the object (review 3 BIND3-04).
 #![allow(clippy::useless_conversion)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::redundant_closure)]
@@ -17,7 +22,24 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyList};
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::{Arc, LazyLock};
+use std::sync::RwLockWriteGuard;
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard};
+
+/// The state behind a lock, for a call. A panic inside a call is a `RuntimeError` already; the
+/// lock it leaves poisoned is still used, as the object would be without one.
+fn read<T>(lock: &RwLock<T>) -> RwLockReadGuard<'_, T> {
+    lock.read().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// The state behind a lock, for a configuration call, once the calls in progress are done.
+fn write<T>(lock: &RwLock<T>) -> RwLockWriteGuard<'_, T> {
+    lock.write().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// A vault's state, for one call at a time.
+fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
+    lock.lock().unwrap_or_else(PoisonError::into_inner)
+}
 
 /// A `RuntimeError` for a Rust panic, with the panic message.
 fn panic_error(payload: Box<dyn Any + Send>) -> PyErr {
@@ -190,9 +212,9 @@ fn tokenize_words(py: Python<'_>, text: &str) -> PyResult<Vec<String>> {
     })
 }
 
-#[pyclass(name = "SpellChecker")]
+#[pyclass(name = "SpellChecker", frozen)]
 struct PySpellChecker {
-    inner: akana_core::normalization::TurkishSpellChecker,
+    inner: RwLock<akana_core::normalization::TurkishSpellChecker>,
 }
 
 #[pymethods]
@@ -200,16 +222,16 @@ impl PySpellChecker {
     #[new]
     fn new(py: Python<'_>) -> PyResult<Self> {
         release(py, || Self {
-            inner: akana_core::normalization::TurkishSpellChecker::new(),
+            inner: RwLock::new(akana_core::normalization::TurkishSpellChecker::new()),
         })
     }
 
-    fn add_word(&mut self, word: &str) -> PyResult<()> {
-        guard(|| self.inner.add_word(word))
+    fn add_word(&self, py: Python<'_>, word: &str) -> PyResult<()> {
+        release(py, || write(&self.inner).add_word(word))
     }
 
     fn is_correct(&self, py: Python<'_>, word: &str) -> PyResult<bool> {
-        release(py, || self.inner.is_correct(word))
+        release(py, || read(&self.inner).is_correct(word))
     }
 
     #[pyo3(signature = (word, max_distance=None, max_suggestions=None))]
@@ -222,7 +244,7 @@ impl PySpellChecker {
     ) -> PyResult<Bound<'py, PyList>> {
         let dist = max_distance.unwrap_or(2);
         let count = max_suggestions.unwrap_or(5);
-        let suggestions = release(py, || self.inner.suggest(word, dist, count))?;
+        let suggestions = release(py, || read(&self.inner).suggest(word, dist, count))?;
 
         let list = PyList::empty_bound(py);
         for s in suggestions {
@@ -236,9 +258,9 @@ impl PySpellChecker {
     }
 }
 
-#[pyclass(name = "Morphology")]
+#[pyclass(name = "Morphology", frozen)]
 struct PyMorphology {
-    inner: akana_core::morphology::TurkishMorphology,
+    inner: RwLock<akana_core::morphology::TurkishMorphology>,
 }
 
 #[pymethods]
@@ -246,12 +268,12 @@ impl PyMorphology {
     #[new]
     fn new(py: Python<'_>) -> PyResult<Self> {
         release(py, || Self {
-            inner: akana_core::morphology::TurkishMorphology::new(),
+            inner: RwLock::new(akana_core::morphology::TurkishMorphology::new()),
         })
     }
 
     fn analyze<'py>(&self, py: Python<'py>, word: &str) -> PyResult<Bound<'py, PyList>> {
-        let parses = release(py, || self.inner.analyze(word))?;
+        let parses = release(py, || read(&self.inner).analyze(word))?;
         let list = PyList::empty_bound(py);
 
         for p in parses {
@@ -274,26 +296,39 @@ impl PyMorphology {
         Ok(list)
     }
 
-    /// Generates from this analyzer's lexicon, with any dictionary it has loaded.
+    /// Generates a word from a lemma or root and akana's tags, from this analyzer's lexicon
+    /// with any dictionary it has loaded: `generate("kitap", ["Noun", "P1sg", "Dat"])` gives
+    /// `"kitabıma"`.
+    ///
+    /// The first tag is the POS; the others are the tags `analyze` shows in `morphemes`, in
+    /// any case (A3sg, Pnon and Nom may be left out). The copula after a verb is CopPres3sg
+    /// (`gelmektedir`), CopPast, CopEvid or CopCond. Prog is -Iyor (`diyor`), or -mAktA before
+    /// CopPres3sg; Prog1 and Prog2 ask for -Iyor or -mAktA. The lemma may be spelt as
+    /// `display_lemma` gives it (`kâğıt`, `e-posta`) or folded (`kağıt`); the word comes back
+    /// folded, a name as the dictionary spells it with its apostrophe (`Hakkâri'de`). Returns
+    /// None for an unknown word, POS or tag, or a form the morphotactics cannot build.
     fn generate(&self, py: Python<'_>, lemma: &str, tags: Vec<String>) -> PyResult<Option<String>> {
         release(py, || {
             let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
-            self.inner.generate(lemma, &tag_refs)
+            read(&self.inner).generate(lemma, &tag_refs)
         })
     }
 
     /// Loads dictionary lines (akana's `lemma root POS ...` columns or Zemberek's
-    /// `word [P:..; A:..]` syntax) from a file; returns the lines it could not read.
-    fn load_dictionary_file(&mut self, py: Python<'_>, path: &str) -> PyResult<Vec<String>> {
-        let inner = &mut self.inner;
-        release(py, || inner.load_dictionary_file(path))?
+    /// `word [P:..; A:..]` syntax, read as akana's lexicon build reads it) from a file.
+    ///
+    /// Returns the lines it could not read in full, which add nothing: an unknown POS,
+    /// attribute or field (a misspelt `Voicng`), a missing column, an unclosed `[`, or a root
+    /// with characters no Turkish word has. A UTF-8 byte-order mark is skipped.
+    fn load_dictionary_file(&self, py: Python<'_>, path: &str) -> PyResult<Vec<String>> {
+        release(py, || write(&self.inner).load_dictionary_file(path))?
             .map_err(|e| PyIOError::new_err(e.to_string()))
     }
 
-    /// Loads dictionary lines from a string; returns the lines it could not read.
-    fn load_dictionary_str(&mut self, py: Python<'_>, text: &str) -> PyResult<Vec<String>> {
-        let inner = &mut self.inner;
-        release(py, || inner.load_dictionary_str(text))
+    /// Loads dictionary lines from a string, as `load_dictionary_file` does; returns the lines
+    /// it could not read in full.
+    fn load_dictionary_str(&self, py: Python<'_>, text: &str) -> PyResult<Vec<String>> {
+        release(py, || write(&self.inner).load_dictionary_str(text))
     }
 }
 
@@ -618,9 +653,9 @@ fn grammar_rule_set(
 /// A grammar checker with its own rule selection; checks run on the process's shared engine.
 /// `GrammarChecker()` runs the default rules. `rules` replaces them with a list of rule ids,
 /// `experimental=True` adds every experimental rule, and `enable`/`disable` add or remove ids.
-#[pyclass(name = "GrammarChecker")]
+#[pyclass(name = "GrammarChecker", frozen)]
 struct PyGrammarChecker {
-    rules: akana_core::grammar::RuleSet,
+    rules: Mutex<akana_core::grammar::RuleSet>,
 }
 
 #[pymethods]
@@ -634,40 +669,43 @@ impl PyGrammarChecker {
         experimental: bool,
     ) -> PyResult<Self> {
         Ok(Self {
-            rules: grammar_rule_set(rules, enable, disable, experimental)?,
+            rules: Mutex::new(grammar_rule_set(rules, enable, disable, experimental)?),
         })
     }
 
     /// The check as JSON; findings' `start_offset`/`end_offset` are character offsets into
     /// `text`.
     fn check_json(&self, py: Python<'_>, text: &str) -> PyResult<String> {
-        let rules = self.rules;
+        let rules = *locked(&self.rules);
         release(py, || grammar_check_json(&GRAMMAR_CHECKER, text, rules))?.map_err(json_error)
     }
 
     fn correct(&self, py: Python<'_>, text: &str) -> PyResult<String> {
-        let rules = self.rules;
+        let rules = *locked(&self.rules);
         release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
     }
 
-    fn enable_rule(&mut self, rule: &str) -> PyResult<()> {
-        self.rules.enable(grammar_rule(rule)?);
+    fn enable_rule(&self, rule: &str) -> PyResult<()> {
+        let rule = grammar_rule(rule)?;
+        locked(&self.rules).enable(rule);
         Ok(())
     }
 
-    fn disable_rule(&mut self, rule: &str) -> PyResult<()> {
-        self.rules.disable(grammar_rule(rule)?);
+    fn disable_rule(&self, rule: &str) -> PyResult<()> {
+        let rule = grammar_rule(rule)?;
+        locked(&self.rules).disable(rule);
         Ok(())
     }
 
     /// Also runs every experimental rule.
-    fn enable_experimental(&mut self) {
-        self.rules = self.rules.with_experimental();
+    fn enable_experimental(&self) {
+        let mut rules = locked(&self.rules);
+        *rules = rules.with_experimental();
     }
 
     /// The ids of the rules this checker runs.
     fn enabled_rules(&self) -> Vec<&'static str> {
-        self.rules.iter().map(|r| r.id()).collect()
+        locked(&self.rules).iter().map(|r| r.id()).collect()
     }
 }
 
@@ -1550,38 +1588,51 @@ fn mapping_from_dict(
     Ok(map)
 }
 
-#[pyclass(name = "PiiVault")]
+#[pyclass(name = "PiiVault", frozen)]
 pub struct PyPiiVault {
-    inner: akana_core::pii::PiiVault,
+    inner: Mutex<akana_core::pii::PiiVault>,
+}
+
+impl PyPiiVault {
+    fn new_with(vault: akana_core::pii::PiiVault) -> Self {
+        Self {
+            inner: Mutex::new(vault),
+        }
+    }
+
+    /// A copy of the vault, taken with the GIL released (a `mask` on another thread may hold
+    /// it).
+    fn snapshot(&self, py: Python<'_>) -> akana_core::pii::PiiVault {
+        py.allow_threads(|| locked(&self.inner).clone())
+    }
 }
 
 #[pymethods]
 impl PyPiiVault {
     #[new]
     fn new() -> Self {
-        Self {
-            inner: akana_core::pii::PiiVault::new(),
-        }
+        Self::new_with(akana_core::pii::PiiVault::new())
     }
 
     fn restore(&self, py: Python<'_>, llm_response: &str) -> PyResult<String> {
-        release(py, || self.inner.restore(llm_response))
+        release(py, || locked(&self.inner).restore(llm_response))
     }
 
-    fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(&self.inner).map_err(json_error)
+    fn to_json(&self, py: Python<'_>) -> PyResult<String> {
+        serde_json::to_string(&self.snapshot(py)).map_err(json_error)
     }
 
     #[staticmethod]
     fn from_json(json_str: &str) -> PyResult<Self> {
         let vault: akana_core::pii::PiiVault =
             serde_json::from_str(json_str).map_err(json_error)?;
-        Ok(Self { inner: vault })
+        Ok(Self::new_with(vault))
     }
 
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new_bound(py);
-        for (k, v) in &self.inner.placeholder_to_entry {
+        let vault = self.snapshot(py);
+        for (k, v) in &vault.placeholder_to_entry {
             let entry_dict = PyDict::new_bound(py);
             entry_dict.set_item("placeholder", &v.placeholder)?;
             entry_dict.set_item("original_text", &v.original_text)?;
@@ -1595,7 +1646,8 @@ impl PyPiiVault {
 
     fn get_mapping<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new_bound(py);
-        for (k, v) in &self.inner.placeholder_to_entry {
+        let vault = self.snapshot(py);
+        for (k, v) in &vault.placeholder_to_entry {
             dict.set_item(k, &v.original_text)?;
         }
         Ok(dict)
@@ -1613,14 +1665,14 @@ impl PyPiiVault {
         })
     }
 
-    fn __len__(&self) -> usize {
-        self.inner.len()
+    fn __len__(&self, py: Python<'_>) -> usize {
+        py.allow_threads(|| locked(&self.inner).len())
     }
 }
 
-#[pyclass(name = "TurkishPiiEngine")]
+#[pyclass(name = "TurkishPiiEngine", frozen)]
 pub struct PyTurkishPiiEngine {
-    inner: akana_core::pii::TurkishPiiEngine,
+    inner: RwLock<akana_core::pii::TurkishPiiEngine>,
 }
 
 #[pymethods]
@@ -1650,13 +1702,16 @@ impl PyTurkishPiiEngine {
                 }
             }
         }
-        Ok(Self { inner: engine })
+        Ok(Self {
+            inner: RwLock::new(engine),
+        })
     }
 
-    fn disable_type(&mut self, pii_type: &str) -> PyResult<()> {
+    fn disable_type(&self, py: Python<'_>, pii_type: &str) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.disable_type(pt);
-            Ok(())
+            release(py, || {
+                write(&self.inner).disable_type(pt);
+            })
         } else {
             Err(PyValueError::new_err(format!(
                 "Unknown PiiType: {}",
@@ -1665,10 +1720,11 @@ impl PyTurkishPiiEngine {
         }
     }
 
-    fn enable_type(&mut self, pii_type: &str) -> PyResult<()> {
+    fn enable_type(&self, py: Python<'_>, pii_type: &str) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.enable_type(pt);
-            Ok(())
+            release(py, || {
+                write(&self.inner).enable_type(pt);
+            })
         } else {
             Err(PyValueError::new_err(format!(
                 "Unknown PiiType: {}",
@@ -1677,10 +1733,11 @@ impl PyTurkishPiiEngine {
         }
     }
 
-    fn set_type_enabled(&mut self, pii_type: &str, enabled: bool) -> PyResult<()> {
+    fn set_type_enabled(&self, py: Python<'_>, pii_type: &str, enabled: bool) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.set_type_enabled(pt, enabled);
-            Ok(())
+            release(py, || {
+                write(&self.inner).set_type_enabled(pt, enabled);
+            })
         } else {
             Err(PyValueError::new_err(format!(
                 "Unknown PiiType: {}",
@@ -1691,7 +1748,7 @@ impl PyTurkishPiiEngine {
 
     fn is_type_enabled(&self, pii_type: &str) -> bool {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.is_type_enabled(pt)
+            read(&self.inner).is_type_enabled(pt)
         } else {
             false
         }
@@ -1699,7 +1756,7 @@ impl PyTurkishPiiEngine {
 
     fn detect<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyList>> {
         let (entities, offsets) = release(py, || {
-            let entities = self.inner.detect(text);
+            let entities = read(&self.inner).detect(text);
             let offsets = entity_char_offsets(text, &entities);
             (entities, offsets)
         })?;
@@ -1725,7 +1782,7 @@ impl PyTurkishPiiEngine {
         py: Python<'py>,
         text: &str,
         mode: &str,
-        vault: Option<PyRefMut<'py, PyPiiVault>>,
+        vault: Option<PyRef<'py, PyPiiVault>>,
     ) -> PyResult<Bound<'py, PyDict>> {
         let pii_mode = match mode.to_lowercase().as_str() {
             "placeholder" => akana_core::pii::PiiMode::Placeholder,
@@ -1735,12 +1792,12 @@ impl PyTurkishPiiEngine {
             _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
         };
 
-        let mut vault = vault;
-        let vault_inner = vault.as_mut().map(|v| &mut v.inner);
+        let vault: Option<&PyPiiVault> = vault.as_deref();
         let (result, offsets) = release(py, || {
-            let result = match vault_inner {
-                Some(v) => self.inner.mask_with_vault(text, pii_mode, v),
-                None => self.inner.mask(text, pii_mode),
+            let engine = read(&self.inner);
+            let result = match vault {
+                Some(v) => engine.mask_with_vault(text, pii_mode, &mut locked(&v.inner)),
+                None => engine.mask(text, pii_mode),
             };
             let offsets = entity_char_offsets(&result.original_text, &result.entities);
             (result, offsets)
@@ -1781,15 +1838,7 @@ impl PyTurkishPiiEngine {
             ent_list.append(ent_dict)?;
         }
         dict.set_item("entities", ent_list)?;
-        dict.set_item(
-            "vault",
-            Py::new(
-                py,
-                PyPiiVault {
-                    inner: result.vault,
-                },
-            )?,
-        )?;
+        dict.set_item("vault", Py::new(py, PyPiiVault::new_with(result.vault))?)?;
 
         Ok(dict)
     }
@@ -1800,7 +1849,7 @@ impl PyTurkishPiiEngine {
         &self,
         py: Python<'py>,
         text: &str,
-        vault: PyRefMut<'py, PyPiiVault>,
+        vault: PyRef<'py, PyPiiVault>,
         mode: &str,
     ) -> PyResult<Bound<'py, PyDict>> {
         self.mask(py, text, mode, Some(vault))
@@ -1816,8 +1865,10 @@ impl PyTurkishPiiEngine {
         mapping_or_vault: &Bound<'_, PyAny>,
     ) -> PyResult<String> {
         if let Ok(vault) = mapping_or_vault.extract::<PyRef<PyPiiVault>>() {
-            let vault = &vault.inner;
-            release(py, || self.inner.restore_response(llm_response, vault))
+            let vault: &PyPiiVault = &vault;
+            release(py, || {
+                read(&self.inner).restore_response(llm_response, &locked(&vault.inner))
+            })
         } else if let Ok(dict) = mapping_or_vault.downcast::<PyDict>() {
             let map = mapping_from_dict(dict)?;
             release(py, || {
@@ -1826,7 +1877,7 @@ impl PyTurkishPiiEngine {
         } else if let Ok(json_str) = mapping_or_vault.extract::<&str>() {
             release(py, || {
                 if let Ok(vault) = serde_json::from_str::<akana_core::pii::PiiVault>(json_str) {
-                    Some(self.inner.restore_response(llm_response, &vault))
+                    Some(read(&self.inner).restore_response(llm_response, &vault))
                 } else if let Ok(map) =
                     serde_json::from_str::<std::collections::HashMap<String, String>>(json_str)
                 {
@@ -1853,7 +1904,7 @@ impl PyTurkishPiiEngine {
         vault: &PyPiiVault,
     ) -> PyResult<String> {
         release(py, || {
-            self.inner.restore_response(llm_response, &vault.inner)
+            read(&self.inner).restore_response(llm_response, &locked(&vault.inner))
         })
     }
 }

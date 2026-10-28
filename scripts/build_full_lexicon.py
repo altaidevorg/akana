@@ -38,7 +38,8 @@ analyzer accepted wrongly:
   Üniversitesi), misspelled stems (Redd, Kitab, Kalb), common words without their Turkish
   letters (Egitim, Ayrica) or ASCII-I spellings of an İ-name (Istanbul read as ıstanbul) are
   dropped unless a curated file (proper, person-names, abbreviations) lists the name too.
-- Roots with characters that are not letters or digits (m², alm.) are dropped.
+- Roots with characters that are not letters or digits (alm.) are dropped; superscript digits
+  are digits (m², km²).
 
 The build fails when a CompoundP3sg entry's `roots=` does not spell the word (head, tail as it
 is before a vowel, 3rd-person possessive), and reads a -mak/-mek entry without a POS but with
