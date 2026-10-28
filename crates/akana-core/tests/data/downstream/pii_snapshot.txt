@@ -175,3 +175,40 @@ Kaya'nın ifadesi alındı.
 Güneş'e bakmayın.
 > T.C. Anayasa Mahkemesi İkinci Bölüm
 T.C. Anayasa Mahkemesi İkinci Bölüm
+> DAVACI : GÜLSEN KOCABIYIK
+DAVACI : {{AD_1}}
+	AD	GÜLSEN KOCABIYIK
+> DAVALI : BERRİN ÖZKILIÇ
+DAVALI : {{AD_1}}
+	AD	BERRİN ÖZKILIÇ
+> BAŞVURUCU : ŞEBNEM NEBİOĞLU
+BAŞVURUCU : {{AD_1}}
+	AD	ŞEBNEM NEBİOĞLU
+> Davalı Seda'nın vekili geldi.
+Davalı {{AD_1}}'nın vekili geldi.
+	AD	Seda
+> DAVACI: UMUT ŞEKER
+DAVACI: {{AD_1}} ŞEKER
+	AD	UMUT
+> Davalı Hayat Sigorta A.Ş. vekili duruşmaya geldi.
+Davalı Hayat Sigorta A.Ş. vekili duruşmaya geldi.
+> Sanık Umut Kaya şirketi zarara uğratmıştır.
+Sanık {{AD_1}} şirketi zarara uğratmıştır.
+	AD	Umut Kaya
+> Umut Demir İnşaat Ltd. davalıdır.
+Umut Demir İnşaat Ltd. davalıdır.
+> Doğan Holding açıklama yaptı.
+Doğan Holding açıklama yaptı.
+> Ancak AİHM bu kararı verdi.
+Ancak AİHM bu kararı verdi.
+> Ayrıca OHAL ilan edildi.
+Ayrıca OHAL ilan edildi.
+> A. Adil yargılanma hakkının ihlali
+A. Adil yargılanma hakkının ihlali
+> Başvurucu Ahmet YILMAZ TARAFINDAN yapılan başvuru
+Başvurucu {{AD_1}} TARAFINDAN yapılan başvuru
+	AD	Ahmet YILMAZ
+> Hakim Mehmet KAYA KATİP Ayşe DEMİR
+Hakim {{AD_1}} KATİP {{AD_2}}
+	AD	Mehmet KAYA
+	AD	Ayşe DEMİR

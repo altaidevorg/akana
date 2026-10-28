@@ -339,9 +339,15 @@ fails on any further input change, so each change is recorded on purpose
   an initial is masked with its surname (`A. Yılmaz`); common given names no list had are
   added (`Bahadır`, `Cumali`, `Nejdet` …), and a capitalised role before a name no longer hides
   it (`Davacı Kudret Demir`).
-- PII over-masks: company names after `Davalı`/`Davacı` (`Hayat Sigorta A.Ş.`, `Axa Sigorta`)
-  and a company's legal form in a decision title (`LTD. ŞTİ. BAŞVURUSU`) are no names; a
-  person's business keeps its name masked (`Ahmet Yılmaz İnşaat`).
+- PII over-masks: company names after `Davalı`/`Davacı` (`Hayat Sigorta A.Ş.`, `Axa Sigorta`,
+  `Doğan Holding`, `Cihan Medya A.Ş.`) and a company's legal form in a decision title (`LTD.
+  ŞTİ. BAŞVURUSU`) are no names; a person's business keeps its name masked (`Ahmet Yılmaz
+  İnşaat`). A company word counts only in capitals or as initials (A.Ş.): `Umut Kaya şirketi
+  zarara uğrattı` is masked, and a role before a name is no company unless a company word
+  follows on its line (`DAVACI : SEDA ARSLANTÜRK`, `Davalı Seda'nın vekili`). An acronym the
+  lexicon has is no surname and no name (`Ancak AİHM`, `Ayrıca OHAL`, `ZMMS`), a heading
+  letter opens a sentence (`A. Adil yargılanma hakkı`), and the official form's second surname
+  stops at a title or a word such as `TARAFINDAN` or `KARAR` (`Mehmet KAYA KATİP Ayşe DEMİR`).
 - `PiiVault` serialises in one order on every run: its maps are ordered (`BTreeMap`;
   Rust callers that name the field types must follow), and `from_mapping` reads its pairs in
   placeholder order.

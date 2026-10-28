@@ -193,6 +193,7 @@ pub(crate) const NAME_TRIGGERS: &[&str] = &[
     "şüpheli", "vekil", "vekili", "vekilim", "katılan", "müdahil", "şikayetçi", "mirasçı", "murisi",
     "kiracı", "kiracısı", "kiraya", "işçi", "işveren", "sürücü", "sürücüsü", "alıcı", "satıcı",
     "kefil", "temsilci", "temsilcisi", "üye", "hâkim", "hakim", "yargıç", "savcı", "noter",
+    "katip", "kâtip",
     "bilirkişi", "arabulucu", "imza", "hazırlayan", "gönderen", "onaylayan",
     // possessive kinship and relations
     "annem", "babam", "eşim", "kızım", "oğlum", "kardeşim", "abim", "ablam", "ağabeyim", "teyzem",
@@ -261,6 +262,9 @@ pub(crate) const NAME_STOPPERS: &[&str] = &[
     "dağı", "dağları", "ovası", "körfezi", "boğazı", "adası", "kuvvetleri", "komutanlığı",
     "bayramı", "günü", "haftası", "ödülü", "kupası", "ligi", "and", "ve", "ile", "the", "of", "inc",
     "llc", "gmbh", "corp", "university", "street",
+    // words of a decision's heading and signature block, which end the official form's name
+    // (Mehmet KAYA KARAR; review 4 DOWN4-09)
+    "karar", "kararı", "tarih", "mühür",
     // countries, regions and large cities outside the province list
     "türkiye", "almanya", "fransa", "ingiltere", "amerika", "abd", "rusya", "italya", "ispanya",
     "yunanistan", "irak", "iran", "suriye", "azerbaycan", "japonya", "çin", "hollanda", "belçika",

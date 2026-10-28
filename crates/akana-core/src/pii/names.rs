@@ -75,10 +75,8 @@ fn with_ascii<'a>(items: impl IntoIterator<Item = &'a str>) -> Vec<String> {
 
 /// The readings of `lower` as a common word: not as a proper noun or an abbreviation (the
 /// lexicon has "alat" as both a surname and a+t).
-fn common_readings(lower: &str) -> Vec<MorphParse> {
-    MORPHOLOGY
-        .analyze(lower)
-        .into_iter()
+fn common_readings(all: Vec<MorphParse>) -> Vec<MorphParse> {
+    all.into_iter()
         .filter(|p| {
             !matches!(
                 p.secondary_pos,
@@ -97,6 +95,11 @@ struct Readings {
     /// Cumhuriyeti, Polikliniğine): an inflected noun, not a surname. Surnames that are common
     /// words are bare (Pamuk, Koçak), derived (Sarıca, Tütüncü) or verb forms (Solmaz, Yüksel).
     only_inflected: bool,
+    /// The lexicon has it as an abbreviation as it stands (AİHM, OHAL, UYAP).
+    abbreviation: bool,
+    /// The lexicon has it as an adverb, postposition or conjunction as it stands (tarafından,
+    /// hakkında, sonra).
+    function_word: bool,
 }
 
 /// Whether `lower` can name a thing as it stands: a word the lexicon does not know (Hashimoto,
@@ -143,7 +146,24 @@ fn readings(lower: &str) -> Readings {
     // beside tanık-lar at one in ten thousand made Tanıklar a first name mid-sentence. Integer
     // rank units, so that ties cannot flip it (review 3 PII3-01).
     const NEGLIGIBLE: i32 = crate::morphology::rank_units(5.0);
-    let common = common_readings(lower);
+    let all = MORPHOLOGY.analyze(lower);
+    let abbreviation = all.iter().any(|p| {
+        p.secondary_pos == SecondaryPos::Abbreviation
+            && p.morpheme_tags
+                .iter()
+                .skip(1)
+                .all(|t| matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"))
+    });
+    let common = common_readings(all);
+    let function_word = common.iter().any(|p| {
+        p.morpheme_tags.len() == 1
+            && matches!(
+                p.primary_pos,
+                crate::morphology::PrimaryPos::Adv
+                    | crate::morphology::PrimaryPos::Postp
+                    | crate::morphology::PrimaryPos::Conj
+            )
+    });
     let best = common.iter().map(|p| p.rank).max().unwrap_or(0);
     let plural = |p: &MorphParse| {
         common
@@ -166,6 +186,8 @@ fn readings(lower: &str) -> Readings {
                 .iter()
                 .filter(|p| p.rank >= best - NEGLIGIBLE)
                 .all(inflected),
+        abbreviation,
+        function_word,
     }
 }
 
@@ -371,6 +393,10 @@ impl Scan<'_, '_> {
         self.readings(lower).only_inflected
     }
 
+    fn is_abbreviation(&self, lower: &str) -> bool {
+        self.readings(lower).abbreviation
+    }
+
     fn word(&self, i: usize) -> Option<&Word<'_>> {
         self.words.get(i).and_then(Option::as_ref)
     }
@@ -381,6 +407,17 @@ impl Scan<'_, '_> {
 
     fn sentence_initial(&self, i: usize) -> bool {
         if i == 0 || !self.same_line(i - 1, i) {
+            return true;
+        }
+        // after the letter or number of a heading or list item at the start of a line (A.
+        // Adil yargılanma hakkı, 3. Başvurucu): review 4 DOWN4-03
+        let marker = |t: &str| {
+            let body = t.strip_suffix(['.', ')']).unwrap_or("");
+            !body.is_empty()
+                && (body.chars().all(|c| c.is_ascii_digit())
+                    || (body.chars().count() == 1 && body.chars().all(char::is_alphabetic)))
+        };
+        if marker(self.tokens[i - 1].text) && (i == 1 || !self.same_line(i - 2, i - 1)) {
             return true;
         }
         matches!(
@@ -662,11 +699,18 @@ impl Scan<'_, '_> {
                 }
                 return j;
             }
+            // not an inflected word or a title of the text around the name (YILMAZ
+            // TARAFINDAN, KAYA KATİP Ayşe DEMİR; review 4 DOWN4-09)
             let second_surname = official
                 && surnames == 1
                 && lw.all_caps
                 && self.word(j).is_some_and(|w| {
-                    w.all_caps && word_shaped_caps(w) && !self.is_stopper(&w.lower)
+                    w.all_caps
+                        && word_shaped_caps(w)
+                        && !self.is_stopper(&w.lower)
+                        && !self.is_title(&w.lower)
+                        && !self.only_inflected(&w.lower)
+                        && !self.readings(&w.lower).function_word
                 });
             if second_surname {
                 last = j;
@@ -735,6 +779,8 @@ impl Scan<'_, '_> {
         let stopper = self.is_stopper(&w.lower);
         if w.letters < 2
             || (!named && (stopper || (w.all_caps && w.letters <= 3)))
+            // an acronym the lexicon has (ZMMS, OHAL): review 4 DOWN4-03
+            || (!named && w.all_caps && self.is_abbreviation(&w.lower))
             || ((self.lex.roles.contains(&w.lower) || self.lex.honorifics.contains(&w.lower))
                 && kind != Some(Kind::Clear)
                 && !surname)
@@ -783,11 +829,13 @@ impl Scan<'_, '_> {
         }
 
         // After a role an organisation can hold (Davalı, Davacı), a listed word that is also
-        // something else names a person only before a known name: Davalı Hayat Sigorta A.Ş. is
-        // a company (review 3 PII3-05).
+        // something else, before a company word on its line, names a company unless a known
+        // name follows it: Davalı Hayat Sigorta A.Ş. (review 3 PII3-05). Without a company word
+        // it is the person the role names (DAVACI : SEDA ARSLANTÜRK; review 4 DOWN4-01).
         let org_word = matches!(trigger, Some(Trigger::Role(true)))
             && kind.is_some_and(|k| k != Kind::Clear)
             && !surname
+            && self.company_on_line(i)
             && !(i + 1 < self.tokens.len()
                 && self.same_line(i, i + 1)
                 && !w.has_apostrophe
@@ -863,11 +911,11 @@ impl Scan<'_, '_> {
                             || (word_shaped_caps(n)
                                 && !self.is_place(&n.lower)
                                 && !self.is_title(&n.lower)
-                                && (named
-                                    || !self.is_common_word(&w.lower)
-                                    // a surname no lexicon has: Bahadır YALÇINÖZ, Adil AKTAY
-                                    // (review 3 PII3-04)
-                                    || !self.is_common_word(&n.lower))))
+                                // an acronym the lexicon has is no surname, and a common word
+                                // that no list has as a name starts none (Ancak AİHM, Ayrıca
+                                // OHAL; review 4 DOWN4-03)
+                                && !self.is_abbreviation(&n.lower)
+                                && (named || !self.is_common_word(&w.lower))))
                 })
         };
         // the same with the surname on the next line, as PDF text breaks a signature block
@@ -1015,27 +1063,47 @@ impl Scan<'_, '_> {
         (closes && self.same_line(last, last + 1)).then_some(last)
     }
 
-    /// Whether a company word or a company's initials (A.Ş.) follow the word at `last` on
-    /// its line ([`COMPANY_WORDS`]).
+    /// Whether a company word in capitals or a company's initials (A.Ş.) follow the word at
+    /// `last` on its line ([`COMPANY_WORDS`]); a company word in lower case is prose (Umut
+    /// Kaya şirketi zarara uğrattı; review 4 DOWN4-02).
     fn company_after(&self, last: usize) -> bool {
         let k = last + 1;
-        k < self.tokens.len()
-            && self.same_line(last, k)
-            && self.word(k).is_some_and(|w| {
-                COMPANY_WORDS.contains(&w.lower.as_str())
-                    || (w.letters == 1
-                        && self.tokens[k].text.ends_with('.')
-                        && self.tokens.get(k + 1).is_some_and(|t| {
-                            t.start == self.tokens[k].end && t.text.ends_with('.')
-                        }))
-            })
+        k < self.tokens.len() && self.same_line(last, k) && self.company_word(k)
     }
 
-    /// Whether the word at `k` is a given name that is only a name: the mark of a person's
-    /// business (Ahmet Yılmaz İnşaat), where a surname alone names a company (Doğan Holding).
-    fn clear_part(&self, k: usize) -> bool {
-        self.word(k)
-            .is_some_and(|w| self.lex.given.get(&w.lower) == Some(&Kind::Clear))
+    fn company_word(&self, k: usize) -> bool {
+        self.word(k).is_some_and(|w| {
+            (w.cap && COMPANY_WORDS.contains(&w.lower.as_str()))
+                || (w.letters == 1
+                    && self.tokens[k].text.ends_with('.')
+                    && self
+                        .tokens
+                        .get(k + 1)
+                        .is_some_and(|t| t.start == self.tokens[k].end && t.text.ends_with('.')))
+        })
+    }
+
+    /// Whether a company word follows the word at `i` within the next few words of its line.
+    fn company_on_line(&self, i: usize) -> bool {
+        (i + 1..self.tokens.len().min(i + 6))
+            .take_while(|&k| self.same_line(i, k))
+            .any(|k| self.company_word(k))
+    }
+
+    /// Whether the words `first..=last` before a company word are a person's name, the mark of
+    /// a person's business (Ahmet Yılmaz İnşaat, Umut Demir İnşaat Ltd.): a listed given name
+    /// and, last, a listed surname or a word the lexicon does not know. One word alone (Doğan
+    /// Holding, Hayat Sigorta) or a given name before a common word (Cihan Medya A.Ş., Savaş
+    /// Boya San.) names a company.
+    fn person_business(&self, first: usize, last: usize) -> bool {
+        last > first
+            && (first..last).any(|k| {
+                self.word(k)
+                    .is_some_and(|w| self.lex.given.contains_key(&w.lower))
+            })
+            && self.word(last).is_some_and(|w| {
+                self.lex.surnames.contains(&w.lower) || !self.is_common_word(&w.lower)
+            })
     }
 
     /// Whether the word at `k` can be a surname after an initial: a known name, or a
@@ -1149,7 +1217,7 @@ pub(super) fn detect_names(
         };
         let cap_mode = scan.word(first).is_some_and(|w| w.cap);
         let last = scan.extend(first, cap_mode, confidence >= 0.9);
-        if scan.company_after(last) && !(first..=last).any(|k| scan.clear_part(k)) {
+        if scan.company_after(last) && !scan.person_business(first, last) {
             i = last + 1; // a company's name (review 3 PII3-05)
             continue;
         }

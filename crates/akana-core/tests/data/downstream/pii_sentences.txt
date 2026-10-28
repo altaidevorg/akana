@@ -66,3 +66,19 @@ E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
 Kaya'nın ifadesi alındı.
 Güneş'e bakmayın.
 T.C. Anayasa Mahkemesi İkinci Bölüm
+# --- review 4: names after a role in a petition heading (DOWN4-01), a lower-case company word
+# (DOWN4-02), a word before an acronym and a heading letter (DOWN4-03), the second surname (DOWN4-09)
+DAVACI : GÜLSEN KOCABIYIK
+DAVALI : BERRİN ÖZKILIÇ
+BAŞVURUCU : ŞEBNEM NEBİOĞLU
+Davalı Seda'nın vekili geldi.
+DAVACI: UMUT ŞEKER
+Davalı Hayat Sigorta A.Ş. vekili duruşmaya geldi.
+Sanık Umut Kaya şirketi zarara uğratmıştır.
+Umut Demir İnşaat Ltd. davalıdır.
+Doğan Holding açıklama yaptı.
+Ancak AİHM bu kararı verdi.
+Ayrıca OHAL ilan edildi.
+A. Adil yargılanma hakkının ihlali
+Başvurucu Ahmet YILMAZ TARAFINDAN yapılan başvuru
+Hakim Mehmet KAYA KATİP Ayşe DEMİR

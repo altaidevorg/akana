@@ -316,9 +316,9 @@ cache:
 
 | Dataset | Values | Recall | Over-masked characters | Notes |
 | :--- | ---: | :---: | :---: | :--- |
-| **Saturday Labs** (`cagrigungor/turkish-pii-masking-benchmark`, 1,000 rows) | 2,096 | **94.6%** | 20% | Values aligned from the expected masked output; 100% on VKN, phone, blood type, passwords, IP and MAC addresses |
+| **Saturday Labs** (`cagrigungor/turkish-pii-masking-benchmark`, 1,000 rows) | 2,096 | **94.5%** | 20% | Values aligned from the expected masked output; 100% on VKN, phone, blood type, passwords, IP and MAC addresses |
 | **Belgin** (`negentropi/belgin-pii-dataset`, all splits) | 1,851 | **74.0%** | 2.1% | Private dates 292/292, addresses 99.4%; **0/300** public dates (holidays, campaigns) masked |
-| **BTX24** (`BTX24/turkish-privacy-pii-ner`, test) | 10,393 | **89.6%** | 1.3% | IBAN 99.6%, phone 99.9%, email 97.4%, person 92.3% |
+| **BTX24** (`BTX24/turkish-privacy-pii-ner`, test) | 10,393 | **89.6%** | 1.2% | IBAN 99.6%, phone 99.9%, email 97.4%, person 92.3% |
 | **Throughput** | | **`~4,600 docs/sec`** | | Short messages (about 90 characters), one CPU core, no neural network |
 
 The previous version of this table (94.1% on 200 Saturday Labs samples) had no script behind it;
