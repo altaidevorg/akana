@@ -233,9 +233,13 @@ fn asciify(py: Python<'_>, text: &str) -> PyResult<String> {
     })
 }
 
-/// Turkish letters put back into text typed without them (`cocuk` → `çocuk`). A word that
-/// already has Turkish letters and reads, a name as written and a word with a capital after a
-/// small letter (`iPhone`) stay as they are.
+/// Turkish letters put back into text typed without them (`cocuk` → `çocuk`): each word takes
+/// its likeliest spelling under the corpus prior, so a word of correct text that reads mostly
+/// stays (`konusu`, not `konuşu`). A suffix after an apostrophe takes the spelling its word
+/// reads with (`Kanun'un`), and the question particle the vowel of the word before it
+/// (`değil mi`). A word that already has Turkish letters and reads, a name as written, a word
+/// with a capital after a small letter (`iPhone`), a letter alone and a Roman numeral in
+/// capitals (`II.`) stay as they are.
 #[pyfunction]
 fn deasciify(py: Python<'_>, text: &str) -> PyResult<String> {
     release(py, || {

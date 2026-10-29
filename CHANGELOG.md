@@ -447,6 +447,21 @@ them passes it.
   already has Turkish letters and reads, or has them in capitals, is left alone, İ among them
   (`AİHM`, `İSKİ`, `İnsan`, which gave `AIHM`, `IŞKI`, `İnşan`), so the function is
   idempotent; so is a word with a capital after a small letter (`iPhone`, `McDonald`).
+- Deasciifier: a spelling is judged by how likely the corpus prior makes it as a word, not by
+  how many Turkish letters it has, and the word as written wins a tie, so correct text stays
+  (`konusu`, `son`, `olup` gave `konuşu`, `sön`, `ölüp`) and `kisi`, `oldugu` give `kişi`,
+  `olduğu`, not `kışı`, `öldüğü`. A suffix written apart from its word takes the spelling the
+  word reads with: after an apostrophe (`Kanun'un` gave `Kanun'ün`), after an abbreviation's
+  period (`İİK.nun`) and, where it reads so, after a space that follows a numeral or an
+  abbreviation (`10 uncu`, `TTK nun`). The question particle takes the vowel of the word
+  before it (`değil mi`, `var mı`; `bu mudur` gave `bu müdür`). A letter alone, a Roman
+  numeral in capitals (`II.` gave `İİ.`) and the words of an address (`Orbat.com`,
+  `ali@gmail.com`) stay as written. Measured with `scripts/benchmark_deasciifier.py` on the
+  1,500 committed clean court sentences: of the words of correct text it changed 2.98 % (40.2 %
+  of the sentences), now 0.03 % (0.5 %); of the words typed without their Turkish letters it
+  restored 94.07 %, now 97.93 %. On 3,000 RagTurk sentences (held out): 3.16 % (32.7 %) now
+  0.72 % (8.4 %), restored 85.80 % now 90.04 %. What it still changes is a word with a likelier
+  twin (`su`: `şu`, `ayni`: `aynı`, `Koyu`: `Köyü`) and foreign names (`Minor`: `Minör`).
 - Grammar: the de/da rule writes `onu da` for `onu'da` (it kept the apostrophe), cases the
   clitic like the word (`KİTABI DA`) and checks words written in capitals; a genitive with -da
   written on it is split again unless a frequent word of another root is one letter away

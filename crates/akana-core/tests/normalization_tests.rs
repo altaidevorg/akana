@@ -20,11 +20,13 @@ fn test_deasciifier() {
 #[test]
 fn the_deasciifier_reads_lower_case_as_written() {
     // Plan step D7 (review 2 GN2-04): bu is no BÜ and iki no Iki, so the lower-case words
-    // stay; a capitalised name is a name (Mugla: Muğla). (kisi and oldugu still become
-    // kışı and öldüğü, words with more diacritics: the deasciifier weighs no word frequency.)
+    // stay; a capitalised name is a name (Mugla: Muğla). kisi and oldugu are kişi and olduğu,
+    // not kışı and öldüğü, the spellings with more Turkish letters (review GN-10).
     assert_eq!(TurkishDeasciifier::deasciify_word("bu"), "bu");
     assert_eq!(TurkishDeasciifier::deasciify_word("iki"), "iki");
     assert_eq!(TurkishDeasciifier::deasciify_word("Mugla"), "Muğla");
+    assert_eq!(TurkishDeasciifier::deasciify_word("kisi"), "kişi");
+    assert_eq!(TurkishDeasciifier::deasciify_word("oldugu"), "olduğu");
 }
 
 #[test]

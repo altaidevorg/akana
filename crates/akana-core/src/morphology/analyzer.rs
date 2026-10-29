@@ -16,7 +16,7 @@ use unicode_normalization::UnicodeNormalization;
 
 /// The marks written for an apostrophe (Ankara’ya, Ankara`ya, the fullwidth Ankara＇ya of
 /// East Asian keyboards); input folds them to `'`.
-const APOSTROPHES: [char; 8] = ['\'', '’', '‘', 'ʼ', '`', '´', '′', '＇'];
+pub(crate) const APOSTROPHES: [char; 8] = ['\'', '’', '‘', 'ʼ', '`', '´', '′', '＇'];
 
 /// The spelling factor of a nonstandard reading ([`MorphParse::nonstandard`]), and its log in
 /// rank units (ln 0.5 / ln 1.02 * 16).
@@ -1253,6 +1253,24 @@ impl TurkishMorphology {
                 && !(lower_case && lower_case_name(p, dotted))
         });
         parses
+    }
+
+    /// How likely the word is as written under the corpus prior: the log probability of its
+    /// likeliest standard reading kept by `keep`, in rank units ([`rank_units`]), before
+    /// `analyze` shares a word's probability out among its readings; `None` when no standard
+    /// reading is kept. What tells apart two spellings that both read (konusu, a form of the
+    /// frequent konu, from konuşu, of the rare konuş; review GN-10).
+    pub fn spelling_log_prior(
+        &self,
+        word: &str,
+        keep: impl Fn(&MorphParse) -> bool,
+    ) -> Option<i32> {
+        let capitalised = prior_capitalised(word);
+        self.analyze_standard(word)
+            .iter()
+            .filter(|p| keep(p))
+            .map(|p| PRIOR.log_p(p, capitalised))
+            .max()
     }
 
     pub(super) fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {

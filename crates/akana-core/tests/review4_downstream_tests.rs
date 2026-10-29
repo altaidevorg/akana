@@ -1,6 +1,6 @@
 //! Review 4's downstream findings that move no vector: the de/da rule beside names
-//! (DOWN4-11), the deasciifier on words it should keep (DOWN4-12) and readability's leftovers
-//! (DOWN4-13).
+//! (DOWN4-11), the deasciifier on words it should keep (DOWN4-12, GN-10) and readability's
+//! leftovers (DOWN4-13).
 
 use akana_core::grammar::{GrammarRule, TurkishGrammarChecker};
 use akana_core::normalization::TurkishDeasciifier;
@@ -35,6 +35,38 @@ fn the_deasciifier_keeps_what_is_written_turkish_or_as_a_name() {
     assert_eq!(TurkishDeasciifier::deasciify("cocuk"), "çocuk");
     // A word in capitals with its suffix is still read (it is no name written so).
     assert_eq!(TurkishDeasciifier::deasciify("ISTANBUL'da"), "İSTANBUL'da");
+}
+
+#[test]
+fn the_deasciifier_leaves_correct_text_and_judges_suffixes_with_their_word() {
+    // Review GN-10: a spelling is judged by the corpus prior, not by its Turkish letters (2.98 %
+    // of the words of correct court text changed), and a suffix written apart from its word by
+    // the word it reads with (Kanun'un became Kanun'ün).
+    for text in [
+        "Davanın konusu, son olarak HMK'nun 114. maddesi olup",
+        "Kanun'un 5'inci maddesi ve İİK.nun 67. maddesi",
+        "TTK nun 818. maddesi, Anayasa'nın 10 uncu maddesi ve TTK.'nun hükmü",
+        "Mahkemece İİK’ nun 72/3. maddesi",
+        "II. Bölüm, A. Kısım",
+        "Bu doğru değil mi? Var mı? Bu mudur? Ankara'ya gidecek misin?",
+        "Kaynak: Orbat.com, ali@gmail.com",
+    ] {
+        assert_eq!(TurkishDeasciifier::deasciify(text), text);
+    }
+    assert_eq!(
+        TurkishDeasciifier::deasciify("kisi oldugu icin"),
+        "kişi olduğu için"
+    );
+    assert_eq!(
+        TurkishDeasciifier::deasciify("Anayasa'nin 10 uncu maddesi"),
+        "Anayasa'nın 10 uncu maddesi"
+    );
+    // The question particle takes the vowel of the word before it.
+    assert_eq!(
+        TurkishDeasciifier::deasciify("bu dogru degil mi? var mi? bu mudur?"),
+        "bu doğru değil mi? var mı? bu mudur?"
+    );
+    assert_eq!(TurkishDeasciifier::deasciify("DEGIL MI"), "DEĞİL Mİ");
 }
 
 #[test]
