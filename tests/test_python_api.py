@@ -422,3 +422,29 @@ def test_numbers_currency_and_vectors_at_the_edges():
     with pytest.raises(ValueError):
         akana.similarity_vectors([1.0, 0.0], [1.0, 0.0, 0.0])
     assert akana.similarity_vectors([1.0, 0.0], [1.0, 0.0]) == pytest.approx(1.0)
+
+
+def test_every_public_callable_has_a_docstring():
+    """Review 4 BIND4-07: 116 of 148 callables had none."""
+    import inspect
+
+    import akana._core as core
+
+    missing = []
+    for name in dir(core):
+        if name.startswith("_"):
+            continue
+        obj = getattr(core, name)
+        if inspect.isclass(obj):
+            if not (obj.__doc__ or "").strip():
+                missing.append(name)
+            for member in vars(obj):
+                if member.startswith("_"):
+                    continue
+                doc = getattr(getattr(obj, member), "__doc__", None)
+                if not (doc or "").strip():
+                    missing.append(f"{name}.{member}")
+        elif callable(obj) and not (obj.__doc__ or "").strip():
+            missing.append(name)
+    assert not missing, missing
+

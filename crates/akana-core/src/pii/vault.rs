@@ -250,9 +250,7 @@ impl PiiVault {
             .keys()
             .map(String::as_str)
             .filter(|k| {
-                !k.is_empty()
-                    && (shapes.contains(*k)
-                        || (!issued_shapes_in(k).contains(*k) && text.contains(*k)))
+                !k.is_empty() && (shapes.contains(*k) || (!is_issued_shape(k) && text.contains(*k)))
             })
             .collect()
     }
@@ -358,6 +356,9 @@ lazy_static::lazy_static! {
     // ASCII digits only: the windows are cut by bytes, and the original text (not the folded
     // one) can hold full-width digits.
     static ref DIGIT_RUN: regex::Regex = regex::Regex::new(r"(?:TR)?[0-9]{11,64}").unwrap();
+    /// [`ISSUED_SHAPE`] as the whole string.
+    static ref WHOLE_ISSUED_SHAPE: regex::Regex =
+        regex::Regex::new(&format!("^(?:{})$", ISSUED_SHAPE.as_str())).unwrap();
 }
 
 /// Every string in `text` that a placeholder or a surrogate could be: placeholders ({{AD_1}}),
@@ -365,6 +366,18 @@ lazy_static::lazy_static! {
 /// of a digit run (TCKNs) and the 24 digits after a "TR" (IBANs). A new placeholder or
 /// surrogate must not be one of them, or restore would also turn that text into the original.
 /// Digit runs longer than 64 digits are not windowed.
+/// Whether `key` is itself one of the strings [`issued_shapes_in`] finds, without scanning it:
+/// the vault asked that of every key on every mask, which grew with the session (review 4
+/// BIND4-06).
+fn is_issued_shape(key: &str) -> bool {
+    let digits = |d: &str| d.bytes().all(|b| b.is_ascii_digit());
+    WHOLE_ISSUED_SHAPE.is_match(key)
+        || (key.len() == 11 && digits(key))
+        || key
+            .strip_prefix("TR")
+            .is_some_and(|d| d.len() == 24 && digits(d))
+}
+
 pub(crate) fn issued_shapes_in(text: &str) -> HashSet<String> {
     let mut out: HashSet<String> = ISSUED_SHAPE
         .find_iter(text)

@@ -164,7 +164,9 @@ pub struct PiiResult {
     pub original_text: String,
     pub masked_text: String,
     pub entities: Vec<PiiEntity>,
-    /// Plain mapping of { placeholder_or_surrogate: original_text } for downstream clients
+    /// Plain mapping of { placeholder_or_surrogate: original_text } of this call's masked text,
+    /// a placeholder reused from an earlier turn included; the vault holds the whole session
+    /// (review 4 BIND4-06: it held every entry of the session, 20,002 for a call that masked 2).
     pub mapping: HashMap<String, String>,
     pub vault: PiiVault,
 }
@@ -389,6 +391,33 @@ impl TurkishPiiEngine {
         mode: PiiMode,
         vault: &mut PiiVault,
     ) -> PiiResult {
+        let (masked_text, used) = Self::mask_into(text, &entities, mode, vault);
+        let mapping = used
+            .iter()
+            .filter_map(|p| {
+                let entry = vault.placeholder_to_entry.get(p)?;
+                Some((p.clone(), entry.original_text.clone()))
+            })
+            .collect();
+        PiiResult {
+            original_text: text.to_string(),
+            masked_text,
+            entities,
+            mapping,
+            vault: vault.clone(),
+        }
+    }
+
+    /// The masking of [`mask_detected`](Self::mask_detected) without its result's copy of the
+    /// vault: the masked text, and the placeholders and surrogates it holds, each once, in text
+    /// order. A caller with a long session vault reads this call's entries from it.
+    pub fn mask_into(
+        text: &str,
+        entities: &[PiiEntity],
+        mode: PiiMode,
+        vault: &mut PiiVault,
+    ) -> (String, Vec<String>) {
+        let mut used: Vec<String> = Vec::new();
         let mut masked = String::with_capacity(text.len());
         let mut last_end = 0;
 
@@ -454,6 +483,9 @@ impl TurkishPiiEngine {
                 }
             };
             masked.push_str(&placeholder);
+            if !used.contains(&placeholder) {
+                used.push(placeholder);
+            }
 
             last_end = end;
         }
@@ -461,16 +493,7 @@ impl TurkishPiiEngine {
         if last_end < text.len() {
             masked.push_str(&text[last_end..]);
         }
-
-        let mapping = vault.get_mapping();
-
-        PiiResult {
-            original_text: text.to_string(),
-            masked_text: masked,
-            entities,
-            mapping,
-            vault: vault.clone(),
-        }
+        (masked, used)
     }
 
     /// Inbound gateway response restoration: replaces placeholders in LLM response with original PII values.

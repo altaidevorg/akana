@@ -323,6 +323,24 @@ fn generation_writes_names_progressives_and_compounds() {
     ] {
         assert_eq!(generate(word, tags).as_deref(), expected, "{word} {tags}");
     }
+    // A reading's generation tags give its word back, the progressive as written (review 4
+    // MORPH4-08): morpheme_tags show -Iyor and -mAktA both as Prog.
+    for word in [
+        "bakmakta",
+        "bakıyor",
+        "gelmektedir",
+        "geliyordur",
+        "okumaktaydık",
+    ] {
+        let p = morph.analyze(word).into_iter().next().expect(word);
+        let tags = p.generation_tags();
+        let tags: Vec<&str> = tags.iter().map(String::as_str).collect();
+        assert_eq!(
+            generate(&p.lemma, &tags.join("+")).as_deref(),
+            Some(word),
+            "{word}"
+        );
+    }
     // The full stem of a compound takes no derivation.
     for word in ["cumhurbaşkanılık", "cumhurbaşkanılığı", "zeytinyağılı"] {
         assert!(morph.analyze(word).is_empty(), "{word}");

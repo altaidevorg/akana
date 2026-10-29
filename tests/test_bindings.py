@@ -308,3 +308,26 @@ def test_mask_returns_the_vault_it_was_given():
     second = engine.mask("Ahmet Yılmaz gitti.", vault=vault)
     assert second["vault"] is vault
     assert second["masked_text"].split()[0] == first["masked_text"].split()[0]
+
+
+def test_generation_tags_give_the_word_back():
+    """Review 4 MORPH4-08: analyze, then generate with generation_tags, gives the word."""
+    m = akana.Morphology()
+    for word in ["bakmakta", "bakıyor", "kitabıma", "gelmektedir"]:
+        p = m.analyze(word)[0]
+        assert m.generate(p["lemma"], p["generation_tags"]) == word
+    assert m.analyze("bakmakta")[0]["morphemes"] == ["Verb", "Prog"]
+
+
+def test_mask_mapping_holds_this_calls_entries():
+    """Review 4 BIND4-06: with a session vault, a mask's mapping and detailed_mapping hold the
+    placeholders of its own text (one reused from an earlier turn included), not the session."""
+    engine = akana.TurkishPiiEngine()
+    vault = akana.PiiVault()
+    engine.mask("Ahmet Yılmaz geldi.", vault=vault)
+    engine.mask("Ayşe Demir gitti.", vault=vault)
+    third = engine.mask("Ahmet Yılmaz yine geldi.", vault=vault)
+    assert list(third["mapping"].values()) == ["Ahmet Yılmaz"]
+    assert set(third["detailed_mapping"]) == set(third["mapping"])
+    assert len(vault) == 2
+    assert akana.pii_restore(third["masked_text"], third["mapping"]) == "Ahmet Yılmaz yine geldi."

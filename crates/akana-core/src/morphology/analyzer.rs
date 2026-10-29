@@ -104,6 +104,27 @@ impl MorphParse {
             .and_then(|(item, _)| item.rsplit_once(':'))
             .map_or(&self.lemma, |(lemma, _)| lemma)
     }
+
+    /// The tags that ask [`TurkishMorphology::generate`] for this reading's word again:
+    /// `morpheme_tags`, with each progressive named as written, `Prog1` (-Iyor) or `Prog2`
+    /// (-mAktA), where `morpheme_tags` shows both as `Prog`. With the lemma they give the word
+    /// back: bakmakta, where `morpheme_tags` gave bakıyor (review 4 MORPH4-08).
+    pub fn generation_tags(&self) -> Vec<String> {
+        let mut progressives = self.analysis.split(['+', '|']).filter_map(|m| {
+            let id = m.rsplit_once(':').map_or(m, |(_, id)| id);
+            let id = id.split('→').next().unwrap_or(id);
+            matches!(id, "Prog1" | "Prog2").then_some(id)
+        });
+        self.morpheme_tags
+            .iter()
+            .map(|t| match t.as_str() {
+                "Prog" => progressives
+                    .next()
+                    .map_or_else(|| t.clone(), str::to_string),
+                _ => t.clone(),
+            })
+            .collect()
+    }
 }
 
 /// The path of an analysis through the morphotactic graph: the root's state, then the state each

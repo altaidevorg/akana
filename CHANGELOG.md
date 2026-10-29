@@ -151,6 +151,10 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
   comes first (`dâhil`: `dahilinde`).
 - A case the word may leave implicit is shown (`karşı` with `Dat` is `karşıya`), and a
   pronoun's instrumental is the full form (`bununla`, `benimle`, not `bunla`, `benle`).
+- A reading's `generation_tags` (a new key of the parse dicts; Rust:
+  `MorphParse::generation_tags`) are its `morphemes` with the progressive named, `Prog1` or
+  `Prog2`, so `generate(lemma, generation_tags)` gives the word back (`bakmakta`, which its
+  `morphemes` gave back as `bakıyor`).
 - `Prog` is the -Iyor progressive, also on a stem that changes (`gidiyorum`, `ediyor`,
   `diyor`), where it gave -mAktA (`gitmekteyim`, `demekte`), except before the copula -DIr
   (`CopPres3sg`), where written Turkish has -mAktA (`gelmektedir`, not `geliyordur`). The
@@ -210,6 +214,8 @@ them passes it.
 
 ### Added
 
+- Every public class, function and method of the Python module has a docstring (116 of 148
+  had none), and a test keeps it so.
 - `akana.encoder_info()` and `akana.check_encoder(stored, kind)`; in Rust, `embeddings::spec`
   (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
   `encoder_info_json`, `IndexKind`, `compatibility_of`). The record carries the akana and
@@ -474,7 +480,11 @@ them passes it.
   (`is_type_enabled` held a lock with the GIL and could stall the process for a second). A
   `PiiVault` that threads share serves one `mask` at a time, and only while the mask
   registers its values: the text is read before the vault is taken, and `mask(vault=v)`
-  returns `v` itself as its `vault`.
+  returns `v` itself as its `vault`. A mask's `mapping` and `detailed_mapping` hold the
+  placeholders of its own text (one reused from an earlier turn included), where they held
+  every entry of the session (20,002 for a call that masked 2); the vault holds the session
+  (Rust: `PiiResult::mapping`, and `TurkishPiiEngine::mask_into`, which copies no vault).
+  Finding a session's placeholders in a text no longer runs the shape scan once per key.
 - `number_to_words` gives words for -2^63 (it overflowed); `currency_to_words` rounds to
   whole kuruş once (`2.999` is `üç lira`, it gave `iki lira yüz kuruş`; `-1.5` keeps its
   `elli kuruş`) and raises `ValueError` for an amount that is not finite or too large (Rust:
