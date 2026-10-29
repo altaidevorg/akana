@@ -78,7 +78,7 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     "çelik", "çetin", "çiftçi", "çınar", "çolak", "demir", "demirci", "demirel", "dinç", "doğan",
     "doğru", "duman", "durmaz", "duran", "ekinci", "elmas", "erbil", "erdem", "erdoğan", "eren",
     "ergin", "ergün", "erol", "ersoy", "ertekin", "ertuğrul", "eryılmaz", "esen", "gök", "gökçe",
-    "güler", "gültekin", "gümüş", "gündoğdu", "güneş", "güngör", "günay", "güven", "güzel", "ışık",
+    "güler", "gültekin", "gümüş", "gündoğdu", "güneş", "güngör", "günay", "güven", "güzel",
     "ışık", "kahraman", "kalkan", "kaplan", "kara", "karaca", "karadağ", "karakaya", "karakuş",
     "karaman", "karataş", "kaya", "kaymaz", "keskin", "kılıç", "kılınç", "kırkpınar", "koç",
     "kocabaş", "kocaman", "korkmaz", "kurt", "kuru", "küçük", "metin", "oral", "ozan", "öz",
@@ -95,9 +95,10 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     // Sacit ADALI: ada; pre-release audit).
     "kaleli", "kömürcü", "erten", "adalı", "özler", "tuğcu", "başarır", "baltalı",
     // Round 2: applicants and members cited by name (Hikmet Kopar: kopmak, Emine Dilek Onaran:
-    // onarmak, Abdullah Topçu: top, Sünuhi ARSAN: arsa) and Sabancı (saban).
-    "arsan", "mencik", "onaran", "kalyoncu", "kopar", "topçu", "edin", "balcı", "gayretli",
-    "bilin", "balıkçı", "sabancı", "sökmen", "sürmeli", "akün",
+    // onarmak, Abdullah Topçu: top, Sünuhi ARSAN: arsa) and Sabancı (saban). Not Bilin and Edin,
+    // which at a sentence's start are mostly bilmek's and etmek's imperatives (Bilin ki ...).
+    "arsan", "mencik", "onaran", "kalyoncu", "kopar", "topçu", "balcı", "gayretli", "balıkçı",
+    "sabancı", "sökmen", "sürmeli", "akün",
 ];
 
 /// Common international first names, leaving out ones that are everyday English words.

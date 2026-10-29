@@ -4516,7 +4516,7 @@ avrupai avrupai Adj ProperNoun ProperNoun
 avrupai avrupai Noun ProperNoun ProperNoun display=Avrupaî
 avsat avsat Noun ProperNoun ProperNoun
 avtovaz avtovaz Noun ProperNoun ProperNoun
-avukat av Noun Abbrv pr=avukat display=avukat
+avukat av Noun Abbrv pr=avukat display=Av
 avukat avukat Noun None NoVoicing
 avunmak avun Verb None AoristI
 avuntu avuntu Noun None
@@ -7951,7 +7951,6 @@ bilimadamı bilimadamı Noun None CompoundP3sg roots=bilim-adam
 bilimdışı bilimdışı Adj None CompoundP3sg roots=bilim-dış
 bilimkurgu bilimkurgu Noun None
 bilimsel bilimsel Adj None
-bilin bilin Noun ProperNoun ProperNoun
 bilindik bilindik Adj None Voicing
 bilinemez bilinemez Noun None
 bilinen bilinen Adj None
@@ -10038,7 +10037,7 @@ cactus cactus Noun ProperNoun ProperNoun
 cacık cacık Noun None Voicing
 cadaloz cadaloz Adj None
 cadbury cadbury Noun ProperNoun ProperNoun
-cadde cad Noun Abbrv pr=cadde display=cadde
+cadde cad Noun Abbrv pr=cadde display=Cad
 cadde cadde Noun None
 caddebostan caddebostan Noun ProperNoun ProperNoun
 caddy caddy Noun ProperNoun NoVoicing ProperNoun
@@ -14334,7 +14333,7 @@ doksan doksan Num Card
 doksanar doksanar Num Dist
 doksanıncı doksanıncı Num Ord
 doktor doktor Noun None
-doktor dr Noun Abbrv pr=doktor display=doktor
+doktor dr Noun Abbrv pr=doktor display=Dr
 doktora doktora Noun None
 doktrin doktrin Noun None
 doktriner doktriner Noun None
@@ -14614,7 +14613,7 @@ doyurmak doyur Verb None AoristI CausativeT
 doz doz Noun None NoVoicing
 dozaj dozaj Noun None
 dozer dozer Noun None
-doçent doç Noun Abbrv pr=doçent display=doçent
+doçent doç Noun Abbrv pr=doçent display=Doç
 doçent doçent Noun None NoVoicing
 doçka doçka Noun ProperNoun ProperNoun
 doğa doğa Noun None
@@ -15657,7 +15656,6 @@ edilgin edilgin Adj None
 edim edim Noun None
 edim edim Noun ProperNoun ProperNoun
 edimbilim edimbilim Noun None
-edin edin Noun ProperNoun ProperNoun
 edinburg edinburg Noun ProperNoun ProperNoun
 edinburgh edinburgh Noun ProperNoun ProperNoun
 edincik edincik Noun ProperNoun ProperNoun
@@ -25806,7 +25804,7 @@ ihlas ihlas Noun ProperNoun ProperNoun
 ihmal ihmal Noun None InverseHarmony
 ihmalkar ihmalkar Adj None display=ihmalkâr
 ihmirar ihmirar Noun ProperNoun ProperNoun display=İhmirâr
-ihracat ihr Noun Abbrv pr=ihracat display=ihracat
+ihracat ihr Noun Abbrv pr=ihracat display=İhr
 ihracat ihracat Noun None NoVoicing
 ihrakiye ihrakiye Noun None
 ihram ihram Noun None
@@ -27064,7 +27062,7 @@ ithaf ithaf Noun None
 ithafen ithafen Postp None pc=Dat
 ithaki ithaki Noun ProperNoun ProperNoun
 ithal ithal Noun None InverseHarmony
-ithalat ith Noun Abbrv pr=ithalat display=ithalat
+ithalat ith Noun Abbrv pr=ithalat display=İth
 ithalat ithalat Noun None NoVoicing
 itham itham Noun None
 ithamname ithamname Noun None
@@ -31941,7 +31939,7 @@ kovancılar kovancılar Noun ProperNoun ProperNoun
 kovaçeviç kovaçeviç Noun ProperNoun ProperNoun
 kovboy kovboy Noun None
 kovcu kovcu Adj None
-kovid covid Noun Abbrv pr=kovid display=kovid
+kovid covid Noun Abbrv pr=kovid display=COVID
 kovid kovid Noun None
 kovlamak kovla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 kovmak kov Verb None AoristA
@@ -34650,7 +34648,7 @@ limewire limewire Noun ProperNoun ProperNoun
 limit limit Noun None NoVoicing
 limited limited Adj None
 limited limited Noun None
-limited ltd Noun Abbrv pr=limited display=limited
+limited ltd Noun Abbrv pr=limited display=Ltd
 limitet limitet Adj None Voicing
 limitet limitet Noun ProperNoun ProperNoun
 limni limni Noun ProperNoun ProperNoun
@@ -35300,9 +35298,9 @@ madam madam Noun None
 madame madame Noun ProperNoun ProperNoun
 madanoğlu madanoğlu Noun ProperNoun ProperNoun
 madara madara Adj None
-madde mad Noun Abbrv pr=madde display=madde
+madde mad Noun Abbrv pr=madde display=mad
 madde madde Noun None
-madde md Noun Abbrv pr=madde display=madde
+madde md Noun Abbrv pr=madde display=md
 maddeten maddeten Adv None
 maddi maddi Adj None display=maddî
 maddie maddie Noun ProperNoun ProperNoun
@@ -35401,7 +35399,7 @@ mahabad mahabad Noun ProperNoun ProperNoun
 mahabat mahabat Noun ProperNoun ProperNoun
 mahal mahal Noun None Doubling InverseHarmony
 mahal mahal Noun None InverseHarmony Nonstandard idx=1
-mahalle mah Noun Abbrv pr=mahalle display=mahalle
+mahalle mah Noun Abbrv pr=mahalle display=Mah
 mahalle mahalle Noun None
 mahallebaşı mahallebaşı Noun ProperNoun ProperNoun
 mahalli mahalli Adj None display=mahallî
@@ -39771,7 +39769,7 @@ müftü müftü Noun None
 müftüoğlu müftüoğlu Noun ProperNoun ProperNoun
 müge müge Noun None
 müge müge Noun ProperNoun ProperNoun
-mühendis müh Noun Abbrv pr=mühendis display=mühendis
+mühendis müh Noun Abbrv pr=mühendis display=Müh
 mühendis mühendis Noun None
 mühendishane mühendishane Noun None
 müheymin müheymin Noun ProperNoun ProperNoun
@@ -43562,7 +43560,7 @@ parafelemek parafele Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 parafin parafin Noun None
 paraflamak parafla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 paragliding paragliding Noun None
-paragraf par Noun Abbrv pr=paragraf display=paragraf
+paragraf par Noun Abbrv pr=paragraf display=par
 paragraf paragraf Noun None
 paraguay paraguay Noun ProperNoun ProperNoun
 paragöz paragöz Adj None
@@ -45419,7 +45417,7 @@ proença proença Noun ProperNoun ProperNoun
 professional professional Noun ProperNoun ProperNoun
 professor professor Noun ProperNoun ProperNoun
 profesyonel profesyonel Adj None
-profesör prof Noun Abbrv pr=profesör display=profesör
+profesör prof Noun Abbrv pr=profesör display=Prof
 profesör profesör Noun None
 profil profil Noun None
 profillemek profille Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
@@ -48247,7 +48245,7 @@ sanatkarane sanatkarane Adv None display=sanatkârane
 sanatoryum sanatoryum Noun None
 sanatsever sanatsever Adj None
 sanay sanay Noun ProperNoun ProperNoun
-sanayi san Noun Abbrv pr=sanayi display=sanayi
+sanayi san Noun Abbrv pr=sanayi display=San
 sanayi sanayi Noun None
 sanayi sanayi Noun None pr=sanayiğ idx=1
 sanayiinefise sanayiinefise Noun None
@@ -50987,7 +50985,7 @@ sohbet sohbet Noun None NoVoicing
 sohbet sohbet Noun ProperNoun ProperNoun
 soho soho Noun ProperNoun ProperNoun
 soir soir Noun ProperNoun ProperNoun
-sokak sok Noun Abbrv pr=sokak display=sokak
+sokak sok Noun Abbrv pr=sokak display=Sok
 sokak sokak Noun None Voicing
 sokak sokak Noun ProperNoun ProperNoun
 soket soket Noun None NoVoicing
@@ -55460,7 +55458,7 @@ tibor tibor Noun ProperNoun ProperNoun
 tibuk tibuk Noun ProperNoun ProperNoun
 tican tican Noun ProperNoun ProperNoun
 ticani ticani Noun ProperNoun ProperNoun
-ticaret tic Noun Abbrv pr=ticaret display=ticaret
+ticaret tic Noun Abbrv pr=ticaret display=Tic
 ticaret ticaret Noun None NoVoicing
 ticaretgah ticaretgah Noun None display=ticaretgâh
 ticarethane ticarethane Noun None
@@ -60162,7 +60160,7 @@ yardak yardak Noun None Voicing
 yardım yardım Noun None
 yardımcı yardımcı Adj None
 yardımcı yardımcı Noun None
-yardımcı yrd Noun Abbrv pr=yardımcı display=yardımcı
+yardımcı yrd Noun Abbrv pr=yardımcı display=Yrd
 yardımeli yardımeli Noun ProperNoun ProperNoun
 yardımlaşmak yardımlaş Verb None AoristI
 yardımsever yardımsever Adj None
@@ -66283,9 +66281,9 @@ zıypak zıypak Adj None Voicing
 şirintepe şirintepe Noun ProperNoun ProperNoun
 şirinyer şirinyer Noun ProperNoun ProperNoun
 şirk şirk Noun None NoVoicing
-şirket aş Noun Abbrv pr=aşe display=şirket
+şirket aş Noun Abbrv pr=aşe display=AŞ
 şirket şirket Noun None NoVoicing
-şirket şti Noun Abbrv pr=şirketi display=şirket
+şirket şti Noun Abbrv pr=şirketi display=Şti
 şirpençe şirpençe Noun None
 şirret şirret Adj None NoVoicing
 şirvan şirvan Noun ProperNoun ProperNoun

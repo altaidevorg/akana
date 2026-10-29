@@ -487,8 +487,10 @@ def make_entry(word, meta, source):
         e.lemma = normalize_circumflex(turkish_lower(ref))
     # The dictionary's own spelling of the lemma: a verb's infinitive, a name with its capital
     # and apostrophe, a loanword with its circumflex; an acronym with a Latin I in capitals
-    # with that I (Ibm, Icsıd: IBM, ICSID).
-    if ref:
+    # with that I (Ibm, Icsıd: IBM, ICSID). An abbreviation read as its word keeps its own
+    # spelling (Av, AŞ, md; lemma avukat, şirket, madde): the analyzer tells by it a word written
+    # in lower case (av "hunt", aş "food") from the abbreviation spelled in capitals.
+    if ref and secondary != "Abbrv":
         e.display = ref
     elif latin_i:
         e.display = "".join(c if c == "I" else turkish_upper(c) for c in word)

@@ -375,7 +375,9 @@ impl PyMorphology {
     /// (`["Noun", "P1sg", "Dat"]`), in any case; A3sg, Pnon and Nom may be left out. The
     /// copula after a verb is CopPres3sg (`gelmektedir`), CopPast, CopEvid or CopCond. Prog is
     /// -Iyor (`diyor`), or -mAktA before CopPres3sg; Prog1 and Prog2 ask for -Iyor or -mAktA,
-    /// and a reading's `generation_tags` name the one it has, so that they give its word back.
+    /// and a reading's `generation_tags` name the one it has, so that the word comes back with
+    /// its progressive (most words come back so; a form with a silent morpheme, HMK'na, or a
+    /// variant suffix, istenilmektedir, may come back in its other spelling).
     /// The lemma may be spelt as `display_lemma` gives it (`kâğıt`, `e-posta`, `FIFA`) or
     /// folded (`kağıt`); the word comes back folded, a name as the dictionary spells it with
     /// its apostrophe (`Hakkâri'de`). Returns None for an unknown word, POS or tag, or a form

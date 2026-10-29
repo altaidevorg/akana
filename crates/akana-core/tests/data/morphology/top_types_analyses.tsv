@@ -324,7 +324,7 @@ cezası	ceza	Noun		Noun+P3sg	Noun	[ceza:Noun] ceza:Noun+A3sg+sı:P3sg
 olmadığına	olmak	Verb		Verb+Neg+PastPart+P3sg+Dat	Noun	[olmak:Verb] ol:Verb+ma:Neg|dığ:PastPart→Noun+A3sg+ı:P3sg+na:Dat
 gerekçesiyle	gerekçe	Noun		Noun+P3sg+Ins	Noun	[gerekçe:Noun] gerekçe:Noun+A3sg+si:P3sg+yle:Ins
 sürede	süre	Noun		Noun+Loc	Noun	[süre:Noun] süre:Noun+A3sg+de:Loc
-Av	avukat	Noun	Abbrv	Noun+A3sg+Nom	Noun	[avukat:Noun,Abbrv] av:Noun+A3sg
+Av	avukat	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Av:Noun,Abbrv] av:Noun+A3sg
 yeterli	yeterli	Adj		Adj	Adj	[yeterli:Adj] yeterli:Adj
 karara	karar	Noun		Noun+Dat	Noun	[karar:Noun] karar:Noun+A3sg+a:Dat
 sağlık	sağlık	Noun		Noun+A3sg+Nom	Noun	[sağlık:Noun] sağlık:Noun+A3sg
@@ -617,7 +617,7 @@ doğrultusunda	doğrultu	Noun		Noun+P3sg+Loc	Noun	[doğrultu:Noun] doğrultu:Nou
 incelenerek	incelemek	Verb		Verb+Pass+AdvErek	Adv	[incelemek:Verb] incele:Verb|n:Pass→Verb|erek:ByDoingSo→Adv
 Tarihi	tarih	Noun		Noun+P3sg	Noun	[tarih:Noun] tarih:Noun+A3sg+i:P3sg
 erişim	erişim	Noun		Noun+A3sg+Nom	Noun	[erişim:Noun] erişim:Noun+A3sg
-md	madde	Noun	Abbrv	Noun+A3sg+Nom	Noun	[madde:Noun,Abbrv] md:Noun+A3sg
+md	madde	Noun	Abbrv	Noun+A3sg+Nom	Noun	[md:Noun,Abbrv] md:Noun+A3sg
 sınırlı	sınır	Noun		Noun+With	Adj	[sınır:Noun] sınır:Noun+A3sg|lı:With→Adj
 belge	belge	Noun		Noun+A3sg+Nom	Noun	[belge:Noun] belge:Noun+A3sg
 kanuni	kanuni	Adj		Adj	Adj	[kanunî:Adj] kanuni:Adj
@@ -736,7 +736,7 @@ anlaşıldığından	anlaşmak	Verb		Verb+Pass+PastPart+P3sg+Abl	Noun	[anlaşmak
 KARŞI	karşı	Postp		Postp	Postp	[karşı:Postp] karşı:Postp
 nihai	nihai	Adj		Adj	Adj	[nihaî:Adj] nihai:Adj
 yürürlükte	yürürlük	Noun		Noun+Loc	Noun	[yürürlük:Noun] yürürlük:Noun+A3sg+te:Loc
-Ltd	limited	Noun	Abbrv	Noun+A3sg+Nom	Noun	[limited:Noun,Abbrv] ltd:Noun+A3sg
+Ltd	limited	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Ltd:Noun,Abbrv] ltd:Noun+A3sg
 varılmıştır	varmak	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[varmak:Verb] var:Verb|ıl:Pass→Verb+mış:Narr+A3sg+tır:Cop
 sonuçlarının	sonuç	Noun		Noun+A3pl+P3sg+Gen	Noun	[sonuç:Noun] sonuç:Noun+lar:A3pl+ı:P3sg+nın:Gen
 yönetim	yönetim	Noun		Noun+A3sg+Nom	Noun	[yönetim:Noun] yönetim:Noun+A3sg
@@ -803,7 +803,7 @@ giderleri	gider	Noun		Noun+A3pl+P3sg	Noun	[gider:Noun] gider:Noun+ler:A3pl+i:P3s
 ihlali	ihlal	Noun		Noun+P3sg	Noun	[ihlâl:Noun] ihlal:Noun+A3sg+i:P3sg
 olmadığının	olmak	Verb		Verb+Neg+PastPart+P3sg+Gen	Noun	[olmak:Verb] ol:Verb+ma:Neg|dığ:PastPart→Noun+A3sg+ı:P3sg+nın:Gen
 Kurumu	kurum	Noun		Noun+P3sg	Noun	[kurum:Noun] kurum:Noun+A3sg+u:P3sg
-Şti	şirket	Noun	Abbrv	Noun+A3sg+Nom	Noun	[şirket:Noun,Abbrv] şti:Noun+A3sg
+Şti	şirket	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Şti:Noun,Abbrv] şti:Noun+A3sg
 görülmüştür	görmek	Verb		Verb+Pass+Evid+CopPres3sg	Verb	[görmek:Verb] gör:Verb|ül:Pass→Verb+müş:Narr+A3sg+tür:Cop
 okunup	okumak	Verb		Verb+Pass+AdvIp	Adv	[okumak:Verb] oku:Verb|n:Pass→Verb|up:AfterDoingSo→Adv
 oldukları	olmak	Verb		Verb+PastPart+P3pl	Noun	[olmak:Verb] ol:Verb|duk:PastPart→Noun+A3sg+ları:P3pl
@@ -980,7 +980,7 @@ incelenmesine	incelemek	Verb		Verb+Pass+ActN+P3sg+Dat	Noun	[incelemek:Verb] ince
 ölçüde	ölçü	Noun		Noun+Loc	Noun	[ölçü:Noun] ölçü:Noun+A3sg+de:Loc
 girdiği	girmek	Verb		Verb+PastPart+P3sg	Noun	[girmek:Verb] gir:Verb|diğ:PastPart→Noun+A3sg+i:P3sg
 mümkündür	mümkün	Adj		Adj+CopPres3sg	Adj	[mümkün:Adj] mümkün:Adj|Zero→Verb+Pres+A3sg+dür:Cop
-Tic	ticaret	Noun	Abbrv	Noun+A3sg+Nom	Noun	[ticaret:Noun,Abbrv] tic:Noun+A3sg
+Tic	ticaret	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Tic:Noun,Abbrv] tic:Noun+A3sg
 nun	-	-	-	-	-	-
 verilecek	vermek	Verb		Verb+Pass+FutPart	Adj	[vermek:Verb] ver:Verb|il:Pass→Verb|ecek:FutPart→Adj
 KARARI	karar	Noun		Noun+P3sg	Noun	[karar:Noun] karar:Noun+A3sg+ı:P3sg
@@ -1424,7 +1424,7 @@ hâlde	hal	Noun		Noun+Loc	Noun	[hal:Noun] hal:Noun+A3sg+de:Loc
 örneği	örnek	Noun		Noun+P3sg	Noun	[örnek:Noun] örneğ:Noun+A3sg+i:P3sg
 kaybı	kayıp	Noun		Noun+P3sg	Noun	[kayıp:Noun] kayb:Noun+A3sg+ı:P3sg
 ÇINAR	çınar	Noun	Prop	Noun+A3sg+Nom	Noun	[Çınar:Noun,Prop] çınar:Noun+A3sg
-San	sanayi	Noun	Abbrv	Noun+A3sg+Nom	Noun	[sanayi:Noun,Abbrv] san:Noun+A3sg
+San	sanayi	Noun	Abbrv	Noun+A3sg+Nom	Noun	[San:Noun,Abbrv] san:Noun+A3sg
 TTK	ttk	Noun	Abbrv	Noun+A3sg+Nom	Noun	[TTK:Noun,Abbrv] ttk:Noun+A3sg
 anlaşılmakla	anlaşmak	Verb		Verb+Pass+Inf+Ins	Noun	[anlaşmak:Verb] anlaş:Verb|ıl:Pass→Verb|mak:Inf1→Noun+A3sg+la:Ins
 büyük	büyük	Adj		Adj	Adj	[büyük:Adj] büyük:Adj
@@ -4067,7 +4067,7 @@ yapılmamıştır	yapmak	Verb		Verb+Pass+Neg+Evid+CopPres3sg	Verb	[yapmak:Verb] 
 şartlarını	şart	Noun		Noun+A3pl+P3sg+Acc	Noun	[şart:Noun] şart:Noun+lar:A3pl+ı:P3sg+nı:Acc
 şirkette	şirket	Noun		Noun+Loc	Noun	[şirket:Noun] şirket:Noun+A3sg+te:Loc
 Benzer	benzer	Adj		Adj	Adj	[benzer:Adj] benzer:Adj
-Dr	doktor	Noun	Abbrv	Noun+A3sg+Nom	Noun	[doktor:Noun,Abbrv] dr:Noun+A3sg
+Dr	doktor	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Dr:Noun,Abbrv] dr:Noun+A3sg
 Mücadele	mücadele	Noun	Prop	Noun+A3sg+Nom	Noun	[Mücadele:Noun,Prop] mücadele:Noun+A3sg
 Müdürlüğünce	müdür	Noun		Noun+Ness+P3sg+Equ	Noun	[müdür:Noun] müdür:Noun+A3sg|lüğ:Ness→Noun+A3sg+ü:P3sg+nce:Equ
 Uygulama	uygulamak	Verb		Verb+ActN	Noun	[uygulamak:Verb] uygula:Verb|ma:Inf2→Noun+A3sg
@@ -4594,7 +4594,7 @@ yürürlüklerinin	yürürlük	Noun		Noun+A3pl+P3sg+Gen	Noun	[yürürlük:Noun] 
 zedeleyici	zedelemek	Verb		Verb+Agt	Noun	[zedelemek:Verb] zedele:Verb|yici:Agt→Noun+A3sg
 çalıştığını	çalışmak	Verb		Verb+PastPart+P3sg+Acc	Noun	[çalışmak:Verb] çalış:Verb|tığ:PastPart→Noun+A3sg+ı:P3sg+nı:Acc
 öteki	öteki	Adj		Adj	Adj	[öteki:Adj] öteki:Adj
-AŞ	şirket	Noun	Abbrv	Noun+A3sg+Nom	Noun	[şirket:Noun,Abbrv] aş:Noun+A3sg
+AŞ	şirket	Noun	Abbrv	Noun+A3sg+Nom	Noun	[AŞ:Noun,Abbrv] aş:Noun+A3sg
 TEŞKİLATI	teşkilat	Noun		Noun+P3sg	Noun	[teşkilât:Noun] teşkilat:Noun+A3sg+ı:P3sg
 Yekta	yekta	Noun	Prop	Noun+A3sg+Nom	Noun	[Yekta:Noun,Prop] yekta:Noun+A3sg
 Yukarıdaki	yukarı	Noun		Noun+Loc+RelClitic	Adj	[yukarı:Noun] yukarı:Noun+A3sg+da:Loc|ki:Rel→Adj
@@ -5635,7 +5635,7 @@ Arka	arka	Adj		Adj	Adj	[arka:Adj] arka:Adj
 Bab	bab	Noun	Abbrv	Noun+A3sg+Nom	Noun	[BAB:Noun,Abbrv] bab:Noun+A3sg
 Bey	bey	Noun		Noun+A3sg+Nom	Noun	[bey:Noun] bey:Noun+A3sg
 British	british	Noun	Prop	Noun+A3sg+Nom	Noun	[British:Noun,Prop] british:Noun+A3sg
-COVID	kovid	Noun	Abbrv	Noun+A3sg+Nom	Noun	[kovid:Noun,Abbrv] covid:Noun+A3sg
+COVID	kovid	Noun	Abbrv	Noun+A3sg+Nom	Noun	[COVID:Noun,Abbrv] covid:Noun+A3sg
 Delta	delta	Noun		Noun+A3sg+Nom	Noun	[delta:Noun] delta:Noun+A3sg
 Douglas	douglas	Noun	Prop	Noun+A3sg+Nom	Noun	[Douglas:Noun,Prop] douglas:Noun+A3sg
 Erişim	erişim	Noun		Noun+A3sg+Nom	Noun	[erişim:Noun] erişim:Noun+A3sg

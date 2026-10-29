@@ -425,7 +425,7 @@ def test_numbers_currency_and_vectors_at_the_edges():
 
 
 def test_every_public_callable_has_a_docstring():
-    """Review 4 BIND4-07: 116 of 148 callables had none."""
+    """Review 4 BIND4-07: 119 of 138 callables had none."""
     import inspect
 
     import akana._core as core

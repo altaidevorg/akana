@@ -108,7 +108,9 @@ impl MorphParse {
     /// The tags that ask [`TurkishMorphology::generate`] for this reading's word again:
     /// `morpheme_tags`, with each progressive named as written, `Prog1` (-Iyor) or `Prog2`
     /// (-mAktA), where `morpheme_tags` shows both as `Prog`. With the lemma they give the word
-    /// back: bakmakta, where `morpheme_tags` gave bakıyor (review 4 MORPH4-08).
+    /// back with its progressive: bakmakta, where `morpheme_tags` gave bakıyor (review 4
+    /// MORPH4-08). A form with a silent morpheme (HMK'na, through a silent P3sg) or a variant
+    /// suffix (istenilmektedir) may come back in its other spelling.
     pub fn generation_tags(&self) -> Vec<String> {
         let mut progressives = self.analysis.split(['+', '|']).filter_map(|m| {
             let id = m.rsplit_once(':').map_or(m, |(_, id)| id);

@@ -69,6 +69,9 @@ fn court_surnames_are_names_and_a_heading_word_is_none() {
             "{word}"
         );
     }
+    // Bilin and Edin are no surnames: at a sentence's start they are bilmek's and etmek's
+    // imperatives (Bilin ki ...).
+    assert_eq!(first("Bilin").lemma, "bilmek");
     // Temel heads a phrase far more often than it follows a given name (Temel Hak ve
     // Özgürlükler): it has no name reading.
     assert!(TurkishMorphology::new()
@@ -146,6 +149,27 @@ fn an_abbreviation_of_one_word_is_that_word() {
         terms("Deniz ticaret limited şirket")
     );
     assert!(!terms("Deniz Gıda A.Ş.").contains(&"aş".to_string()));
+    // A word written in lower case is no abbreviation the dictionary spells in capitals: av
+    // "hunt" and aş "food" keep their term (since the abbreviations read as their word, av
+    // yasağı gave avukat and aş şirket; the pre-release review). md, spelled so, is madde.
+    for (text, word, not) in [
+        ("Bu yıl av yasağı var.", "av", "avukat"),
+        ("Herkese aş dağıttılar.", "aş", "şirket"),
+    ] {
+        let t = terms(text);
+        assert!(
+            t.contains(&word.to_string()) && !t.contains(&not.to_string()),
+            "{text}: {t:?}"
+        );
+    }
+    for word in ["av", "aş", "san", "mah", "sok"] {
+        assert_ne!(
+            first(word).secondary_pos,
+            SecondaryPos::Abbreviation,
+            "{word}"
+        );
+    }
+    assert_eq!(first("md").lemma, "madde");
 }
 
 #[test]

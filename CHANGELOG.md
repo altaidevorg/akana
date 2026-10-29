@@ -153,8 +153,12 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
   pronoun's instrumental is the full form (`bununla`, `benimle`, not `bunla`, `benle`).
 - A reading's `generation_tags` (a new key of the parse dicts; Rust:
   `MorphParse::generation_tags`) are its `morphemes` with the progressive named, `Prog1` or
-  `Prog2`, so `generate(lemma, generation_tags)` gives the word back (`bakmakta`, which its
-  `morphemes` gave back as `bakıyor`).
+  `Prog2`, so `generate(lemma, generation_tags)` writes the progressive the word has
+  (`bakmakta`, which its `morphemes` gave back as `bakıyor`). They do not give every word back:
+  of the 6,893 words of the analysis snapshot that read, 76 come back otherwise, among them an
+  abbreviation's case after its silent possessive (`HMK'na`: `HMK'ya`), an abbreviation read as
+  its word (`Av`: `avukat`), the passive -nIl (`istenilmektedir`: `istenmektedir`) and
+  -mAksIzIn (`olmaksızın`: `olmadan`).
 - `Prog` is the -Iyor progressive, also on a stem that changes (`gidiyorum`, `ediyor`,
   `diyor`), where it gave -mAktA (`gitmekteyim`, `demekte`), except before the copula -DIr
   (`CopPres3sg`), where written Turkish has -mAktA (`gelmektedir`, not `geliyordur`). The
@@ -219,7 +223,7 @@ them passes it.
   Yargıtay's opening "Dava, ..." sentence) as the query and the rest of the decision as the
   target among the corpus sample's chunks. 0.9.0: MRR@10 0.6059 (BM25 over the sparse
   vectors), 0.4990 (their dot product), 0.2859 (hybrid) on 701 queries over 17,485 chunks.
-- Every public class, function and method of the Python module has a docstring (116 of 148
+- Every public class, function and method of the Python module has a docstring (119 of 138
   had none), and a test keeps it so.
 - `akana.encoder_info()` and `akana.check_encoder(stored, kind)`; in Rust, `embeddings::spec`
   (`SPARSE_SPEC`, `HYBRID_LAYOUT`, `DENSE_MODEL`, `ANALYSIS_VERSION`, `encoder_info`,
@@ -305,7 +309,7 @@ them passes it.
     (`dahil` and `dâhil`). Words the lexicon had only as names read as words (`rücuan`,
     `rızai`, `karz`, `meskeniyet`, `talasemi`, `rapçi`), and acronyms as abbreviations rather
     than corpus names typed with ı (`IBAN`, `BİST`; the build drops such a name). The given
-    names and surnames of akana's PII lists that Zemberek lacks as names are names (242:
+    names and surnames of akana's PII lists that Zemberek lacks as names are names (240:
     `Serpil` read as `serpmek`, `Gökçen` and `Özgen` with a P2sg, `Halide` as `hali-de`; `Hakan`,
     `Metin`, `Kaya` had no name reading, nor did the court decisions' `Basri BAĞCI` (`bağ`),
     `Mehmet ERTEN` (`erte`), `Hikmet Kopar` (`kopmak`) or `Kâni Vrana` (`kani`);

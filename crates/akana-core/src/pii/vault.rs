@@ -361,11 +361,6 @@ lazy_static::lazy_static! {
         regex::Regex::new(&format!("^(?:{})$", ISSUED_SHAPE.as_str())).unwrap();
 }
 
-/// Every string in `text` that a placeholder or a surrogate could be: placeholders ({{AD_1}}),
-/// bracket forms ([AD_145]), surrogate names, phones, dates and URLs, and each 11-digit window
-/// of a digit run (TCKNs) and the 24 digits after a "TR" (IBANs). A new placeholder or
-/// surrogate must not be one of them, or restore would also turn that text into the original.
-/// Digit runs longer than 64 digits are not windowed.
 /// Whether `key` is itself one of the strings [`issued_shapes_in`] finds, without scanning it:
 /// the vault asked that of every key on every mask, which grew with the session (review 4
 /// BIND4-06).
@@ -378,6 +373,11 @@ fn is_issued_shape(key: &str) -> bool {
             .is_some_and(|d| d.len() == 24 && digits(d))
 }
 
+/// Every string in `text` that a placeholder or a surrogate could be: placeholders ({{AD_1}}),
+/// bracket forms ([AD_145]), surrogate names, phones, dates and URLs, and each 11-digit window
+/// of a digit run (TCKNs) and the 24 digits after a "TR" (IBANs). A new placeholder or
+/// surrogate must not be one of them, or restore would also turn that text into the original.
+/// Digit runs longer than 64 digits are not windowed.
 pub(crate) fn issued_shapes_in(text: &str) -> HashSet<String> {
     let mut out: HashSet<String> = ISSUED_SHAPE
         .find_iter(text)
