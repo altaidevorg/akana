@@ -224,6 +224,11 @@ them passes it.
 
 ### Added
 
+- `scripts/ner_eval.py`: the NER's persons, places and organisations against Turkish WikiNER's
+  gold types (Turkish NLP Suite, CC BY-SA 4.0, pinned in `scripts/morph_sources.json`; its test
+  split is for evaluation only). 0.9.0 on the test split: PER precision 0.542, recall 0.239, F1
+  0.331; LOC 0.634, 0.380, 0.475; ORG 0.500, 0.044, 0.081 (0.8.0's NER with 0.9.0's analyzer:
+  PER 0.251, 0.445, 0.321; LOC F1 0.009).
 - `scripts/benchmark_court_known_item.py`: court known-item retrieval, a decision's own summary
   section (an AYM application's subject, a norm review's subject, Danıştay's İstemin Özeti,
   Yargıtay's opening "Dava, ..." sentence) as the query and the rest of the decision as the
@@ -359,7 +364,11 @@ them passes it.
   Fewer proper nouns are persons (49 % to 28 % of those inside a sentence that are no place):
   most were organisations, nationalities or other places, some were persons akana does not list
   (a surname alone: `Kapusuz`). A rare word that is a surname may still be a person at a
-  sentence's start (`Durmaz bir koşu`).
+  sentence's start (`Durmaz bir koşu`). On Turkish WikiNER's test split (`scripts/ner_eval.py`,
+  gold types): PER precision 0.251 to 0.542 and recall 0.445 to 0.239 (F1 0.321 to 0.331; the
+  persons of Wikipedia text are often foreign names and surnames akana does not list), LOC F1
+  0.009 to 0.475. A logistic model of the sentence-initial decision, trained on UD and WikiNER,
+  did no better than this rule on either test set and is not used.
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
   court decisions write after its period (`TCK.nun`, `HMK.'ya`; not `A.Ş.vekili`). NER

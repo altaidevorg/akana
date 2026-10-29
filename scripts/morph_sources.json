@@ -962,6 +962,49 @@
     }
    ],
    "license_found": "no licence file (Wiktionary content)"
+  },
+  {
+   "name": "turkish-wikiNER",
+   "version": "99df1dd7f5a01d39cd5903e51e361d708cb2a5a6",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "turkish-wikiNER/README.md",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/README.md",
+     "use": "license",
+     "sha256": "51182c199326d4b5d58878f89a36c67582ec8d423f94ae794b0b5c76b9ecc04d",
+     "size": 7201
+    },
+    {
+     "path": "turkish-wikiNER/tags.lst",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/tags.lst",
+     "use": "train",
+     "sha256": "4221871ef6dc877ea6f58ec75eb8b59e7b4b4191ba4489bfc4886514bd3883a9",
+     "size": 323
+    },
+    {
+     "path": "turkish-wikiNER/data/train-00000-of-00001.parquet",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/data/train-00000-of-00001.parquet",
+     "use": "train",
+     "sha256": "7862961d3ac283a0460bca75c64e827ee3f800e2febc7b36f398d8e7a6a58501",
+     "size": 1984874
+    },
+    {
+     "path": "turkish-wikiNER/data/validation-00000-of-00001.parquet",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/data/validation-00000-of-00001.parquet",
+     "use": "train",
+     "sha256": "a79fade31c37fade234ec7af2cd90aad0df944b72193a8cec097f9087f0141b8",
+     "size": 111625
+    },
+    {
+     "path": "turkish-wikiNER/data/test-00000-of-00001.parquet",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/data/test-00000-of-00001.parquet",
+     "use": "eval",
+     "sha256": "60b4b8b5ba3d02542546019c8a1f85d02789f50099788a37d9ff9b44074cea7f",
+     "size": 115394
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
   }
  ]
 }

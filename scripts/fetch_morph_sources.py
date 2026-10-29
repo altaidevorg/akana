@@ -14,7 +14,10 @@ Sources (the user approved each on 2026-10-26):
 - Google Research turkish-morphology lexicon (Apache-2.0), `src/analyzer/lexicon/base/*.tsv`;
 - TRmorph lexicon (MIT), `lexicon/`;
 - the Turkish Wiktionary extract of kaikki.org (Wiktionary content: CC BY-SA 4.0 and GFDL), an
-  optional add-on kept out of the core lexicon.
+  optional add-on kept out of the core lexicon;
+- Turkish WikiNER of the Turkish NLP Suite (CC BY-SA 4.0; approved 2026-10-30), Wikipedia
+  sentences annotated with entity types: its train and validation splits may train what akana
+  ships (NER's sentence-initial person decision), its test split is for evaluation only.
 
 Each file's `use` in the manifest says what it may feed: `train` (estimation of shipped data),
 `eval` (evaluation only), `lexicon` (lexicon additions, with attribution in THIRD_PARTY_NOTICES),
@@ -46,6 +49,7 @@ UD_TREEBANKS = {
 GOOGLE = ("google-research/turkish-morphology", "83d4b967dc09ff947d15a4b20a81dd328c2c4f81", "src/analyzer/lexicon/base")
 TRMORPH = ("coltekin/TRmorph", "fbceb1133fbdc51bd63693d448b7cb75672e2256", "lexicon")
 KAIKKI = "https://kaikki.org/trwiktionary/raw-wiktextract-data.jsonl.gz"
+WIKINER = ("turkish-nlp-suite/turkish-wikiNER", "99df1dd7f5a01d39cd5903e51e361d708cb2a5a6")
 
 
 def fetch(url: str) -> bytes:
@@ -93,6 +97,15 @@ def pin() -> dict:
         "license_expected": "CC BY-SA 4.0 + GFDL",
         "files": [{"path": "kaikki/trwiktionary-raw-wiktextract-data.jsonl.gz", "url": KAIKKI, "use": "addon"}],
     })
+    repo, ref = WIKINER
+    hub = lambda path: f"https://huggingface.co/datasets/{repo}/resolve/{ref}/{path}"
+    files = [{"path": "turkish-wikiNER/README.md", "url": hub("README.md"), "use": "license"},
+             {"path": "turkish-wikiNER/tags.lst", "url": hub("tags.lst"), "use": "train"}]
+    for split, use in (("train", "train"), ("validation", "train"), ("test", "eval")):
+        path = f"data/{split}-00000-of-00001.parquet"
+        files.append({"path": f"turkish-wikiNER/{path}", "url": hub(path), "use": use})
+    sources.append({"name": "turkish-wikiNER", "version": ref, "license_expected": "CC BY-SA 4.0",
+                    "files": files})
     return {"cache": ".cache/morph_sources", "sources": sources}
 
 
@@ -101,7 +114,7 @@ def licence_found(path: Path) -> str:
     if not path.exists():
         return "missing"
     text = " ".join(path.read_text(encoding="utf-8", errors="replace").split())
-    if "Attribution-ShareAlike 4.0" in text or "by-sa/4.0" in text:
+    if "Attribution-ShareAlike 4.0" in text or "by-sa/4.0" in text or "cc-by-sa-4.0" in text:
         return "CC BY-SA 4.0"
     if "BY-NC-SA 3.0" in text or "by-nc-sa/3.0" in text:
         return "CC BY-NC-SA 3.0"
