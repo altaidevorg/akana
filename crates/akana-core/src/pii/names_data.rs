@@ -94,6 +94,10 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     // Surnames of court decisions read as other words (Serruh KALELİ: kale, Mehmet ERTEN: erte,
     // Sacit ADALI: ada; pre-release audit).
     "kaleli", "kömürcü", "erten", "adalı", "özler", "tuğcu", "başarır", "baltalı",
+    // Round 2: applicants and members cited by name (Hikmet Kopar: kopmak, Emine Dilek Onaran:
+    // onarmak, Abdullah Topçu: top, Sünuhi ARSAN: arsa) and Sabancı (saban).
+    "arsan", "mencik", "onaran", "kalyoncu", "kopar", "topçu", "edin", "balcı", "gayretli",
+    "bilin", "balıkçı", "sabancı", "sökmen", "sürmeli", "akün",
 ];
 
 /// Common international first names, leaving out ones that are everyday English words.

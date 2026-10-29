@@ -2086,6 +2086,7 @@ aktris	1	0	1
 akturk	0	0	1
 aktör	1	0	1
 aktürk	0	0	1
+akun	0	0	1
 akustik	1	0	1
 akyel	1	0	1
 akyol	0	0	1
@@ -2095,6 +2096,7 @@ akçan	1	1	1
 akçar	0	0	1
 akçil	0	0	1
 akçora	0	0	1
+akün	1	1	1
 akıman	0	0	1
 akın	1	0	1
 akınalp	0	0	1
@@ -2406,6 +2408,7 @@ arraf	0	0	1
 arrafe	0	0	1
 arsa	1	0	1
 arsal	1	0	1
+arsan	1	1	1
 arsebuk	0	0	1
 arsebük	0	0	1
 arslan	1	0	1
@@ -2795,16 +2798,20 @@ bakır	1	0	1
 balahatun	0	0	1
 balaman	1	1	1
 balatekin	0	0	1
+balci	0	0	1
+balcı	1	0	1
 baler	0	0	1
 balgin	0	0	1
 balgın	0	0	1
 balhan	0	0	1
+balikci	0	0	1
 balin	0	0	1
 balisoy	0	0	1
 balkoc	0	0	1
 balkoç	0	0	1
 baltali	0	0	1
 baltalı	1	0	1
+balıkçı	1	0	1
 balın	1	1	1
 bana	1	1	0
 banka	1	0	1
@@ -3283,6 +3290,7 @@ bilgün	0	0	1
 bilim	1	0	1
 bilimci	1	0	0
 bilimsel	1	0	1
+bilin	1	0	1
 bilinen	1	0	1
 bilinir	1	0	0
 bilinmeyen	1	0	1
@@ -4399,6 +4407,7 @@ edilmeyen	1	0	0
 edilmiş	1	0	0
 edilmiştir	1	0	0
 edim	1	0	1
+edin	1	0	1
 edinme	1	0	0
 edip	1	0	1
 ediyordu	1	0	0
@@ -5104,6 +5113,7 @@ garibe	1	0	1
 gary	0	0	1
 gavs	0	0	1
 gaye	1	0	1
+gayretli	1	0	1
 gaz	1	0	1
 gazal	1	0	1
 gazale	1	1	1
@@ -6837,6 +6847,7 @@ kalması	1	1	0
 kalmasının	1	1	0
 kalmayan	1	0	0
 kalmıştır	1	0	0
+kalyoncu	1	0	1
 kalır	1	0	0
 kamaci	0	0	1
 kamacı	1	0	1
@@ -7306,6 +7317,7 @@ konuya	1	1	0
 konuyla	1	1	0
 kooperatif	1	0	1
 kooperatifin	1	1	0
+kopar	1	0	1
 koral	1	0	1
 koray	0	0	1
 korkmaz	1	0	1
@@ -8052,6 +8064,7 @@ memurlarının	1	1	0
 memuru	1	1	0
 men	1	0	1
 menaf	0	0	1
+mencik	1	0	1
 menfaat	1	0	1
 menfaatinin	1	1	0
 menfaatleri	1	1	0
@@ -9214,6 +9227,7 @@ onama	1	0	0
 onanması	1	1	0
 onanmasına	1	1	0
 onanmıştır	1	0	0
+onaran	1	0	1
 onarım	1	0	1
 onatkan	0	0	1
 onatsu	0	0	1
@@ -9920,6 +9934,8 @@ sabahat	0	0	1
 sabahattin	0	0	1
 sabahnur	0	0	1
 saban	1	0	1
+sabanci	0	0	1
+sabancı	1	0	1
 sabbar	0	0	1
 sabeddin	0	0	1
 sabi	1	0	1
@@ -10740,6 +10756,7 @@ slalom	1	0	1
 sofia	0	0	1
 sohbet	1	0	1
 sohret	0	0	1
+sokmen	0	0	1
 sokmener	0	0	1
 sokmensu	0	0	1
 sol	1	0	1
@@ -10914,6 +10931,7 @@ suretiyle	1	1	0
 suretle	1	1	0
 surette	1	1	0
 sureyya	0	0	1
+surmeli	0	0	1
 surre	0	0	1
 sursoy	0	0	1
 sururi	0	0	1
@@ -10968,6 +10986,7 @@ sâyebân	1	0	1
 sâyedâr	0	0	1
 sâyezâr	0	0	1
 sâzkâr	1	0	1
+sökmen	1	1	1
 sökmener	0	0	1
 sökmensu	0	0	1
 sönmez	1	0	1
@@ -11056,6 +11075,7 @@ süreyya	0	0	1
 süreç	1	0	1
 süreçte	1	1	0
 sürmektedir	1	0	0
+sürmeli	1	0	1
 sürmesi	1	1	0
 sürmüş	1	0	0
 sürmüştür	1	0	0
@@ -11688,6 +11708,7 @@ tongar	0	0	1
 topal	1	0	1
 topay	0	0	1
 topcay	0	0	1
+topcu	0	0	1
 topdemir	0	0	1
 toplam	1	0	1
 toplamda	1	1	0
@@ -11705,7 +11726,7 @@ toplumsal	1	0	0
 toplumun	1	1	0
 toprak	1	0	1
 topçay	0	0	1
-topçu	1	0	0
+topçu	1	0	1
 toralp	0	0	1
 toran	0	0	1
 torcan	0	0	1

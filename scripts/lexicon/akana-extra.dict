@@ -231,6 +231,11 @@ rahatsız [P:Adj]
 ## Names Zemberek lacks: Katar the country (read katmak+Aor), Yüksel the name (yük+sAl).
 Katar [P:Noun,Prop]
 Yüksel [P:Noun,Prop]
+## Found by the pre-release audit (round 2): Tahran the city (read tahra), Allan the given name
+## (allamak), Copa as in Copa América (cop "baton").
+Tahran [P:Noun,Prop]
+Allan [P:Noun,Prop]
+Copa [P:Noun,Prop]
 ## Interjections that are inflected forms of a content word yield to it (sağlık-ınız-a,
 ## güzel-im, baş üstü-ne, lav-a, can-a); efendim, mostly the interjection, stays.
 sağlığınıza [P:Interj; A:Rare]

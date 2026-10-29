@@ -6092,7 +6092,7 @@ Paralimpik	paralimpik	Noun	Prop	Noun+A3sg+Nom	Noun	[Paralimpik:Noun,Prop] parali
 Pará	-	-	-	-	-	-
 Pasifik	pasifik	Noun		Noun+A3sg+Nom	Noun	[pasifik:Noun] pasifik:Noun+A3sg
 Quinn	quinn	Noun	Prop	Noun+A3sg+Nom	Noun	[Quinn:Noun,Prop] quinn:Noun+A3sg
-Sabancı	saban	Noun		Noun+Agt	Noun	[saban:Noun] saban:Noun+A3sg|cı:Agt→Noun+A3sg
+Sabancı	sabancı	Noun	Prop	Noun+A3sg+Nom	Noun	[Sabancı:Noun,Prop] sabancı:Noun+A3sg
 Salmon	salmon	Noun	Prop	Noun+A3sg+Nom	Noun	[Salmon:Noun,Prop] salmon:Noun+A3sg
 Savaşı'ndan	savaş	Noun		Noun+P3sg+Abl	Noun	[savaş:Noun] savaş:Noun+A3sg+ı:P3sg+ndan:Abl
 Schützen	-	-	-	-	-	-
@@ -6228,7 +6228,7 @@ Sinema	sinema	Noun		Noun+A3sg+Nom	Noun	[sinema:Noun] sinema:Noun+A3sg
 Sun	sunmak	Verb		Verb+Imp+A2sg	Verb	[sunmak:Verb] sun:Verb+Imp+A2sg
 Sung	sung	Noun	Prop	Noun+A3sg+Nom	Noun	[Sung:Noun,Prop] sung:Noun+A3sg
 Tacikistan	tacikistan	Noun	Prop	Noun+A3sg+Nom	Noun	[Tacikistan:Noun,Prop] tacikistan:Noun+A3sg
-Tahran	tahra	Noun		Noun+P2sg	Noun	[tahra:Noun] tahra:Noun+A3sg+n:P2sg
+Tahran	tahran	Noun	Prop	Noun+A3sg+Nom	Noun	[Tahran:Noun,Prop] tahran:Noun+A3sg
 Tunç	tunç	Noun	Prop	Noun+A3sg+Nom	Noun	[Tunç:Noun,Prop] tunç:Noun+A3sg
 Tur	tur	Noun		Noun+A3sg+Nom	Noun	[tur:Noun] tur:Noun+A3sg
 Türkler	türk	Noun	Prop	Noun+A3pl	Noun	[Türk:Noun,Prop] türk:Noun+ler:A3pl
@@ -6787,7 +6787,7 @@ Calcio	-	-	-	-	-	-
 Cengiz	cengiz	Noun	Prop	Noun+A3sg+Nom	Noun	[Cengiz:Noun,Prop] cengiz:Noun+A3sg
 Clark	clark	Noun	Prop	Noun+A3sg+Nom	Noun	[Clark:Noun,Prop] clark:Noun+A3sg
 Cook	cook	Noun	Prop	Noun+A3sg+Nom	Noun	[Cook:Noun,Prop] cook:Noun+A3sg
-Copa	cop	Noun		Noun+Dat	Noun	[cop:Noun] cop:Noun+A3sg+a:Dat
+Copa	copa	Noun	Prop	Noun+A3sg+Nom	Noun	[Copa:Noun,Prop] copa:Noun+A3sg
 Cumhuriyeti'nin	cumhuriyet	Noun		Noun+P3sg+Gen	Noun	[cumhuriyet:Noun] cumhuriyet:Noun+A3sg+i:P3sg+nin:Gen
 Cup	cup	Noun	Abbrv	Noun+A3sg+Nom	Noun	[CUP:Noun,Abbrv] cup:Noun+A3sg
 Cüveynî	-	-	-	-	-	-

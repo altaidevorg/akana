@@ -1506,6 +1506,7 @@ akören akören Noun ProperNoun ProperNoun
 aköz aköz Noun ProperNoun ProperNoun
 akü akü Noun None
 akümülatör akümülatör Noun None
+akün akün Noun ProperNoun ProperNoun
 aküzüm aküzüm Noun ProperNoun ProperNoun
 akı akı Noun None
 akıbet akibet Noun None NoVoicing Nonstandard
@@ -1986,6 +1987,7 @@ allahümme allahümme Noun ProperNoun ProperNoun
 allak allak Dup None Voicing
 allamak alla Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 allame allame Adj None
+allan allan Noun ProperNoun ProperNoun
 allardyce allardyce Noun ProperNoun ProperNoun
 allavi allavi Noun ProperNoun ProperNoun
 alleben alleben Noun ProperNoun ProperNoun
@@ -3665,6 +3667,7 @@ arroyo arroyo Noun ProperNoun ProperNoun
 arryn arryn Noun ProperNoun NoVoicing ProperNoun
 arsa arsa Noun None
 arsal arsal Noun ProperNoun ProperNoun
+arsan arsan Noun ProperNoun ProperNoun
 arsebük arsebük Noun ProperNoun ProperNoun
 arsel arsel Noun ProperNoun ProperNoun
 arsen arsen Noun ProperNoun ProperNoun
@@ -5605,6 +5608,7 @@ balbay balbay Noun ProperNoun ProperNoun
 balboa balboa Noun ProperNoun ProperNoun
 balcalı balcalı Noun ProperNoun ProperNoun
 balcan balcan Noun ProperNoun ProperNoun
+balcı balcı Noun ProperNoun ProperNoun
 balcıoğlu balcıoğlu Noun ProperNoun ProperNoun
 baldemir baldemir Noun ProperNoun ProperNoun
 baldo baldo Noun None
@@ -5748,6 +5752,7 @@ balıksırtı balıksırtı Adj None
 balıksırtı balıksırtı Adv None
 balıksırtı balıksırtı Noun None
 balıkyağı balıkyağı Noun None CompoundP3sg roots=balık-yağ
+balıkçı balıkçı Noun ProperNoun ProperNoun
 balıkçıl balıkçıl Adj None
 balıkçıl balıkçıl Noun None
 balıkçılarbaşı balıkçılarbaşı Noun ProperNoun ProperNoun
@@ -7946,6 +7951,7 @@ bilimadamı bilimadamı Noun None CompoundP3sg roots=bilim-adam
 bilimdışı bilimdışı Adj None CompoundP3sg roots=bilim-dış
 bilimkurgu bilimkurgu Noun None
 bilimsel bilimsel Adj None
+bilin bilin Noun ProperNoun ProperNoun
 bilindik bilindik Adj None Voicing
 bilinemez bilinemez Noun None
 bilinen bilinen Adj None
@@ -11667,6 +11673,7 @@ cooper cooper Noun ProperNoun ProperNoun
 cooperation cooperation Noun ProperNoun ProperNoun
 coopers coopers Noun ProperNoun ProperNoun
 cop cop Noun None NoVoicing
+copa copa Noun ProperNoun ProperNoun
 copacabana copacabana Noun ProperNoun ProperNoun
 cope cope Noun ProperNoun ProperNoun
 copeland copeland Noun ProperNoun ProperNoun
@@ -15650,6 +15657,7 @@ edilgin edilgin Adj None
 edim edim Noun None
 edim edim Noun ProperNoun ProperNoun
 edimbilim edimbilim Noun None
+edin edin Noun ProperNoun ProperNoun
 edinburg edinburg Noun ProperNoun ProperNoun
 edinburgh edinburgh Noun ProperNoun ProperNoun
 edincik edincik Noun ProperNoun ProperNoun
@@ -20324,6 +20332,7 @@ gayr gayr Noun None InverseHarmony NoVoicing
 gayret gayret Noun None NoVoicing
 gayretkeş gayretkeş Adj None
 gayretlenmek gayretlen Verb None AoristI
+gayretli gayretli Noun ProperNoun ProperNoun
 gayrettepe gayrettepe Noun ProperNoun ProperNoun
 gayri gayri Adv None
 gayriahlaki gayriahlaki Noun None display=gayriahlâkî
@@ -28514,6 +28523,7 @@ kalvenci kalvenci Noun ProperNoun ProperNoun
 kalvenizm kalvenizm Noun ProperNoun ProperNoun
 kalya kalya Noun None
 kalyon kalyon Noun None
+kalyoncu kalyoncu Noun ProperNoun ProperNoun
 kalça kalça Noun None
 kalçete kalçete Noun None
 kalçın kalçın Noun None
@@ -31739,6 +31749,7 @@ koordinatör koordinatör Noun None
 koordine koordine Adj None
 kopal kopal Noun None
 kopanaki kopanaki Noun None
+kopar kopar Noun ProperNoun ProperNoun
 koparan koparan Noun None
 koparmak kopar Verb None AoristI CausativeT
 kopatchinskaja kopatchinskaja Noun ProperNoun ProperNoun
@@ -37170,6 +37181,7 @@ menakıpname menakıpname Noun None
 menapoz menapoz Noun None
 menard menard Noun ProperNoun ProperNoun
 menas menas Noun ProperNoun ProperNoun
+mencik mencik Noun ProperNoun ProperNoun
 mendebur mendebur Adj None
 mendel mendel Noun ProperNoun ProperNoun
 mendelevyum mendelevyum Noun None
@@ -42475,6 +42487,7 @@ onamak ona Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 onanizm onanizm Noun None
 onanç onanç Noun ProperNoun ProperNoun
 onar onar Num Dist
+onaran onaran Noun ProperNoun ProperNoun
 onarmak onar Verb None AoristI CausativeT
 onarım onarım Noun None
 onassis onassis Noun ProperNoun ProperNoun
@@ -47627,6 +47640,7 @@ sabahnur sabahnur Noun ProperNoun ProperNoun
 sabahtan sabahtan Adv None
 sabahyıldızı sabahyıldızı Noun None
 saban saban Noun None
+sabancı sabancı Noun ProperNoun ProperNoun
 sabankıran sabankıran Noun None
 sabatay sabatay Noun ProperNoun ProperNoun
 sabatini sabatini Noun ProperNoun ProperNoun
@@ -52298,6 +52312,7 @@ söderling söderling Noun ProperNoun ProperNoun
 söke söke Noun ProperNoun ProperNoun
 sökel sökel Adj None
 sökmek sök Verb None AoristA
+sökmen sökmen Noun ProperNoun ProperNoun
 sökmener sökmener Noun ProperNoun ProperNoun
 sökmenoğlu sökmenoğlu Noun ProperNoun ProperNoun
 sökmensu sökmensu Noun ProperNoun ProperNoun
@@ -52591,6 +52606,7 @@ sürmedan sürmedan Noun None
 sürmek sür Verb None AoristA
 sürmelemek sürmele Verb None AoristI CausativeT PassiveIn ProgressiveVowelDrop
 sürmeli sürmeli Adj None
+sürmeli sürmeli Noun ProperNoun ProperNoun
 sürmenaj sürmenaj Noun None
 sürmene sürmene Noun ProperNoun ProperNoun
 sürnatüralist sürnatüralist Adj None NoVoicing
@@ -53145,6 +53161,7 @@ tahmit tahmit Noun None Voicing
 tahnit tahnit Noun None Voicing
 tahoe tahoe Noun ProperNoun ProperNoun
 tahra tahra Noun None
+tahran tahran Noun ProperNoun ProperNoun
 tahribat tahribat Noun None NoVoicing
 tahrif tahrif Noun None
 tahrifat tahrifat Noun None NoVoicing
@@ -56002,6 +56019,7 @@ topçam topçam Noun ProperNoun ProperNoun
 topçay topçay Noun ProperNoun ProperNoun
 topçeker topçeker Adj None
 topçeker topçeker Noun None
+topçu topçu Noun ProperNoun ProperNoun
 topçuoğlu topçuoğlu Noun ProperNoun ProperNoun
 tor tor Adj None NoVoicing
 tor tor Noun None NoVoicing

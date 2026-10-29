@@ -56,6 +56,19 @@ fn court_surnames_are_names_and_a_heading_word_is_none() {
         );
     }
     assert_eq!(first("Sönmez").lemma, "sönmez");
+    // Round 2: applicants cited by name (Hikmet Kopar: kopmak), Sabancı (saban), Tahran the
+    // city (tahra).
+    let parses =
+        MorphologicalDisambiguator::new().disambiguate(&["Hikmet", "Kopar", "ve", "diğerleri"]);
+    assert_eq!(parses[1].lemma, "kopar");
+    for (word, lemma) in [("Sabancı", "sabancı"), ("Tahran", "tahran")] {
+        let p = first(word);
+        assert_eq!(
+            (p.lemma.as_str(), p.secondary_pos),
+            (lemma, SecondaryPos::ProperNoun),
+            "{word}"
+        );
+    }
     // Temel heads a phrase far more often than it follows a given name (Temel Hak ve
     // Özgürlükler): it has no name reading.
     assert!(TurkishMorphology::new()
