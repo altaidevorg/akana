@@ -327,6 +327,10 @@ them passes it.
     `San.`, `Tic.`, `Ltd.`, `Şti.`, `A.Ş.`: `sanayi`, `ticaret`, `limited`, `şirket`; `Dr.`,
     `Prof.`, `Doç.`, `Yrd.`, `Müh.`: `doktor`, `profesör`, `doçent`, `yardımcı`, `mühendis`;
     `par.`: `paragraf`), so it is one term with it and no other word's (`av`, `san`, `aş`).
+    Written without its period it is the word it spells where there is one, in any case (`Av
+    sezonu`, `AŞ EVİ`, `San Francisco`, `Sok şunu`: `av`, `aş`, `san`, `sok`), and the
+    abbreviation only where it is no word (`Dr`, `Prof`, `Tic`, `Ltd`); a word in lower case is
+    never one of these abbreviations (`av`, `aş`).
   - Ranking: the treebanks' tags choose between lemmas for `varsa`, `vardı`, `vardır`,
     `doğan`, `örneğin`, `altın`, `bilir` and `çıktı`; the time adverbs `önce`, `sonra`,
     `şimdi`, `bugün` and `daha` keep their time noun apart; an adjective's or a present
@@ -337,6 +341,16 @@ them passes it.
     accusative (`Bu filmi beğendim`). A word written in lower case is a name only where it
     reads as nothing else (`mimarlık`, `güler`, `kadri` read as words, where a corpus name
     ranked first; `ankara` stays Ankara), as `analyze_standard` already judged it.
+- **NER.** At a sentence's start, where a capital says nothing, a listed name that is also a
+  common word is a person only before another capitalised word, beside a title, or once the
+  text has named the person in full (`Kaya parçaları`, `Barış antlaşması`, `Tatlı yemeyi
+  severim` have no person; `Ateş Yılmaz geldi`, `Sayın Kaya`, `Mehmet Yılmaz ... Yılmaz,
+  açıklamasında` do); a name that is no word (`Ahmet`) and a name inside a sentence are
+  persons as before. On the held-out UD Turkish sentences (news, essays, fiction, tourism ...)
+  person entities on a word UD does not tag PROPN fell from 551 (0.8.0's NER with 0.9.0's
+  analyzer before this rule: 659) to 269, at a sentence's start from 377 to 87; those on PROPN
+  words went from 1,935 to 1,882 (sentence-initial names that are also words, alone: `Kerem eve
+  geldi`).
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
   court decisions write after its period (`TCK.nun`, `HMK.'ya`; not `A.Ş.vekili`). NER
@@ -368,7 +382,7 @@ them passes it.
     so a change of ranking no longer moves weights.
   - A word the analyzer cannot read is indexed by its backoff stem (`hiperbariğe` and
     `hiperbarik` are one term; a vowel-final word and its forms are one, `zorbanta` and
-    `zorbantanın`), an abbreviation has one term however it is written (`Av.`, `Av`), and a
+    `zorbantanın`), an abbreviation has one term however it is written (`Dr.`, `Dr`), and a
     suffix written apart (`1924 'te`, `TCK. nun`, `...'nin`, `Sözleşmesi"nin`, `TTK nın`,
     `65 inci`, `%20 si`, `... ın`, `Şti.nin`) is no term. A word the lexicon lacks, written
     with a capital inside a sentence or in capitals, keeps all its letters (`Larnaca`,

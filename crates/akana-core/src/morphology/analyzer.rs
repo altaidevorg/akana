@@ -1053,19 +1053,30 @@ impl TurkishMorphology {
             // the others (mimarlık, güler, kadri; ankara, with no other reading, stays Ankara).
             // The prior's case factor was not enough where EM had given a corpus name the
             // lower-case uses of a word (mimarlık 0.555 against mimar-lık 0.139; review 4
-            // MORPH4-10). Runtime only: the estimator reads no ranking.
-            if !word.chars().any(char::is_uppercase) {
-                let dotted = word.contains('.');
-                let names: Vec<bool> = parses.iter().map(|p| lower_case_name(p, dotted)).collect();
+            // MORPH4-10). Nor is a word written without a period, in any case, an abbreviation
+            // read as the word it stands for where it is a word of its own: Av sezonu, AŞ EVİ,
+            // San Francisco and Sok şunu are av, aş, san and sok, where they read as avukat,
+            // şirket, sanayi and sokak; Av., A.Ş., San. and Sok. still do, and Dr, Prof or Tic,
+            // which are no word, too. Runtime only: the estimator reads no ranking.
+            let dotted = word.contains('.');
+            let lower_case = !word.chars().any(char::is_uppercase);
+            if lower_case || !dotted {
+                let demoted: Vec<bool> = parses
+                    .iter()
+                    .map(|p| {
+                        (lower_case && lower_case_name(p, dotted))
+                            || (!dotted && read_as_another_word(p))
+                    })
+                    .collect();
                 if let Some(floor) = logs
                     .iter()
-                    .zip(&names)
-                    .filter(|&(_, &name)| !name)
+                    .zip(&demoted)
+                    .filter(|&(_, &d)| !d)
                     .map(|(&log, _)| log)
                     .min()
                 {
-                    for (log, &name) in logs.iter_mut().zip(&names) {
-                        if name {
+                    for (log, &d) in logs.iter_mut().zip(&demoted) {
+                        if d {
                             *log = (*log).min(floor - LOWER_CASE_NAME_STEPS * RANK_UNITS_PER_STEP);
                         }
                     }
@@ -2858,6 +2869,12 @@ fn lower_case_name(p: &MorphParse, dotted: bool) -> bool {
         SecondaryPos::Abbreviation => !dotted && p.display_lemma().chars().any(char::is_uppercase),
         _ => false,
     }
+}
+
+/// Whether a reading is an abbreviation read as the word it stands for (Av: avukat), whose term
+/// and lemma are that word's.
+fn read_as_another_word(p: &MorphParse) -> bool {
+    p.secondary_pos == SecondaryPos::Abbreviation && p.lemma != p.root
 }
 
 /// How many steps of 2 % a lower-case word's name reading comes after its worst other reading.

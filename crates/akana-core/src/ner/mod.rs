@@ -2,6 +2,7 @@
 //! Recognizes Person (PER), Location (LOC), Organization (ORG), Date (DATE), Money (MONEY), and Percent (PERCENT).
 //! Accelerated with single-pass zero-copy token stream matching.
 
+use crate::morphology::TurkishMorphology;
 use crate::phonology::to_turkish_lower;
 use crate::tokenization::{Token, TokenType, TurkishTokenizer};
 use lazy_static::lazy_static;
@@ -17,6 +18,8 @@ pub struct NamedEntity {
 }
 
 lazy_static! {
+    /// The analyzer (its lexicon is shared), to tell a name that is also a common word.
+    static ref MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
     static ref PERSON_NAMES: HashSet<String> = {
         let mut set = HashSet::new();
         let lex_str = crate::morphology::ZEMBEREK_LEXICON;
@@ -189,6 +192,32 @@ fn org_scan_stop(tokens: &[Token], i: usize) -> (usize, bool) {
     (tokens.len(), false)
 }
 
+/// Whether token `i` begins a sentence: the text's first word, or the first after a period, an
+/// exclamation or question mark, an ellipsis or a line break, opening quotes and brackets aside.
+fn sentence_start(text: &str, tokens: &[Token], i: usize) -> bool {
+    let mut k = i;
+    while k > 0 {
+        let prev = &tokens[k - 1];
+        if text
+            .get(prev.end..tokens[k].start)
+            .is_some_and(|gap| gap.contains('\n'))
+        {
+            return true;
+        }
+        if prev.text.chars().all(|c| {
+            matches!(
+                c,
+                '"' | '\'' | '(' | '[' | '«' | '“' | '‘' | '-' | '–' | '—'
+            )
+        }) {
+            k -= 1;
+            continue;
+        }
+        return prev.text.ends_with(['.', '!', '?', '…']);
+    }
+    true
+}
+
 impl TurkishNER {
     /// Extracts named entities from a Turkish text string.
     pub fn extract_entities(text: &str) -> Vec<NamedEntity> {
@@ -200,6 +229,9 @@ impl TurkishNER {
         let n = tokens.len();
         // Last result of `org_scan_stop`: (start, stop token, whether it is an ORG suffix).
         let mut org_stop: Option<(usize, usize, bool)> = None;
+        // The words of the full names found so far (Mehmet Yılmaz), each of which names the
+        // person alone later (Yılmaz, açıklamasında ...).
+        let mut named: HashSet<String> = HashSet::new();
 
         let mut i = 0;
         while i < n {
@@ -376,7 +408,22 @@ impl TurkishNER {
                 }
 
                 // 6. Person Pattern (Title trigger + Capitalized Word, or in PERSON_NAMES)
-                let is_person = PERSON_NAMES.contains(lower_tok.as_str());
+                // At a sentence's start a capital says nothing: a listed name that is also a
+                // common word there (Kaya parçaları, Barış antlaşması, Tatlı yemeyi severim) is a
+                // person only before another capitalised word, beside a title, or once the text
+                // has named that person in full. Inside a sentence the capital is evidence.
+                let next_capitalised = i + 1 < n && {
+                    let next = tokens[i + 1]
+                        .text
+                        .trim_matches(|c: char| !c.is_alphabetic());
+                    next.chars().next().is_some_and(char::is_uppercase)
+                        && !ORG_SUFFIXES.contains(to_turkish_lower(next).as_str())
+                };
+                let is_person = PERSON_NAMES.contains(lower_tok.as_str())
+                    && (next_capitalised
+                        || named.contains(&lower_tok)
+                        || !sentence_start(text, &tokens, i)
+                        || MORPHOLOGY.analyze_standard(&lower_tok).is_empty());
                 let preceded_by_title = i > 0
                     && TITLE_TRIGGERS.contains(
                         to_turkish_lower(
@@ -411,6 +458,13 @@ impl TurkishNER {
                     }
 
                     let matched_tokens: Vec<&str> = tokens[i..j].iter().map(|t| t.text).collect();
+                    if j - i > 1 {
+                        named.extend(matched_tokens.iter().map(|t| {
+                            to_turkish_lower(
+                                t.trim_matches(|c: char| !c.is_alphanumeric() && c != '\''),
+                            )
+                        }));
+                    }
                     entities.push(NamedEntity {
                         text: matched_tokens.join(" "),
                         label: "PER".to_string(),

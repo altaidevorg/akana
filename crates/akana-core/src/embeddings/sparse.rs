@@ -904,10 +904,13 @@ mod tests {
             t.sort();
             t
         };
-        // An abbreviation with or without its period is one term, the word's when it stands
-        // for one word (Av.: avukat; review 4 MORPH4-10); so is a number with its suffixes
-        // (1924'te) and an abbreviation with them after a period (TCK.nun).
-        assert_eq!(terms("Av. Av avukat"), ["avukat"]);
+        // An abbreviation with or without its period is one term (Dr. and Dr), the word's when
+        // it stands for one word (Av.: avukat; review 4 MORPH4-10), but written without its
+        // period it is the word it spells where there is one (Av: av "hunt"); so is a number
+        // with its suffixes (1924'te) and an abbreviation with them after a period (TCK.nun).
+        assert_eq!(terms("Dr. Dr doktor"), ["doktor"]);
+        assert_eq!(terms("Av. avukat"), ["avukat"]);
+        assert_eq!(terms("Av sezonu"), ["av", "sezon"]);
         assert_eq!(terms("1924'te 1924"), ["1924"]);
         assert_eq!(terms("TCK.nun TCK'nun"), ["tck"]);
         assert_eq!(terms("krş. krş"), ["krş"]);

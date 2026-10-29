@@ -170,6 +170,22 @@ fn an_abbreviation_of_one_word_is_that_word() {
         );
     }
     assert_eq!(first("md").lemma, "madde");
+    // Nor, written without its period, in any case, where it spells a word of its own: general
+    // text is no court decision (Av sezonu, a headline's AŞ EVİ, San Francisco).
+    for (text, not) in [
+        ("Av sezonu bugün açıldı.", "avukat"),
+        ("AV YASAĞI BAŞLADI", "avukat"),
+        ("Aş evi yemek dağıttı.", "şirket"),
+        ("AŞ EVİ AÇILDI", "şirket"),
+        ("San Francisco güzel bir şehir.", "sanayi"),
+        ("Sok şunu cebine!", "sokak"),
+    ] {
+        let t = terms(text);
+        assert!(!t.contains(&not.to_string()), "{text}: {t:?}");
+    }
+    assert!(terms("Av sezonu bugün açıldı.").contains(&"av".to_string()));
+    // Where it spells no word, it is the abbreviation without its period too.
+    assert!(terms("Dr Ali geldi.").contains(&"doktor".to_string()));
 }
 
 #[test]

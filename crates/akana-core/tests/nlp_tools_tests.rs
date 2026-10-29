@@ -47,6 +47,38 @@ fn test_ner_unit() {
 }
 
 #[test]
+fn a_name_that_is_also_a_word_is_no_person_at_a_sentences_start_alone() {
+    // At a sentence's start a capital says nothing: Kaya, Barış, Ateş, Tatlı there are words
+    // (the names the lexicon gained from PII's lists and court decisions made them persons).
+    let persons = |text: &str| -> Vec<String> {
+        TurkishNER::extract_entities(text)
+            .into_iter()
+            .filter(|e| e.label == "PER")
+            .map(|e| e.text)
+            .collect()
+    };
+    for text in [
+        "Kaya parçaları yola düştü.",
+        "Barış antlaşması imzalandı.",
+        "Ateş düştüğü yeri yakar.",
+        "Tatlı yemeyi çok severim.",
+        "Yazıcı yine bozuldu. Balıkçı teknesi battı.",
+    ] {
+        assert!(persons(text).is_empty(), "{text}: {:?}", persons(text));
+    }
+    // A full name, a title, a name inside a sentence, or the person named in full before.
+    assert_eq!(persons("Ateş Yılmaz geldi."), ["Ateş Yılmaz"]);
+    assert_eq!(persons("Sayın Kaya konuştu."), ["Kaya"]);
+    assert_eq!(persons("Dün Kaya ile görüştük."), ["Kaya"]);
+    assert_eq!(
+        persons("Mehmet Yılmaz açıklama yaptı. Yılmaz, kararın doğru olduğunu söyledi."),
+        ["Mehmet Yılmaz", "Yılmaz"]
+    );
+    // A name that is no word is a person at a sentence's start too.
+    assert_eq!(persons("Ahmet eve geldi."), ["Ahmet"]);
+}
+
+#[test]
 fn test_keywords_and_summarizer_unit() {
     let text = "Türkiye Cumhuriyeti 1923 yılında kuruldu. Başkenti Ankara'dır. \
         Türkçe, Türk dilleri ailesine ait sondan eklemeli zengin bir dildir. \

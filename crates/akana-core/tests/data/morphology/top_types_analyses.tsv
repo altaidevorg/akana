@@ -324,7 +324,7 @@ cezası	ceza	Noun		Noun+P3sg	Noun	[ceza:Noun] ceza:Noun+A3sg+sı:P3sg
 olmadığına	olmak	Verb		Verb+Neg+PastPart+P3sg+Dat	Noun	[olmak:Verb] ol:Verb+ma:Neg|dığ:PastPart→Noun+A3sg+ı:P3sg+na:Dat
 gerekçesiyle	gerekçe	Noun		Noun+P3sg+Ins	Noun	[gerekçe:Noun] gerekçe:Noun+A3sg+si:P3sg+yle:Ins
 sürede	süre	Noun		Noun+Loc	Noun	[süre:Noun] süre:Noun+A3sg+de:Loc
-Av	avukat	Noun	Abbrv	Noun+A3sg+Nom	Noun	[Av:Noun,Abbrv] av:Noun+A3sg
+Av	av	Noun		Noun+A3sg+Nom	Noun	[av:Noun] av:Noun+A3sg
 yeterli	yeterli	Adj		Adj	Adj	[yeterli:Adj] yeterli:Adj
 karara	karar	Noun		Noun+Dat	Noun	[karar:Noun] karar:Noun+A3sg+a:Dat
 sağlık	sağlık	Noun		Noun+A3sg+Nom	Noun	[sağlık:Noun] sağlık:Noun+A3sg
@@ -1424,7 +1424,7 @@ hâlde	hal	Noun		Noun+Loc	Noun	[hal:Noun] hal:Noun+A3sg+de:Loc
 örneği	örnek	Noun		Noun+P3sg	Noun	[örnek:Noun] örneğ:Noun+A3sg+i:P3sg
 kaybı	kayıp	Noun		Noun+P3sg	Noun	[kayıp:Noun] kayb:Noun+A3sg+ı:P3sg
 ÇINAR	çınar	Noun	Prop	Noun+A3sg+Nom	Noun	[Çınar:Noun,Prop] çınar:Noun+A3sg
-San	sanayi	Noun	Abbrv	Noun+A3sg+Nom	Noun	[San:Noun,Abbrv] san:Noun+A3sg
+San	san	Noun		Noun+A3sg+Nom	Noun	[san:Noun] san:Noun+A3sg
 TTK	ttk	Noun	Abbrv	Noun+A3sg+Nom	Noun	[TTK:Noun,Abbrv] ttk:Noun+A3sg
 anlaşılmakla	anlaşmak	Verb		Verb+Pass+Inf+Ins	Noun	[anlaşmak:Verb] anlaş:Verb|ıl:Pass→Verb|mak:Inf1→Noun+A3sg+la:Ins
 büyük	büyük	Adj		Adj	Adj	[büyük:Adj] büyük:Adj
@@ -4594,7 +4594,7 @@ yürürlüklerinin	yürürlük	Noun		Noun+A3pl+P3sg+Gen	Noun	[yürürlük:Noun] 
 zedeleyici	zedelemek	Verb		Verb+Agt	Noun	[zedelemek:Verb] zedele:Verb|yici:Agt→Noun+A3sg
 çalıştığını	çalışmak	Verb		Verb+PastPart+P3sg+Acc	Noun	[çalışmak:Verb] çalış:Verb|tığ:PastPart→Noun+A3sg+ı:P3sg+nı:Acc
 öteki	öteki	Adj		Adj	Adj	[öteki:Adj] öteki:Adj
-AŞ	şirket	Noun	Abbrv	Noun+A3sg+Nom	Noun	[AŞ:Noun,Abbrv] aş:Noun+A3sg
+AŞ	aş	Noun		Noun+A3sg+Nom	Noun	[aş:Noun] aş:Noun+A3sg
 TEŞKİLATI	teşkilat	Noun		Noun+P3sg	Noun	[teşkilât:Noun] teşkilat:Noun+A3sg+ı:P3sg
 Yekta	yekta	Noun	Prop	Noun+A3sg+Nom	Noun	[Yekta:Noun,Prop] yekta:Noun+A3sg
 Yukarıdaki	yukarı	Noun		Noun+Loc+RelClitic	Adj	[yukarı:Noun] yukarı:Noun+A3sg+da:Loc|ki:Rel→Adj
