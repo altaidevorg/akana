@@ -214,6 +214,11 @@ them passes it.
 
 ### Added
 
+- `scripts/benchmark_court_known_item.py`: court known-item retrieval, a decision's own summary
+  section (an AYM application's subject, a norm review's subject, Danıştay's İstemin Özeti,
+  Yargıtay's opening "Dava, ..." sentence) as the query and the rest of the decision as the
+  target among the corpus sample's chunks. 0.9.0: MRR@10 0.6059 (BM25 over the sparse
+  vectors), 0.4990 (their dot product), 0.2859 (hybrid) on 701 queries over 17,485 chunks.
 - Every public class, function and method of the Python module has a docstring (116 of 148
   had none), and a test keeps it so.
 - `akana.encoder_info()` and `akana.check_encoder(stored, kind)`; in Rust, `embeddings::spec`
@@ -343,7 +348,10 @@ them passes it.
   şeklinde`), a Roman ordinal before a capital (`II. Dünya Savaşı`), an acronym's period
   before a lower-case word (`TTK. nun`), or the dash after an amount (`12.500.-TL`).
 - **Sparse encoder.**
-  - One disambiguated lemma per word occurrence, with 32-bit term ids.
+  - One disambiguated lemma per word occurrence, with 32-bit term ids. A derived word's lemma
+    is its root's (`kitapçı` and `kitap`, `yetkisizlik` and `yetki` are one term) unless the
+    lexicon lists the derived word (`bakanlık`): terms of their own for derived words were
+    measured and changed retrieval by no more than noise.
   - The function-lemma weights come from a table frozen with the sparse spec.
   - A term weighs by its lemma's lexicon class, not by the reading the disambiguator picked,
     so a change of ranking no longer moves weights.

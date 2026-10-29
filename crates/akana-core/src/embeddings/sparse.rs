@@ -114,6 +114,13 @@ fn function_lemma_spec(table: &str) -> Option<u16> {
 }
 
 /// Turkish morphological sparse encoder.
+///
+/// A word's term is its disambiguated lemma. A derived word's lemma is its root's, as the
+/// dictionary item it is read from (kitapçı and kitap, yetkisizlik and yetki are one term), unless
+/// the lexicon lists the derived word (bakanlık). Terms of their own for derived words, for -sIz
+/// words alone, or beside the root's, changed MRR@10 on court known-item retrieval, RagTurk and
+/// Turkuaz by no more than noise, and the last lowered the hybrid's (derivation term study,
+/// before spec 1.0 froze).
 pub struct MorphologicalSparseEncoder {
     morphology: TurkishMorphology,
     disambiguator: MorphologicalDisambiguator,
