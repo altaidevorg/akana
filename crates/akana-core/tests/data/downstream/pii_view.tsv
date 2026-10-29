@@ -1928,6 +1928,8 @@ adaları	1	1	0
 adaların	1	1	0
 adaleddin	0	0	1
 adalet	1	0	1
+adali	1	0	1
+adalı	1	0	1
 adam	1	0	1
 adamı	1	0	1
 adanir	0	0	1
@@ -2801,6 +2803,8 @@ balin	0	0	1
 balisoy	0	0	1
 balkoc	0	0	1
 balkoç	0	0	1
+baltali	0	0	1
+baltalı	1	0	1
 balın	1	1	1
 bana	1	1	0
 banka	1	0	1
@@ -2828,6 +2832,7 @@ barışcan	0	0	1
 barışçıl	1	0	1
 basak	1	0	1
 basaran	0	0	1
+basarir	0	0	1
 basarman	0	0	1
 basay	0	0	1
 basir	0	0	1
@@ -2896,7 +2901,7 @@ bazen	1	0	0
 bazı	1	0	1
 bağ	1	0	1
 bağatur	0	0	1
-bağcı	1	0	0
+bağcı	1	0	1
 bağdagül	0	0	1
 bağdaşmadığı	1	1	0
 bağdaşmayacak	1	0	0
@@ -2931,6 +2936,7 @@ başardı	1	0	0
 başarman	1	1	1
 başarı	1	0	1
 başarılı	1	0	0
+başarır	1	0	1
 başarısız	1	0	0
 başay	0	0	1
 başir	0	0	1
@@ -4183,7 +4189,7 @@ durgun	1	0	1
 durhal	0	0	1
 duriyye	0	0	1
 durkaya	0	0	1
-durmaz	1	0	0
+durmaz	1	0	1
 durmus	0	0	1
 durmuş	1	0	1
 durnur	0	0	1
@@ -4702,6 +4708,7 @@ ertaylar	0	0	1
 erte	1	0	1
 ertekin	0	0	1
 ertelenmesi	1	1	0
+erten	1	1	1
 ertesi	1	0	1
 ertingu	0	0	1
 ertingü	0	0	1
@@ -5382,6 +5389,7 @@ gunsel	0	0	1
 gunter	0	0	1
 gurcinar	0	0	1
 gurkan	0	0	1
+gursel	0	0	1
 gustav	0	0	1
 guven	0	0	1
 guzel	0	0	1
@@ -5582,6 +5590,7 @@ güreşçi	1	0	0
 güreşçilerin	1	1	0
 güreşçilerle	1	1	0
 gürkan	0	0	1
+gürsel	1	0	1
 gürçınar	0	0	1
 güven	1	0	1
 güvence	1	0	1
@@ -6726,7 +6735,6 @@ işçi	1	0	1
 işçilerin	1	1	0
 işçilik	1	0	1
 işçinin	1	1	0
-işık	0	0	1
 işıl	0	0	1
 jack	0	0	1
 jacob	0	0	1
@@ -6818,6 +6826,7 @@ kaldırılmasını	1	1	0
 kaldığı	1	1	0
 kaldığını	1	1	0
 kale	1	0	1
+kaleli	1	0	1
 kalgay	0	0	1
 kalhan	0	0	1
 kalkan	1	0	1
@@ -6853,6 +6862,7 @@ kanaat	1	0	1
 kanaatine	1	1	0
 kanalı	1	1	0
 kandemir	0	0	1
+kani	1	0	1
 kaniye	1	1	1
 kanun	1	0	1
 kanuna	1	1	0
@@ -7041,7 +7051,7 @@ kaydının	1	1	0
 kaydıyla	1	1	0
 kaygun	1	1	1
 kayitbay	0	0	1
-kaymaz	1	0	0
+kaymaz	1	0	1
 kaynak	1	0	1
 kaynaklanan	1	0	0
 kaynaklandığı	1	1	0
@@ -7265,6 +7275,7 @@ komedyen	1	0	1
 komiser	1	0	1
 komisyon	1	0	1
 komisyonu	1	1	0
+komurcu	0	0	1
 komutanı	1	1	0
 komutasındaki	1	1	0
 konguralp	0	0	1
@@ -7529,6 +7540,7 @@ kâmil	1	0	1
 kâmile	1	1	1
 kâmurân	0	0	1
 kâmver	0	0	1
+kâni	1	0	1
 kârdide	0	0	1
 kâsib	0	0	1
 kâsibe	0	0	1
@@ -7542,6 +7554,7 @@ köklem	0	0	1
 köksan	0	0	1
 kökten	1	0	1
 kökşin	0	0	1
+kömürcü	1	0	1
 körnes	0	0	1
 kösem	1	0	1
 kötü	1	0	1
@@ -7581,7 +7594,7 @@ kıner	0	0	1
 kınnesrin	0	0	1
 kınıkaslan	0	0	1
 kıralp	0	0	1
-kıratlı	1	0	0
+kıratlı	1	0	1
 kırdı	1	0	0
 kırkpınar	0	0	1
 kırmızı	1	0	1
@@ -9377,6 +9390,7 @@ ozgur	0	0	1
 ozkan	0	0	1
 ozkaya	0	0	1
 ozlem	0	0	1
+ozler	0	0	1
 ozmen	0	0	1
 ozturk	0	0	1
 oğaner	0	0	1
@@ -10730,6 +10744,7 @@ sokmener	0	0	1
 sokmensu	0	0	1
 sol	1	0	1
 solay	0	0	1
+solmaz	1	0	1
 somel	0	0	1
 somut	1	0	1
 son	1	0	1
@@ -10955,7 +10970,7 @@ sâyezâr	0	0	1
 sâzkâr	1	0	1
 sökmener	0	0	1
 sökmensu	0	0	1
-sönmez	1	0	0
+sönmez	1	0	1
 sönmezalp	0	0	1
 söyledi	1	0	0
 söylenemez	1	0	0
@@ -11731,6 +11746,7 @@ tugay	1	0	1
 tugba	0	0	1
 tugbay	0	0	1
 tugce	0	0	1
+tugcu	0	0	1
 tugkan	0	0	1
 tugkun	0	0	1
 tugra	0	0	1
@@ -11877,6 +11893,7 @@ tuğalp	0	0	1
 tuğaltan	0	0	1
 tuğba	0	0	1
 tuğbay	1	0	1
+tuğcu	1	0	1
 tuğkan	0	0	1
 tuğkun	0	0	1
 tuğra	1	0	1
@@ -12805,7 +12822,7 @@ yazdığı	1	1	0
 yazganalp	0	0	1
 yazici	0	0	1
 yazı	1	0	1
-yazıcı	1	0	0
+yazıcı	1	0	1
 yazılan	1	0	0
 yazılara	1	1	0
 yazılarak	1	0	0
@@ -13647,6 +13664,7 @@ zürare	0	0	1
 özkan	0	0	1
 özkaya	0	0	1
 özlem	1	0	1
+özler	1	0	1
 özlerine	1	1	0
 özlük	1	0	0
 özmen	0	0	1

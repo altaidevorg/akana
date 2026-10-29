@@ -1,8 +1,9 @@
 """Writes scripts/lexicon/akana-names.dict: the Turkish given names and surnames of akana's PII
 lists (crates/akana-core/src/pii: gazetteer.rs GIVEN_NAMES and SURNAMES, names_data.rs
-COMMON_GIVEN_NAMES) that the lexicon has no proper-noun item for, but the given names PII
-itself finds more often something else (names_data.rs RARE_NAMES that are no surname: Kuzey,
-Yağmur) and the names of months (Eylül, Ocak), whose capital in a date is the month's.
+COMMON_GIVEN_NAMES and COMMON_SURNAMES) that the lexicon has no proper-noun item for, but the
+given names PII itself finds more often something else (names_data.rs RARE_NAMES that are no
+surname: Kuzey, Yağmur), the names of months (Eylül, Ocak), whose capital in a date is the
+month's, and the surnames whose capital inside a sentence is mostly a heading's (HEADINGS).
 
 Without them a name such as Serpil, Gökçen or Halide read as a junk derivation (serp-il:
 serpmek) and one that is also a word (Hakan, Metin, Kaya) had no name reading (review 4
@@ -25,6 +26,13 @@ MONTHS = {
     "ocak", "şubat", "mart", "nisan", "mayıs", "haziran", "temmuz", "ağustos", "eylül", "ekim",
     "kasım", "aralık",
 }
+# Surnames that, written with a capital inside a sentence, head a phrase more than twice as often
+# as they follow a given name in the corpus sample (Temel Hak ve Özgürlükler: 282 to 5; Yurt,
+# Güven): a name reading would be wrong there and gives no other term (pre-release audit,
+# 2026-10-29).
+HEADINGS = {
+    "temel", "güven", "yurt", "küçük", "doğru", "kuru", "özgür", "gümüş", "öz", "ozan", "tok",
+}
 
 
 def strings(source: str, start: str, end: str) -> set[str]:
@@ -42,10 +50,12 @@ def main() -> None:
     given = strings(gazetteer, "static ref GIVEN_NAMES:", "};") | strings(
         data, "pub(crate) const COMMON_GIVEN_NAMES", "];"
     )
-    surnames = strings(gazetteer, "static ref SURNAMES:", "};")
+    surnames = strings(gazetteer, "static ref SURNAMES:", "};") | strings(
+        data, "pub(crate) const COMMON_SURNAMES", "];"
+    )
     # A surname is written with its capital mid-sentence, as the word it also is is not (Kaya,
     # Demir), so PII's rare names stay out only when they are no surname (Kuzey, Yağmur).
-    words = (strings(data, "pub(crate) const RARE_NAMES", "];") - surnames) | MONTHS
+    words = (strings(data, "pub(crate) const RARE_NAMES", "];") - surnames) | MONTHS | HEADINGS
     surnames -= given
     previous = set()
     if OUT.exists():

@@ -70,7 +70,7 @@ fn suffixes_written_apart_are_no_terms() {
     assert_eq!(t("TTK. nun 760. maddesinde"), ["760", "madde", "ttk"]);
     assert_eq!(t("Davacı ... ın vekili"), ["davacı", "vekil"]);
     assert_eq!(t("%20 si"), ["20"]);
-    assert_eq!(t("Şti.nin"), ["şti"]);
+    assert_eq!(t("Şti.nin"), ["şirket"]);
     assert_eq!(t("\"Oy\"unda"), ["oy"]);
 }
 

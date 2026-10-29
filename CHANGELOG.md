@@ -300,13 +300,17 @@ them passes it.
     (`dahil` and `dâhil`). Words the lexicon had only as names read as words (`rücuan`,
     `rızai`, `karz`, `meskeniyet`, `talasemi`, `rapçi`), and acronyms as abbreviations rather
     than corpus names typed with ı (`IBAN`, `BİST`; the build drops such a name). The given
-    names and surnames of akana's PII lists that Zemberek lacks as names are names (190:
+    names and surnames of akana's PII lists that Zemberek lacks as names are names (227:
     `Serpil` read as `serpmek`, `Gökçen` and `Özgen` with a P2sg, `Halide` as `hali-de`; `Hakan`,
-    `Metin`, `Kaya` had no name reading; `scripts/names_from_pii.py` writes
-    `akana-names.dict`), and six company words among the corpus names are dropped (`Mimarlık`,
+    `Metin`, `Kaya` had no name reading, nor did the court decisions' `Basri BAĞCI` (`bağ`),
+    `Mehmet ERTEN` (`erte`) or `Kâni Vrana` (`kani`); `scripts/names_from_pii.py` writes
+    `akana-names.dict`, leaving out a surname whose capital is mostly a heading's, as in `Temel
+    Hak`), and six company words among the corpus names are dropped (`Mimarlık`,
     `Yayıncılık`, `Denizcilik` ...). An abbreviation of one word reads as that word (`md.`,
-    `mad.`: `madde`; `Av.`: `avukat`; `Sok.`: `sokak`; `San.`: `sanayi`), so it is one term with
-    it and no other word's (`av`, `san`).
+    `mad.`: `madde`; `Av.`: `avukat`; `Sok.`, `Mah.`, `Cad.`: `sokak`, `mahalle`, `cadde`;
+    `San.`, `Tic.`, `Ltd.`, `Şti.`, `A.Ş.`: `sanayi`, `ticaret`, `limited`, `şirket`; `Dr.`,
+    `Prof.`, `Doç.`, `Yrd.`, `Müh.`: `doktor`, `profesör`, `doçent`, `yardımcı`, `mühendis`;
+    `par.`: `paragraf`), so it is one term with it and no other word's (`av`, `san`, `aş`).
   - Ranking: the treebanks' tags choose between lemmas for `varsa`, `vardı`, `vardır`,
     `doğan`, `örneğin`, `altın`, `bilir` and `çıktı`; the time adverbs `önce`, `sonra`,
     `şimdi`, `bugün` and `daha` keep their time noun apart; an adjective's or a present

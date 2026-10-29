@@ -97,18 +97,33 @@ ZMMS [P:Abbrv; Pr:zememese]
 KVKK [P:Abbrv; Pr:kavekaka]
 KVKK [P:Abbrv; Pr:kanunu; Index:1]
 DMK [P:Abbrv; Pr:demeka]
-AŞ [P:Abbrv; Pr:aşe]
+AŞ [P:Abbrv; Pr:aşe; Ref:şirket]
 AAMÜT [P:Abbrv; Pr:aamüte]
 AT [P:Abbrv; Pr:ate]
 
-## Abbreviations of company names, titles and addresses Zemberek lacks (TDK: San., Şti., Av.,
-## Sok.), read as the word they stand for. Court decisions write them thousands of times
-## (Tic. ve San. Ltd. Şti., Av. Ayşe Yılmaz), and without them San and Av counted as the
-## nouns san "fame" and av "hunt", which then outranked sen in sana.
+## Abbreviations of company names, titles and addresses (TDK: San., Şti., Av., Sok.), read as
+## the word they stand for. Court decisions write them thousands of times (Tic. ve San. Ltd.
+## Şti., Av. Ayşe Yılmaz), and without them San and Av counted as the nouns san "fame" and av
+## "hunt", which then outranked sen in sana. Zemberek lists most of the others as letters of
+## their own (tic, ltd, mah); the pre-release audit found them apart from their word (Tic. 615,
+## Şti. 602, Ltd. 785 times in the court sample; A.Ş. was aş "food"). AŞ (anonim şirket) is
+## above, with the pronunciations.
 San [P:Abbrv; Pr:sanayi; Ref:sanayi]
-Şti [P:Abbrv; Pr:şirketi]
+Şti [P:Abbrv; Pr:şirketi; Ref:şirket]
+Tic [P:Abbrv; Pr:ticaret; Ref:ticaret]
+Ltd [P:Abbrv; Pr:limited; Ref:limited]
+İth [P:Abbrv; Pr:ithalat; Ref:ithalat]
+İhr [P:Abbrv; Pr:ihracat; Ref:ihracat]
 Av [P:Abbrv; Pr:avukat; Ref:avukat]
+Dr [P:Abbrv; Pr:doktor; Ref:doktor]
+Prof [P:Abbrv; Pr:profesör; Ref:profesör]
+Doç [P:Abbrv; Pr:doçent; Ref:doçent]
+Yrd [P:Abbrv; Pr:yardımcı; Ref:yardımcı]
+Müh [P:Abbrv; Pr:mühendis; Ref:mühendis]
 Sok [P:Abbrv; Pr:sokak; Ref:sokak]
+Mah [P:Abbrv; Pr:mahalle; Ref:mahalle]
+Cad [P:Abbrv; Pr:cadde; Ref:cadde]
+par [P:Abbrv; Pr:paragraf; Ref:paragraf]
 
 ## The same word as a circumflexed entry with the right attributes; Zemberek's bare copy
 ## without them accepted şahısı, mahlukadı.

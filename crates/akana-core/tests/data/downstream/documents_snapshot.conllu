@@ -72,8 +72,8 @@
 ## Davalı ABC Tic. A.Ş.'nin itirazı reddedildi.
 1	Davalı	davalı	ADJ	2	amod
 2	ABC	abc	PROPN	6	nsubj
-3	Tic.	tic	NOUN	6	obj
-4	A.Ş.'nin	aş	NOUN	5	nmod:poss
+3	Tic.	ticaret	NOUN	6	obj
+4	A.Ş.'nin	şirket	NOUN	5	nmod:poss
 5	itirazı	itiraz	NOUN	6	obj
 6	reddedildi	reddetmek	VERB	0	root
 7	.	.	PUNCT	6	punct

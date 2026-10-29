@@ -64,6 +64,9 @@ pub(crate) const COMMON_GIVEN_NAMES: &[&str] = &[
     "nejdet", "hüsamettin", "heysem", "nahit", "hamdullah", "gülbin", "abdulhalim", "feyzullah",
     "fehmi", "ziver", "izzettin", "saadettin", "mecit", "veysi", "selami", "utku", "abdulkerim",
     "cumali", "isa",
+    // Given names of court decisions read as other words (Kâni Vrana: the adjective kani, Hasan
+    // Gürsel: gür, Onurhan Solmaz: solmak; pre-release audit).
+    "kâni", "gürsel", "solmaz",
 ];
 
 /// Common Turkish surnames, in addition to gazetteer.rs's SURNAMES.
@@ -75,7 +78,7 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     "çelik", "çetin", "çiftçi", "çınar", "çolak", "demir", "demirci", "demirel", "dinç", "doğan",
     "doğru", "duman", "durmaz", "duran", "ekinci", "elmas", "erbil", "erdem", "erdoğan", "eren",
     "ergin", "ergün", "erol", "ersoy", "ertekin", "ertuğrul", "eryılmaz", "esen", "gök", "gökçe",
-    "güler", "gültekin", "gümüş", "gündoğdu", "güneş", "güngör", "günay", "güven", "güzel", "işık",
+    "güler", "gültekin", "gümüş", "gündoğdu", "güneş", "güngör", "günay", "güven", "güzel", "ışık",
     "ışık", "kahraman", "kalkan", "kaplan", "kara", "karaca", "karadağ", "karakaya", "karakuş",
     "karaman", "karataş", "kaya", "kaymaz", "keskin", "kılıç", "kılınç", "kırkpınar", "koç",
     "kocabaş", "kocaman", "korkmaz", "kurt", "kuru", "küçük", "metin", "oral", "ozan", "öz",
@@ -88,6 +91,9 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     "akıncı", "özgüldür", "hakyemez", "akyel", "güleç", "kuz", "özkaya", "fidan", "akçil",
     "kıratlı", "özeren",
     "zorlu", "evren",
+    // Surnames of court decisions read as other words (Serruh KALELİ: kale, Mehmet ERTEN: erte,
+    // Sacit ADALI: ada; pre-release audit).
+    "kaleli", "kömürcü", "erten", "adalı", "özler", "tuğcu", "başarır", "baltalı",
 ];
 
 /// Common international first names, leaving out ones that are everyday English words.
