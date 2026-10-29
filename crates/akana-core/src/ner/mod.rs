@@ -2,8 +2,9 @@
 //! Recognizes Person (PER), Location (LOC), Organization (ORG), Date (DATE), Money (MONEY), and Percent (PERCENT).
 //! Accelerated with single-pass zero-copy token stream matching.
 
-use crate::morphology::TurkishMorphology;
+use crate::morphology::{rank_units, SecondaryPos, TurkishMorphology, APOSTROPHES};
 use crate::phonology::to_turkish_lower;
+use crate::pii::{is_person_name, is_place_name};
 use crate::tokenization::{Token, TokenType, TurkishTokenizer};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -20,18 +21,6 @@ pub struct NamedEntity {
 lazy_static! {
     /// The analyzer (its lexicon is shared), to tell a name that is also a common word.
     static ref MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
-    static ref PERSON_NAMES: HashSet<String> = {
-        let mut set = HashSet::new();
-        let lex_str = crate::morphology::ZEMBEREK_LEXICON;
-        for line in lex_str.lines() {
-            if line.contains("ProperNoun") {
-                if let Some(first_word) = line.split_whitespace().next() {
-                    set.insert(to_turkish_lower(first_word));
-                }
-            }
-        }
-        set
-    };
     static ref TITLE_TRIGGERS: HashSet<&'static str> = {
         let mut set = HashSet::new();
         for &t in &[
@@ -60,6 +49,12 @@ lazy_static! {
             "hanım",
             "efendi",
             "paşa",
+            // translated news writes a foreign person as Bay Gorbaçov, Bayan Coleman
+            "bay",
+            "bayan",
+            "lord",
+            "leydi",
+            "sir",
         ] {
             set.insert(t);
         }
@@ -191,6 +186,66 @@ fn org_scan_stop(tokens: &[Token], i: usize) -> (usize, bool) {
     }
     (tokens.len(), false)
 }
+
+/// A token's word without the punctuation around it (an apostrophe kept).
+fn clean(text: &str) -> &str {
+    text.trim_matches(|c: char| !c.is_alphanumeric() && !APOSTROPHES.contains(&c))
+}
+
+/// A word's part before an apostrophe and whether a suffix follows it (Kaya'nın: Kaya, true).
+fn name_part(word: &str) -> (&str, bool) {
+    match word.find(APOSTROPHES) {
+        Some(i) => (&word[..i], true),
+        None => (word, false),
+    }
+}
+
+/// Where a name ends in its token's text: before the apostrophe of its suffix, else after its
+/// last letter.
+fn name_end(text: &str) -> usize {
+    text.find(APOSTROPHES)
+        .unwrap_or_else(|| text.trim_end_matches(|c: char| !c.is_alphanumeric()).len())
+}
+
+/// Whether a token can go on a person's name: capitalised, and no place, organisation suffix or
+/// nationality that is no name (Ahmet Yılmaz Ankara'da: the name ends before Ankara).
+fn name_like(text: &str) -> bool {
+    let (word, _) = name_part(clean(text));
+    let lower = to_turkish_lower(word);
+    word.chars().next().is_some_and(char::is_uppercase)
+        && !ORG_SUFFIXES.contains(lower.as_str())
+        && (is_person_name(&lower) || !is_place_name(&lower))
+}
+
+/// Whether a listed name at a sentence's start, with no other evidence, is a person's: one that is
+/// no common word is; one before the head of a compound (Kaya parçaları, Barış antlaşması: P3sg)
+/// is the word; otherwise it is a person's where it is rare as a word (Kerem, Hakan), not where it
+/// is frequent (Güzel, Demir, Tatlı): the corpus prior of its likeliest common reading is under
+/// [`RARE_WORD_LOG_PRIOR`].
+fn person_at_start(base: &str, next: Option<&str>) -> bool {
+    let Some(word) = MORPHOLOGY.spelling_log_prior(base, |p| {
+        !matches!(
+            p.secondary_pos,
+            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+        )
+    }) else {
+        return true;
+    };
+    let compound_head = next.is_some_and(|t| {
+        let (w, _) = name_part(clean(t));
+        w.chars().next().is_some_and(char::is_lowercase)
+            && MORPHOLOGY
+                .analyze(w)
+                .first()
+                .is_some_and(|p| p.morpheme_tags.iter().any(|m| m == "P3sg"))
+    });
+    !compound_head && word < RARE_WORD_LOG_PRIOR
+}
+
+/// The corpus log prior under which a common word is rare enough to be a name at a sentence's
+/// start (-14 nats): chosen on the UD Turkish train and dev sentences, from -8 to -16 nats, by
+/// the F1 of persons at a sentence's start (0.889; -8 nats gave 0.720, -11 0.835, -16 0.877).
+const RARE_WORD_LOG_PRIOR: i32 = rank_units(-14.0);
 
 /// Whether token `i` begins a sentence: the text's first word, or the first after a period, an
 /// exclamation or question mark, an ellipsis or a line break, opening quotes and brackets aside.
@@ -407,71 +462,73 @@ impl TurkishNER {
                     continue;
                 }
 
-                // 6. Person Pattern (Title trigger + Capitalized Word, or in PERSON_NAMES)
-                // At a sentence's start a capital says nothing: a listed name that is also a
-                // common word there (Kaya parçaları, Barış antlaşması, Tatlı yemeyi severim) is a
-                // person only before another capitalised word, beside a title, or once the text
-                // has named that person in full. Inside a sentence the capital is evidence.
-                let next_capitalised = i + 1 < n && {
-                    let next = tokens[i + 1]
-                        .text
-                        .trim_matches(|c: char| !c.is_alphabetic());
-                    next.chars().next().is_some_and(char::is_uppercase)
-                        && !ORG_SUFFIXES.contains(to_turkish_lower(next).as_str())
+                // 6. Persons and places. A person's name is a given name or surname of the PII
+                // lexicon, a place a province, a district, or a country, region or city abroad;
+                // the lexicon's other proper nouns are neither (Ankara and Almanya were persons).
+                // A name is looked up without the suffix after its apostrophe (Kaya'nın), and its
+                // entity ends there, as a number's does.
+                let (name, suffixed) = name_part(clean_tok);
+                let base = to_turkish_lower(name);
+                let title_beside = |k: Option<usize>| {
+                    k.and_then(|k| tokens.get(k)).is_some_and(|t| {
+                        TITLE_TRIGGERS.contains(
+                            to_turkish_lower(t.text.trim_matches(|c: char| !c.is_alphabetic()))
+                                .as_str(),
+                        )
+                    })
                 };
-                let is_person = PERSON_NAMES.contains(lower_tok.as_str())
-                    && (next_capitalised
-                        || named.contains(&lower_tok)
-                        || !sentence_start(text, &tokens, i)
-                        || MORPHOLOGY.analyze_standard(&lower_tok).is_empty());
-                let preceded_by_title = i > 0
-                    && TITLE_TRIGGERS.contains(
-                        to_turkish_lower(
-                            tokens[i - 1]
-                                .text
-                                .trim_matches(|c: char| !c.is_alphabetic()),
-                        )
-                        .as_str(),
-                    );
-                let followed_by_title = i + 1 < n
-                    && TITLE_TRIGGERS.contains(
-                        to_turkish_lower(
-                            tokens[i + 1]
-                                .text
-                                .trim_matches(|c: char| !c.is_alphabetic()),
-                        )
-                        .as_str(),
-                    );
+                let title = title_beside(i.checked_sub(1)) || title_beside(Some(i + 1));
+                let next_name = !suffixed && tokens.get(i + 1).is_some_and(|t| name_like(t.text));
+                let place = is_place_name(&base);
+                // Inside a sentence the capital says a listed name is one. At a sentence's start
+                // it says nothing: a listed name that may be a common word there is a person with
+                // a suffix after an apostrophe, before another name, beside a title or once the
+                // text has named the person in full, and otherwise only when it is rare as a word
+                // and does not modify the head of a compound ([`person_at_start`]). A place that
+                // is also a name (Aydın, Fatih) is a person only by the same evidence.
+                let strong = title || next_name || named.contains(&base);
+                let is_person = (is_person_name(&base)
+                    && (strong
+                        || (!place
+                            && (suffixed
+                                || !sentence_start(text, &tokens, i)
+                                || person_at_start(&base, tokens.get(i + 1).map(|t| t.text))))))
+                    || title;
 
-                if is_person || preceded_by_title || followed_by_title {
+                if is_person {
                     let mut j = i + 1;
-                    while j < n {
-                        let next_clean = tokens[j].text.trim_matches(|c: char| !c.is_alphabetic());
-                        if !next_clean.is_empty()
-                            && next_clean.chars().next().unwrap().is_uppercase()
-                            && !ORG_SUFFIXES.contains(to_turkish_lower(next_clean).as_str())
-                        {
-                            j += 1;
-                        } else {
-                            break;
-                        }
+                    let mut last_suffixed = suffixed;
+                    while j < n && !last_suffixed && name_like(tokens[j].text) {
+                        last_suffixed = name_part(clean(tokens[j].text)).1;
+                        j += 1;
                     }
-
-                    let matched_tokens: Vec<&str> = tokens[i..j].iter().map(|t| t.text).collect();
+                    let last = &tokens[j - 1];
+                    let end = last.start + name_end(last.text);
                     if j - i > 1 {
-                        named.extend(matched_tokens.iter().map(|t| {
-                            to_turkish_lower(
-                                t.trim_matches(|c: char| !c.is_alphanumeric() && c != '\''),
-                            )
-                        }));
+                        named.extend(
+                            tokens[i..j]
+                                .iter()
+                                .map(|t| to_turkish_lower(name_part(clean(t.text)).0)),
+                        );
                     }
                     entities.push(NamedEntity {
-                        text: matched_tokens.join(" "),
+                        text: text[tok.start..end].to_string(),
                         label: "PER".to_string(),
                         start: tok.start,
-                        end: tokens[j - 1].end,
+                        end,
                     });
                     i = j;
+                    continue;
+                }
+                if place {
+                    let end = tok.start + name_end(tok.text);
+                    entities.push(NamedEntity {
+                        text: text[tok.start..end].to_string(),
+                        label: "LOC".to_string(),
+                        start: tok.start,
+                        end,
+                    });
+                    i += 1;
                     continue;
                 }
             }

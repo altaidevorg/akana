@@ -79,6 +79,33 @@ fn a_name_that_is_also_a_word_is_no_person_at_a_sentences_start_alone() {
 }
 
 #[test]
+fn places_are_no_persons_and_a_name_ends_before_its_suffix() {
+    let ents = |text: &str| -> Vec<String> {
+        TurkishNER::extract_entities(text)
+            .into_iter()
+            .map(|e| format!("{}/{}", e.text, e.label))
+            .collect()
+    };
+    // Every proper noun of the lexicon was a person's name: Ankara, Almanya.
+    assert_eq!(ents("Ankara güzel bir şehir."), ["Ankara/LOC"]);
+    assert_eq!(
+        ents("Almanya ve Fransa anlaştı."),
+        ["Almanya/LOC", "Fransa/LOC"]
+    );
+    // A suffix after the apostrophe is no part of the name, which it no longer hides.
+    assert_eq!(ents("Dün Ankara'ya gittik."), ["Ankara/LOC"]);
+    assert_eq!(ents("Dün Kaya'nın evine gittik."), ["Kaya/PER"]);
+    // A person's name ends before a place.
+    assert_eq!(
+        ents("Ahmet Yılmaz Ankara'da yaşıyor."),
+        ["Ahmet Yılmaz/PER", "Ankara/LOC"]
+    );
+    // Translated news: Bay Gorbaçov; a nationality is no person (Türk gençleri).
+    assert_eq!(ents("Bay Gorbaçov konuştu."), ["Gorbaçov/PER"]);
+    assert!(ents("Türk gençleri sahneye çıktı.").is_empty());
+}
+
+#[test]
 fn test_keywords_and_summarizer_unit() {
     let text = "Türkiye Cumhuriyeti 1923 yılında kuruldu. Başkenti Ankara'dır. \
         Türkçe, Türk dilleri ailesine ait sondan eklemeli zengin bir dildir. \

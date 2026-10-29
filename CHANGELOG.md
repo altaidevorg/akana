@@ -341,16 +341,25 @@ them passes it.
     accusative (`Bu filmi beğendim`). A word written in lower case is a name only where it
     reads as nothing else (`mimarlık`, `güler`, `kadri` read as words, where a corpus name
     ranked first; `ankara` stays Ankara), as `analyze_standard` already judged it.
-- **NER.** At a sentence's start, where a capital says nothing, a listed name that is also a
-  common word is a person only before another capitalised word, beside a title, or once the
-  text has named the person in full (`Kaya parçaları`, `Barış antlaşması`, `Tatlı yemeyi
-  severim` have no person; `Ateş Yılmaz geldi`, `Sayın Kaya`, `Mehmet Yılmaz ... Yılmaz,
-  açıklamasında` do); a name that is no word (`Ahmet`) and a name inside a sentence are
-  persons as before. On the held-out UD Turkish sentences (news, essays, fiction, tourism ...)
-  person entities on a word UD does not tag PROPN fell from 551 (0.8.0's NER with 0.9.0's
-  analyzer before this rule: 659) to 269, at a sentence's start from 377 to 87; those on PROPN
-  words went from 1,935 to 1,882 (sentence-initial names that are also words, alone: `Kerem eve
-  geldi`).
+- **NER.** Persons and places. A person's name is a given name or surname of the PII lexicon
+  (with `Bay`, `Bayan`, `Lord` among the titles), a place a province, a district, or a country,
+  region or city abroad, now tagged `LOC` (`Ankara`, `Almanya`, `Ankara'ya`); every proper noun
+  of the lexicon was a person's name, places, organisations and nationalities included. A name
+  ends before the suffix after its apostrophe, which no longer hides it (`Kaya'nın`: `Kaya`), and
+  a person's name ends before a place (`Ahmet Yılmaz Ankara'da`). At a sentence's start, where a
+  capital says nothing, a listed name that is also a common word is a person with a suffix after
+  its apostrophe, before another name, beside a title or once the text has named the person in
+  full; before the head of a compound it is the word (`Kaya parçaları`, `Barış antlaşması`);
+  otherwise it is a person when it is rare as a word (`Kerem`, `Hakan`) and not when it is
+  frequent (`Güzel`, `Tatlı`, `Demir`), by the corpus prior of its common reading (-14 nats,
+  chosen on the UD Turkish train and dev sentences). On the held-out UD sentences (the test files
+  and IMST: news, essays, fiction, tourism ...): person entities on words UD does not tag PROPN
+  551 in 0.8.0 to 138, places tagged as persons 217 to 7 (574 places tagged `LOC`); F1 of
+  persons among the listed names 0.741 to 0.884 at a sentence's start and 0.827 to 0.853 inside.
+  Fewer proper nouns are persons (49 % to 28 % of those inside a sentence that are no place):
+  most were organisations, nationalities or other places, some were persons akana does not list
+  (a surname alone: `Kapusuz`). A rare word that is a surname may still be a person at a
+  sentence's start (`Durmaz bir koşu`).
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
   court decisions write after its period (`TCK.nun`, `HMK.'ya`; not `A.Ş.vekili`). NER

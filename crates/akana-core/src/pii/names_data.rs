@@ -276,28 +276,10 @@ pub(crate) const NAME_STOPPERS: &[&str] = &[
     // words of a decision's heading and signature block, which end the official form's name
     // (Mehmet KAYA KARAR; review 4 DOWN4-09)
     "karar", "kararı", "tarih", "mühür",
-    // countries, regions and large cities outside the province list
-    "türkiye", "almanya", "fransa", "ingiltere", "amerika", "abd", "rusya", "italya", "ispanya",
-    "yunanistan", "irak", "iran", "suriye", "azerbaycan", "japonya", "çin", "hollanda", "belçika",
-    "avusturya", "isviçre", "kıbrıs", "bulgaristan", "gürcistan", "ukrayna", "mısır", "israil",
-    "filistin", "katar", "arabistan", "kanada", "brezilya", "hindistan", "pakistan", "afganistan",
-    "avrupa", "asya", "afrika", "anadolu", "trakya", "londra", "berlin", "moskova", "atina", "roma",
-    "viyana", "brüksel", "bakü", "tahran", "bağdat", "şam", "kahire", "tokyo", "pekin", "germany",
-    "france", "england", "america", "russia", "turkey", "europe", "london", "york", "google",
-    "microsoft", "apple", "amazon", "facebook", "twitter",
-    // nationalities and demonyms
-    "türk", "kürt", "alman", "ingiliz", "fransız", "amerikalı", "rus", "arap", "yunan", "ermeni",
-    "laz", "çerkez", "gürcü", "boşnak", "arnavut",
-    // more countries and regions, then legal and institution words capitalised as terms
-    "kore", "vietnam", "tayland", "endonezya", "malezya", "singapur", "avustralya", "meksika",
-    "arjantin", "şili", "kolombiya", "venezuela", "küba", "portekiz", "polonya", "çekya",
-    "macaristan", "romanya", "sırbistan", "hırvatistan", "bosna", "makedonya", "karadağ",
-    "arnavutluk", "slovenya", "slovakya", "danimarka", "norveç", "isveç", "finlandiya", "estonya",
-    "letonya", "litvanya", "belarus", "moldova", "kazakistan", "özbekistan", "türkmenistan",
-    "kırgızistan", "tacikistan", "moğolistan", "ürdün", "lübnan", "kuveyt", "bahreyn", "umman",
-    "yemen", "libya", "tunus", "cezayir", "fas", "sudan", "etiyopya", "kenya", "nijerya", "somali",
-    "irlanda", "iskoçya", "galler", "izlanda", "lüksemburg", "monako", "vatikan", "malta", "tayvan",
-    "filipinler", "bangladeş", "nepal", "kosova", "kafkasya", "balkanlar", "ortadoğu", "delhi",
+    // companies; the countries, regions and cities abroad (FOREIGN_PLACES) and the
+    // nationalities (DEMONYMS) end a name too
+    "google", "microsoft", "apple", "amazon", "facebook", "twitter",
+    // legal and institution words capitalised as terms
     "grand", "prix", "bank", "kanun", "kanunu", "yönetmelik", "tüzük", "genelge", "kararname",
     "anayasa", "mahkeme", "daire", "kurul", "bakanlık", "kurum", "kurumu", "ticaret", "sanayi",
     "san.", "tic.", "idaresi", "idaresinde", "müdürlüğünde",
@@ -305,6 +287,33 @@ pub(crate) const NAME_STOPPERS: &[&str] = &[
     // end a name (Hayat Sigorta A.Ş.; review 3 PII3-05, PII3-06).
     "ltd", "şti", "tic", "sigorta", "sigortası", "sigortaları", "bankası", "inşaat", "holdingi",
     "diğerleri", "digerleri", "başvurusu", "basvurusu",
+];
+
+/// Countries, regions and large cities outside the province list: places (NER's LOC), and words
+/// that end a name.
+pub(crate) const FOREIGN_PLACES: &[&str] = &[
+    "türkiye", "almanya", "fransa", "ingiltere", "amerika", "abd", "rusya", "italya", "ispanya",
+    "yunanistan", "irak", "iran", "suriye", "azerbaycan", "japonya", "çin", "hollanda", "belçika",
+    "avusturya", "isviçre", "kıbrıs", "bulgaristan", "gürcistan", "ukrayna", "mısır", "israil",
+    "filistin", "katar", "arabistan", "kanada", "brezilya", "hindistan", "pakistan", "afganistan",
+    "avrupa", "asya", "afrika", "anadolu", "trakya", "londra", "berlin", "moskova", "atina", "roma",
+    "viyana", "brüksel", "bakü", "tahran", "bağdat", "şam", "kahire", "tokyo", "pekin", "germany",
+    "france", "england", "america", "russia", "turkey", "europe", "london", "york", "kore",
+    "vietnam", "tayland", "endonezya", "malezya", "singapur", "avustralya", "meksika", "arjantin",
+    "şili", "kolombiya", "venezuela", "küba", "portekiz", "polonya", "çekya", "macaristan",
+    "romanya", "sırbistan", "hırvatistan", "bosna", "makedonya", "karadağ", "arnavutluk",
+    "slovenya", "slovakya", "danimarka", "norveç", "isveç", "finlandiya", "estonya", "letonya",
+    "litvanya", "belarus", "moldova", "kazakistan", "özbekistan", "türkmenistan", "kırgızistan",
+    "tacikistan", "moğolistan", "ürdün", "lübnan", "kuveyt", "bahreyn", "umman", "yemen", "libya",
+    "tunus", "cezayir", "fas", "sudan", "etiyopya", "kenya", "nijerya", "somali", "irlanda",
+    "iskoçya", "galler", "izlanda", "lüksemburg", "monako", "vatikan", "malta", "tayvan",
+    "filipinler", "bangladeş", "nepal", "kosova", "kafkasya", "balkanlar", "ortadoğu", "delhi",
+];
+
+/// Nationalities and demonyms: no person's name (NER), and words that end a name.
+pub(crate) const DEMONYMS: &[&str] = &[
+    "türk", "kürt", "alman", "ingiliz", "fransız", "amerikalı", "rus", "arap", "yunan", "ermeni",
+    "laz", "çerkez", "gürcü", "boşnak", "arnavut",
 ];
 
 /// Words a company's name ends with (Hayat Sigorta, Axa Sigorta A.Ş., Koç Holding): the words

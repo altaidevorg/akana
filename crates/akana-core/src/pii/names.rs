@@ -82,6 +82,20 @@ pub(crate) fn is_given_name(lower: &str) -> bool {
     PERSON_GIVEN_NAMES.contains(lower)
 }
 
+/// Whether `lower` (lower-cased, without a suffix) is a person's given name or surname in the PII
+/// lexicon, and no nationality: NER's person names (the lexicon's other proper nouns, places
+/// among them, are none).
+pub(crate) fn is_person_name(lower: &str) -> bool {
+    (LEXICON.given.contains_key(lower) || LEXICON.surnames.contains(lower))
+        && !DEMONYMS.contains(&lower)
+}
+
+/// Whether `lower` (lower-cased, without a suffix) is a place: a province, a district, or a
+/// country, region or city abroad.
+pub(crate) fn is_place_name(lower: &str) -> bool {
+    PROVINCES.contains(lower) || DISTRICTS.contains(lower) || FOREIGN_PLACES.contains(&lower)
+}
+
 fn with_ascii<'a>(items: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     let mut out = Vec::new();
     for item in items {
@@ -276,6 +290,8 @@ lazy_static! {
         // An ASCII-folded stopper that is a name stays a name: kürt folds to Kurt.
         let stoppers: HashSet<String> = NAME_STOPPERS
             .iter()
+            .chain(FOREIGN_PLACES)
+            .chain(DEMONYMS)
             .flat_map(|w| {
                 let ascii = TurkishAsciifier::asciify(w);
                 let named = given.contains_key(&ascii)
