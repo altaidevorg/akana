@@ -208,8 +208,14 @@ rose from 48.5 to 55.9 and LAS from 34.8 to 41.9.
 
 **AI-text detector.** Its model is unchanged. It reads the shared lexicon and the sentence
 segmenter, so this release moves some of its inputs on most texts: `oov_rate` and the
-sentence statistics. On a 1,928-text sample no verdict changed and the probability moved
-by at most 0.034. The model will be retrained on this release's inputs. A drift canary now
+sentence statistics. Measured against 0.8.0 with `scripts/ai_detector_drift.py` on 1,909
+texts (1,600 court paragraphs, 297 RagTurk paragraphs, the drift canary's paragraphs in
+fours): the probability moved on 1,535 of the 1,871 both builds score, by 0.0011 on average
+(95th percentile 0.0014); 24 moved by more than 0.01, the most by 0.27, encyclopedic text with
+dates and initials that the segmenter now splits otherwise (`d. Trieste`, `T.C.K.'nın`). Four
+verdicts changed, all on RagTurk paragraphs near the boundary between human and uncertain
+(three to uncertain, one back), none on court text. The model will be retrained on this
+release's inputs. A drift canary now
 records the inputs on 160 texts (court paragraphs, and questions, exclamations, ellipses,
 assistant-style answers and other shapes court text lacks) and the lexicon word sets, and
 fails when one moves, so each such change is recorded on purpose
