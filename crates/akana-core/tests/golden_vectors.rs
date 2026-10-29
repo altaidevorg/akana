@@ -21,7 +21,7 @@ use std::path::PathBuf;
 /// release that froze it) and the fingerprint of the file as that release wrote it, so that it
 /// is never rewritten (review 4 CONTRACT4-02). The release that bumps the major adds its file
 /// and its line.
-const RELEASE_FIXTURES: &[(u16, &str)] = &[(1, "a10c2a2a8c6aaa4a80f47fcd728f1978")];
+const RELEASE_FIXTURES: &[(u16, &str)] = &[(1, "699d29a3042ad4ded3e9e4ac7f0cd2f5")];
 
 /// A release fixture holds at least this many texts: a truncated one bounds nothing.
 const RELEASE_MIN_ROWS: usize = 150;

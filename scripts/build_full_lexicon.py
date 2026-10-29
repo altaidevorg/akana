@@ -9,8 +9,9 @@ Sources (all in `scripts/lexicon/`):
   `morphology/src/main/resources/tr`; Apache License 2.0, see `zemberek/NOTICE.md`). The build
   first checks them against the SHA-256 pinned there (`scripts/fetch_zemberek_dicts.py`, which
   can also re-create them from the pinned wheel).
-- `akana-legal.dict`, `akana-extra.dict`, `akana-variants.dict`: akana's own entries in the
-  same syntax. An entry here replaces Zemberek's entry with the same word, POS and secondary
+- `akana-legal.dict`, `akana-extra.dict`, `akana-variants.dict`, `akana-names.dict` (given
+  names and surnames of akana's PII lists, written by `scripts/names_from_pii.py`): akana's own
+  entries in the same syntax. An entry here replaces Zemberek's entry with the same word, POS and secondary
   POS. `Ref:` gives the lemma of a variant spelling, whose root keeps the variant (tesbit:
   tespit).
 - `akana-spelling.dict`: Zemberek words that are misspellings or variant spellings of a
@@ -80,7 +81,7 @@ DEFAULT_RESOURCES = [
     "person-names.dict",
 ]
 CURATED_NAMES = {"proper.dict", "abbreviations.dict", "person-names.dict"}
-SUPPLEMENTS = ["akana-legal.dict", "akana-extra.dict", "akana-variants.dict"]
+SUPPLEMENTS = ["akana-legal.dict", "akana-extra.dict", "akana-variants.dict", "akana-names.dict"]
 SPELLINGS = "akana-spelling.dict"
 REMOVALS = "akana-remove.dict"
 

@@ -81,7 +81,7 @@ Alacak	1	0	0
 Alaeddin	0	0	0
 Alan	1	0	0
 Alanı	1	1	0
-Alara	0	0	1
+Alara	0	0	0
 Alaska	0	0	0
 Alayı	1	1	0
 Albert	0	0	0
@@ -364,7 +364,7 @@ Büyük	1	0	0
 Büyükburç	0	0	0
 Büyükşehir	1	0	0
 BİRİNCİ	1	0	0
-C	1	0	0
+C	0	0	0
 CBK	0	0	0
 CBK’ların	0	0	0
 CBK’nın	0	0	0
@@ -410,7 +410,7 @@ Cumhuriyetin	1	1	0
 Cup	1	0	0
 Cüveynî	0	0	1
 Cử	0	0	1
-D	1	0	0
+D	0	0	0
 DANIŞTAY	1	0	0
 DAVA	1	0	0
 DAVACI	1	0	0
@@ -1021,7 +1021,7 @@ Kızıl	1	0	0
 Kızılderili	0	0	0
 Kızılderilileri	0	0	0
 Kış	1	0	0
-L	1	0	0
+L	0	0	0
 La	1	0	0
 Larnaca	0	0	1
 Law	0	0	0
@@ -1051,7 +1051,7 @@ Luşan	0	0	1
 Lübnan	0	0	0
 Lütfi	0	0	0
 Lāhainā	0	0	1
-M	1	0	0
+M	0	0	0
 MADDE	1	0	0
 MADDİ	1	0	0
 MAHKEMESİ	1	1	0
@@ -2926,7 +2926,7 @@ bağışcan	0	0	1
 bağışhan	0	0	1
 baş	1	0	1
 başak	1	0	1
-başaran	1	0	0
+başaran	1	0	1
 başardı	1	0	0
 başarman	1	1	1
 başarı	1	0	1
@@ -3158,8 +3158,8 @@ berk	1	0	1
 berka	0	0	1
 berkay	0	0	1
 berke	1	1	1
-berki	1	1	1
-berkin	1	1	1
+berki	1	0	1
+berkin	1	0	1
 berkkan	0	0	1
 berksu	0	0	1
 berkun	0	0	1
@@ -3216,7 +3216,7 @@ beylan	0	0	1
 beyrek	0	0	1
 beysan	0	0	1
 beysun	0	0	1
-beyti	1	1	0
+beyti	1	1	1
 beytiye	0	0	1
 beytore	0	0	1
 beytöre	0	0	1
@@ -3368,7 +3368,7 @@ borçlu	1	0	0
 borçlunun	1	1	0
 borçluya	1	1	0
 bostanci	0	0	1
-bostancı	1	0	0
+bostancı	1	0	1
 boylan	1	0	1
 boysel	0	0	1
 boyunca	1	0	0
@@ -4173,7 +4173,7 @@ duman	1	0	1
 dunya	0	0	1
 dur	1	0	0
 duraksamaya	1	0	0
-duran	1	0	0
+duran	1	0	1
 duranay	0	0	1
 durdurma	1	0	0
 durdurulması	1	1	0
@@ -4317,12 +4317,12 @@ ece	1	0	1
 ecegul	0	0	1
 ecegül	0	0	1
 ecehan	0	0	1
-ecem	1	1	0
+ecem	1	1	1
 echer	0	0	1
 ecir	1	0	1
 ecmel	0	0	1
 ecrimisil	1	0	1
-ecrin	1	1	0
+ecrin	1	1	1
 ecved	0	0	1
 eda	1	0	1
 edagul	0	0	1
@@ -4443,9 +4443,9 @@ ekaterina	0	0	1
 ekber	1	0	1
 eki	1	1	0
 ekibi	1	1	0
-ekici	1	0	0
+ekici	1	0	1
 ekin	1	0	1
-ekinci	1	0	0
+ekinci	1	0	1
 ekinde	1	1	0
 ekiner	0	0	1
 eklenen	1	0	0
@@ -4498,7 +4498,7 @@ elverişli	1	0	1
 elverişlilik	1	0	0
 elvida	0	0	1
 elyesa	0	0	1
-elçin	1	1	0
+elçin	1	1	1
 eman	0	0	1
 emanet	1	0	1
 emanetullah	0	0	1
@@ -5294,6 +5294,7 @@ gok	0	0	1
 gokay	0	0	1
 gokcan	0	0	1
 gokce	0	0	1
+gokcen	0	0	1
 gokekin	0	0	1
 gokhan	0	0	1
 gokkir	0	0	1
@@ -5399,6 +5400,7 @@ göksün	1	0	1
 göktuğ	0	0	1
 gökyüzü	1	0	1
 gökçe	1	0	1
+gökçen	1	1	1
 göl	1	0	1
 gönderdi	1	0	0
 gönderdiği	1	1	0
@@ -5519,7 +5521,7 @@ gülberk	0	0	1
 gülbeşeker	1	0	1
 gülbin	0	0	1
 gülbiz	0	0	1
-gülce	1	0	0
+gülce	1	0	1
 güldeste	1	0	1
 gülenbey	0	0	1
 gülennur	0	0	1
@@ -5681,6 +5683,7 @@ halen	1	0	0
 halenur	0	0	1
 hali	1	1	0
 haliddin	0	0	1
+halide	0	0	1
 halife	1	0	1
 halil	0	0	1
 halime	1	1	1
@@ -6110,7 +6113,7 @@ hüryaşar	0	0	1
 hüsameddin	0	0	1
 hüsamettin	0	0	1
 hüseyin	0	0	1
-hüsnü	1	1	0
+hüsnü	1	1	1
 hüsnügül	0	0	1
 hüsnügüzel	0	0	1
 hüsnühal	1	0	1
@@ -6642,7 +6645,7 @@ izlenen	1	0	0
 izleyen	1	0	0
 izni	1	1	0
 izra	0	0	1
-izzettin	1	0	0
+izzettin	1	0	1
 izzi	0	0	1
 iç	1	0	1
 içerdiği	1	1	0
@@ -7294,7 +7297,7 @@ kooperatif	1	0	1
 kooperatifin	1	1	0
 koral	1	0	1
 koray	0	0	1
-korkmaz	1	0	0
+korkmaz	1	0	1
 korkutalp	0	0	1
 kornes	0	0	1
 kortan	0	0	1
@@ -7713,7 +7716,7 @@ listesi	1	1	0
 liva	1	0	1
 liyakat	1	0	1
 liyâkat	1	0	1
-lokman	1	1	0
+lokman	1	1	1
 lorenzo	0	0	1
 louis	0	0	1
 lu	0	0	1
@@ -8647,7 +8650,7 @@ nazlan	1	0	1
 nazli	0	0	1
 nazligul	0	0	1
 nazlihan	0	0	1
-nazlı	1	0	0
+nazlı	1	0	1
 nazlıgül	0	0	1
 nazlıhan	0	0	1
 nazmi	0	0	1
@@ -8986,7 +8989,7 @@ off	0	0	1
 ofis	1	0	1
 oflaz	1	0	1
 oflazer	0	0	1
-oflu	0	0	0
+oflu	0	0	1
 oganer	0	0	1
 ogansoy	0	0	1
 oge	0	0	1
@@ -9368,6 +9371,7 @@ ozer	0	0	1
 ozeren	0	0	1
 ozgan	0	0	1
 ozge	0	0	1
+ozgen	0	0	1
 ozguldur	0	0	1
 ozgur	0	0	1
 ozkan	0	0	1
@@ -9892,7 +9896,7 @@ rızası	1	1	0
 rızkullah	0	0	1
 s	0	0	1
 saadeddin	0	0	1
-saadettin	1	0	0
+saadettin	1	0	1
 saat	1	0	1
 saatleri	1	1	0
 saatlik	1	0	0
@@ -9926,7 +9930,7 @@ sadedil	0	0	1
 sadegul	0	0	1
 sadegül	0	0	1
 saderu	0	0	1
-sadettin	1	0	0
+sadettin	1	0	1
 sadeyn	0	0	1
 sadik	1	0	1
 sadika	0	0	1
@@ -10523,7 +10527,7 @@ sermende	1	1	0
 sernaz	0	0	1
 sernevaz	0	0	1
 sernur	0	0	1
-serpil	1	0	0
+serpil	1	0	1
 serra	0	0	1
 serrac	0	0	1
 serraç	0	0	1
@@ -11471,7 +11475,7 @@ tekalp	0	0	1
 tekdogan	0	0	1
 tekdoğan	0	0	1
 tekecan	0	0	1
-tekeli	1	1	0
+tekeli	1	1	1
 tekemmül	1	0	1
 tekerrür	1	0	1
 teki	1	1	0
@@ -11897,7 +11901,7 @@ töreni	1	1	0
 töreninde	1	1	0
 tözüm	1	0	1
 tüblek	0	0	1
-tüfekçi	1	0	0
+tüfekçi	1	0	1
 tükelalp	0	0	1
 tükelay	0	0	1
 tükenmiş	1	0	0
@@ -13263,7 +13267,7 @@ ziyneti	1	1	1
 zor	1	0	1
 zoral	0	0	1
 zorla	1	0	0
-zorlu	1	0	0
+zorlu	1	0	1
 zorunda	1	1	0
 zorundadır	1	1	0
 zorunlu	1	0	1
@@ -13627,6 +13631,7 @@ zürare	0	0	1
 özetle	1	1	0
 özetlenen	1	0	0
 özge	1	0	1
+özgen	1	1	1
 özgü	1	0	1
 özgüldür	1	0	1
 özgün	1	0	1
@@ -14104,7 +14109,7 @@ zürare	0	0	1
 şetaret	1	0	1
 şevde	1	1	1
 şevket	1	0	1
-şevki	1	1	0
+şevki	1	1	1
 şevkidil	0	0	1
 şevval	1	0	1
 şey	1	0	1

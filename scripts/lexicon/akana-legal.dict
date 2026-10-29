@@ -105,10 +105,10 @@ AT [P:Abbrv; Pr:ate]
 ## Sok.), read as the word they stand for. Court decisions write them thousands of times
 ## (Tic. ve San. Ltd. Şti., Av. Ayşe Yılmaz), and without them San and Av counted as the
 ## nouns san "fame" and av "hunt", which then outranked sen in sana.
-San [P:Abbrv; Pr:sanayi]
+San [P:Abbrv; Pr:sanayi; Ref:sanayi]
 Şti [P:Abbrv; Pr:şirketi]
-Av [P:Abbrv; Pr:avukat]
-Sok [P:Abbrv; Pr:sokak]
+Av [P:Abbrv; Pr:avukat; Ref:avukat]
+Sok [P:Abbrv; Pr:sokak; Ref:sokak]
 
 ## The same word as a circumflexed entry with the right attributes; Zemberek's bare copy
 ## without them accepted şahısı, mahlukadı.

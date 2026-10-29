@@ -279,9 +279,12 @@ them passes it.
   - Input as word processors leave it reads: soft hyphens and zero-width characters inside a
     word, ligatures and fullwidth letters (`tedbirine` with a soft hyphen, `ﬁkir` with the ﬁ ligature, `ＫＩＴＡＰ`). Initials read as
     their abbreviation (`A.Ş.`, `T.C.`), and `C.`, `D.`, `L.`, `M.`, `CD.`, `MD.` as
-    abbreviations rather than Roman numerals when the lexicon has one; a dotted suffix keeps
-    the abbreviation's own reading (`Şti.nin`). Readings that differ only in a silent
-    morpheme are one (`milletvekili`).
+    abbreviations rather than Roman numerals when the lexicon has one, and a single `C`, `D`,
+    `L` or `M` is never one; a dotted suffix keeps the abbreviation's own reading (`Şti.nin`).
+    An abbreviation of a phrase that ends in a possessive takes the phrase's cases after a
+    silent P3sg (`HMK'na`, `CBS'nca`, `Şti'nden`, which read as P2sg). Readings that differ
+    only in a silent morpheme are one (`milletvekili`), and so are `-mIşken`'s evidential and
+    participle readings (`gelmişken`: Evid+While).
   - Lexicon: court and general words added (`kesinleşmek`, `gerçekleştirmek`,
     `kamulaştırmak`, `satın`, `giderim`, `uyarlık`, `ruhsal`, `evrensel`, `haksız`,
     `istisnaen`, `tevhiden`, `mündericat`, `Katar`, `Yüksel` …); `kasıt` makes `kastı`; the
@@ -290,7 +293,14 @@ them passes it.
     (`ekleri` is `ek`, `eleme` is `elemek`). Homographs that shared a prior key have their own
     (`dahil` and `dâhil`). Words the lexicon had only as names read as words (`rücuan`,
     `rızai`, `karz`, `meskeniyet`, `talasemi`, `rapçi`), and acronyms as abbreviations rather
-    than corpus names typed with ı (`IBAN`, `BİST`; the build drops such a name).
+    than corpus names typed with ı (`IBAN`, `BİST`; the build drops such a name). The given
+    names and surnames of akana's PII lists that Zemberek lacks as names are names (190:
+    `Serpil` read as `serpmek`, `Gökçen` and `Özgen` with a P2sg, `Halide` as `hali-de`; `Hakan`,
+    `Metin`, `Kaya` had no name reading; `scripts/names_from_pii.py` writes
+    `akana-names.dict`), and six company words among the corpus names are dropped (`Mimarlık`,
+    `Yayıncılık`, `Denizcilik` ...). An abbreviation of one word reads as that word (`md.`,
+    `mad.`: `madde`; `Av.`: `avukat`; `Sok.`: `sokak`; `San.`: `sanayi`), so it is one term with
+    it and no other word's (`av`, `san`).
   - Ranking: the treebanks' tags choose between lemmas for `varsa`, `vardı`, `vardır`,
     `doğan`, `örneğin`, `altın`, `bilir` and `çıktı`; the time adverbs `önce`, `sonra`,
     `şimdi`, `bugün` and `daha` keep their time noun apart; an adjective's or a present
@@ -298,7 +308,9 @@ them passes it.
     `yok` are their clause's predicate (`Bir sorun vardı .`) unless a dative precedes
     (`eve vardı`), `ile` is the postposition before `ilgili`, `birlikte`, `beraber` and after
     a verbal noun, and a noun's -(s)I after `bu`, `şu`, `o`, `her` or `hangi` is the
-    accusative (`Bu filmi beğendim`).
+    accusative (`Bu filmi beğendim`). A word written in lower case is a name only where it
+    reads as nothing else (`mimarlık`, `güler`, `kadri` read as words, where a corpus name
+    ranked first; `ankara` stays Ankara), as `analyze_standard` already judged it.
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
   court decisions write after its period (`TCK.nun`, `HMK.'ya`; not `A.Ş.vekili`). NER

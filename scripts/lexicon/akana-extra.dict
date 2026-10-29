@@ -181,8 +181,8 @@ TL [P:Abbrv; Pr:lira; Index:1]
 ## written in lower case is checked against (plan step D7; the readings of bü, si or la, junk
 ## abbreviations in capitals, do not count for one). md and mad read as madde.
 bkz [P:Abbrv; Pr:bekeze]
-md [P:Abbrv; Pr:madde]
-mad [P:Abbrv; Pr:madde]
+md [P:Abbrv; Pr:madde; Ref:madde]
+mad [P:Abbrv; Pr:madde; Ref:madde]
 vb [P:Abbrv; Pr:vebe]
 vs [P:Abbrv; Pr:vese]
 sy [P:Abbrv; Pr:seye]

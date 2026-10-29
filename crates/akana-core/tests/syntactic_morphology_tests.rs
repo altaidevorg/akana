@@ -83,10 +83,10 @@ fn test_syntactic_morphology_nominal_inflections() {
 #[test]
 fn zero_derivations_are_eliminated() {
     // An adjective inflected as a noun is a noun, so güzel the adjective and güzel the noun give
-    // one parse; only the copula opens a group.
+    // one parse; only the copula opens a group. (The surname Güzel reads as a name too.)
     let plural: Vec<SyntacticParse> = analyze("güzeller")
         .into_iter()
-        .filter(|p| p.inflectional_groups.len() == 1)
+        .filter(|p| p.inflectional_groups.len() == 1 && !p.is_proper)
         .collect();
     assert_eq!(plural.len(), 1, "{plural:#?}");
     assert_eq!(

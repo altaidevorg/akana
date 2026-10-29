@@ -35,6 +35,17 @@ Umumiye
 Sonucta
 Mitingte
 
+## Common words with -lIk that proper-from-corpus.dict lists as names, from company names
+## (X Mimarlık Ltd.): their name item ranked first even in lower case, so mimarlık and
+## yayıncılık had a name's lemma (review 4 MORPH4-10). Places of the same shape stay (Ayvalık,
+## Gemlik, İncirlik, Kozluk, Yumurtalık), as do Krallık (Birleşik Krallık) and Başbakanlık.
+Mimarlık
+Yayıncılık
+Denizcilik
+Kuyumculuk
+Mağazacılık
+Fuarcılık
+
 ## Interjection twins of content words (review 2, MLEX2-01). Zemberek lists commands, vocatives
 ## and exclamations as interjections beside the noun, adjective or adverb they are (ileri,
 ## devam, ay, teslim, ölüm, amca, kamera). The corpus prior cannot tell the two apart, so the

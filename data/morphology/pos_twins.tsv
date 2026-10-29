@@ -771,6 +771,7 @@ araştırılmaktadır	Verb:2
 araştırır	Verb:1
 ardınca	Adv:4
 ardından	Adv:49 Noun:25
+arif	Noun:1
 aritmetik	Adj:3
 arka	Adj:33 Noun:7
 arkadan	Adv:1 Noun:11
@@ -1443,6 +1444,7 @@ bakanına	Noun:1
 bakanıydı	Noun:1
 bakar	Verb:14 VerbPart:1
 bakarsın	Verb:2
+baki	Adj:2
 bakire	Adj:1 Noun:1
 bakma	Verb:3 VerbNoun:2
 bakmadan	VerbAdv:6
@@ -1993,6 +1995,7 @@ beri	Adj:4 Adv:40 Noun:11 Postp:112
 beridir	Noun:1
 beriki	Adj:1
 berikiler	Adj:1
+berk	Noun:1
 berrak	Adj:4 Noun:1
 bertaraf	Adj:1 Adv:5 Noun:2
 besbelli	Adj:1 Adv:5
@@ -4068,6 +4071,7 @@ duraklama	Noun:1
 duraklar	Noun:1
 duramayacak	VerbPart:1
 duramaz	VerbPart:1
+duran	VerbPart:50
 durağan	Adj:1
 durağanlaşmış	Adj:1
 durdu	Verb:36
@@ -4108,6 +4112,7 @@ durmuştu	Verb:3
 durmuştuk	Verb:1
 durmuştur	Verb:3
 dursun	Noun:1 Verb:8
+duru	Adj:6
 durulacaktır	Verb:1
 durulamaz	VerbPart:1
 durulma	Verb:1
@@ -4713,6 +4718,7 @@ efkârlanma	Verb:1
 eflatun	Noun:2
 eflatuni	Noun:1
 efsaneleşmiş	Noun:1
+egemen	Adj:8 Adv:2 Noun:2 VerbNoun:1
 ehemmiyetsizce	Adj:1
 ehli	Adj:1 Noun:2
 ehlidir	Adj:1
@@ -4723,6 +4729,7 @@ eken	VerbPart:1
 ekenler	VerbNoun:1
 eker	Verb:1
 ekici	Noun:1
+ekicilerle	Noun:1
 ekilecek	VerbPart:2
 ekim	Noun:45
 ekin	Noun:1
@@ -5244,6 +5251,7 @@ eşleşmeyebilir	Verb:1
 eşleştirilebilir	Verb:1
 eşleştirir	Verb:1
 eşleştirme	VerbNoun:1
+eşref	Adj:2 Noun:1
 eşti	Verb:1
 eştirir	Verb:1
 eştiği	VerbNoun:1
@@ -9923,9 +9931,11 @@ muteber	Adj:3
 mutena	Noun:2
 mutlak	Adj:3
 mutlaka	Adv:49
+mutlu	Adj:58 Adv:4 Noun:1
 mutluca	Adv:1
 muttasıl	Adj:2
 muvaffak	Adj:6 Noun:1
+muzaffer	Adj:3
 muzipçe	Adv:1
 muzır	Adj:1
 muşamba	Noun:1
@@ -9983,6 +9993,7 @@ nadir	Adj:16 Adv:1
 nafile	Adj:2
 nahak	Adv:5
 naif	Noun:1
+nail	Adj:1
 nakdî	Adj:2
 nakledildik	Verb:1
 nakledilir	Verb:1
@@ -10010,6 +10021,7 @@ nazil	Noun:2
 nazlanma	Noun:1
 nazlanmayı	Noun:1
 nazlanıp	Noun:1
+nazlı	Adv:2 Noun:5
 nazır	Adj:4 Noun:1
 ne	Adj:285 Adv:396 Conj:276 Noun:2 Pron:400
 neden	Adv:106 Noun:75 Pron:9
@@ -11498,6 +11510,7 @@ sermayelendirme	Noun:2
 sermiş	Noun:1 Verb:2
 serpelediği	VerbNoun:1
 serper	Verb:1
+serpil	Noun:1
 serpilme	VerbNoun:1
 serpilmeye	VerbNoun:2
 serpilmiş	VerbPart:1
@@ -11853,6 +11866,7 @@ soya	Noun:12
 soyabilir	Verb:1
 soyar	Verb:1
 soyca	Noun:1
+soylu	Adj:6
 soylular	Adj:1
 soyma	VerbNoun:1
 soymadan	Verb:1
@@ -12830,6 +12844,7 @@ tonlarca	Adj:2
 top	Noun:36
 topaklanmış	Verb:1
 topaklaşmış	Verb:2
+topal	Adj:6
 topallar	Adj:1 VerbPart:1
 toparlak	Noun:1
 toparlamaya	VerbNoun:1
@@ -13893,6 +13908,7 @@ yalvarmaya	VerbNoun:2
 yalvarmıştı	Verb:1
 yalvarıcı	VerbPart:1
 yalvarır	Verb:1
+yalçın	Adj:3
 yalın	Adj:12 Adv:1
 yalınayak	Noun:1
 yama	Noun:1
@@ -14361,6 +14377,7 @@ yavruağzı	Noun:1
 yavrulamıştı	Verb:1 VerbPart:1
 yavrular	Noun:2
 yavuklanmış	Verb:1
+yavuz	Adj:1
 yay	Noun:5
 yay.	Noun:1
 yaya	Adj:4 Adv:2 Noun:2
@@ -15312,6 +15329,7 @@ zehirlenip	VerbAdv:1
 zehirlenmemek	VerbNoun:1
 zehirlenmesi	VerbNoun:1
 zehirlenmesine	Noun:1
+zeki	Adj:17
 zekice	Adv:4
 zenginim	Adj:1
 zenginlenmiş	Adj:1
@@ -15364,6 +15382,7 @@ zorlaştırmaktadır	VerbNoun:1
 zorlaştırmaya	Noun:1
 zorlaştırır	Verb:1
 zorlaşır	Verb:1
+zorlu	Adj:24 Adv:2
 zorlukla	Adv:2 Noun:1
 zormuş	Adj:2 Noun:1
 zorunlular	Adj:1
@@ -15699,6 +15718,7 @@ zıttı	Noun:1
 çentikler	Noun:1
 çepeçevre	Adv:3
 çerçevelediği	VerbNoun:1
+çetin	Adj:13 Verb:1
 çevik	Adj:6
 çevirdik	Verb:1
 çevirdiği	VerbPart:1
@@ -16623,6 +16643,7 @@ zıttı	Noun:1
 şekillendirecekler	Verb:1
 şekli	Adj:1 Noun:9
 şeklidir	Noun:1
+şen	Adj:9
 şeni	Adj:1
 şer	Noun:1
 şerbetler	Noun:2

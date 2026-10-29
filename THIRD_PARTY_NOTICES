@@ -25,9 +25,10 @@ Changes:    duplicate entries merged; corpus-collected proper nouns that are inf
             words or common words without their Turkish letters, and roots with stray
             characters, dropped; Zemberek's Ref: pointers made lemmas; entries added, replaced,
             respelled and removed by akana's own supplements (scripts/lexicon/akana-legal.dict,
-            akana-extra.dict, akana-variants.dict, akana-spelling.dict, akana-remove.dict,
-            which carry akana's own attributes Lexicalized, NotLexicalized, Rare and
-            Nonstandard); homographs numbered; written in akana's one-line format.
+            akana-extra.dict, akana-variants.dict, akana-names.dict, akana-spelling.dict,
+            akana-remove.dict, which carry akana's own attributes Lexicalized,
+            NotLexicalized, Rare and Nonstandard); homographs numbered; written in akana's
+            one-line format.
 
 Shipped as: crates/akana-core/src/pii/person_names.txt, compiled into the library: the given
             names of Zemberek's person-names.dict (morphology/src/main/resources/tr), which PII

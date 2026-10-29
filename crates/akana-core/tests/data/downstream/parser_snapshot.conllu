@@ -230,7 +230,7 @@
 1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	2	nsubj
 2	geldi	gelmek	VERB	Verb	Verb|Past	0	root
 3	,	,	PUNCT	Unk	Unk	2	punct
-4	Veli	veli	NOUN	Noun	Noun|A3sg|Nom	5	nsubj
+4	Veli	veli	PROPN	Noun	Noun|A3sg|Nom	5	nsubj
 5	gitti	gitmek	VERB	Verb	Verb|Past	2	conj
 6	.	.	PUNCT	Unk	Unk	2	punct
 
@@ -238,7 +238,7 @@
 1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	2	nsubj
 2	geldi	gelmek	VERB	Verb	Verb|Past	0	root
 3	ve	ve	CCONJ	Conj	Conj	4	cc
-4	Veli	veli	NOUN	Noun	Noun|A3sg|Nom	5	nsubj
+4	Veli	veli	PROPN	Noun	Noun|A3sg|Nom	5	nsubj
 5	gitti	gitmek	VERB	Verb	Verb|Past	2	conj
 6	.	.	PUNCT	Unk	Unk	2	punct
 

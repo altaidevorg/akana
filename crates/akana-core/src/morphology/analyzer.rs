@@ -1025,6 +1025,29 @@ impl TurkishMorphology {
                     }
                 }
             }
+            // A word written all in lower case is no spelling of a name where it reads as a
+            // common word too: its name readings, the ones analyze_standard drops, come after
+            // the others (mimarlık, güler, kadri; ankara, with no other reading, stays Ankara).
+            // The prior's case factor was not enough where EM had given a corpus name the
+            // lower-case uses of a word (mimarlık 0.555 against mimar-lık 0.139; review 4
+            // MORPH4-10). Runtime only: the estimator reads no ranking.
+            if !word.chars().any(char::is_uppercase) {
+                let dotted = word.contains('.');
+                let names: Vec<bool> = parses.iter().map(|p| lower_case_name(p, dotted)).collect();
+                if let Some(floor) = logs
+                    .iter()
+                    .zip(&names)
+                    .filter(|&(_, &name)| !name)
+                    .map(|(&log, _)| log)
+                    .min()
+                {
+                    for (log, &name) in logs.iter_mut().zip(&names) {
+                        if name {
+                            *log = (*log).min(floor - LOWER_CASE_NAME_STEPS * RANK_UNITS_PER_STEP);
+                        }
+                    }
+                }
+            }
             let best = logs.iter().copied().max().unwrap_or(0);
             // Each reading's prior relative to the best, in steps of 2% (rounded half up):
             // readings the corpus cannot tell apart (A3pl+Gen and A3pl+P2sg always compete in
@@ -1206,14 +1229,7 @@ impl TurkishMorphology {
             !p.nonstandard
                 && !p.not_tdk
                 && !rare_path(p)
-                && !(lower_case
-                    && match p.secondary_pos {
-                        SecondaryPos::ProperNoun => true,
-                        SecondaryPos::Abbreviation => {
-                            !dotted && p.display_lemma().chars().any(char::is_uppercase)
-                        }
-                        _ => false,
-                    })
+                && !(lower_case && lower_case_name(p, dotted))
         });
         parses
     }
@@ -1406,8 +1422,8 @@ impl TurkishMorphology {
             }
         };
         if let Some(roman) = self.analyze_roman(clean).filter(|_| {
-            !((letter_before_numeral(clean) || self.abbreviation_before_numeral(&stem))
-                && !parses.is_empty())
+            !letter_before_numeral(clean)
+                && !(self.abbreviation_before_numeral(&stem) && !parses.is_empty())
         }) {
             // A word the lexicon knows keeps its own readings first (MI, the question particle
             // in capitals; CD; XL, the size); otherwise the numeral replaces a guessed
@@ -2162,10 +2178,12 @@ fn dotted_suffix(word: &str) -> Option<(String, &str)> {
 }
 
 /// A single capital C, D, L or M with its period, which court decisions write for an
-/// abbreviation (M. madde, C. Cumhuriyet) far more often than for a Roman numeral; I., V. and X.
-/// stay numerals (I. BÖLÜM; review 3 MORPH3-05).
+/// abbreviation or an initial (M. madde, C. Cumhuriyet, L. Ş.) far more often than for a Roman
+/// numeral: never a numeral, with its period or without (the abbreviation path reads `L.` as
+/// `L`), also where the lexicon has no such abbreviation, which leaves the letter (L.; review 4
+/// MORPH4-10); I., V. and X. stay numerals (I. BÖLÜM; review 3 MORPH3-05).
 fn letter_before_numeral(clean: &str) -> bool {
-    matches!(clean, "C." | "D." | "L." | "M.")
+    matches!(clean, "C." | "D." | "L." | "M." | "C" | "D" | "L" | "M")
 }
 
 /// Whether a character is taken out ([`fold_invisible_and_compatibility`]): one with no visible
@@ -2790,6 +2808,20 @@ fn rare_path(p: &MorphParse) -> bool {
         || (has("FeelLike") && has("P2sg"))
 }
 
+/// Whether a reading of a word written all in lower case is a name's that the spelling does not
+/// fit: a proper noun's, or an abbreviation's the dictionary spells in capitals (bü is none of
+/// BÜ; km, and vb. with its period, are). `dotted`: the word has a period.
+fn lower_case_name(p: &MorphParse, dotted: bool) -> bool {
+    match p.secondary_pos {
+        SecondaryPos::ProperNoun => true,
+        SecondaryPos::Abbreviation => !dotted && p.display_lemma().chars().any(char::is_uppercase),
+        _ => false,
+    }
+}
+
+/// How many steps of 2 % a lower-case word's name reading comes after its worst other reading.
+const LOWER_CASE_NAME_STEPS: i32 = 10;
+
 /// The longest ending, in letters, [`TurkishMorphology::backoff_candidates`] tries to take off:
 /// a noun's longest inflection chain (-lerimizdekilerden) has 17.
 const MAX_BACKOFF_ENDING: usize = 20;
@@ -2939,6 +2971,30 @@ fn finish(mut results: Vec<MorphParse>) -> Vec<MorphParse> {
     }
     let mut keep = keep.into_iter();
     results.retain(|_| keep.next().unwrap_or(true));
+    // -mIş then -ken is the evidential's converb (gelmişken: Evid+While); the -mIş participle
+    // made a verb again by a zero derivation before -ken spells the same word, and the corpus
+    // could not tell the two apart (0.475 each; review 3 MORPH3-08, review 4 MORPH4-10).
+    let evidential_while = |p: &MorphParse| {
+        p.morpheme_tags
+            .windows(2)
+            .any(|w| w[0] == "Evid" && w[1] == "While")
+    };
+    let participle_while = |p: &MorphParse| {
+        p.morpheme_tags
+            .windows(2)
+            .any(|w| w[0] == "NarrPart" && w[1] == "While")
+    };
+    if results.iter().any(evidential_while) {
+        let twin = |p: &MorphParse| {
+            participle_while(p)
+                && results
+                    .iter()
+                    .any(|q| evidential_while(q) && q.lemma == p.lemma && q.root == p.root)
+        };
+        let drop: Vec<bool> = results.iter().map(twin).collect();
+        let mut drop = drop.into_iter();
+        results.retain(|_| !drop.next().unwrap_or(false));
+    }
     results
 }
 

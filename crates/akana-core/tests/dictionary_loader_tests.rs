@@ -159,6 +159,7 @@ fn zemberek_dictionaries_load_as_the_build_reads_their_lines() {
         "akana-legal.dict",
         "akana-extra.dict",
         "akana-variants.dict",
+        "akana-names.dict",
         "akana-spelling.dict",
         "akana-remove.dict",
     ] {

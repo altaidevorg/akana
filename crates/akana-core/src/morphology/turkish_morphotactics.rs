@@ -224,6 +224,7 @@ pub fn build() -> (Graph, RootStates) {
     let p1sg_S = s!("p1sg_S", M::P1sg);
     let p2sg_S = s!("p2sg_S", M::P2sg);
     let p3sg_S = s!("p3sg_S", M::P3sg);
+    let p3sgAbbrv_S = s!("p3sgAbbrv_S", M::P3sg);
     let p1pl_S = s!("p1pl_S", M::P1pl);
     let p2pl_S = s!("p2pl_S", M::P2pl);
     let p3pl_S = s!("p3pl_S", M::P3pl);
@@ -685,6 +686,25 @@ pub fn build() -> (Graph, RootStates) {
     g.add(p3sg_S, gen_ST, "nIn", T);
     g.add(p3sg_S, equ_ST, "ncA", equ_poss());
     g.add(p3sg_S, acc_ST, "nI", T);
+    // An abbreviation of a phrase that ends in a possessive (HMK: Hukuk Muhakemeleri Kanunu)
+    // takes the cases the phrase takes, after a silent P3sg: HMK'na, CBS'nca, Şti'nden, which
+    // read as P2sg (95 court tokens). Not its nominative, genitive or instrumental, which the
+    // bare abbreviation spells (HMK, HMK'nın, HMK'yla; review 4 MORPH4-10).
+    g.add(
+        a3sg_S,
+        p3sgAbbrv_S,
+        "",
+        Cond::SecondaryPosIs(SecondaryPos::Abbreviation),
+    );
+    for (to, t) in [
+        (dat_ST, "nA"),
+        (loc_ST, "ndA"),
+        (abl_ST, "ndAn"),
+        (acc_ST, "nI"),
+        (equ_ST, "ncA"),
+    ] {
+        g.add(p3sgAbbrv_S, to, t, T);
+    }
     g.add(p3pl_S, nom_ST, "", T);
     g.add(p3pl_S, dat_ST, "nA", T);
     g.add(p3pl_S, loc_ST, "ndA", T);
