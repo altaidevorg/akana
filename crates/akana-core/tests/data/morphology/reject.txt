@@ -1,0 +1,186 @@
+# Misspelled or impossible forms the analyzer must reject (no analysis at all).
+# Lines starting with # are comments; the comment above each group says what is wrong.
+
+# d/t and c/ç assimilation after a voiceless consonant (or its absence after a voiced one)
+kitapda
+kitapdan
+evte
+ağaçdan
+gelti
+yapdı
+gitdi
+kitapcı
+sokakdan
+
+# buffer letters: y/s/n only after a vowel, a vowel-initial allomorph only after a consonant
+evm
+evsi
+evnin
+evyle
+evydi
+evyim
+arabaım
+arabaı
+arabaa
+
+# the pronominal n after the 3rd-person possessive before a case
+kitabıda
+evide
+kitabıa
+kitabıı
+kitaplarıda
+arabasıya
+
+# aorist class: -Ar on most monosyllables, -Ir on polysyllables and the 13 exceptions, -r after vowels
+yapır
+alar
+görer
+verer
+gidir
+gelr
+kalar
+çalışar
+okuar
+
+# person endings belong to their tense's paradigm
+gelirn
+gelirm
+gelirk
+gelmişn
+gelmişk
+geldiyim
+geliyoryum
+gelecekn
+
+# narrowed negation -mI- only before -yor; -yor after a vowel only through the vowel drop
+gelmidi
+gelmimiş
+yapmıdı
+gelmeyor
+gelmemiyor
+bekleyor
+başlayor
+
+# root alternations are obligatory: the plain stem before a vowel is wrong
+kitapı
+kitapım
+renki
+renkim
+hakı
+gitiyor
+gitecek
+etiyor
+tatıyor
+tıpı
+zehiri
+mühürü
+şahısı
+
+# and the altered stem before a consonant is wrong
+kitabda
+kitabdan
+kitabdır
+ağacda
+kanadlar
+ayağda
+kitbı
+
+# NoVoicing and InverseHarmony roots (the lexicon's conflicting duplicates accepted these)
+beraadı
+mahkumiyedi
+evrağı
+taksidi
+şannı
+emlağı
+stoğu
+istirahadı
+kanaatı
+
+# bare -ki only on time nouns; no plural on a plural; no productive causative -t on these stems
+evki
+evkü
+kitapki
+gelenlerler
+gelenlerlik
+evlerler
+yapt
+gelt
+
+# the passive -In follows a root ending in a vowel or l, not a causative (kal-dır-ıl, oku-t-ul)
+kaldırındı
+kaldırınması
+okutundu
+
+# compounds that already end in the 3rd-person possessive
+zeytinyağıyı
+zeytinyağıya
+zeytinyağılar
+cumhurbaşkanıya
+
+# de/ye narrow to di/yi before -y-; su takes suy- before vowels
+deyecek
+deyen
+deyerek
+yeyen
+yeyecek
+susu
+
+# optative persons
+gelek
+
+# Not here because they are words: biler (bilemek "to sharpen"), evye "sink", kalbı (kalp
+# "counterfeit"), retti (ret + copula), sunun, burunu (buru), gelem (gele), geler (the letter
+# ge), sütcü (a surname), gelmişimdi (gelmiş-im-di, "it was my one who came").
+
+# vowel harmony and copula order (existing regression lists)
+kitaplerde
+evlarda
+geldilar
+okulde
+geldilerdi
+geldilerdir
+evdeyimdi
+yapldı
+
+# numbers and abbreviations take their harmony from the spoken form (üç, beş, abede); İİK'nin
+# is not here: TDK reads K "ke" (TDK'nin), beside the colloquial "ka" (İİK'nın)
+3'u
+5'tır
+1923'de
+4'de
+%50'sı
+II'nın
+ABD'nın
+
+# a name's case, possessive and copula, and any suffix of an abbreviation, need an apostrophe.
+# Written with its capital, a name with a case or copula ending that starts with a consonant
+# reads at a lower score (Ankarada, TBMMde: paradigms.tsv); in lower case, with a possessive or
+# a past copula, or an abbreviation not in capitals, it does not
+ankarada
+tbmmde
+Tbmmde
+Ankaram
+Ankaraydı
+
+# a letter name written out takes no suffix; the letter's follow an apostrophe (G'ler)
+geler
+peler
+
+# attributes TDK and the corpus correct (plan step E4): back vowels in emlak, no voicing in
+# rızık and muhakemat, front vowels in kalp; red is ret's bare form only
+emlaki
+rızığı
+muhakemadı
+redi
+kalbı
+
+# a distributive and a joined numeral keep the harmony of their last number word (üçer, onbeşe)
+3'ar
+onbeşa
+diyip
+
+# A bare dative right after -DIk: typos of olduğuna, yaptığına, dediğine (review 3 MORPH3-09).
+olduğa
+yaptığa
+dediğe
+geldiğe

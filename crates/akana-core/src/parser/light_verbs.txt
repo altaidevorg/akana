@@ -1,0 +1,34 @@
+# The dependency parser's light verbs: a bare noun right before one is a compound
+# with it. Written by scripts/parser_ud_eval.py --light-verbs from the UD Turkish
+# train splits (CC BY-SA 4.0, see THIRD_PARTY_NOTICES). One verb root per line.
+et
+ver
+ol
+al
+yap
+aç
+at
+çek
+göster
+çık
+duy
+tut
+oyna
+ye
+sür
+kur
+vur
+edin
+kır
+değiştir
+git
+bas
+dinle
+kes
+dök
+çevir
+bağla
+dön
+dile
+yat
+yürü

@@ -21,6 +21,7 @@ pub enum PiiPrototypeCategory {
 }
 
 /// Semantic prototype scorer leveraging precomputed centroid vectors.
+#[derive(Clone)]
 pub struct PiiEmbeddingScorer {
     embeddings: Arc<TurkishEmbeddings>,
     health_centroid: Vec<f32>,

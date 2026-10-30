@@ -1,0 +1,424 @@
+## Legal-domain entries for akana, in Zemberek's dictionary syntax. An entry here replaces a
+## Zemberek entry with the same word, POS and secondary POS. Ref: gives the canonical lemma
+## of a variant spelling (the root keeps the variant).
+
+## Adjectives that akana-remove.dict drops as nouns.
+idarî [P:Adj]
+kanunî [P:Adj]
+ihtiyatî [P:Adj]
+tıbbî [P:Adj]
+fizikî [P:Adj]
+vicdanî [P:Adj]
+hususî [P:Adj]
+ziraî [P:Adj]
+içtimaî [P:Adj]
+hakikî [P:Adj]
+ihtiyarî [P:Adj]
+ulusal [P:Adj]
+sulh [A:InverseHarmony, NoVoicing]
+senil [P:Adj]
+
+## Terms missing from Zemberek.
+tebliğname
+oyçokluğu [A:CompoundP3sg; Roots:oy-çokluk]
+gözaltı [A:CompoundP3sg; Roots:göz-alt]
+denizaltı [A:CompoundP3sg; Roots:deniz-alt]
+kötüniyet [A:NoVoicing]
+iyiniyet [A:NoVoicing]
+royalti
+rödovans
+repesaj
+bila [P:Adv]
+## Variant spellings common in court decisions.
+## red is ret's bare form as court decisions write it; ret's suffixed forms spell themselves
+## (reddi, reddine), so red takes none: with NoVoicing the non-word redi read as ret+P3sg.
+red [A:NoSuffix; Ref:ret]
+tesbit [A:NoVoicing; Ref:tespit]
+irad [A:NoVoicing; Ref:irat]
+
+## Names missing from the person-name list.
+Salih [P:Noun,Prop]
+Ali [P:Noun,Prop]
+
+## Abbreviations of statutes, courts and institutions (AT: Avrupa Topluluğu), with the
+## pronunciation that decides their suffixes
+## (HMK'nın, AİHM'nin, İYUK'un). A statute is also read as its last word, Kanunu (HMK'nun,
+## İİK'na), a council as Kurulu (HGK'nun, HSK'nun), and AİHM/AİHS/YİDK as written (AİHM'e,
+## AİHS'in, YİDK'in): Index:1 entries add that reading. HUMK is read letter by letter as well
+## (HUMK'nın 90 sample tokens; review 3 LEX3-06).
+HMK [P:Abbrv; Pr:hemeka]
+HMK [P:Abbrv; Pr:kanunu; Index:1]
+TBK [P:Abbrv; Pr:tebeka]
+TBK [P:Abbrv; Pr:kanunu; Index:1]
+CBK [P:Abbrv; Pr:cebeka]
+CBK [P:Abbrv; Pr:kanunu; Index:1]
+CMK [P:Abbrv; Pr:cemeka]
+CMK [P:Abbrv; Pr:kanunu; Index:1]
+TCK [P:Abbrv; Pr:teceka]
+TTK [P:Abbrv; Pr:teteka]
+TTK [P:Abbrv; Pr:kanunu; Index:1]
+TCK [P:Abbrv; Pr:kanunu; Index:1]
+TMK [P:Abbrv; Pr:temeka]
+TMK [P:Abbrv; Pr:kanunu; Index:1]
+BK [P:Abbrv; Pr:beka]
+BK [P:Abbrv; Pr:kanunu; Index:1]
+İİK [P:Abbrv; Pr:iika]
+İİK [P:Abbrv; Pr:kanunu; Index:1]
+İYUK [P:Abbrv; Pr:iyuk]
+İYUK [P:Abbrv; Pr:kanunu; Index:1]
+HUMK [P:Abbrv; Pr:humk]
+HUMK [P:Abbrv; Pr:kanunu; Index:1]
+HUMK [P:Abbrv; Pr:heumeka; Index:2]
+CMUK [P:Abbrv; Pr:cemeuka]
+CMUK [P:Abbrv; Pr:kanunu; Index:1]
+AİHM [P:Abbrv; Pr:aiheme]
+AİHM [P:Abbrv; Pr:aihm; Index:1]
+AİHS [P:Abbrv; Pr:aihese]
+AİHS [P:Abbrv; Pr:aihs; Index:1]
+AYM [P:Abbrv; Pr:ayeme]
+GK [P:Abbrv; Pr:geka]
+HGK [P:Abbrv; Pr:hegeka]
+HGK [P:Abbrv; Pr:kurulu; Index:1]
+CGK [P:Abbrv; Pr:cegeka]
+İBK [P:Abbrv; Pr:ibeka]
+PDY [P:Abbrv; Pr:pedeye]
+AAÜT [P:Abbrv; Pr:aaüte]
+HSK [P:Abbrv; Pr:heseka]
+HSK [P:Abbrv; Pr:kurulu; Index:1]
+SMK [P:Abbrv; Pr:semeka]
+SMK [P:Abbrv; Pr:kanunu; Index:1]
+KTK [P:Abbrv; Pr:kateka]
+KTK [P:Abbrv; Pr:kanunu; Index:1]
+YİDK [P:Abbrv; Pr:yeideka]
+YİDK [P:Abbrv; Pr:yidk; Index:1]
+VUK [P:Abbrv; Pr:vuk]
+VUK [P:Abbrv; Pr:kanunu; Index:1]
+ZMMS [P:Abbrv; Pr:zememese]
+KVKK [P:Abbrv; Pr:kavekaka]
+KVKK [P:Abbrv; Pr:kanunu; Index:1]
+DMK [P:Abbrv; Pr:demeka]
+AŞ [P:Abbrv; Pr:aşe; Ref:şirket]
+AAMÜT [P:Abbrv; Pr:aamüte]
+AT [P:Abbrv; Pr:ate]
+
+## Abbreviations of company names, titles and addresses (TDK: San., Şti., Av., Sok.), read as
+## the word they stand for. Court decisions write them thousands of times (Tic. ve San. Ltd.
+## Şti., Av. Ayşe Yılmaz), and without them San and Av counted as the nouns san "fame" and av
+## "hunt", which then outranked sen in sana. Zemberek lists most of the others as letters of
+## their own (tic, ltd, mah); the pre-release audit found them apart from their word (Tic. 615,
+## Şti. 602, Ltd. 785 times in the court sample; A.Ş. was aş "food"). AŞ (anonim şirket) is
+## above, with the pronunciations.
+San [P:Abbrv; Pr:sanayi; Ref:sanayi]
+Şti [P:Abbrv; Pr:şirketi; Ref:şirket]
+Tic [P:Abbrv; Pr:ticaret; Ref:ticaret]
+Ltd [P:Abbrv; Pr:limited; Ref:limited]
+İth [P:Abbrv; Pr:ithalat; Ref:ithalat]
+İhr [P:Abbrv; Pr:ihracat; Ref:ihracat]
+Av [P:Abbrv; Pr:avukat; Ref:avukat]
+Dr [P:Abbrv; Pr:doktor; Ref:doktor]
+Prof [P:Abbrv; Pr:profesör; Ref:profesör]
+Doç [P:Abbrv; Pr:doçent; Ref:doçent]
+Yrd [P:Abbrv; Pr:yardımcı; Ref:yardımcı]
+Müh [P:Abbrv; Pr:mühendis; Ref:mühendis]
+Sok [P:Abbrv; Pr:sokak; Ref:sokak]
+Mah [P:Abbrv; Pr:mahalle; Ref:mahalle]
+Cad [P:Abbrv; Pr:cadde; Ref:cadde]
+par [P:Abbrv; Pr:paragraf; Ref:paragraf]
+
+## The same word as a circumflexed entry with the right attributes; Zemberek's bare copy
+## without them accepted şahısı, mahlukadı.
+şahıs [A:LastVowelDrop]
+mahlukat [A:NoVoicing, ImplicitPlural]
+mahlut [A:NoVoicing]
+taallukat [A:NoVoicing]
+serbesti [A:NoVoicing]
+medlul [A:InverseHarmony]
+nükul [A:InverseHarmony]
+hulul [A:InverseHarmony]
+mahlul [A:InverseHarmony]
+
+## TDK: stok, -ku (Zemberek voices it: stoğu).
+stok [A:NoVoicing]
+
+## Institution names take their suffixes without an apostrophe (TDK: Danıştayın, Yargıtaya).
+danıştay
+yargıtay
+sayıştay
+karşıoy
+## Legal terms.
+nolu [P:Adj]
+mucibince [P:Adv]
+## Words that ended in the Arabic ayn take a vowel-initial suffix without a buffer
+## (mercii, merciine, müdafiinin, tevdii); the pronunciation ending in ğ gives them that
+## reading beside the buffered one.
+merci [Pr:merciğ; Index:1]
+mevki [Pr:mevkiğ; Index:1]
+tevdi [Pr:tevdiğ; Index:1]
+terfi [Pr:terfiğ; Index:1]
+müdafi [Pr:müdafiğ; Index:1]
+iştira [Pr:iştirağ; Index:1]
+ziya [Pr:ziyağ; Index:1]
+zıya [Pr:zıyağ; Ref:ziya]
+
+## Phonology Zemberek lacks or infers wrongly (TDK): rehin, -hni; halefiyet, -ti; internet, -ti.
+rehin [A:LastVowelDrop]
+halefiyet [A:NoVoicing]
+internet [A:NoVoicing]
+## Attribute errors review 2 confirmed with TDK's suffix hints and corpus forms (MLEX2-04).
+## avuç, -cu (avucu, not avcu); beyit, -yti; hısım, -smı; mehil, -hli; rızık, -zkı; emlak, -kı
+## (back vowels, unvoiced); büyükşehir, -hri (a plain noun, not a compound with its own P3sg,
+## so büyükşehirler reads); kalp, -bi in both senses; zabıt as the court writes it (zabtı 26,
+## zabdı 0).
+avuç [A:Voicing]
+beyit [A:LastVowelDrop, NoVoicing]
+hısım [A:LastVowelDrop]
+mehil [A:LastVowelDrop]
+rızık [A:LastVowelDrop, NoVoicing]
+## kasıt, -stı (TDK; kast- 398 sample tokens against kasd- 31), with kasdı as a nonstandard
+## spelling; review 3 LEX3-02.
+kasıt [A:LastVowelDrop, NoVoicing]
+kasıt [A:LastVowelDrop, Nonstandard; Index:1]
+emlak [A:NoVoicing]
+büyükşehir [A:LastVowelDrop]
+kalp [A:Voicing, InverseHarmony]
+kalp [A:Voicing, InverseHarmony; Index:1]
+kalp [P:Adj; A:Voicing, InverseHarmony]
+zabıt [A:LastVowelDrop, NoVoicing]
+## Voicing Zemberek infers on words the court and RagTurk samples never voice (review 2's
+## corpus flip audit: muhakematı 257 tokens and no voiced form; laptopun, aktivisti,
+## tevfiki ...).
+muhakemat [A:NoVoicing]
+laptop [A:NoVoicing]
+aktivist [A:NoVoicing]
+sukut [A:NoVoicing]
+tevfik [A:NoVoicing]
+matufiyet [A:NoVoicing]
+lejant [A:NoVoicing]
+mamelek [A:NoVoicing]
+tecvit [A:NoVoicing]
+makat [A:NoVoicing]
+memalik [A:NoVoicing]
+## Variant spellings that take the front vowels of the standard ones (gayrimenkul, orijinal;
+## şumul as TDK's şümul): gayrımenkulün 41 tokens, orjinalinde 17, şumulüne 6, none back.
+gayrımenkul [A:InverseHarmony]
+orjinal [A:InverseHarmony]
+şumul [A:InverseHarmony]
+## sulh takes either harmony in court text (sulhe 44 tokens, sulha 18, sulhun 22); TDK gives
+## no hint (MLEX2-11).
+sulh [A:NoVoicing; Index:1]
+## Adjectives Zemberek lists only as a name or a noun: salih "fit, valid" (salih bir delil),
+## ilâhî "divine".
+salih [P:Adj]
+ilâhî [P:Adj]
+
+## Vocabulary of court decisions the dictionaries lack (plan step E6, review 2 MLEX2-06),
+## among the most frequent words the court and RagTurk samples leave unanalysed. Neither
+## Google's nor TRmorph's lexicon lists them.
+## -en adverbs of Arabic nouns (tensiben 72 court tokens, velayeten 57, ikmalen 61).
+tensiben [P:Adv]
+fiziken [P:Adv]
+garameten [P:Adv]
+ikmalen [P:Adv]
+velayeten [P:Adv]
+vesayeten [P:Adv]
+fuzulen [P:Adv]
+teşdiden [P:Adv]
+hasren [P:Adv]
+sulhen [P:Adv]
+hesaben [P:Adv]
+evleviyetle [P:Adv]
+## Adjectives: nisba -î (içtihadî 64 tokens, kazaî 145), and joined -arası and -dışı.
+içtihadî [P:Adj]
+kazaî [P:Adj]
+tadadî [P:Adj]
+inhisarî [P:Adj]
+mübrez [P:Adj]
+müsnet [P:Adj]
+hakdüşürücü [P:Adj]
+şehirlerarası [P:Adj]
+devletlerarası [P:Adj]
+üniversitelerarası [P:Adj]
+davadışı [P:Adj]
+## Nouns.
+demuraj
+reklamasyon
+müddetname
+işgöremezlik
+soybağı [A:CompoundP3sg; Roots:soy-bağ]
+altsoy
+ikale
+mükerrir
+yasakoyucu
+matlubat [A:NoVoicing]
+hazirun
+hazırun [Ref:hazirun]
+elatma
+kesinhesap
+mirasbırakan
+başmemur
+terdit
+sovtaj
+kloz
+svap [A:NoVoicing]
+terminasyon
+onam
+önaraştırma
+sürüklenim
+## Medical terms of expert reports.
+ekimoz
+epikriz
+eritem
+ekstremite
+tibia
+psikiyatrik [P:Adj]
+progresif [P:Adj]
+psikotrop [P:Adj; A:NoVoicing]
+malül [P:Adj; Ref:malul]
+## Abbreviations (ATK 495 court tokens, BD 609 for the European Court's Grand Chamber, YEKDEM
+## 100).
+ATK [P:Abbrv]
+BD [P:Abbrv]
+BS [P:Abbrv]
+TRH [P:Abbrv]
+İDDK [P:Abbrv]
+UETS [P:Abbrv]
+YEKDEM [P:Abbrv]
+CGNAT [P:Abbrv]
+ÇDP [P:Abbrv]
+TPMK [P:Abbrv]
+CPT [P:Abbrv]
+IBAN [P:Abbrv; Pr:iban]
+ZMM [P:Abbrv]
+## Words whose suffixes keep the ayn of the Arabic (camii, sanayii, mevzuu, vukuu, tevzii;
+## bayii, zayii, tevazuu of review 3 LEX3-01), as merci and tevdi above.
+cami [Pr:camiğ; Index:1]
+sanayi [Pr:sanayiğ; Index:1]
+mevzu [Pr:mevzuğ; Index:1]
+vuku [Pr:vukuğ; Index:1]
+tevzi [Pr:tevziğ; Index:1]
+bayi [Pr:bayiğ; Index:1]
+zayi [Pr:zayiğ; Index:1]
+tevazu [Pr:tevazuğ; Index:1]
+
+## Court words that Zemberek has only as names collected from text (plan step E6, review 2
+## MLEX2-03 and -06): the samples write them in lower case (temyizen 4,941 tokens against 1,146
+## capitalised), so the name reading stood in for the word. akana-remove.dict drops the names.
+## Spellings of words the dictionary writes otherwise keep the dictionary's lemma (lehdar 56
+## sample tokens against lehtar 159, konişmento 41 against konşimento 63).
+temyizen [P:Adv]
+rücuen [P:Adv]
+kayden [P:Adv]
+rızaen [P:Adv]
+usulî [P:Adj]
+ihtirazî [P:Adj]
+icraî [P:Adj]
+inşaî [P:Adj]
+kadastral [P:Adj]
+mutad [P:Adj; Ref:mutat]
+lehdar [Ref:lehtar]
+konişmento [Ref:konşimento]
+nesafet [A:NoVoicing]
+muhdesat [A:NoVoicing]
+malüliyet [A:NoVoicing; Ref:maluliyet]
+muacceliyet [A:NoVoicing]
+tramer
+## OHAL is olağanüstü hâl, whose hâl takes front vowels (OHAL'in 71 sample tokens, OHAL'e 35,
+## OHAL'ın none); review 3 LEX3-06.
+OHAL [P:Abbrv; Pr:ohal; A:InverseHarmony]
+UYAP [P:Abbrv; Pr:uyap]
+
+## Legal words Zemberek lacks (review 3 LEX3-08; counts in the court samples): the -en adverbs
+## istisnaen 5, ihtaren 5, nakten 4, fennen 4, tevhiden 13; mündericatı 5, garame 5, müstemir 4,
+## mütevatir 4, kanunkoyucu 5; ketm-i verese, written ketmi (the grammar rules split it "ket
+## mi"); yed-i emin, whose yedinde read yedi+P2sg; hukuka uyarlık (1,255 tokens read Uyar+lık).
+istisnaen [P:Adv]
+ihtaren [P:Adv]
+nakten [P:Adv]
+fennen [P:Adv]
+tevhiden [P:Adv]
+mündericat [A:NoVoicing]
+garame
+müstemir [P:Adj]
+mütevatir [P:Adj]
+kanunkoyucu
+ketmi
+yed
+uyarlık
+## Verbs of a noun or adjective that are words of their own, which the analyzer read as the
+## noun's or adjective's -lAş (kesinleşmiş: kesin, about 1,600 court tokens; kamulaştırma: kamu,
+## 940; review 3 RANK3-08): a listed verb wins over the derivation that spells it. giderim
+## "remedy" (430 Constitutional Court tokens) read gider+P1sg or git+Aor+A1sg; satın (398) read
+## sat+Imp+A2pl.
+kesinleşmek
+kesinleştirmek
+gerçekleşmek
+gerçekleştirmek
+kamulaştırmak
+giderim
+satın [P:Adv]
+
+## Abbreviations the court also inflects as the last word of what they stand for (review 3
+## LEX3-06; scripts/audit_abbreviations.py lists the forms the samples write and the analyzer
+## rejects): an institution as Kurumu (SGK'nun, ATK'nun, EPDK'nun, BDDK'nun) or Kurulu (SPK'nun,
+## YDK'nun, YİDK'nun), a federation as Federasyonu (TFF'nun), a statute as Kanunu (TK'nun,
+## MK'nun, TKHK'nun, FSEK'nun) or as Kanun (İİK'un, TBK'un, HMK'un, CMK'un, TCK'un), the
+## central bank as Banka (TCMB'nın, TCMB'sı), a currency as its name (YTL'nın, USD'ı), a code
+## as Yasa (TCY'nın, CYY'nın), an office as Başkanlığı or Başsavcılığı (ÖİB'nın, CBS'nca); and
+## units and acronyms read as words (MR'da, MW'lık, SMS'te, GTİP'te, SHÇEK'e, AOÇ'ye).
+SGK [P:Abbrv; Pr:segeka]
+SGK [P:Abbrv; Pr:kurumu; Index:1]
+EPDK [P:Abbrv; Pr:epedeka]
+EPDK [P:Abbrv; Pr:kurumu; Index:1]
+BDDK [P:Abbrv; Pr:bededeka]
+BDDK [P:Abbrv; Pr:kurumu; Index:1]
+ATK [P:Abbrv; Pr:kurumu; Index:1]
+SPK [P:Abbrv; Pr:sepeka]
+SPK [P:Abbrv; Pr:kurulu; Index:1]
+YDK [P:Abbrv; Pr:yedeka]
+YDK [P:Abbrv; Pr:kurulu; Index:1]
+YİDK [P:Abbrv; Pr:kurulu; Index:2]
+TFF [P:Abbrv; Pr:tefefe]
+TFF [P:Abbrv; Pr:federasyonu; Index:1]
+TK [P:Abbrv; Pr:teka]
+TK [P:Abbrv; Pr:kanunu; Index:1]
+MK [P:Abbrv; Pr:meka]
+MK [P:Abbrv; Pr:kanunu; Index:1]
+TKHK [P:Abbrv; Pr:tekeheka]
+TKHK [P:Abbrv; Pr:kanunu; Index:1]
+FSEK [P:Abbrv; Pr:fısek]
+FSEK [P:Abbrv; Pr:kanunu; Index:1]
+İİK [P:Abbrv; Pr:kanun; Index:2]
+TBK [P:Abbrv; Pr:kanun; Index:2]
+HMK [P:Abbrv; Pr:kanun; Index:2]
+CMK [P:Abbrv; Pr:kanun; Index:2]
+TCK [P:Abbrv; Pr:kanun; Index:2]
+TCMB [P:Abbrv; Pr:tecemebe]
+TCMB [P:Abbrv; Pr:banka; Index:1]
+YTL [P:Abbrv; Pr:yetele]
+YTL [P:Abbrv; Pr:lira; Index:1]
+USD [P:Abbrv; Pr:usede]
+USD [P:Abbrv; Pr:dolar; Index:1]
+TCY [P:Abbrv; Pr:teceye]
+TCY [P:Abbrv; Pr:yasa; Index:1]
+CYY [P:Abbrv; Pr:ceyeye]
+CYY [P:Abbrv; Pr:yasa; Index:1]
+ÖİB [P:Abbrv; Pr:öibe]
+ÖİB [P:Abbrv; Pr:başkanlığı; Index:1]
+CBS [P:Abbrv; Pr:cebese]
+CBS [P:Abbrv; Pr:başsavcılığı; Index:1]
+MR [P:Abbrv; Pr:mere]
+MR [P:Abbrv; Pr:emar; Index:1]
+MW [P:Abbrv; Pr:medabılyu]
+MW [P:Abbrv; Pr:megavat; Index:1]
+SMS [P:Abbrv; Pr:semese]
+SMS [P:Abbrv; Pr:esemes; Index:1]
+GTİP [P:Abbrv; Pr:geteipe]
+GTİP [P:Abbrv; Pr:getip; Index:1]
+SHÇEK [P:Abbrv; Pr:seheçeeka]
+SHÇEK [P:Abbrv; Pr:seheçek; Index:1]
+AOÇ [P:Abbrv; Pr:aoç]
+AOÇ [P:Abbrv; Pr:çiftliği; Index:1]
+TİKA [P:Abbrv; Pr:tika]
+## Borsa İstanbul: its Latin-I spelling BIST, lower-cased with Turkish rules (bıst), is dropped
+## from the corpus names beside it (review 4 MORPH4-07).
+BİST [P:Abbrv; Pr:bist]

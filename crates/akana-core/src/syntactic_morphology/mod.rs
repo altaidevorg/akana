@@ -1,10 +1,10 @@
-//! Syntactic & Expressive Morphology Engine for Turkish (FSMNLP 2019 / Google-style).
-//! Structured around Inflectional Groups (IG) and Universal Dependencies (UD) features.
+//! Syntactic morphology for Turkish: the morphological analyzer's readings split into
+//! inflectional groups (IGs) with Universal Dependencies features, in the format of Öztürel,
+//! Kayadelen and Demirşahin, "A Syntactically Expressive Morphological Analyzer for Turkish"
+//! (FSMNLP 2019).
 
 mod analyzer;
-pub mod lexicon;
 pub mod types;
 
 pub use analyzer::TurkishSyntacticMorphology;
-pub use lexicon::{SyntacticLexicon, SyntacticPOS, SyntacticRootEntry, SyntacticRootFlags};
 pub use types::{InflectionalGroup, SyntacticParse};

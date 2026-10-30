@@ -4,7 +4,7 @@ Tests:
 1. Tokenization Throughput (Zero-allocation fast dispatch vs repeated regex scanning).
 2. AI Style Audit Throughput (StringZilla SIMD literal search vs 25x regex passes).
 3. Informal Normalization Speed (Zero-copy suffix scanning vs regex capture engines).
-4. Named Entity Recognition Speed (Linear token stream vs multi-regex passes).
+4. Named Entity Recognition Speed (trained tagger and patterns; a repeated sentence, so most words are cached).
 """
 
 import time
@@ -74,7 +74,7 @@ def benchmark_ner():
     entities = akana.extract_entities(sample_text)
     elapsed = time.perf_counter() - start
 
-    print(f"\n[*] Named Entity Recognition (Linear Token Stream) Benchmark:")
+    print(f"\n[*] Named Entity Recognition (tagger + patterns) Benchmark:")
     print(f"    • Total Entities Found:   {len(entities):,}")
     print(f"    • Time Elapsed:          {elapsed*1000:.2f} ms")
     print(f"    • Speed:                  {len(sample_text)/elapsed/1024/1024:.2f} MB/sec")

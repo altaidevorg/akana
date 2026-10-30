@@ -101,3 +101,18 @@ fn test_harmonic_vowel_selectors() {
     assert_eq!(get_i_type_harmonic_vowel("okul"), 'u');
     assert_eq!(get_i_type_harmonic_vowel("göz"), 'ü');
 }
+
+/// Review 2 MORPH2-18: the helpers read the NFKC form of a word, so a decomposed İ and a
+/// ligature count as the letters they stand for.
+#[test]
+fn phonology_helpers_normalise_input() {
+    let decomposed = "I\u{307}stanbul";
+    assert_eq!(
+        check_major_vowel_harmony(decomposed),
+        check_major_vowel_harmony("İstanbul")
+    );
+    assert_eq!(TurkishSyllabifier::count_syllables("\u{fb01}kir"), 2);
+    assert_eq!(TurkishSyllabifier::syllabify("\u{fb01}kir"), ["fi", "kir"]);
+    // TDK hyphenates loanwords by Turkish syllables, not before an onset cluster.
+    assert_eq!(TurkishSyllabifier::hyphenate("kontrol", "-"), "kont-rol");
+}

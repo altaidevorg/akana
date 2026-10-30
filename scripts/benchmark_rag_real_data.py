@@ -15,6 +15,7 @@ Benchmark Datasets:
 
 import argparse
 import ast
+import hashlib
 import json
 import os
 import sys
@@ -38,21 +39,45 @@ CACHE_DIR = Path(".cache/rag_benchmarks")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 RAGTURK_BASE_URL = "https://huggingface.co/datasets/metunlp/ragturk/raw/main/formal_5k/dataset/json"
+# The articles the README's figures and scripts/encoder_churn.py read, with the SHA-256 of
+# each one's canonical JSON (review 3 BIND3-03).
+RAGTURK_PIN = Path(__file__).resolve().parent / "ragturk_articles.tsv"
+
+
+def pinned_ragturk_articles() -> list[tuple[str, str]]:
+    lines = RAGTURK_PIN.read_text(encoding="utf-8").splitlines()
+    return [tuple(line.split("\t")) for line in lines if line and not line.startswith("#")]
+
+
+def canonical_sha256(data: Any) -> str:
+    text = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Akana-Benchmark/1.0"}
 
 
-def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def fetch_ragturk_dataset(
+    max_articles: int = 25, strict: bool = False
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
-    Downloads or loads cached RagTurk articles and extracts chunks and questions.
+    Downloads or loads cached RagTurk articles and extracts chunks and questions. Up to 300
+    articles are the pinned ones (`scripts/ragturk_articles.tsv`), each checked against its
+    SHA-256. With `strict`, an article that cannot be had or differs from its pin raises
+    `RuntimeError`, so a measurement never runs on fewer or other texts than it says.
     Returns:
         (documents, questions)
     """
     ragturk_dir = CACHE_DIR / "ragturk"
     ragturk_dir.mkdir(parents=True, exist_ok=True)
+    pinned = pinned_ragturk_articles()
+    expected = dict(pinned[:max_articles]) if max_articles <= len(pinned) else {}
+    if strict and not expected:
+        raise RuntimeError(f"only {len(pinned)} RagTurk articles are pinned, not {max_articles}")
 
     # First discover file list from HuggingFace dataset repo
     index_cache = ragturk_dir / "file_list.json"
-    if index_cache.exists():
+    if expected:
+        file_names = list(expected)
+    elif index_cache.exists():
         with open(index_cache, "r", encoding="utf-8") as f:
             file_names = json.load(f)
     else:
@@ -103,6 +128,7 @@ def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]],
     all_docs = []
     all_queries = []
     doc_id_counter = 0
+    problems = []
 
     print(f"Loading {len(selected_files)} RagTurk article files...")
     for fname in selected_files:
@@ -112,17 +138,22 @@ def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]],
             try:
                 r = requests.get(url, headers=HEADERS, timeout=10)
                 if r.status_code == 200:
-                    with open(cached_file, "w", encoding="utf-8") as f:
-                        f.write(r.text)
+                    cached_file.write_bytes(r.content)
                 else:
+                    problems.append(f"{fname}: HTTP {r.status_code}")
                     continue
-            except Exception:
+            except Exception as e:
+                problems.append(f"{fname}: {e}")
                 continue
 
         try:
             with open(cached_file, "r", encoding="utf-8") as f:
                 article_data = json.load(f)
-        except Exception:
+        except Exception as e:
+            problems.append(f"{fname}: {e}")
+            continue
+        if fname in expected and canonical_sha256(article_data) != expected[fname]:
+            problems.append(f"{fname}: differs from its pinned SHA-256")
             continue
 
         chunk_id_to_key = {}
@@ -153,13 +184,38 @@ def fetch_ragturk_dataset(max_articles: int = 25) -> tuple[list[dict[str, Any]],
                     "category": q.get("category", "GENERAL"),
                 })
 
+    if problems:
+        message = f"{len(problems)} of {len(selected_files)} RagTurk articles left out: {problems[:3]}"
+        if strict:
+            raise RuntimeError(message)
+        print(f"⚠️ {message}")
     return all_docs, all_queries
+
+
+def turkuaz_cache(max_samples: int) -> Path:
+    """The on-disk copy of the first `max_samples` Turkuaz samples (`encoder_churn.py` reads the
+    500-sample one)."""
+    name = "turkuaz.jsonl" if max_samples == 500 else f"turkuaz_{max_samples}.jsonl"
+    return CACHE_DIR / name
 
 
 def fetch_turkuaz_dataset(max_samples: int = 50) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
-    Loads samples from eneSadi/turkuaz-rag multi-context dataset.
+    Loads samples from eneSadi/turkuaz-rag multi-context dataset: from the on-disk cache when an
+    earlier run wrote it (so the benchmark runs offline and on the same texts), else streamed
+    from Hugging Face and then cached.
     """
+    cache = turkuaz_cache(max_samples)
+    if cache.exists():
+        docs, queries = [], []
+        for line in cache.read_text(encoding="utf-8").splitlines():
+            row = json.loads(line)
+            if "doc" in row:
+                docs.append({"key": row["doc"], "text": row["text"]})
+            else:
+                queries.append({"question": row["question"], "gold_keys": set(row["gold"])})
+        print(f"📂 Loaded {len(queries)} Turkuaz samples from {cache}")
+        return docs, queries
     try:
         from datasets import load_dataset
         print("📥 Streaming samples from eneSadi/turkuaz-rag...")
@@ -205,6 +261,13 @@ def fetch_turkuaz_dataset(max_samples: int = 50) -> tuple[list[dict[str, Any]], 
                     "category": sample.get("question_type", "MULTI_CONTEXT"),
                 })
 
+        if all_queries:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            with cache.open("w", encoding="utf-8") as f:
+                for d in all_docs:
+                    f.write(json.dumps({"doc": d["key"], "text": d["text"]}, ensure_ascii=False) + "\n")
+                for q in all_queries:
+                    f.write(json.dumps({"question": q["question"], "gold": sorted(q["gold_keys"])}, ensure_ascii=False) + "\n")
         return all_docs, all_queries
     except Exception as e:
         print(f"⚠️ Could not load turkuaz-rag via datasets: {e}")
@@ -353,7 +416,12 @@ def evaluate_retrieval(
         index_hybrid.add(d["key"], np.frombuffer(b, dtype=np.uint8))
     build_time_hybrid = (time.perf_counter() - t0) * 1000
 
-    # 4. Build Sparse Inverted Index for Dual RRF
+    # 4. Exact FP32 baseline: brute-force cosine over akana.embed vectors.
+    doc_keys = [d["key"] for d in docs]
+    fp32 = np.asarray(akana.embed_batch([d["text"] for d in docs]), dtype=np.float32)
+    fp32 /= np.maximum(np.linalg.norm(fp32, axis=1, keepdims=True), 1e-12)
+
+    # 5. Build Sparse Inverted Index for Dual RRF
     t0 = time.perf_counter()
     sparse_index = SparseBM25InvertedIndex()
     for d in docs:
@@ -362,6 +430,7 @@ def evaluate_retrieval(
     build_time_sparse = (time.perf_counter() - t0) * 1000
 
     methods = [
+        "Dense FP32 (exact cosine)",
         "Morphological BM25 (inverted index)",
         "Dense 2-bit (64B)",
         "Dense 1-bit (32B)",
@@ -375,6 +444,15 @@ def evaluate_retrieval(
     for q in queries:
         q_text = q["question"]
         gold = q["gold_keys"]
+
+        # --- Exact FP32 baseline ---
+        t_start = time.perf_counter()
+        q_vec = np.asarray(akana.embed(q_text), dtype=np.float32)
+        q_vec /= max(float(np.linalg.norm(q_vec)), 1e-12)
+        sims = fp32 @ q_vec
+        top = np.argsort(-sims, kind="stable")[:10]
+        t_elapsed = time.perf_counter() - t_start
+        _record(metrics["Dense FP32 (exact cosine)"], [doc_keys[i] for i in top], gold, t_elapsed)
 
         # --- Method 1: Dense 2-bit ---
         t_start = time.perf_counter()
@@ -427,6 +505,7 @@ def evaluate_retrieval(
     print("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
 
     ram_map = {
+        "Dense FP32 (exact cosine)": ("1,024 B", "1,024 MB"),
         "Morphological BM25 (inverted index)": ("Inverted", "~116 MB"),
         "Dense 2-bit (64B)": ("64 B", "64 MB"),
         "Dense 1-bit (32B)": ("32 B", "32 MB"),
@@ -445,6 +524,11 @@ def evaluate_retrieval(
         avg_lat_us = (dat["total_time"] / n_q) * 1_000_000
         v_bytes, ram_1m = ram_map[m]
         print(f"| **{m}** | {v_bytes} | {ram_1m} | {r1:.1f}% | {r3:.1f}% | {r5:.1f}% | {r10:.1f}% | {mrr:.3f} | {avg_lat_us:.0f} µs |")
+
+    RESULTS[dataset_name] = {
+        m: (metrics[m]["rec10"] / n_q * 100, metrics[m]["mrr"] / n_q, metrics[m]["total_time"] / n_q * 1e6)
+        for m in methods
+    }
 
     print("\n💡 Key Architectural Takeaways:")
     print("  • 2-bit TurboQuant provides 16x memory reduction over standard FP32 vectors (64 MB vs 1,024 MB per 1M docs).")
@@ -471,24 +555,69 @@ def _record(stat: dict[str, Any], retrieved_keys: list[int], gold_keys: set[int]
             break
 
 
+RESULTS: dict[str, dict[str, tuple[float, float, float]]] = {}
+
+# The README's rows: method, engine label, bytes per vector, RAM for 1M documents.
+README_ROWS = [
+    ("Dense FP32 (exact cosine)", "Dense FP32 (256-dim, exact cosine)", "1,024 B", "1,024 MB"),
+    ("Dense 2-bit (64B)", "Akana Dense 2-Bit (TurboQuant)", "**64 B**", "**`64 MB` (16x smaller)**"),
+    ("Dense 1-bit (32B)", "Akana Dense 1-Bit (Binary Hamming)", "**32 B**", "**`32 MB` (32x smaller)**"),
+    ("Morphological BM25 (inverted index)", "Akana Morphological BM25 (inverted index)", "Inverted", "~116 MB"),
+    ("Single-Buffer Hybrid (128B)", "Akana Single-Buffer Hybrid (128B)", "**128 B**", "**`128 MB` (8x smaller)**"),
+    ("Dual-Index RRF (2-bit + BM25)", "Akana Dual-Index RRF (2-Bit + BM25)", "64 B + Inverted", "~180 MB"),
+    ("Dual-Index RRF (1-bit + BM25)", "Akana Dual-Index RRF (1-Bit + BM25)", "32 B + Inverted", "~148 MB"),
+]
+
+
+def print_readme_table(ragturk: str, turkuaz: str) -> None:
+    """The README's retrieval table: Recall@10 and MRR@10 on both sets and the RagTurk latency,
+    with the best value of each quality column in bold."""
+    cols = [(turkuaz, 0), (turkuaz, 1), (ragturk, 0), (ragturk, 1)]
+    shown = lambda v, i: f"{v:.1f}%" if i == 0 else f"{v:.3f}"
+    best = [max(shown(RESULTS[d][m][i], i) for m, *_ in README_ROWS) for d, i in cols]
+    print("\n| Retrieval Engine | Bytes / Vector | RAM Footprint (1M Docs) | Turkuaz Recall@10 | Turkuaz MRR@10 | RagTurk Recall@10 | RagTurk MRR@10 | Query Latency (RagTurk) |")
+    print("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    for key, label, size, ram in README_ROWS:
+        cells = []
+        for (d, i), b in zip(cols, best):
+            text = shown(RESULTS[d][key][i], i)
+            cells.append(f"**`{text}`**" if text == b else text)
+        latency = f"{RESULTS[ragturk][key][2]:,.0f} µs"
+        print(f"| **{label}** | {size} | {ram} | {' | '.join(cells)} | {latency} |")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Akana RAG Real-World Dataset Benchmark")
     parser.add_argument("--dataset", choices=["ragturk", "turkuaz", "synthetic", "all"], default="ragturk")
     parser.add_argument("--max-articles", type=int, default=300)
     parser.add_argument("--max-turkuaz", type=int, default=500)
+    parser.add_argument(
+        "--readme",
+        action="store_true",
+        help="with --dataset all, also print the README's table; fails when a dataset is missing",
+    )
     args = parser.parse_args()
 
     if args.dataset in ("ragturk", "all"):
-        docs, queries = fetch_ragturk_dataset(max_articles=args.max_articles)
-        if not queries:
-            print("⚠️ Could not fetch RagTurk. Falling back to synthetic corpus...")
+        docs, queries = fetch_ragturk_dataset(max_articles=args.max_articles, strict=args.readme)
+        if queries:
+            evaluate_retrieval(docs, queries, "RagTurk (metunlp/ragturk)")
+        else:
+            print("⚠️ Could not fetch RagTurk. Falling back to the synthetic corpus...")
             docs, queries = get_synthetic_hard_turkish_corpus()
-        evaluate_retrieval(docs, queries, "RagTurk (metunlp/ragturk)")
+            evaluate_retrieval(docs, queries, "Synthetic corpus (RagTurk unavailable)")
 
     if args.dataset in ("turkuaz", "all"):
         docs, queries = fetch_turkuaz_dataset(max_samples=args.max_turkuaz)
         if queries:
             evaluate_retrieval(docs, queries, "Turkuaz-RAG (eneSadi/turkuaz-rag)")
+        elif args.readme:
+            sys.exit("Turkuaz is unavailable: the README table needs both datasets")
+
+    if args.readme:
+        if len(RESULTS) != 2:
+            sys.exit("the README table needs RagTurk and Turkuaz: run with --dataset all")
+        print_readme_table("RagTurk (metunlp/ragturk)", "Turkuaz-RAG (eneSadi/turkuaz-rag)")
 
     if args.dataset == "synthetic":
         docs, queries = get_synthetic_hard_turkish_corpus()

@@ -141,3 +141,25 @@ fn test_address_and_sensitive_categories() {
     assert!(res.masked_text.contains("[SAGLIK]"));
     assert!(res.masked_text.contains("[ADRES]"));
 }
+
+/// Review 2 PII2-03: a plural role noun before a name is no part of it, though every plural
+/// noun also reads as "they are Ns" (davacı-lar CopPres3pl).
+#[test]
+fn plural_role_nouns_stay_out_of_names() {
+    let engine = TurkishPiiEngine::new();
+    for (text, role) in [
+        (
+            "Bu davada Davacılar Ahmet Yılmaz ve Ayşe Kaya haklıdır.",
+            "Davacılar",
+        ),
+        (
+            "(2) Başvurucular Barış Karahan ve Erhan Özel itiraz etti.",
+            "Başvurucular",
+        ),
+        ("Müdürler Ahmet Yılmaz ile görüştü.", "Müdürler"),
+    ] {
+        let res = engine.mask(text, PiiMode::Placeholder);
+        assert!(res.masked_text.contains(role), "{}", res.masked_text);
+        assert!(!res.masked_text.contains("Ahmet") && !res.masked_text.contains("Barış"));
+    }
+}

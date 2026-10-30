@@ -61,6 +61,51 @@ struct Lexicon {
     collisions: HashSet<String>,
 }
 
+lazy_static! {
+    /// The curated Turkish given names, without places and the names more often something
+    /// else (RARE_NAMES): no analysis is needed to build it, as the PII lexicon's is.
+    static ref PERSON_GIVEN_NAMES: HashSet<String> = {
+        let rare: HashSet<String> = with_ascii(RARE_NAMES.iter().copied()).into_iter().collect();
+        GIVEN_NAMES
+            .iter()
+            .cloned()
+            .chain(with_ascii(COMMON_GIVEN_NAMES.iter().copied()))
+            .filter(|n| !rare.contains(n) && !PROVINCES.contains(n) && !DISTRICTS.contains(n))
+            .collect()
+    };
+}
+
+/// Whether `lower` (lower-cased) is a Turkish given name that is a person's more than a
+/// place's (Ahmet, Mustafa, Deniz; not Ankara or Güneş): the dependency parser's test for a
+/// person's name (review 4 DOWN4-07).
+pub(crate) fn is_given_name(lower: &str) -> bool {
+    PERSON_GIVEN_NAMES.contains(lower)
+}
+
+/// Whether `lower` (lower-cased, without a suffix) is a person's given name or surname in the PII
+/// lexicon, and no nationality: NER's person names (the lexicon's other proper nouns, places
+/// among them, are none).
+pub(crate) fn is_person_name(lower: &str) -> bool {
+    (LEXICON.given.contains_key(lower) || LEXICON.surnames.contains(lower))
+        && !DEMONYMS.contains(&lower)
+}
+
+/// Whether `lower` (lower-cased, without a suffix) is a surname of the PII lexicon.
+pub(crate) fn is_surname(lower: &str) -> bool {
+    LEXICON.surnames.contains(lower)
+}
+
+/// Whether `lower` (lower-cased, without a suffix) is a nationality or demonym (Türk, Alman).
+pub(crate) fn is_demonym(lower: &str) -> bool {
+    DEMONYMS.contains(&lower)
+}
+
+/// Whether `lower` (lower-cased, without a suffix) is a place: a province, a district, or a
+/// country, region or city abroad.
+pub(crate) fn is_place_name(lower: &str) -> bool {
+    PROVINCES.contains(lower) || DISTRICTS.contains(lower) || FOREIGN_PLACES.contains(&lower)
+}
+
 fn with_ascii<'a>(items: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     let mut out = Vec::new();
     for item in items {
@@ -75,10 +120,8 @@ fn with_ascii<'a>(items: impl IntoIterator<Item = &'a str>) -> Vec<String> {
 
 /// The readings of `lower` as a common word: not as a proper noun or an abbreviation (the
 /// lexicon has "alat" as both a surname and a+t).
-fn common_readings(lower: &str) -> Vec<MorphParse> {
-    MORPHOLOGY
-        .analyze(lower)
-        .into_iter()
+fn common_readings(all: Vec<MorphParse>) -> Vec<MorphParse> {
+    all.into_iter()
         .filter(|p| {
             !matches!(
                 p.secondary_pos,
@@ -97,6 +140,11 @@ struct Readings {
     /// Cumhuriyeti, Polikliniğine): an inflected noun, not a surname. Surnames that are common
     /// words are bare (Pamuk, Koçak), derived (Sarıca, Tütüncü) or verb forms (Solmaz, Yüksel).
     only_inflected: bool,
+    /// The lexicon has it as an abbreviation as it stands (AİHM, OHAL, UYAP).
+    abbreviation: bool,
+    /// The lexicon has it as an adverb, postposition or conjunction as it stands (tarafından,
+    /// hakkında, sonra).
+    function_word: bool,
 }
 
 /// Whether `lower` can name a thing as it stands: a word the lexicon does not know (Hashimoto,
@@ -139,15 +187,52 @@ fn readings(lower: &str) -> Readings {
         "A3pl", "P1sg", "P2sg", "P3sg", "P1pl", "P2pl", "P3pl", "Acc", "Dat", "Loc", "Abl", "Gen",
         "Ins",
     ];
-    let common = common_readings(lower);
+    // A reading this far below the word's best says nothing about the word: tanıkla-r (Aor)
+    // beside tanık-lar at one in ten thousand made Tanıklar a first name mid-sentence. Integer
+    // rank units, so that ties cannot flip it (review 3 PII3-01).
+    const NEGLIGIBLE: i32 = crate::morphology::rank_units(5.0);
+    let all = MORPHOLOGY.analyze(lower);
+    let abbreviation = all.iter().any(|p| {
+        p.secondary_pos == SecondaryPos::Abbreviation
+            && p.morpheme_tags
+                .iter()
+                .skip(1)
+                .all(|t| matches!(t.as_str(), "A3sg" | "Pnon" | "Nom"))
+    });
+    let common = common_readings(all);
+    let function_word = common.iter().any(|p| {
+        p.morpheme_tags.len() == 1
+            && matches!(
+                p.primary_pos,
+                crate::morphology::PrimaryPos::Adv
+                    | crate::morphology::PrimaryPos::Postp
+                    | crate::morphology::PrimaryPos::Conj
+            )
+    });
+    let best = common.iter().map(|p| p.rank).max().unwrap_or(0);
+    let plural = |p: &MorphParse| {
+        common
+            .iter()
+            .any(|q| q.root == p.root && q.morpheme_tags.iter().any(|t| t == "A3pl"))
+    };
+    // The bare plural's copula counts as an inflection: every plural noun also reads as "they
+    // are Ns" (davacı-lar CopPres3pl), which made Davacılar, Başvurucular a first name before the
+    // name after them (review 2 PII2-03). Any other copula form does not: İzzet-ti-n "you were
+    // honour", cin-di "it was a genie" are names (review 3 PII3-01).
+    let inflected = |p: &MorphParse| {
+        p.morpheme_tags
+            .iter()
+            .any(|t| INFLECTIONS.contains(&t.as_str()) || (t == "CopPres3pl" && plural(p)))
+    };
     Readings {
         common: !common.is_empty(),
         only_inflected: !common.is_empty()
-            && common.iter().all(|p| {
-                p.morpheme_tags
-                    .iter()
-                    .any(|t| INFLECTIONS.contains(&t.as_str()))
-            }),
+            && common
+                .iter()
+                .filter(|p| p.rank >= best - NEGLIGIBLE)
+                .all(inflected),
+        abbreviation,
+        function_word,
     }
 }
 
@@ -215,6 +300,8 @@ lazy_static! {
         // An ASCII-folded stopper that is a name stays a name: kürt folds to Kurt.
         let stoppers: HashSet<String> = NAME_STOPPERS
             .iter()
+            .chain(FOREIGN_PLACES)
+            .chain(DEMONYMS)
             .flat_map(|w| {
                 let ascii = TurkishAsciifier::asciify(w);
                 let named = given.contains_key(&ascii)
@@ -261,6 +348,17 @@ lazy_static! {
             .collect();
         Regex::new(&format!(r"(?:{})", alternatives.join("|"))).unwrap()
     };
+}
+
+/// The letters of a token of initials with their periods (A.Ş., A.B., H.M.K.): AŞ, AB, HMK.
+fn dotted_initials(text: &str) -> Option<String> {
+    let body = text.strip_suffix('.')?;
+    let letters: Vec<&str> = body.split('.').collect();
+    (letters.len() > 1
+        && letters
+            .iter()
+            .all(|l| l.chars().count() == 1 && l.chars().all(char::is_uppercase)))
+    .then(|| letters.concat())
 }
 
 /// Whether a word in capitals is shaped like a surname rather than an acronym: four letters
@@ -353,6 +451,10 @@ impl Scan<'_, '_> {
         self.readings(lower).only_inflected
     }
 
+    fn is_abbreviation(&self, lower: &str) -> bool {
+        self.readings(lower).abbreviation
+    }
+
     fn word(&self, i: usize) -> Option<&Word<'_>> {
         self.words.get(i).and_then(Option::as_ref)
     }
@@ -363,6 +465,17 @@ impl Scan<'_, '_> {
 
     fn sentence_initial(&self, i: usize) -> bool {
         if i == 0 || !self.same_line(i - 1, i) {
+            return true;
+        }
+        // after the letter or number of a heading or list item at the start of a line (A.
+        // Adil yargılanma hakkı, 3. Başvurucu): review 4 DOWN4-03
+        let marker = |t: &str| {
+            let body = t.strip_suffix(['.', ')']).unwrap_or("");
+            !body.is_empty()
+                && (body.chars().all(|c| c.is_ascii_digit())
+                    || (body.chars().count() == 1 && body.chars().all(char::is_alphabetic)))
+        };
+        if marker(self.tokens[i - 1].text) && (i == 1 || !self.same_line(i - 2, i - 1)) {
             return true;
         }
         matches!(
@@ -387,14 +500,47 @@ impl Scan<'_, '_> {
         )
     }
 
-    /// A single capital letter glued to a following period: the A of "A. Yılmaz".
-    fn is_initial(&self, i: usize) -> bool {
-        self.word(i)
-            .is_some_and(|w| w.letters == 1 && w.cap && !w.has_apostrophe)
-            && self
-                .tokens
-                .get(i + 1)
-                .is_some_and(|t| t.text == "." && t.start == self.tokens[i].end)
+    /// The last token of an initial at `i`, a single capital letter glued to a following
+    /// period (the A of "A. Yılmaz"): `i` itself where the tokenizer keeps them together as an
+    /// abbreviation ("A."), or the period's token after the letter.
+    fn initial_end(&self, i: usize) -> Option<usize> {
+        // Initials in one token (A.B. Yılmaz), but not a company's or the state's (A.Ş., T.C.);
+        // the word after them must be a surname (`surname_like`): review 4 DOWN4-09.
+        if let Some(letters) = dotted_initials(self.tokens[i].text) {
+            return (!matches!(letters.as_str(), "AŞ" | "TC")).then_some(i);
+        }
+        let w = self.word(i)?;
+        if w.letters != 1 || !w.cap || w.has_apostrophe {
+            return None;
+        }
+        let token = &self.tokens[i];
+        let end = if token.text.ends_with('.') {
+            i
+        } else if self
+            .tokens
+            .get(i + 1)
+            .is_some_and(|t| t.text == "." && t.start == token.end)
+        {
+            i + 1
+        } else {
+            return None;
+        };
+        // Not a letter of dotted initials, which name a company or a state (A.Ş., T.C.): the
+        // A of Hayat Sigorta A.Ş. is no initial (review 3 PII3-05).
+        let glued_letter = |k: usize| {
+            self.tokens.get(k).is_some_and(|t| {
+                let mut chars = t.text.chars();
+                chars.next().is_some_and(char::is_uppercase)
+                    && matches!(chars.next(), Some('.') | None)
+            })
+        };
+        let before = i > 0 && self.tokens[i - 1].end == token.start && glued_letter(i - 1);
+        let after = self
+            .tokens
+            .get(end + 1)
+            .is_some_and(|t| t.start == self.tokens[end].end)
+            && glued_letter(end + 1);
+        (!before && !after).then_some(end)
     }
 
     fn is_place(&self, lower: &str) -> bool {
@@ -429,7 +575,10 @@ impl Scan<'_, '_> {
             && self.same_line(i - 1, i)
             && self.word(i - 1).is_some_and(|prev| {
                 let common = self.is_common_word(&prev.lower);
+                // a role or title before the word is no proper name it continues: Bu davada
+                // Davacı Kudret Demir (review 3 PII3-04)
                 prev.cap
+                    && !self.is_title(&prev.lower)
                     && !self.is_stopper(&prev.lower)
                     && (!common || (!prev.all_caps && !self.sentence_initial(i - 1)))
             })
@@ -531,9 +680,19 @@ impl Scan<'_, '_> {
             return Some(false);
         }
         // A surname in capitals after a name in mixed case, the official form (Muammer TOPAL,
-        // Celal Mümtaz AKINCI), whatever the word.
+        // Celal Mümtaz AKINCI), whatever the word; a short one (Mustafa BAL, Selami ER) only
+        // right after a given name and closing the name (review 3 PII3-02).
         if w.all_caps && !word_shaped_caps(w) {
-            return None; // an acronym: Ahmet Yılmaz TC, AHMET YILMAZ TC
+            let closes = self.tokens.get(j + 1).is_none_or(|t| {
+                !self.same_line(j, j + 1) || !t.text.starts_with(char::is_alphanumeric)
+            });
+            let short_surname = (2..=3).contains(&w.letters)
+                && w.lower.chars().any(crate::phonology::is_turkish_vowel)
+                && !prev.all_caps
+                && after_given
+                && closes;
+            // otherwise an acronym: Ahmet Yılmaz TC, AHMET YILMAZ TC
+            return short_surname.then_some(true);
         }
         if w.all_caps && !prev.all_caps {
             return Some(true);
@@ -561,6 +720,11 @@ impl Scan<'_, '_> {
         let mut after_given = true;
         let mut only_known = false;
         let mut parts = 1;
+        // The official form, given names in mixed case and the surname in capitals: after its
+        // first surname a second one in capitals follows (Şebnem NEBİOĞLU ÖNER, a married
+        // woman's two surnames), and the name ends at the line's end (review 3 PII3-02).
+        let official = self.word(first).is_some_and(|f| f.cap && !f.all_caps);
+        let mut surnames = 0;
         while parts < 4 {
             let Some(lw) = self.word(last) else { break };
             if lw.has_apostrophe {
@@ -579,23 +743,43 @@ impl Scan<'_, '_> {
             } else if !self.same_line(last, j) {
                 // A line break inside a name, as text from PDFs has (Mehmet / Doğan): crossed
                 // only right after a given name and onto a known name or a surname in capitals,
-                // so that the names of a list stay apart.
+                // so that the names of a list stay apart; never after the official form's
+                // surname (Hicabi DURSUN, then Hasan Tahsin GÖKCAN on the next line).
                 let onto_name = self.word(j).is_some_and(|w| {
                     w.cap && (self.is_named(&w.lower) || (w.all_caps && !lw.all_caps))
                 });
-                if !(cap_mode && after_given && onto_name) {
+                if !(cap_mode && after_given && onto_name) || (official && lw.all_caps) {
                     break;
                 }
-            } else if cap_mode && self.is_initial(j) {
+            } else if let Some(e) = self.initial_end(j).filter(|_| cap_mode) {
                 // a middle initial (John F. Kennedy) or a trailing one (Ahmet K.)
-                let k = j + 2;
-                if k < n && self.same_line(j + 1, k) && self.surname_like(k, false) {
+                let k = e + 1;
+                if k < n && self.same_line(e, k) && self.surname_like(k, false) {
                     after_given = false; // the word after a middle initial is the surname
                     last = k;
                     parts += 2;
                     continue;
                 }
                 return j;
+            }
+            // not an inflected word or a title of the text around the name (YILMAZ
+            // TARAFINDAN, KAYA KATİP Ayşe DEMİR; review 4 DOWN4-09)
+            let second_surname = official
+                && surnames == 1
+                && lw.all_caps
+                && self.word(j).is_some_and(|w| {
+                    w.all_caps
+                        && word_shaped_caps(w)
+                        && !self.is_stopper(&w.lower)
+                        && !self.is_title(&w.lower)
+                        && !self.only_inflected(&w.lower)
+                        && !self.readings(&w.lower).function_word
+                });
+            if second_surname {
+                last = j;
+                parts += 1;
+                surnames += 1;
+                continue;
             }
             if only_known
                 && !glued_hyphen
@@ -628,6 +812,9 @@ impl Scan<'_, '_> {
             let after = after_given || particle || glued_hyphen;
             match self.continues(last, j, cap_mode, after, strong) {
                 Some(common_part) => {
+                    if self.word(j).is_some_and(|w| w.all_caps) {
+                        surnames += 1;
+                    }
                     after_given = self
                         .word(j)
                         .is_some_and(|w| self.lex.given.contains_key(&w.lower));
@@ -655,6 +842,8 @@ impl Scan<'_, '_> {
         let stopper = self.is_stopper(&w.lower);
         if w.letters < 2
             || (!named && (stopper || (w.all_caps && w.letters <= 3)))
+            // an acronym the lexicon has (ZMMS, OHAL): review 4 DOWN4-03
+            || (!named && w.all_caps && self.is_abbreviation(&w.lower))
             || ((self.lex.roles.contains(&w.lower) || self.lex.honorifics.contains(&w.lower))
                 && kind != Some(Kind::Clear)
                 && !surname)
@@ -702,7 +891,22 @@ impl Scan<'_, '_> {
             return (w.letters >= 4).then_some(0.75);
         }
 
+        // After a role an organisation can hold (Davalı, Davacı), a listed word that is also
+        // something else, before a company word on its line, names a company unless a known
+        // name follows it: Davalı Hayat Sigorta A.Ş. (review 3 PII3-05). Without a company word
+        // it is the person the role names (DAVACI : SEDA ARSLANTÜRK; review 4 DOWN4-01).
+        let org_word = matches!(trigger, Some(Trigger::Role(true)))
+            && kind.is_some_and(|k| k != Kind::Clear)
+            && !surname
+            && self.company_on_line(i)
+            && !(i + 1 < self.tokens.len()
+                && self.same_line(i, i + 1)
+                && !w.has_apostrophe
+                && self
+                    .word(i + 1)
+                    .is_some_and(|n| n.cap && self.is_named(&n.lower)));
         match trigger {
+            _ if org_word => {}
             Some(Trigger::Honorific | Trigger::Colon) if named || !place => return Some(0.95),
             Some(Trigger::Role(_)) if named || (!place && !self.is_common_word(&w.lower)) => {
                 return Some(0.95)
@@ -770,6 +974,10 @@ impl Scan<'_, '_> {
                             || (word_shaped_caps(n)
                                 && !self.is_place(&n.lower)
                                 && !self.is_title(&n.lower)
+                                // an acronym the lexicon has is no surname, and a common word
+                                // that no list has as a name starts none (Ancak AİHM, Ayrıca
+                                // OHAL; review 4 DOWN4-03)
+                                && !self.is_abbreviation(&n.lower)
                                 && (named || !self.is_common_word(&w.lower))))
                 })
         };
@@ -895,8 +1103,13 @@ impl Scan<'_, '_> {
                     break;
                 }
             }
-            if !w.cap || w.has_apostrophe || self.is_stopper(&w.lower) || self.is_title(&w.lower) {
-                return None;
+            if !w.cap
+                || w.has_apostrophe
+                || self.tokens[j].text.ends_with('.')
+                || self.is_stopper(&w.lower)
+                || self.is_title(&w.lower)
+            {
+                return None; // also a company's LTD. ŞTİ. (review 3 PII3-06)
             }
             last = Some(j);
         }
@@ -911,6 +1124,52 @@ impl Scan<'_, '_> {
             _ => false,
         };
         (closes && self.same_line(last, last + 1)).then_some(last)
+    }
+
+    /// Whether a company word in capitals or a company's initials (A.Ş.) follow the word at
+    /// `last` on its line ([`COMPANY_WORDS`]); a company word in lower case is prose (Umut
+    /// Kaya şirketi zarara uğrattı; review 4 DOWN4-02).
+    fn company_after(&self, last: usize) -> bool {
+        let k = last + 1;
+        k < self.tokens.len() && self.same_line(last, k) && self.company_word(k)
+    }
+
+    fn company_word(&self, k: usize) -> bool {
+        if dotted_initials(self.tokens[k].text).is_some_and(|l| l == "AŞ") {
+            return true; // A.Ş. as one token
+        }
+        self.word(k).is_some_and(|w| {
+            (w.cap && COMPANY_WORDS.contains(&w.lower.as_str()))
+                || (w.letters == 1
+                    && self.tokens[k].text.ends_with('.')
+                    && self
+                        .tokens
+                        .get(k + 1)
+                        .is_some_and(|t| t.start == self.tokens[k].end && t.text.ends_with('.')))
+        })
+    }
+
+    /// Whether a company word follows the word at `i` within the next few words of its line.
+    fn company_on_line(&self, i: usize) -> bool {
+        (i + 1..self.tokens.len().min(i + 6))
+            .take_while(|&k| self.same_line(i, k))
+            .any(|k| self.company_word(k))
+    }
+
+    /// Whether the words `first..=last` before a company word are a person's name, the mark of
+    /// a person's business (Ahmet Yılmaz İnşaat, Umut Demir İnşaat Ltd.): a listed given name
+    /// and, last, a listed surname or a word the lexicon does not know. One word alone (Doğan
+    /// Holding, Hayat Sigorta) or a given name before a common word (Cihan Medya A.Ş., Savaş
+    /// Boya San.) names a company.
+    fn person_business(&self, first: usize, last: usize) -> bool {
+        last > first
+            && (first..last).any(|k| {
+                self.word(k)
+                    .is_some_and(|w| self.lex.given.contains_key(&w.lower))
+            })
+            && self.word(last).is_some_and(|w| {
+                self.lex.surnames.contains(&w.lower) || !self.is_common_word(&w.lower)
+            })
     }
 
     /// Whether the word at `k` can be a surname after an initial: a known name, or a
@@ -1004,13 +1263,14 @@ pub(super) fn detect_names(
             i = last + 1;
             continue;
         }
-        let (first, start, confidence) = if scan.is_initial(i)
-            && i + 2 < n
-            && scan.same_line(i + 1, i + 2)
-            && scan.surname_like(i + 2, scan.sentence_initial(i))
-        {
+        let initial = scan.initial_end(i).filter(|&e| {
+            e + 1 < n
+                && scan.same_line(e, e + 1)
+                && scan.surname_like(e + 1, scan.sentence_initial(i))
+        });
+        let (first, start, confidence) = if let Some(e) = initial {
             // A. Yılmaz: the initial and the surname
-            (i + 2, tokens[i].start, 0.9)
+            (e + 1, tokens[i].start, 0.9)
         } else if let Some(confidence) = scan.confirm(i, scorer) {
             (
                 i,
@@ -1023,6 +1283,10 @@ pub(super) fn detect_names(
         };
         let cap_mode = scan.word(first).is_some_and(|w| w.cap);
         let last = scan.extend(first, cap_mode, confidence >= 0.9);
+        if scan.company_after(last) && !scan.person_business(first, last) {
+            i = last + 1; // a company's name (review 3 PII3-05)
+            continue;
+        }
         let (end, suffix) = match scan.word(last) {
             Some(w) => (w.stem_end, w.suffix),
             None => (tokens[last].end, None), // a trailing initial
@@ -1077,6 +1341,59 @@ mod tests {
         let mut out = Vec::new();
         detect_names(text, None, &mut out);
         out.into_iter().map(|e| e.text).collect()
+    }
+
+    /// PII's view of the analyzer for a fixed word list, the frequent types of
+    /// tests/data/morphology/top_types.txt and every listed name: whether a word reads as a
+    /// common word, only as an inflected one, and as a bare nominal or an unknown word. An
+    /// analyzer change that moves masks shows here as a diff of words, not as drift in masks
+    /// (review 3 PII3-03). `AKANA_GOLD_WRITE=pii_view` rewrites
+    /// tests/data/downstream/pii_view.tsv.
+    #[test]
+    fn pii_view_of_the_analyzer_stays_as_recorded() {
+        const PATH: &str = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/data/downstream/pii_view.tsv"
+        );
+        let words: std::collections::BTreeSet<String> =
+            include_str!("../../tests/data/morphology/top_types.txt")
+                .lines()
+                .map(|w| w.trim().to_string())
+                .filter(|w| !w.is_empty() && !w.starts_with('#'))
+                .chain(LEXICON.given.keys().cloned())
+                .chain(LEXICON.surnames.iter().cloned())
+                .collect();
+        let mut now = String::from(
+            "# PII's view of the analyzer (pii::names::tests::pii_view_of_the_analyzer_stays_as_\
+             recorded): word, reads as a common word, only as an inflected one, as a bare nominal \
+             or unknown (1/0).\n",
+        );
+        for w in &words {
+            let r = readings(w);
+            now.push_str(&format!(
+                "{w}\t{}\t{}\t{}\n",
+                u8::from(r.common),
+                u8::from(r.only_inflected),
+                u8::from(is_bare_nominal_or_unknown(w))
+            ));
+        }
+        if std::env::var("AKANA_GOLD_WRITE")
+            .is_ok_and(|v| v.split(',').any(|s| s.trim() == "pii_view"))
+        {
+            std::fs::write(PATH, &now).expect("writable pii_view.tsv");
+            return;
+        }
+        let recorded = std::fs::read_to_string(PATH).unwrap_or_default();
+        let old: std::collections::BTreeSet<&str> = recorded.lines().collect();
+        let new: std::collections::BTreeSet<&str> = now.lines().collect();
+        let moved: Vec<&str> = new.difference(&old).copied().take(40).collect();
+        let gone: Vec<&str> = old.difference(&new).copied().take(40).collect();
+        assert!(
+            moved.is_empty() && gone.is_empty(),
+            "PII's view of the analyzer moved; now {moved:?}, before {gone:?}. If deliberate, \
+             rewrite with AKANA_GOLD_WRITE=pii_view cargo test -p akana-core --lib pii_view and \
+             list the diff in the commit."
+        );
     }
 
     #[test]

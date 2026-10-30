@@ -1,10 +1,58 @@
 //! Morphological generator for Turkish words given root/lemma and inflectional tags.
+//!
+//! Generation runs on the analyzer's own morphotactic graph, as Zemberek's WordGenerator
+//! does: from the item's stems it walks the same transitions with the same templates and
+//! conditions, and keeps a path that renders the tags asked for. The word it returns is one the
+//! analyzer reads back with those tags.
 
-use super::dictionary::RootLexicon;
-use super::pos::RootAttr;
+use super::analyzer::{
+    render, suffixes_without_apostrophe, tag_of, Step, TurkishMorphology, ENGINE, MAX_STATE_REPEAT,
+    PRIOR,
+};
+use super::dictionary::{normalize_word, DictionaryItem};
+use super::morphotactics::{Context, Morpheme as M, PathView};
+use super::phonetics::{attributes_of, PhoneticAttrs as P};
+use super::pos::{PrimaryPos, RootAttr, SecondaryPos};
+use super::stems::{self, StemTransition};
+use std::sync::LazyLock;
 
+/// Tags a request may spell out that the analyzer leaves unshown after a suffix.
+const DEFAULT_TAGS: [&str; 3] = ["A3sg", "Pnon", "Nom"];
+/// The possessives, which a CompoundP3sg noun's plural always shows (cumhurbaşkan-lar-ı).
+const POSSESSIVES: [&str; 6] = ["P1sg", "P2sg", "P3sg", "P1pl", "P2pl", "P3pl"];
+
+/// How a homograph's word ranks, the smallest first: a name or not as the request's capital
+/// asks, spelt otherwise than asked, minus its log prior, length in characters.
+type Rank = (bool, bool, i32, usize);
+
+/// Every tag the analyzer shows, and Prog1 and Prog2, which a request may use to tell the
+/// two progressives apart (both are shown as Prog).
+static TAGS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+    let mut tags: Vec<&'static str> = DEFAULT_TAGS.to_vec();
+    tags.extend(["Prog1", "Prog2"]);
+    for &m in M::ALL {
+        tags.extend(tag_of(m));
+        tags.extend(shown_as(m));
+    }
+    tags.sort_unstable();
+    tags.dedup();
+    tags
+});
+
+/// A requested tag as the analyzer spells it, whatever its case (p1sg, DAT); `None` for a tag
+/// it never shows.
+fn canonical_tag(tag: &str) -> Option<&'static str> {
+    TAGS.iter().copied().find(|t| t.eq_ignore_ascii_case(tag))
+}
+/// Search steps one generation may take before it gives up.
+const MAX_WORK: usize = 200_000;
+/// Candidate words collected before they are checked against the analyzer.
+const MAX_CANDIDATES: usize = 8;
+
+/// Generates surface forms; a thin handle on [`TurkishMorphology::generate`] that shares the
+/// built-in lexicon, so creating one is cheap.
 pub struct TurkishGenerator {
-    lexicon: RootLexicon,
+    morphology: TurkishMorphology,
 }
 
 impl Default for TurkishGenerator {
@@ -16,275 +64,424 @@ impl Default for TurkishGenerator {
 impl TurkishGenerator {
     pub fn new() -> Self {
         Self {
-            lexicon: RootLexicon::new(),
+            morphology: TurkishMorphology::new(),
         }
+    }
+
+    /// A generator over an analyzer's lexicon, with the items it has added.
+    pub fn with_morphology(morphology: TurkishMorphology) -> Self {
+        Self { morphology }
     }
 
     /// Generates the surface form for a lemma and a sequence of morpheme tags.
     /// Example: `generate("kitap", &["Noun", "A3sg", "P1sg", "Dat"]) -> "kitabıma"`
     pub fn generate(&self, lemma: &str, tags: &[&str]) -> Option<String> {
-        let items = self.lexicon.get_items(lemma)?;
-        let item = items.first()?;
+        self.morphology.generate(lemma, tags)
+    }
+}
 
-        let mut surface = item.root.clone();
-        let is_voicing = item.attributes.contains(RootAttr::VOICING);
-        let is_vowel_drop = item.attributes.contains(RootAttr::VOWEL_DROP);
-        let is_doubling = item.attributes.contains(RootAttr::CONSONANT_DOUBLING);
-        let is_inverse_harmony = item.attributes.contains(RootAttr::INVERSE_HARMONY);
-
-        let mut has_applied_stem_mutation = false;
-
-        for &tag in tags {
-            match tag {
-                // Nominal Plural
-                "A3pl" => {
-                    let a_vowel = if is_inverse_harmony {
-                        'e'
-                    } else {
-                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
-                    };
-                    surface.push_str(if a_vowel == 'e' { "ler" } else { "lar" });
-                }
-                // Possessive 1sg
-                "P1sg" => {
-                    if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(
-                            &surface,
-                            is_voicing,
-                            is_vowel_drop,
-                            is_doubling,
-                        );
-                        has_applied_stem_mutation = true;
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('m');
-                    } else {
-                        let i_vowel = if is_inverse_harmony {
-                            'i'
-                        } else {
-                            super::super::phonology::get_i_type_harmonic_vowel(&surface)
-                        };
-                        surface.push(i_vowel);
-                        surface.push('m');
-                    }
-                }
-                // Possessive 2sg
-                "P2sg" => {
-                    if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(
-                            &surface,
-                            is_voicing,
-                            is_vowel_drop,
-                            is_doubling,
-                        );
-                        has_applied_stem_mutation = true;
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('n');
-                    } else {
-                        let i_vowel = if is_inverse_harmony {
-                            'i'
-                        } else {
-                            super::super::phonology::get_i_type_harmonic_vowel(&surface)
-                        };
-                        surface.push(i_vowel);
-                        surface.push('n');
-                    }
-                }
-                // Possessive 3sg
-                "P3sg" => {
-                    if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(
-                            &surface,
-                            is_voicing,
-                            is_vowel_drop,
-                            is_doubling,
-                        );
-                        has_applied_stem_mutation = true;
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let i_vowel = if is_inverse_harmony {
-                        'i'
-                    } else {
-                        super::super::phonology::get_i_type_harmonic_vowel(&surface)
-                    };
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('s');
-                    }
-                    surface.push(i_vowel);
-                }
-                // Dative Case
-                "Dat" => {
-                    if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(
-                            &surface,
-                            is_voicing,
-                            is_vowel_drop,
-                            is_doubling,
-                        );
-                        has_applied_stem_mutation = true;
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let a_vowel = if is_inverse_harmony {
-                        'e'
-                    } else {
-                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
-                    };
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('y');
-                    }
-                    surface.push(a_vowel);
-                }
-                // Accusative Case
-                "Acc" => {
-                    if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(
-                            &surface,
-                            is_voicing,
-                            is_vowel_drop,
-                            is_doubling,
-                        );
-                        has_applied_stem_mutation = true;
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let i_vowel = if is_inverse_harmony {
-                        'i'
-                    } else {
-                        super::super::phonology::get_i_type_harmonic_vowel(&surface)
-                    };
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('y');
-                    }
-                    surface.push(i_vowel);
-                }
-                // Locative Case
-                "Loc" => {
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let is_hard = super::super::phonology::is_hard_consonant(last_c);
-                    let a_vowel = if is_inverse_harmony {
-                        'e'
-                    } else {
-                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
-                    };
-                    surface.push(if is_hard { 't' } else { 'd' });
-                    surface.push(a_vowel);
-                }
-                // Ablative Case
-                "Abl" => {
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let is_hard = super::super::phonology::is_hard_consonant(last_c);
-                    let a_vowel = if is_inverse_harmony {
-                        'e'
-                    } else {
-                        super::super::phonology::get_a_type_harmonic_vowel(&surface)
-                    };
-                    surface.push(if is_hard { 't' } else { 'd' });
-                    surface.push(a_vowel);
-                    surface.push('n');
-                }
-                // Genitive Case
-                "Gen" => {
-                    if !has_applied_stem_mutation {
-                        surface = self.apply_stem_mutation(
-                            &surface,
-                            is_voicing,
-                            is_vowel_drop,
-                            is_doubling,
-                        );
-                        has_applied_stem_mutation = true;
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let i_vowel = if is_inverse_harmony {
-                        'i'
-                    } else {
-                        super::super::phonology::get_i_type_harmonic_vowel(&surface)
-                    };
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('n');
-                    }
-                    surface.push(i_vowel);
-                    surface.push('n');
-                }
-                // Past Tense (Verbal)
-                "Past" => {
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let is_hard = super::super::phonology::is_hard_consonant(last_c);
-                    let i_vowel = super::super::phonology::get_i_type_harmonic_vowel(&surface);
-                    surface.push(if is_hard { 't' } else { 'd' });
-                    surface.push(i_vowel);
-                }
-                // Progressive Tense (Verbal)
-                "Prog" => {
-                    if is_voicing {
-                        surface = super::super::phonology::apply_stem_softening(&surface);
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.pop();
-                    }
-                    let i_vowel = super::super::phonology::get_i_type_harmonic_vowel(&surface);
-                    surface.push(i_vowel);
-                    surface.push_str("yor");
-                }
-                // Future Tense (Verbal)
-                "Fut" => {
-                    if is_voicing {
-                        surface = super::super::phonology::apply_stem_softening(&surface);
-                    }
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    let a_vowel = super::super::phonology::get_a_type_harmonic_vowel(&surface);
-                    if super::super::phonology::is_turkish_vowel(last_c) {
-                        surface.push('y');
-                    }
-                    surface.push(a_vowel);
-                    surface.push_str(if a_vowel == 'e' { "cek" } else { "cak" });
-                }
-                // Verbal Agreement 1sg
-                "A1sg" => {
-                    let last_c = surface.chars().last().unwrap_or(' ');
-                    if last_c == 'k' {
-                        // Soften k -> ğ (e.g. gelecek -> geleceğim)
-                        surface.pop();
-                        surface.push('ğ');
-                        let i_vowel = super::super::phonology::get_i_type_harmonic_vowel(&surface);
-                        surface.push(i_vowel);
-                        surface.push('m');
-                    } else if surface.ends_with("yor") {
-                        surface.push_str("um");
-                    } else if last_c == 'ı' || last_c == 'i' || last_c == 'u' || last_c == 'ü' {
-                        surface.push('m');
-                    }
-                }
-                _ => {}
+impl TurkishMorphology {
+    /// Generates the word with akana's tags (`["Noun", "P1sg", "Dat"]`, in any case; the first
+    /// tag is the POS, and the defaults A3sg, Pnon and Nom may be spelled out) from a root or a
+    /// lemma (kitap; gel or gelmek), spelt as `analyze` reports it or folded as it folds words
+    /// (kâğıt or kağıt, e-posta or eposta, Fin-Ugor). The word comes back in the folded
+    /// spelling (kağıtta), a name's root as the dictionary spells it (Hakkâri'de).
+    ///
+    /// - Prog is the -Iyor progressive (gidiyorum, diyor), except before the copula -DIr
+    ///   (CopPres3sg), where written Turkish has -mAktA (gelmektedir, not geliyordur); Prog2
+    ///   asks for the -mAktA one (bulunmaktadır), and Prog1 for -Iyor only.
+    /// - The copula after a verb is shown as CopPres3sg (gelmektedir), CopPast (geliyordu),
+    ///   CopEvid and CopCond, and after a nominal as Cop or CopPres3sg, as `analyze` shows it.
+    /// - A name or an abbreviation is written as the lexicon spells it, or as the request
+    ///   does when that differs only in capitals (NATO'nun, not Nato'nun), with an apostrophe
+    ///   before its case, possessive and copula (Türkiye'de, Ali'nin, ABD'nin, TBMM'de), and
+    ///   its suffixes follow its pronunciation. A common word asked for with a capital keeps
+    ///   it (Yönetmelik: Yönetmeliğin), and in capitals all of it (KİTAP: KİTABA).
+    /// - A case is shown where the word may also leave it implicit (karşıya, not karşı), and a
+    ///   pronoun's instrumental is written in full (bununla, benimle; not bunla, benle).
+    /// - A CompoundP3sg noun's plural keeps its own possessive (cumhurbaşkanı with A3pl and Dat
+    ///   is cumhurbaşkanlarına).
+    ///
+    /// Among homographs of that POS it takes a common word before a name, or a name before a
+    /// common word when the request is written with a capital (Ali, ABD); then the item spelt
+    /// as the request is (dâhil: dahilinde; dahil, the item with a vowel drop: dahlinde); then
+    /// the item the corpus prior finds most frequent (hak the noun: hakkım), then the shortest
+    /// word (hal "state": halinde, not hal "solution": hallinde). `None` for an unknown word,
+    /// POS or tag, or when no path of the graph renders the tags.
+    pub fn generate(&self, word: &str, tags: &[&str]) -> Option<String> {
+        let written = word.trim();
+        let mut lower = normalize_word(written);
+        // An acronym typed with a Latin I (FIFA, CIA, as display_lemma spells them) is in the
+        // lexicon with i (review 4 BIND4-05).
+        if written.contains('I') && self.root_items(&lower).is_empty() {
+            let latin = lower.replace('ı', "i");
+            if !self.root_items(&latin).is_empty() {
+                lower = latin;
             }
         }
-
-        Some(surface)
+        let capitalised = crate::phonology::to_turkish_lower(written) != written;
+        let (first, rest) = tags.split_first()?;
+        let pos = PrimaryPos::from_name(first)?;
+        let mut wanted: Vec<&str> = vec![pos.as_str()];
+        let mut progressive = None;
+        for tag in rest {
+            match canonical_tag(tag)? {
+                "Prog1" => {
+                    progressive = Some(M::Prog1);
+                    wanted.push("Prog");
+                }
+                "Prog2" => {
+                    progressive = Some(M::Prog2);
+                    wanted.push("Prog");
+                }
+                t if DEFAULT_TAGS.contains(&t) => {}
+                t => wanted.push(t),
+            }
+        }
+        let infinitive_root = lower
+            .strip_suffix("mek")
+            .or_else(|| lower.strip_suffix("mak"));
+        let items = self
+            .root_items(&lower)
+            .iter()
+            .chain(
+                infinitive_root
+                    .map_or(&[][..], |root| self.root_items(root))
+                    .iter()
+                    .filter(|i| i.lemma == lower),
+            )
+            .filter(|i| i.primary_pos == pos);
+        let prior = &*PRIOR;
+        // the rank, the word, and whether its item is a name
+        let mut best: Option<(Rank, String, bool)> = None;
+        for item in items {
+            let name = matches!(
+                item.secondary_pos,
+                SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+            );
+            let mut found = self.generate_item(item, &wanted, progressive, written);
+            if found.is_none()
+                && item.attributes.contains(RootAttr::COMPOUND_P3SG)
+                && wanted.contains(&"A3pl")
+                && !wanted.iter().any(|t| POSSESSIVES.contains(t))
+            {
+                let mut own = wanted.clone();
+                let at = own.iter().position(|t| *t == "A3pl").map_or(1, |i| i + 1);
+                own.insert(at, "P3sg");
+                found = self.generate_item(item, &own, progressive, written);
+            }
+            if let Some(surface) = found {
+                let key = (
+                    capitalised != name,
+                    item.display_lemma() != written,
+                    -prior.item_log_p(item),
+                    surface.chars().count(),
+                );
+                if best.as_ref().is_none_or(|(b, _, _)| key < *b) {
+                    best = Some((key, surface, name));
+                }
+            }
+        }
+        let (_, surface, name) = best?;
+        if name || !written.starts_with(char::is_uppercase) {
+            return Some(surface);
+        }
+        let letters = || written.chars().filter(|c| c.is_alphabetic());
+        if letters().nth(1).is_some() && letters().all(char::is_uppercase) {
+            return Some(crate::phonology::to_turkish_upper(&surface));
+        }
+        let mut chars = surface.chars();
+        Some(chars.next().map_or_else(String::new, |first| {
+            let mut out = crate::phonology::to_turkish_upper_char(first).to_string();
+            out.push_str(chars.as_str());
+            out
+        }))
     }
 
-    fn apply_stem_mutation(
+    /// The word one item makes with the tags, if any path renders them.
+    fn generate_item(
         &self,
-        stem: &str,
-        is_voicing: bool,
-        is_vowel_drop: bool,
-        is_doubling: bool,
-    ) -> String {
-        if is_vowel_drop {
-            if let Some(dropped) = super::super::phonology::apply_vowel_drop(stem) {
-                if is_voicing {
-                    return super::super::phonology::apply_stem_softening(&dropped);
+        item: &DictionaryItem,
+        wanted: &[&str],
+        progressive: Option<M>,
+        request: &str,
+    ) -> Option<String> {
+        let roots = &ENGINE.roots;
+        let mut search = Generation {
+            wanted,
+            progressive,
+            request,
+            surface: String::new(),
+            steps: Vec::new(),
+            work: 0,
+            special: false,
+            candidates: Vec::new(),
+        };
+        for (stem, owner) in stems::item_stems(item, self.lexicon(), roots) {
+            let root_morpheme = ENGINE.graph.states[stem.to.0 as usize].morpheme;
+            search.surface = stem.surface.to_string();
+            // A special root's other stem (içer- of içeri, bur- of bura, di- of de), not a
+            // regular alternation (kitab- of kitap, gid- of git).
+            search.special = [
+                roots.noun_last_vowel_drop,
+                roots.adj_last_vowel_drop,
+                roots.pron_pers_mod,
+                roots.pron_quant_modified,
+            ]
+            .contains(&stem.to)
+                || (stem.to == roots.verb_de_ye && stem.surface.as_ref() != owner.root);
+            let ctx = Context::at_root(stem.to, root_morpheme);
+            search.walk(&owner, &stem, ctx, stem.attrs, 1);
+        }
+        // The analyzer must read the word back with the same item, secondary POS (Hak the
+        // name is no hak) and tags. Of several spellings of the reading, -Iyor comes before
+        // -mAktA (gidiyorum, not gitmekteyim; diyor, not demekte), but -mAktA first before the
+        // copula -DIr (gelmektedir: 14,384 times in the court and RagTurk samples, geliyordur
+        // once; geliyordu 337 times, gelmekteydi 72); then one on the root as spelt before one
+        // on a special stem (yukarıda, not yukarda); then a dative shown before an implicit
+        // one (karşıya, not karşı); then the shortest is the unmarked one (gidin, not
+        // gitsenize), but a pronoun's instrumental is the longest (bununla 830 times in the
+        // court sample; bunla, benle are spoken forms) (review 4 MORPH4-08).
+        let mut candidates = search.candidates;
+        let prefer_prog2 =
+            progressive.is_none() && wanted.windows(2).any(|w| w == ["Prog", "CopPres3sg"]);
+        let pronoun_instrumental = item.primary_pos == PrimaryPos::Pron && wanted.contains(&"Ins");
+        candidates.sort_by_key(|c| {
+            let length = c.text.chars().count() as isize;
+            (
+                c.prog2 != prefer_prog2,
+                c.special,
+                c.implicit_dative,
+                if pronoun_instrumental {
+                    -length
+                } else {
+                    length
+                },
+            )
+        });
+        candidates.into_iter().map(|c| c.text).find(|text| {
+            self.analyze_unranked(text).iter().any(|p| {
+                p.lemma == item.lemma
+                    && p.root == item.root
+                    && p.primary_pos == item.primary_pos
+                    && p.secondary_pos == item.secondary_pos
+                    && p.morpheme_tags
+                        .iter()
+                        .map(String::as_str)
+                        .filter(|t| !DEFAULT_TAGS.contains(t))
+                        .eq(wanted.iter().copied())
+            })
+        })
+    }
+}
+
+struct Generation<'a> {
+    wanted: &'a [&'a str],
+    /// The progressive asked for by name (Prog1 or Prog2), if any.
+    progressive: Option<M>,
+    /// The word as the request writes it, whose capitals a name may take (NATO).
+    request: &'a str,
+    surface: String,
+    steps: Vec<Step>,
+    work: usize,
+    /// The current stem is a special root's other stem (yukar- of yukarı).
+    special: bool,
+    candidates: Vec<Candidate>,
+}
+
+/// A word found, as written.
+struct Candidate {
+    text: String,
+    /// It comes from a special root's other stem.
+    special: bool,
+    /// Its progressive is -mAktA.
+    prog2: bool,
+    /// Its dative is the implicit one of the root (karşı), with no suffix.
+    implicit_dative: bool,
+}
+
+impl Generation<'_> {
+    /// Walks on from the current state; `next` is the index of the first requested tag not yet
+    /// produced by a suffix that is always shown.
+    fn walk(
+        &mut self,
+        item: &DictionaryItem,
+        stem: &StemTransition,
+        ctx: Context,
+        attrs: P,
+        next: usize,
+    ) {
+        self.work += 1;
+        if self.work > MAX_WORK || self.candidates.len() >= MAX_CANDIDATES {
+            return;
+        }
+        let engine = &*ENGINE;
+        let graph = &engine.graph;
+        let state = &graph.states[ctx.current.0 as usize];
+        if state.terminal && !attrs.contains(P::CANNOT_TERMINATE) {
+            let parse = render(
+                engine,
+                item,
+                stem,
+                &self.steps,
+                &self.surface,
+                &self.surface,
+            );
+            let rendered = parse
+                .morpheme_tags
+                .iter()
+                .map(String::as_str)
+                .filter(|t| !DEFAULT_TAGS.contains(t));
+            if rendered.eq(self.wanted.iter().copied()) {
+                let text = self.written(item, stem);
+                if !self.candidates.iter().any(|c| c.text == text) {
+                    let reaches = |s: &Step, m: M| {
+                        let to = graph.transitions[s.transition as usize].to;
+                        graph.states[to.0 as usize].morpheme == m
+                    };
+                    let prog2 = self.steps.iter().any(|s| reaches(s, M::Prog2));
+                    let implicit_dative = self
+                        .steps
+                        .iter()
+                        .any(|s| s.start == s.end && reaches(s, M::Dat));
+                    self.candidates.push(Candidate {
+                        text,
+                        special: self.special,
+                        prog2,
+                        implicit_dative,
+                    });
                 }
-                return dropped;
             }
         }
-        if is_doubling {
-            return super::super::phonology::apply_consonant_doubling(stem);
+        // Silent steps (zero derivations, defaults) come at most a few per requested tag.
+        if self.steps.len() >= 3 * self.wanted.len() + 6 {
+            return;
         }
-        if is_voicing {
-            return super::super::phonology::apply_stem_softening(stem);
+        for (id, t) in graph.outgoing(ctx.current) {
+            if t.has_surface() && item.attributes.contains(RootAttr::NO_SUFFIX) {
+                continue;
+            }
+            let Some(surface) = t.surface(attrs) else {
+                continue;
+            };
+            let view = PathView {
+                ctx: &ctx,
+                item,
+                stem_surface: &stem.surface,
+                attrs,
+                tail_empty: false,
+            };
+            if !t.condition.eval(graph, &view) {
+                continue;
+            }
+            let m = graph.states[t.to.0 as usize].morpheme;
+            if matches!(m, M::Prog1 | M::Prog2) && self.progressive.is_some_and(|p| p != m) {
+                continue;
+            }
+            // A suffix that is always shown must be the next requested tag still to come, and
+            // one shown only with a surface must be requested at all.
+            let next = match tag_of(m) {
+                Some(tag) => match self.wanted[next..].iter().position(|w| *w == tag) {
+                    Some(k) => next + k + 1,
+                    None => continue,
+                },
+                None => next,
+            };
+            if !surface.is_empty()
+                && item.lemma != "değil"
+                && !shown_as(m).is_empty()
+                && !shown_as(m).iter().any(|tag| self.wanted.contains(tag))
+            {
+                continue;
+            }
+            let repeats = self
+                .steps
+                .iter()
+                .filter(|s| graph.transitions[s.transition as usize].to == t.to)
+                .count();
+            if repeats >= MAX_STATE_REPEAT {
+                continue;
+            }
+            let next_attrs = if t.has_surface() {
+                let mut a = attributes_of(surface, attrs);
+                a -= P::CANNOT_TERMINATE;
+                match t.ends_voiced() {
+                    Some(false) => a |= P::EXPECTS_CONSONANT,
+                    Some(true) => a |= P::EXPECTS_VOWEL | P::CANNOT_TERMINATE,
+                    None => {}
+                }
+                a
+            } else {
+                attrs
+            };
+            let next_ctx = ctx.step(graph, t.to, !surface.is_empty());
+            let start = self.surface.len();
+            self.surface.push_str(surface);
+            self.steps.push(Step {
+                transition: id,
+                start,
+                end: self.surface.len(),
+            });
+            self.walk(item, stem, next_ctx, next_attrs, next);
+            self.steps.pop();
+            self.surface.truncate(start);
         }
-        stem.to_string()
+    }
+
+    /// The word as written: a name or an abbreviation on its root as the lexicon spells it, or
+    /// as the request does when that is the same letters in capitals (NATO, the lexicon's
+    /// Nato), with an apostrophe before the suffixes that take one (Ankara'ya, TBMM'de, but
+    /// Ankaralı, Türkçenin).
+    fn written(&self, item: &DictionaryItem, stem: &StemTransition) -> String {
+        let name = matches!(
+            item.secondary_pos,
+            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+        );
+        if !name || stem.surface.as_ref() != item.root {
+            return self.surface.clone();
+        }
+        let display = item.display_lemma();
+        let lower = crate::phonology::to_turkish_lower;
+        let capitals = self
+            .request
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .all(char::is_uppercase);
+        let mut text = if capitals && lower(self.request) == lower(&display) {
+            self.request.to_string()
+        } else {
+            display.into_owned()
+        };
+        if !suffixes_without_apostrophe(&ENGINE.graph, item, &self.steps) {
+            text.push('\'');
+        }
+        text.push_str(&self.surface[stem.surface.len()..]);
+        text
+    }
+}
+
+/// The tags a person, possessive or copular morpheme with a surface can be shown as (render
+/// decides which), for pruning; empty for the others.
+fn shown_as(m: M) -> &'static [&'static str] {
+    match m {
+        M::P1sg => &["P1sg"],
+        M::P2sg => &["P2sg"],
+        M::P3sg => &["P3sg"],
+        M::P1pl => &["P1pl"],
+        M::P2pl => &["P2pl"],
+        M::P3pl => &["P3pl"],
+        M::A1sg => &["A1sg", "CopPres1sg"],
+        M::A2sg => &["A2sg", "CopPres2sg"],
+        M::A1pl => &["A1pl", "CopPres1pl"],
+        M::A2pl => &["A2pl", "CopPres2pl"],
+        M::A3pl => &["A3pl", "CopPres3pl"],
+        M::Past => &["Past", "CopPast"],
+        M::Narr => &["Evid", "CopEvid"],
+        M::Cond => &["CopCond"],
+        M::Cop => &["Cop", "CopPres3sg"],
+        M::Neg => &["Neg"],
+        M::Recip => &["Recip"],
+        M::Reflex => &["Reflex"],
+        _ => &[],
     }
 }

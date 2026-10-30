@@ -44,7 +44,13 @@ impl TurkishKeywordExtractor {
 
         for tok in tokens {
             let clean = tok.text.trim_matches(|c: char| !c.is_alphabetic());
-            if clean.is_empty() {
+            // A number with its suffixes is no word (1923'te is no "te", 3'er no "er"; review 3
+            // NORM3-03).
+            if clean.is_empty()
+                || tok
+                    .text
+                    .starts_with(|c: char| c.is_ascii_digit() || c == '%')
+            {
                 if !current_phrase.is_empty() {
                     candidate_phrases.push(std::mem::take(&mut current_phrase));
                 }
@@ -57,7 +63,8 @@ impl TurkishKeywordExtractor {
                     candidate_phrases.push(std::mem::take(&mut current_phrase));
                 }
             } else {
-                let stem = self.stemmer.stem(&lower);
+                // As written: the capital tells a name from a common word.
+                let stem = self.stemmer.stem(clean);
                 current_phrase.push(stem);
             }
         }
@@ -88,31 +95,35 @@ impl TurkishKeywordExtractor {
             word_scores.insert(w.clone(), deg / (*freq as f32));
         }
 
-        // 4. Score each candidate phrase
-        let mut phrase_scores: HashMap<String, f32> = HashMap::new();
-        for phrase in candidate_phrases {
+        // 4. Score each candidate phrase, remembering where it first occurs
+        let mut phrase_scores: HashMap<String, (f32, usize)> = HashMap::new();
+        for (at, phrase) in candidate_phrases.into_iter().enumerate() {
             let phrase_text = phrase.join(" ");
             let score: f32 = phrase
                 .iter()
                 .map(|w| *word_scores.get(w).unwrap_or(&1.0))
                 .sum();
 
-            let entry = phrase_scores.entry(phrase_text).or_insert(0.0);
-            if score > *entry {
-                *entry = score;
+            let entry = phrase_scores.entry(phrase_text).or_insert((0.0, at));
+            if score > entry.0 {
+                entry.0 = score;
             }
         }
 
-        let mut results: Vec<KeywordScore> = phrase_scores
+        let mut results: Vec<(KeywordScore, usize)> = phrase_scores
             .into_iter()
-            .map(|(keyword, score)| KeywordScore { keyword, score })
+            .map(|(keyword, (score, at))| (KeywordScore { keyword, score }, at))
             .collect();
 
-        results.sort_by(|a, b| {
+        // Equal scores in the order of the text, so that the same text gives the same keywords
+        // (they came in hash order, and top_k cut inside the tie; review 3 NORM3-03).
+        results.sort_by(|(a, at_a), (b, at_b)| {
             b.score
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
+                .then(at_a.cmp(at_b))
         });
+        let mut results: Vec<KeywordScore> = results.into_iter().map(|(k, _)| k).collect();
         results.truncate(top_k);
 
         results

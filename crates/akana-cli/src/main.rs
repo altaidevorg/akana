@@ -62,6 +62,35 @@ enum Commands {
         #[arg(short, long)]
         file: Option<PathBuf>,
     },
+    /// Check and correct grammar and spelling rules (the default rules unless told otherwise)
+    Grammar {
+        /// Text to check
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+        /// Run only these rules (comma-separated ids; see --list-rules)
+        #[arg(long, value_delimiter = ',')]
+        rules: Option<Vec<String>>,
+        /// Also run these rules
+        #[arg(long, value_delimiter = ',')]
+        enable: Vec<String>,
+        /// Do not run these rules
+        #[arg(long, value_delimiter = ',')]
+        disable: Vec<String>,
+        /// Also run every experimental rule (off by default: not precise enough on correct text)
+        #[arg(long)]
+        experimental: bool,
+        /// Print only the corrected text
+        #[arg(short, long)]
+        correct: bool,
+        /// Output the full result as JSON
+        #[arg(short, long)]
+        json: bool,
+        /// List the rules, whether each is on by default, and its confidence (measured precision)
+        #[arg(long)]
+        list_rules: bool,
+    },
     /// Check spelling and suggest corrections
     Spellcheck {
         /// Word to check
@@ -229,6 +258,29 @@ fn resolve_input_text(text: Option<String>, file: Option<PathBuf>) -> Result<Str
     }
 }
 
+/// The grammar rules the `grammar` command runs.
+fn grammar_rules(
+    rules: Option<Vec<String>>,
+    enable: Vec<String>,
+    disable: Vec<String>,
+    experimental: bool,
+) -> Result<grammar::RuleSet, grammar::UnknownRule> {
+    let mut set = match rules {
+        Some(ids) => grammar::RuleSet::from_ids(ids)?,
+        None => grammar::RuleSet::default(),
+    };
+    if experimental {
+        set = set.with_experimental();
+    }
+    for rule in grammar::RuleSet::from_ids(enable)?.iter() {
+        set.enable(rule);
+    }
+    for rule in grammar::RuleSet::from_ids(disable)?.iter() {
+        set.disable(rule);
+    }
+    Ok(set)
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -295,6 +347,63 @@ fn main() {
             };
             let res = normalization::TurkishInformalNormalizer::normalize_text(&input);
             println!("{res}");
+        }
+        Commands::Grammar {
+            text,
+            file,
+            rules,
+            enable,
+            disable,
+            experimental,
+            correct,
+            json,
+            list_rules,
+        } => {
+            if list_rules {
+                for rule in grammar::GrammarRule::ALL {
+                    println!(
+                        "{:<24} {:<12} confidence {:.2}  {}",
+                        rule.id(),
+                        if rule.is_default() {
+                            "default"
+                        } else {
+                            "experimental"
+                        },
+                        rule.confidence(),
+                        rule.summary()
+                    );
+                }
+                return;
+            }
+            let input = match resolve_input_text(text, file) {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("Error: {e}");
+                    std::process::exit(1);
+                }
+            };
+            let set = match grammar_rules(rules, enable, disable, experimental) {
+                Ok(set) => set,
+                Err(e) => {
+                    eprintln!("Error: {e} (see --list-rules)");
+                    std::process::exit(1);
+                }
+            };
+            let checker = grammar::TurkishGrammarChecker::with_rules(set);
+            let result = checker.check(&input);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&result).unwrap());
+            } else if correct {
+                println!("{}", result.corrected);
+            } else {
+                for f in &result.findings {
+                    println!(
+                        "[{}] {:?} -> {:?}: {}",
+                        f.rule, f.original_text, f.replacement, f.message_tr
+                    );
+                }
+                println!("{}", result.corrected);
+            }
         }
         Commands::Spellcheck { word } => {
             let checker = normalization::TurkishSpellChecker::new();

@@ -2,8 +2,9 @@
 //!
 //! Groups sentences up to a maximum token count (`chunk_size`) with optional token overlap.
 
-use super::types::Chunk;
-use crate::embeddings::TurkishEmbeddings;
+use super::types::{CharOffsets, Chunk};
+use crate::embeddings::tokenizer::UnigramTokenizer;
+use crate::embeddings::{TurkishEmbeddings, TOKENIZER};
 use crate::tokenization::SentenceSegmenter;
 use std::sync::Arc;
 
@@ -12,7 +13,7 @@ pub struct SentenceChunker {
     chunk_size: usize,
     chunk_overlap: usize,
     min_sentences_per_chunk: usize,
-    embeddings: Arc<TurkishEmbeddings>,
+    tokenizer: &'static UnigramTokenizer,
 }
 
 impl Default for SentenceChunker {
@@ -22,29 +23,26 @@ impl Default for SentenceChunker {
 }
 
 impl SentenceChunker {
-    /// Creates a new `SentenceChunker` with specified parameters and a newly initialized embedding engine.
+    /// Creates a new `SentenceChunker` with specified parameters. It counts tokens with the
+    /// embedding model's tokenizer and needs no embeddings.
     pub fn new(chunk_size: usize, chunk_overlap: usize, min_sentences_per_chunk: usize) -> Self {
         Self {
             chunk_size: chunk_size.max(1),
             chunk_overlap,
             min_sentences_per_chunk: min_sentences_per_chunk.max(1),
-            embeddings: Arc::new(TurkishEmbeddings::new()),
+            tokenizer: &TOKENIZER,
         }
     }
 
-    /// Creates a `SentenceChunker` sharing an existing `TurkishEmbeddings` instance.
+    /// The same as [`SentenceChunker::new`]: the chunker only needs the tokenizer, which every
+    /// `TurkishEmbeddings` shares, so `embeddings` is not used.
     pub fn with_embeddings(
         chunk_size: usize,
         chunk_overlap: usize,
         min_sentences_per_chunk: usize,
-        embeddings: Arc<TurkishEmbeddings>,
+        _embeddings: Arc<TurkishEmbeddings>,
     ) -> Self {
-        Self {
-            chunk_size: chunk_size.max(1),
-            chunk_overlap,
-            min_sentences_per_chunk: min_sentences_per_chunk.max(1),
-            embeddings,
-        }
+        Self::new(chunk_size, chunk_overlap, min_sentences_per_chunk)
     }
 
     /// Chunks input text into a list of `Chunk` objects.
@@ -56,7 +54,7 @@ impl SentenceChunker {
 
         let raw_sentences = SentenceSegmenter::segment(text);
         if raw_sentences.is_empty() {
-            let tokens = self.embeddings.tokenize(text);
+            let tokens = self.tokenizer.encode(text);
             return vec![Chunk::new(
                 text.to_string(),
                 0,
@@ -76,12 +74,13 @@ impl SentenceChunker {
             token_count: usize,
         }
 
+        let mut offsets = CharOffsets::new(text);
         let spans: Vec<Span> = raw_sentences
             .into_iter()
             .map(|s| {
-                let token_count = self.embeddings.tokenize(s.text).len();
-                let char_start = text[..s.start].chars().count();
-                let char_end = text[..s.end].chars().count();
+                let token_count = self.tokenizer.encode(s.text).len();
+                let char_start = offsets.at(s.start);
+                let char_end = offsets.at(s.end);
                 Span {
                     text: s.text.to_string(),
                     byte_start: s.start,

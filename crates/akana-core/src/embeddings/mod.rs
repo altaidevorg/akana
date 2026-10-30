@@ -19,6 +19,7 @@
 pub mod hybrid;
 pub mod rrf;
 pub mod sparse;
+pub mod spec;
 pub mod tokenizer;
 pub mod usearch_metrics;
 pub mod weights;
@@ -29,7 +30,13 @@ pub use hybrid::{
     HYBRID_SPARSE_BYTES, HYBRID_VECTOR_BYTES,
 };
 pub use rrf::{reciprocal_rank_fusion, FusedResult};
-pub use sparse::{hash_term_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector};
+pub use sparse::{
+    hash_term_32bit, term_id_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector,
+};
+pub use spec::{
+    compatibility_of, encoder_info, encoder_info_json, Compatibility, EncoderInfo, IndexKind,
+    DENSE_MODEL, HYBRID_LAYOUT, SPARSE_SPEC,
+};
 use tokenizer::UnigramTokenizer;
 pub use usearch_metrics::{
     akana_usearch_metric_1bit, akana_usearch_metric_2bit, cosine_distance_2bit_64,
@@ -49,6 +56,43 @@ pub(crate) static TOKENIZER: std::sync::LazyLock<UnigramTokenizer> =
         UnigramTokenizer::from_json_bytes(TOKENIZER_JSON)
             .expect("failed to load embedded tokenizer")
     });
+
+/// The embedded weights, dequantised once per process (about 40 MB of f32) and shared by
+/// every embedding engine, chunker and PII scorer.
+static WEIGHTS: std::sync::LazyLock<EmbeddingWeights> = std::sync::LazyLock::new(|| {
+    EmbeddingWeights::from_npz_bytes(WEIGHTS_NPZ).expect("failed to load embedded weights")
+});
+
+/// Texts per thread below which a batch stays on the calling thread: starting a thread costs
+/// about as much as embedding a few dozen short texts.
+const MIN_TEXTS_PER_THREAD: usize = 256;
+
+/// `texts.iter().map(f).collect()`, with a large batch split across threads. The output is
+/// in input order and the same as the serial map's; a panic in a worker is resumed on the
+/// calling thread.
+pub(crate) fn map_batch<T: Send>(texts: &[&str], f: impl Fn(&str) -> T + Sync) -> Vec<T> {
+    let threads = if texts.len() < 2 * MIN_TEXTS_PER_THREAD {
+        1
+    } else {
+        std::thread::available_parallelism()
+            .map_or(1, |n| n.get())
+            .min(texts.len() / MIN_TEXTS_PER_THREAD)
+    };
+    if threads <= 1 {
+        return texts.iter().map(|t| f(t)).collect();
+    }
+    let f = &f;
+    std::thread::scope(|s| {
+        let workers: Vec<_> = texts
+            .chunks(texts.len().div_ceil(threads))
+            .map(|chunk| s.spawn(move || chunk.iter().map(|t| f(t)).collect::<Vec<T>>()))
+            .collect();
+        workers
+            .into_iter()
+            .flat_map(|w| w.join().unwrap_or_else(|e| std::panic::resume_unwind(e)))
+            .collect()
+    })
+}
 
 /// Global coordinate standard deviation for 256-dim unit-normalized Haar-rotated vectors.
 /// sigma = 1 / sqrt(256) = 0.0625.
@@ -135,10 +179,12 @@ pub fn dequantize_1bit_vector(packed: &[u8; PACKED_1BIT_BYTES]) -> [f32; EMBEDDI
 /// Turkish sentence embedding engine.
 ///
 /// Wraps the bundled Model2Vec TurboQuant 2-bit model for zero-config
-/// Turkish text embeddings. Thread-safe and reusable.
+/// Turkish text embeddings. Thread-safe and reusable; every engine shares one copy of the
+/// model, so creating or cloning one is cheap.
+#[derive(Clone)]
 pub struct TurkishEmbeddings {
     tokenizer: &'static UnigramTokenizer,
-    weights: EmbeddingWeights,
+    weights: &'static EmbeddingWeights,
 }
 
 impl Default for TurkishEmbeddings {
@@ -148,16 +194,16 @@ impl Default for TurkishEmbeddings {
 }
 
 impl TurkishEmbeddings {
-    /// Create a new embedding engine, loading the bundled model.
+    /// Create a new embedding engine for the bundled model.
     ///
-    /// This dequantizes all 39,655 token embeddings from 2-bit to f32 at init,
-    /// using ~38 MB of RAM. The init cost is a one-time ~50-100ms operation.
+    /// The first engine in the process dequantizes all 39,655 token embeddings from 2-bit
+    /// to f32 (about 40 MB of RAM, a one-time ~50-100 ms operation); later engines share
+    /// them.
     pub fn new() -> Self {
-        let tokenizer = &*TOKENIZER;
-        let weights =
-            EmbeddingWeights::from_npz_bytes(WEIGHTS_NPZ).expect("failed to load embedded weights");
-
-        Self { tokenizer, weights }
+        Self {
+            tokenizer: &TOKENIZER,
+            weights: &WEIGHTS,
+        }
     }
 
     /// Embed a single text string into a 256-dimensional f32 vector.
@@ -187,14 +233,16 @@ impl TurkishEmbeddings {
         pack_1bit_vector(&f32_vec)
     }
 
-    /// Embed multiple texts into 2-bit packed byte arrays (batch processing).
+    /// Embed multiple texts into 2-bit packed byte arrays (batch processing; large batches
+    /// run on several threads).
     pub fn embed_batch_packed_2bit(&self, texts: &[&str]) -> Vec<[u8; PACKED_2BIT_BYTES]> {
-        texts.iter().map(|t| self.embed_packed_2bit(t)).collect()
+        map_batch(texts, |t| self.embed_packed_2bit(t))
     }
 
-    /// Embed multiple texts into 1-bit packed byte arrays (batch processing).
+    /// Embed multiple texts into 1-bit packed byte arrays (batch processing; large batches
+    /// run on several threads).
     pub fn embed_batch_packed_1bit(&self, texts: &[&str]) -> Vec<[u8; PACKED_1BIT_BYTES]> {
-        texts.iter().map(|t| self.embed_packed_1bit(t)).collect()
+        map_batch(texts, |t| self.embed_packed_1bit(t))
     }
 
     /// Tokenize a text string into model token IDs.
@@ -202,9 +250,10 @@ impl TurkishEmbeddings {
         self.tokenizer.encode(text)
     }
 
-    /// Embed multiple texts into vectors (batch processing).
+    /// Embed multiple texts into vectors (batch processing; large batches run on several
+    /// threads).
     pub fn embed_batch(&self, texts: &[&str]) -> Vec<Vec<f32>> {
-        texts.iter().map(|t| self.embed(t)).collect()
+        map_batch(texts, |t| self.embed(t))
     }
 
     /// Compute cosine similarity between two texts.

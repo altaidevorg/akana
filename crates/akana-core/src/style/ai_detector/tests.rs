@@ -101,6 +101,30 @@ fn sections_cover_long_texts_only() {
     );
 }
 
+#[test]
+fn label_colons_are_linear_in_a_line() {
+    // Each colon looked through every sentence start of its line: colons × sentences. Four
+    // times the line may take at most 12× as long (linear 4×, the old loop 16×); best of nine,
+    // as the other tests of the crate run beside it (9× and best of five failed under load;
+    // review 3 BIND3-10).
+    let time = |text: &str| {
+        (0..9)
+            .map(|_| {
+                let t = std::time::Instant::now();
+                assert!(super::morph::label_colon_counts(text).0 > 0);
+                t.elapsed().as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min)
+    };
+    let (small, large) = ("a: b. ".repeat(4_000), "a: b. ".repeat(16_000));
+    time(&small);
+    let (t_small, t_large) = (time(&small), time(&large));
+    assert!(
+        t_large <= 12.0 * t_small.max(1e-6),
+        "{t_small:.4} s → {t_large:.4} s"
+    );
+}
+
 /// One row of a reference file: a text and the training code's inputs and probability.
 #[derive(Deserialize)]
 struct Reference {
@@ -168,7 +192,8 @@ fn outputs_match_training_fixture() {
 /// `AKANA_AI_DETECTOR_REBASELINE="<why>" cargo test -p akana-core --lib -- --ignored
 /// rebaseline_training_reference`. Rows whose inputs and probability still match keep the
 /// training code's values byte for byte; the others get this implementation's inputs and
-/// probability and a `rebaselined` note. Retraining the model replaces the whole file.
+/// probability and a `rebaselined` note, appended to any earlier one. Retraining the model
+/// replaces the whole file.
 #[test]
 #[ignore = "rewrites tests/data/ai_detector_reference.json; set AKANA_AI_DETECTOR_REBASELINE"]
 fn rebaseline_training_reference() {
@@ -205,6 +230,11 @@ fn rebaseline_training_reference() {
             continue;
         }
         changed += 1;
+        // A row re-baselined before keeps its earlier notes (review 3 STYLE3-08).
+        let notes = match row["rebaselined"].as_str() {
+            Some(earlier) => format!("{earlier} | {note}"),
+            None => note.clone(),
+        };
         let field = |v: &serde_json::Value| serde_json::to_string(v).expect("serialisable");
         lines.push(format!(
             "{{\"source\":{},\"id\":{},\"text\":{},\"x\":{},\"p\":{},\"rebaselined\":{}}}{comma}",
@@ -213,7 +243,7 @@ fn rebaseline_training_reference() {
             field(&row["text"]),
             serde_json::to_string(&x).expect("serialisable"),
             serde_json::to_string(&p).expect("serialisable"),
-            serde_json::to_string(&note).expect("serialisable"),
+            serde_json::to_string(&notes).expect("serialisable"),
         ));
     }
     let mut out = lines.join("\n");
@@ -222,4 +252,191 @@ fn rebaseline_training_reference() {
     }
     std::fs::write(path, out).expect("writable reference");
     println!("re-baselined {changed} rows");
+}
+
+/// The drift canary's source: paragraphs of [`CANARY_SENTENCES`] consecutive sentences of the
+/// grammar gate's court corpus (CC0), then [`CANARY_SHAPES`]' paragraphs, alone and in fours
+/// (most of one alone are too short for a verdict).
+const CANARY_SOURCE: &str = include_str!("../../../tests/data/grammar_clean_court.txt");
+const CANARY_SENTENCES: usize = 15;
+/// Paragraphs written for the canary in the shapes court text lacks, whose inputs are 0 on every
+/// court paragraph: questions, exclamations, ellipses, openers and closers, first and second
+/// persons, assistant-style answers, initials, Roman ordinals (review 4 DOWN4-05).
+const CANARY_SHAPES: &str = include_str!("../../../tests/data/ai_detector_canary_texts.txt");
+const CANARY_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/data/ai_detector_canary.jsonl"
+);
+
+fn canary_texts() -> Vec<String> {
+    let lines: Vec<&str> = CANARY_SOURCE
+        .lines()
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect();
+    let mut texts: Vec<String> = lines
+        .chunks(CANARY_SENTENCES)
+        .map(|c| c.join(" "))
+        .collect();
+    let shapes: Vec<String> = CANARY_SHAPES
+        .split("\n\n")
+        .map(|p| {
+            p.lines()
+                .filter(|l| !l.starts_with('#'))
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .filter(|p| !p.trim().is_empty())
+        .collect();
+    texts.extend(shapes.iter().cloned());
+    texts.extend(shapes.chunks(4).map(|group| group.join(" ")));
+    texts
+}
+
+/// A fingerprint of the word sets the detector reads from the shared lexicon ([`super::morph`]'s
+/// ROOTS and VERBS): any lexicon edit that changes them changes `oov_rate`, `aorist_ratio` or
+/// `colons_per_100w` on some text, whether or not a canary text shows it.
+fn lexicon_sets_fingerprint() -> String {
+    let sorted = |set: &std::collections::HashSet<&str>| {
+        let mut v: Vec<&str> = set.iter().copied().collect();
+        v.sort_unstable();
+        v.join("\n")
+    };
+    let roots = super::morph::ROOTS.iter().map(String::as_str).collect();
+    let verbs = super::morph::VERBS.iter().map(String::as_str).collect();
+    crate::fingerprint::Fingerprint::new()
+        .section("roots", sorted(&roots).as_bytes())
+        .section("verbs", sorted(&verbs).as_bytes())
+        .hex()
+}
+
+#[derive(Serialize, Deserialize)]
+struct CanaryHead {
+    about: String,
+    lexicon_sets: String,
+    history: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CanaryRow {
+    id: usize,
+    verdict: AiVerdict,
+    p: f64,
+    x: Vec<f64>,
+}
+
+fn canary_now() -> Vec<CanaryRow> {
+    canary_texts()
+        .iter()
+        .enumerate()
+        .map(|(id, text)| {
+            let x = inputs(text).x;
+            let p = MODEL.probability(MODEL.raw_score(&MODEL.standardize(&x)));
+            CanaryRow {
+                id,
+                verdict: detect(text).verdict,
+                p,
+                x,
+            }
+        })
+        .collect()
+}
+
+fn read_canary(text: &str) -> (CanaryHead, Vec<CanaryRow>) {
+    let mut lines = text.lines();
+    let head = serde_json::from_str(lines.next().expect("canary head")).expect("valid head");
+    let rows = lines
+        .filter(|l| !l.is_empty())
+        .map(|l| serde_json::from_str(l).expect("valid canary row"))
+        .collect();
+    (head, rows)
+}
+
+/// What moved between two canary runs: texts whose inputs or probability moved (with the
+/// training reference's tolerances), verdicts that changed, and the largest probability move.
+fn canary_drift(old: &[CanaryRow], new: &[CanaryRow]) -> (usize, usize, f64) {
+    let mut moved = old.len().abs_diff(new.len());
+    let (mut verdicts, mut max_dp) = (0, 0.0f64);
+    for (a, b) in old.iter().zip(new) {
+        let inputs_moved = a.x.len() != b.x.len()
+            || a.x
+                .iter()
+                .zip(&b.x)
+                .any(|(&want, &got)| (got - want).abs() > 1e-6 * (1.0 + want.abs()));
+        if inputs_moved || (a.p - b.p).abs() >= 1e-9 {
+            moved += 1;
+        }
+        verdicts += usize::from(a.verdict != b.verdict);
+        max_dp = max_dp.max((a.p - b.p).abs());
+    }
+    (moved, verdicts, max_dp)
+}
+
+/// Pins the detector's inputs on 100 committed court paragraphs and 48 of other shapes, alone
+/// and in 12 groups of four, and the lexicon word sets it reads (review 3 STYLE3-01, review 4 DOWN4-05).
+/// The model was trained on
+/// fixed inputs, and the 45-row training reference above sees few of the shared-code changes
+/// that move them: since review 2 the inputs moved on 55 % of a 1,928-text sample while it
+/// noticed 4 rows. This test fails on a change that moves an input on one of these texts, or
+/// the word sets; one that moves inputs only on texts unlike all of them passes. A change is
+/// recorded on purpose with
+/// `AKANA_AI_DETECTOR_CANARY="<why>" cargo test -p akana-core --lib -- --ignored
+/// rewrite_drift_canary`, and the model's retrain is planned with it.
+#[test]
+fn inputs_match_drift_canary() {
+    let (head, old) = read_canary(include_str!("../../../tests/data/ai_detector_canary.jsonl"));
+    let sets = lexicon_sets_fingerprint();
+    let new = canary_now();
+    let (moved, verdicts, max_dp) = canary_drift(&old, &new);
+    assert!(
+        moved == 0 && head.lexicon_sets == sets,
+        "the AI detector's inputs moved: {moved} of {} canary texts (max |Δp| {max_dp:.2e}, \
+         {verdicts} verdicts changed); lexicon word sets changed: {}. The model was trained on \
+         fixed inputs: if the change is deliberate, record it with \
+         AKANA_AI_DETECTOR_CANARY=\"<why>\" cargo test -p akana-core --lib -- --ignored \
+         rewrite_drift_canary, and plan the retrain.",
+        new.len(),
+        head.lexicon_sets != sets
+    );
+}
+
+/// Rewrites `tests/data/ai_detector_canary.jsonl` after a deliberate change of the detector's
+/// inputs, appending the reason and what moved to its history.
+#[test]
+#[ignore = "rewrites tests/data/ai_detector_canary.jsonl; set AKANA_AI_DETECTOR_CANARY"]
+fn rewrite_drift_canary() {
+    let note = std::env::var("AKANA_AI_DETECTOR_CANARY")
+        .expect("set AKANA_AI_DETECTOR_CANARY to the reason for the rewrite");
+    let new = canary_now();
+    let sets = lexicon_sets_fingerprint();
+    let (mut history, entry) = match std::fs::read_to_string(CANARY_PATH) {
+        Ok(text) if !read_canary(&text).1.is_empty() => {
+            let (head, old) = read_canary(&text);
+            let (moved, verdicts, max_dp) = canary_drift(&old, &new);
+            let entry = format!(
+                "{note} (inputs moved on {moved} of {} texts, max |Δp| {max_dp:.2e}, {verdicts} \
+                 verdicts changed; lexicon word sets changed: {})",
+                new.len(),
+                head.lexicon_sets != sets
+            );
+            (head.history, entry)
+        }
+        _ => (Vec::new(), note),
+    };
+    history.push(entry);
+    let head = CanaryHead {
+        about: "The AI-text detector's 75 inputs (x, model input order), probability (p) and \
+                verdict on paragraphs of 15 consecutive sentences of grammar_clean_court.txt \
+                (CC0) and the paragraphs of ai_detector_canary_texts.txt, alone and in fours, \
+                computed by the Rust implementation, and a fingerprint of the lexicon word sets \
+                it reads. A drift canary (style::ai_detector::tests::inputs_match_drift_canary), \
+                not training-code parity: history records each deliberate input change."
+            .to_string(),
+        lexicon_sets: sets,
+        history,
+    };
+    let mut out = serde_json::to_string(&head).expect("serialisable") + "\n";
+    for row in &new {
+        out += &(serde_json::to_string(row).expect("serialisable") + "\n");
+    }
+    std::fs::write(CANARY_PATH, out).expect("writable canary");
 }

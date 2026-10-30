@@ -7,6 +7,69 @@ on:
     branches: [ master, main ]
 
 jobs:
+  # The data compiled into the library must be what its sources give: a lexicon or engine change
+  # that is not followed by a rebuild and a re-estimation fails here.
+  data:
+    name: Regenerated data equals the committed files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.0"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lexicon rebuild equals the committed lexicon
+        run: |
+          python scripts/build_full_lexicon.py
+          git diff --exit-code crates/akana-core/src/morphology/zemberek_lexicon.txt
+
+      - name: The shipped copies of THIRD_PARTY_NOTICES equal the root file
+        run: |
+          for f in crates/akana-core/THIRD_PARTY_NOTICES crates/akana-cli/THIRD_PARTY_NOTICES python/akana/THIRD_PARTY_NOTICES; do
+            cmp THIRD_PARTY_NOTICES "$f"
+          done
+
+      - name: Prior re-estimation equals the committed prior
+        run: |
+          cargo run --release --locked -p akana-core --example morph_prior -- \
+            --types data/morphology/prior_train_types.tsv.gz --out "$RUNNER_TEMP/prior.tsv.gz"
+          cmp <(gunzip -c "$RUNNER_TEMP/prior.tsv.gz") <(gunzip -c crates/akana-core/src/morphology/prior.tsv.gz)
+
+      # The prior's inputs from the UD treebanks must be what the treebanks and the analyzer
+      # give: a lexicon or engine change that leaves the POS-twin table stale fails here
+      # (review 3 LEX3-04). The treebanks are fetched at their pinned release and checked
+      # against the manifest's SHA-256.
+      - name: Fetch the pinned UD Turkish treebanks
+        run: python scripts/fetch_morph_sources.py --only UD_Turkish
+
+      - name: The UD word counts equal the committed file
+        run: |
+          git show HEAD:data/morphology/prior_general_types.tsv.gz > "$RUNNER_TEMP/committed.tsv.gz"
+          python scripts/prior_general_types.py
+          cmp <(gunzip -c "$RUNNER_TEMP/committed.tsv.gz") <(gunzip -c data/morphology/prior_general_types.tsv.gz)
+
+      - name: Build the Python extension for the scripts that read the analyzer
+        run: |
+          python -m pip install maturin
+          maturin build --release --locked --out "$RUNNER_TEMP/wheels"
+          python -m pip install --no-index --find-links "$RUNNER_TEMP/wheels" akana
+
+      - name: The POS-twin table equals the committed file
+        run: |
+          python scripts/pos_twins.py
+          git diff --exit-code data/morphology/pos_twins.tsv
+
+      # The parser's attachment on the held-out UD test splits may not fall below the
+      # recorded figure (review 3 PARSER3-01).
+      - name: Dependency parser on UD Turkish
+        run: python scripts/parser_ud_eval.py --min-las 41.7
+
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -19,8 +82,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The version pinned in rust-toolchain.toml: outputs depend on std's Unicode tables.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.0"
+          components: rustfmt, clippy
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
@@ -31,7 +98,12 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run Cargo Tests (Rust)
-        run: cargo test -p akana-core
+        run: cargo test -p akana-core --locked
+
+      # Releases are built with --release: the golden vectors must hold for that profile too
+      # (review 3 MSTAB3-06).
+      - name: Golden vectors in the release profile
+        run: cargo test --release -p akana-core --locked --test golden_vectors
 
       - name: Build Python extension & Run Pytest
         run: |

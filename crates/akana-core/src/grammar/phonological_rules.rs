@@ -10,8 +10,9 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use super::{ErrorCategory, GrammarFinding};
-use crate::morphology::TurkishMorphology;
+use super::{match_case, GrammarFinding, GrammarRule, RuleSet};
+use crate::morphology::pos::PrimaryPos;
+use crate::morphology::{MorphParse, TurkishMorphology};
 use crate::phonology::{
     harmony_i_type, is_front_vowel, is_hard_consonant, is_turkish_vowel, last_vowel,
     to_turkish_lower,
@@ -48,6 +49,24 @@ lazy_static! {
     };
 }
 
+/// Whether `word` (as written) is a misspelling of `fixed`: the analyser knows no word `word`
+/// (it rejects the forms a sound change rules out: kitap-da, akıl-ı, kitap-ı) and reads
+/// `fixed` through `root` (with that POS, when given). A word with a reading of its own is left
+/// alone: takdir and nakden are roots, akılı is akı-lı, kalpak and hükümet have other roots.
+fn misspelling_of(
+    morphology: &TurkishMorphology,
+    word: &str,
+    fixed: &str,
+    root: &str,
+    pos: Option<PrimaryPos>,
+) -> bool {
+    morphology.analyze_standard(word).is_empty()
+        && morphology
+            .analyze_standard(fixed)
+            .iter()
+            .any(|p: &MorphParse| p.root == root && pos.is_none_or(|pos| p.primary_pos == pos))
+}
+
 pub struct PhonologicalRuleEngine;
 
 impl PhonologicalRuleEngine {
@@ -56,6 +75,7 @@ impl PhonologicalRuleEngine {
         tokens: &[&str],
         token_spans: &[(usize, usize)],
         morphology: &TurkishMorphology,
+        rules: RuleSet,
         findings: &mut Vec<GrammarFinding>,
     ) {
         for (i, &tok) in tokens.iter().enumerate() {
@@ -66,29 +86,43 @@ impl PhonologicalRuleEngine {
             if lower.is_empty() || lower.chars().all(|c| !c.is_alphabetic()) {
                 continue;
             }
+            // A capital inside a sentence starts a name (Nahda, Selimiye, Altın Orda), which the
+            // lexicon's rules for common words do not cover.
+            let sentence_start = i == 0 || matches!(tokens[i - 1], "." | "!" | "?" | "…");
+            if !sentence_start && tok.chars().next().is_some_and(char::is_uppercase) {
+                continue;
+            }
 
             // 1. Check Consonant Assimilation (fıstıkçı şahap: e.g. "kitapda", "sokakdan", "yapdı", "gitdi")
-            if Self::check_consonant_assimilation(tok, &lower, start, end, morphology, findings) {
+            if rules.contains(GrammarRule::ConsonantAssimilation)
+                && Self::check_consonant_assimilation(tok, &lower, start, end, morphology, findings)
+            {
                 continue;
             }
 
             // 2. Check Vowel Dropping (Syncope: e.g. "akılı", "şehire", "burunu")
-            if Self::check_vowel_drop(tok, &lower, start, end, morphology, findings) {
+            if rules.contains(GrammarRule::VowelDrop)
+                && Self::check_vowel_drop(tok, &lower, start, end, morphology, findings)
+            {
                 continue;
             }
 
             // 3. Check Vowel Narrowing in progressive tense (e.g. "başlayor", "anlamayor")
-            if Self::check_vowel_narrowing(tok, &lower, start, end, morphology, findings) {
+            if Self::check_vowel_narrowing(tok, &lower, start, end, morphology, rules, findings) {
                 continue;
             }
 
             // 4. Check Consonant Softening (e.g. "kitapı" -> "kitabı", "ağaca")
-            if Self::check_consonant_softening(tok, &lower, start, end, morphology, findings) {
+            if rules.contains(GrammarRule::ConsonantSoftening)
+                && Self::check_consonant_softening(tok, &lower, start, end, morphology, findings)
+            {
                 continue;
             }
 
             // 5. Check Suffix Vowel Harmony (e.g. "evlar", "arabaler")
-            Self::check_suffix_vowel_harmony(tok, &lower, start, end, morphology, findings);
+            if rules.contains(GrammarRule::PluralHarmony) {
+                Self::check_suffix_vowel_harmony(tok, &lower, start, end, morphology, findings);
+            }
         }
     }
 
@@ -127,28 +161,20 @@ impl PhonologicalRuleEngine {
                 let stem = &lower[..lower.len() - bad_suf.len()];
                 if let Some(stem_last_char) = stem.chars().last() {
                     if is_hard_consonant(stem_last_char) {
-                        // Validate that stem is a real Turkish root/stem
-                        let parses = morphology.analyze(stem);
-                        if !parses.is_empty() {
-                            let fixed_lower = format!("{stem}{good_suf}");
-                            // Preserve original casing
-                            let replacement =
-                                if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                                    crate::phonology::to_turkish_title(&fixed_lower)
-                                } else {
-                                    fixed_lower
-                                };
+                        // Not a word, and the hardened form is the stem plus the suffix: not
+                        // takdir, nakden or akdi, whose roots are takdir, nakit and akit.
+                        let fixed_lower = format!("{stem}{good_suf}");
+                        if misspelling_of(morphology, original, &fixed_lower, stem, None) {
+                            let replacement = match_case(original, &fixed_lower);
 
-                            findings.push(GrammarFinding {
-                                category: ErrorCategory::ConsonantAssimilation,
-                                start_offset: start,
-                                end_offset: end,
-                                original_text: original.to_string(),
+                            findings.push(GrammarFinding::new(
+                                GrammarRule::ConsonantAssimilation,
+                                (start, end),
+                                original.to_string(),
                                 replacement,
-                                message_tr: "Sert ünsüzle (f, s, t, k, ç, ş, h, p) biten sözcüklere gelen ekler sertleşir (ünsüz benzeşmesi).".to_string(),
-                                message_en: "Suffixes following voiceless consonants must undergo consonant hardening.".to_string(),
-                                confidence: 0.98,
-                            });
+                                "Sert ünsüzle (f, s, t, k, ç, ş, h, p) biten sözcüklere gelen ekler sertleşir (ünsüz benzeşmesi).".to_string(),
+                                "Suffixes following voiceless consonants must undergo consonant hardening.".to_string(),
+                            ));
                             return true;
                         }
                     }
@@ -166,32 +192,40 @@ impl PhonologicalRuleEngine {
         lower: &str,
         start: usize,
         end: usize,
-        _morphology: &TurkishMorphology,
+        morphology: &TurkishMorphology,
         findings: &mut Vec<GrammarFinding>,
     ) -> bool {
         for (&root, &contracted) in VOWEL_DROP_ROOTS.iter() {
             if lower.starts_with(root) && lower.len() > root.len() {
                 let suf = &lower[root.len()..];
-                if let Some(first_suf_char) = suf.chars().next() {
-                    if is_turkish_vowel(first_suf_char) {
-                        let fixed_lower = format!("{contracted}{suf}");
-                        let replacement =
-                            if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                                crate::phonology::to_turkish_title(&fixed_lower)
-                            } else {
-                                fixed_lower
-                            };
+                let fixed_lower = format!("{contracted}{suf}");
+                // Not a frequent word's locative misspelt (alınında for alanında; review 3
+                // GRAM3-02).
+                if suf.chars().next().is_some_and(is_turkish_vowel)
+                    && misspelling_of(
+                        morphology,
+                        original,
+                        &fixed_lower,
+                        root,
+                        Some(PrimaryPos::Noun),
+                    )
+                    && !super::orthography::misspelt_locative(
+                        morphology,
+                        lower,
+                        &[root.to_string(), contracted.to_string()],
+                    )
+                {
+                    {
+                        let replacement = match_case(original, &fixed_lower);
 
-                        findings.push(GrammarFinding {
-                            category: ErrorCategory::VowelDropping,
-                            start_offset: start,
-                            end_offset: end,
-                            original_text: original.to_string(),
+                        findings.push(GrammarFinding::new(
+                            GrammarRule::VowelDrop,
+                            (start, end),
+                            original.to_string(),
                             replacement,
-                            message_tr: format!("'{root}' sözcüğü ünlüyle başlayan ek aldığında ikinci hecedeki dar ünlü düşer (ünlü düşmesi)."),
-                            message_en: format!("The second vowel in '{root}' drops when attached to a vowel-initial suffix."),
-                            confidence: 0.99,
-                        });
+                            format!("'{root}' sözcüğü ünlüyle başlayan ek aldığında ikinci hecedeki dar ünlü düşer (ünlü düşmesi)."),
+                            format!("The second vowel in '{root}' drops when attached to a vowel-initial suffix."),
+                        ));
                         return true;
                     }
                 }
@@ -209,10 +243,13 @@ impl PhonologicalRuleEngine {
         start: usize,
         end: usize,
         morphology: &TurkishMorphology,
+        rules: RuleSet,
         findings: &mut Vec<GrammarFinding>,
     ) -> bool {
         // 3A. Check Progressive Tense Under-Narrowing (e.g. "başlayor" -> "başlıyor", "anlamayor" -> "anlamıyor")
-        if lower.ends_with("ayor") || lower.ends_with("eyor") {
+        if rules.contains(GrammarRule::YorNarrowing)
+            && (lower.ends_with("ayor") || lower.ends_with("eyor"))
+        {
             let stem = &lower[..lower.len() - 4];
             let ending = &lower[lower.len() - 4..];
             if !stem.is_empty() {
@@ -222,29 +259,23 @@ impl PhonologicalRuleEngine {
                     if ending.starts_with('a') { "a" } else { "e" }
                 );
                 if morphology
-                    .analyze(&verb_root)
+                    .analyze_standard(&verb_root)
                     .iter()
                     .any(|p| p.primary_pos == crate::morphology::pos::PrimaryPos::Verb)
                 {
                     let last_v = last_vowel(stem).unwrap_or('a');
                     let narrow_v = harmony_i_type(last_v);
                     let fixed_lower = format!("{stem}{narrow_v}yor");
-                    let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                        crate::phonology::to_turkish_title(&fixed_lower)
-                    } else {
-                        fixed_lower
-                    };
+                    let replacement = match_case(original, &fixed_lower);
 
-                    findings.push(GrammarFinding {
-                        category: ErrorCategory::VowelHarmony,
-                        start_offset: start,
-                        end_offset: end,
-                        original_text: original.to_string(),
+                    findings.push(GrammarFinding::new(
+                        GrammarRule::YorNarrowing,
+                        (start, end),
+                        original.to_string(),
                         replacement,
-                        message_tr: "'-yor' şimdiki zaman eki kendinden önceki 'a/e' geniş ünlülerini daraltır (ünlü daralması).".to_string(),
-                        message_en: "The progressive suffix '-yor' narrows preceding open vowels 'a/e'.".to_string(),
-                        confidence: 0.98,
-                    });
+                        "'-yor' şimdiki zaman eki kendinden önceki 'a/e' geniş ünlülerini daraltır (ünlü daralması).".to_string(),
+                        "The progressive suffix '-yor' narrows preceding open vowels 'a/e'.".to_string(),
+                    ));
                     return true;
                 }
             }
@@ -279,23 +310,28 @@ impl PhonologicalRuleEngine {
         ];
 
         for &(narrowed, corrected) in OVER_NARROWED_PATTERNS {
+            if !rules.contains(GrammarRule::OverNarrowing) {
+                break;
+            }
             if let Some(stem) = lower.strip_suffix(narrowed) {
                 let fixed_lower = format!("{stem}{corrected}");
-                let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                    crate::phonology::to_turkish_title(&fixed_lower)
-                } else {
-                    fixed_lower
-                };
-                findings.push(GrammarFinding {
-                    category: ErrorCategory::VowelHarmony,
-                    start_offset: start,
-                    end_offset: end,
-                    original_text: original.to_string(),
+                // a verb form: not the nouns and numerals that end alike (ekonomiye, yevmiye,
+                // yirmiye, ikramiye), and the corrected form is a word
+                let parses = morphology.analyze_standard(original);
+                if parses.iter().any(|p| p.primary_pos != PrimaryPos::Verb)
+                    || morphology.analyze_standard(&fixed_lower).is_empty()
+                {
+                    continue;
+                }
+                let replacement = match_case(original, &fixed_lower);
+                findings.push(GrammarFinding::new(
+                    GrammarRule::OverNarrowing,
+                    (start, end),
+                    original.to_string(),
                     replacement,
-                    message_tr: "Yazı dilinde '-yor' dışındaki eklerde (sıfat-fiil, isim-fiil) ünlü daralması gösterilmez.".to_string(),
-                    message_en: "Vowel narrowing should only be written before '-yor', not in participles or nominals.".to_string(),
-                    confidence: 0.98,
-                });
+                    "Yazı dilinde '-yor' dışındaki eklerde (sıfat-fiil, isim-fiil) ünlü daralması gösterilmez.".to_string(),
+                    "Vowel narrowing should only be written before '-yor', not in participles or nominals.".to_string(),
+                ));
                 return true;
             }
         }
@@ -329,25 +365,17 @@ impl PhonologicalRuleEngine {
         ];
 
         for &(colloquial, standard) in COLLOQUIAL_SYNCOPES {
-            if lower == colloquial {
-                let replacement = if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                    crate::phonology::to_turkish_title(standard)
-                } else {
-                    standard.to_string()
-                };
-                findings.push(GrammarFinding {
-                    category: ErrorCategory::VowelDropping,
-                    start_offset: start,
-                    end_offset: end,
-                    original_text: original.to_string(),
+            if rules.contains(GrammarRule::ColloquialForm) && lower == colloquial {
+                let replacement = match_case(original, standard);
+                findings.push(GrammarFinding::new(
+                    GrammarRule::ColloquialForm,
+                    (start, end),
+                    original.to_string(),
                     replacement,
-                    message_tr: "Konuşma dilindeki ünlü düşmesi yazı dilinde gösterilmez."
+                    "Konuşma dilindeki ünlü düşmesi yazı dilinde gösterilmez.".to_string(),
+                    "Colloquial syncope should not be written in standard Turkish orthography."
                         .to_string(),
-                    message_en:
-                        "Colloquial syncope should not be written in standard Turkish orthography."
-                            .to_string(),
-                    confidence: 0.99,
-                });
+                ));
                 return true;
             }
         }
@@ -363,7 +391,7 @@ impl PhonologicalRuleEngine {
         lower: &str,
         start: usize,
         end: usize,
-        _morphology: &TurkishMorphology,
+        morphology: &TurkishMorphology,
         findings: &mut Vec<GrammarFinding>,
     ) -> bool {
         let softenable_roots = [
@@ -388,26 +416,22 @@ impl PhonologicalRuleEngine {
         for (unmutated, mutated) in &softenable_roots {
             if lower.starts_with(unmutated) && lower.len() > unmutated.len() {
                 let suf = &lower[unmutated.len()..];
-                if let Some(first_suf_char) = suf.chars().next() {
-                    if is_turkish_vowel(first_suf_char) {
-                        let fixed_lower = format!("{mutated}{suf}");
-                        let replacement =
-                            if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                                crate::phonology::to_turkish_title(&fixed_lower)
-                            } else {
-                                fixed_lower
-                            };
+                let fixed_lower = format!("{mutated}{suf}");
+                // not kalpak, ayaküstü: words with another root
+                if suf.chars().next().is_some_and(is_turkish_vowel)
+                    && misspelling_of(morphology, original, &fixed_lower, unmutated, None)
+                {
+                    {
+                        let replacement = match_case(original, &fixed_lower);
 
-                        findings.push(GrammarFinding {
-                            category: ErrorCategory::ConsonantSoftening,
-                            start_offset: start,
-                            end_offset: end,
-                            original_text: original.to_string(),
+                        findings.push(GrammarFinding::new(
+                            GrammarRule::ConsonantSoftening,
+                            (start, end),
+                            original.to_string(),
                             replacement,
-                            message_tr: format!("'{unmutated}' sözcüğü ünlüyle başlayan ek aldığında sonundaki ünsüz yumuşar (ünsüz yumuşaması)."),
-                            message_en: format!("The final consonant in '{unmutated}' undergoes voicing when a vowel-initial suffix is added."),
-                            confidence: 0.98,
-                        });
+                            format!("'{unmutated}' sözcüğü ünlüyle başlayan ek aldığında sonundaki ünsüz yumuşar (ünsüz yumuşaması)."),
+                            format!("The final consonant in '{unmutated}' undergoes voicing when a vowel-initial suffix is added."),
+                        ));
                         return true;
                     }
                 }
@@ -427,9 +451,9 @@ impl PhonologicalRuleEngine {
         morphology: &TurkishMorphology,
         findings: &mut Vec<GrammarFinding>,
     ) {
-        // Only check words unrecognized by morphology (potential harmony typo)
-        let parses = morphology.analyze(lower);
-        if !parses.is_empty() {
+        // Only check words unrecognized by morphology (potential harmony typo), and not a
+        // name or abbreviation with a suffix after an apostrophe (SoC'ler, Beat'ler)
+        if lower.contains(['\'', '’']) || !morphology.analyze_standard(original).is_empty() {
             return;
         }
 
@@ -441,23 +465,16 @@ impl PhonologicalRuleEngine {
                 let current_pl = &lower[lower.len() - 3..];
                 if current_pl != expected_pl {
                     let fixed_lower = format!("{stem}{expected_pl}");
-                    if !morphology.analyze(&fixed_lower).is_empty() {
-                        let replacement =
-                            if original.chars().next().is_some_and(|c| c.is_uppercase()) {
-                                crate::phonology::to_turkish_title(&fixed_lower)
-                            } else {
-                                fixed_lower
-                            };
-                        findings.push(GrammarFinding {
-                            category: ErrorCategory::VowelHarmony,
-                            start_offset: start,
-                            end_offset: end,
-                            original_text: original.to_string(),
+                    if !morphology.analyze_standard(&fixed_lower).is_empty() {
+                        let replacement = match_case(original, &fixed_lower);
+                        findings.push(GrammarFinding::new(
+                            GrammarRule::PluralHarmony,
+                            (start, end),
+                            original.to_string(),
                             replacement,
-                            message_tr: format!("Çoğul eki büyük ünlü uyumuna göre '-{expected_pl}' olmalıdır."),
-                            message_en: format!("The plural suffix must be '-{expected_pl}' to satisfy vowel harmony."),
-                            confidence: 0.97,
-                        });
+                            format!("Çoğul eki büyük ünlü uyumuna göre '-{expected_pl}' olmalıdır."),
+                            format!("The plural suffix must be '-{expected_pl}' to satisfy vowel harmony."),
+                        ));
                     }
                 }
             }

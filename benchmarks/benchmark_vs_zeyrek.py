@@ -1,11 +1,16 @@
 """
 Comparative Benchmark: Akana vs Zeyrek
 Testing morphological analysis speed and vocabulary coverage across thousands of words.
+Without zeyrek installed (`pip install zeyrek`), only Akana's side is measured.
 """
 
 import time
 import akana
-import zeyrek
+
+try:
+    import zeyrek
+except ImportError:
+    zeyrek = None
 
 # Initialize analyzers
 print("Initializing Akana...")
@@ -14,11 +19,12 @@ akana_morph = akana.Morphology()
 akana_init = time.perf_counter() - t0
 print(f"Akana initialized in {akana_init*1000:.2f} ms")
 
-print("Initializing Zeyrek (Zemberek Python Port)...")
-t0 = time.perf_counter()
-zeyrek_morph = zeyrek.MorphAnalyzer()
-zeyrek_init = time.perf_counter() - t0
-print(f"Zeyrek initialized in {zeyrek_init*1000:.2f} ms")
+if zeyrek is not None:
+    print("Initializing Zeyrek (Zemberek Python Port)...")
+    t0 = time.perf_counter()
+    zeyrek_morph = zeyrek.MorphAnalyzer()
+    zeyrek_init = time.perf_counter() - t0
+    print(f"Zeyrek initialized in {zeyrek_init*1000:.2f} ms")
 
 # Test Words (Everyday words, technical words, loanwords, compound words, inflected words)
 test_words = [
@@ -43,6 +49,11 @@ for w in test_words:
         akana_parsed_count += 1
 akana_time = time.perf_counter() - t0
 akana_qps = len(test_words) / akana_time
+
+if zeyrek is None:
+    print(f"Akana: {akana_parsed_count} of {len(test_words)} parsed in {akana_time*1000:.2f} ms "
+          f"({akana_qps:.1f} words/sec); zeyrek is not installed")
+    raise SystemExit(0)
 
 # Benchmark Zeyrek
 t0 = time.perf_counter()

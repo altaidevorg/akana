@@ -1,0 +1,18 @@
+# Gold items the analyzer gets wrong today (tests/review_gold.rs).
+# 145 tokens in context: exact 92.4 %, lemma 96.6 %, POS 95.9 %
+# a gold reading is among the analyses for 97.2 %
+14:0	Yüzünü	tags	yüz|Noun|Noun+P3sg+Acc|
+20:0	Ödevini	tags	ödev|Noun|Noun+P3sg+Acc|
+23:0	Kalemini	tags	kalem|Noun|Noun+P3sg+Acc|
+25:4	ateşin	tags	ateş|Noun|Noun+Gen|
+26:0	Dolu	pos	dolu|Adj|Adj|
+26:1	yağınca	lemma+pos	yağ|Noun|Noun+P3sg+Equ|
+28:0	Napıyorsun	lemma+pos	|Unk||
+29:1	gelcem	lemma+pos	|Unk||
+2:4	kazak	pos	kazak|Adj|Adj|
+30:0	Bi	lemma+pos	|Unk||
+30:1	dakka	lemma	dakka|Noun|Noun+A3sg+Nom|P
+missing	28:0	Napıyorsun
+missing	29:1	gelcem
+missing	30:0	Bi
+missing	30:1	dakka

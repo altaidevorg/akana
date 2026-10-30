@@ -1,0 +1,104 @@
+# Gold items the analyzer gets wrong today (tests/review_gold.rs).
+# tiny lexicons: 1232 of 1245 checks pass (99.0 %)
+# full lexicons: 1178 of 1238 checks pass (95.2 %)
+#   AdjectiveDerivationTest full 23/24
+#   AdjectiveDerivationTest tiny 23/24
+#   AdjectivesTest full 9/9
+#   AdjectivesTest tiny 9/9
+#   AdverbsTest full 3/3
+#   AdverbsTest tiny 3/3
+#   ConjunctionTest full 1/1
+#   ConjunctionTest tiny 1/1
+#   FunctionalTests full 7/23
+#   FunctionalTests tiny 28/30
+#   NounCompoundsTest full 22/22
+#   NounCompoundsTest tiny 21/22
+#   NounDerivationTest full 183/185
+#   NounDerivationTest tiny 183/185
+#   NounsTest full 141/145
+#   NounsTest tiny 142/145
+#   NumeralTest full 3/3
+#   NumeralTest tiny 3/3
+#   PostpTest full 11/11
+#   PostpTest tiny 11/11
+#   PronounsTest full 269/302
+#   PronounsTest tiny 302/302
+#   QuestionTest full 14/14
+#   QuestionTest tiny 14/14
+#   VerbDerivationTest full 112/112
+#   VerbDerivationTest tiny 112/112
+#   VerbsTest full 380/384
+#   VerbsTest tiny 380/384
+full	AdjectiveDerivationTest/justlikeAdjTest	SINGLE	siyahsı	Adj + JustLike + Adj
+full	FunctionalTests/testAbbreviationVoicing_Issue_183	COUNT	Tübitaka	1
+full	FunctionalTests/testDate	COUNT	1.1.2014	1
+full	FunctionalTests/testDate2	COUNT	1.1.2014'te	1
+full	FunctionalTests/testDate2	TAILANY	1.1.2014'te	A3sg + Loc
+full	FunctionalTests/testPercent	COUNT	%2	1
+full	FunctionalTests/testPercent	COUNT	%2'si	1
+full	FunctionalTests/testPercent	COUNT	%2,2'si	1
+full	FunctionalTests/testPercent	COUNT	%2.2'si	1
+full	FunctionalTests/testRatio	COUNT	1/2	1
+full	FunctionalTests/testRomanNumeral	COUNT	IV	1
+full	FunctionalTests/testRomanNumeral2	COUNT	XXIV.	1
+full	FunctionalTests/testRomanNumeral3	COUNT	XXIV'ten	1
+full	FunctionalTests/testTime	COUNT	20:30'da	1
+full	FunctionalTests/testTime2	COUNT	10:24'te	1
+full	FunctionalTests/testTime2	TAILANY	10:24'te	A3sg + Loc
+full	FunctionalTests/testWordsWithDot	COUNT	Dr.	1
+full	NounDerivationTest/justlikeTest	ANY	zeytinyağsı	Noun + A3sg + JustLike + Adj
+full	NounDerivationTest/justlikeTest	SINGLE	odunsu	A3sg + JustLike + Adj
+full	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdknın	Noun + A3sg + Gen
+full	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdkya	Noun + A3sg + Dat
+full	NounsTest/family1	FAIL	annemlerim	
+full	NounsTest/family3	NOTCONTAINS	annemleri	P3sg
+full	PronounsTest/baziTest	FAIL	bazı	
+full	PronounsTest/baziTest	FAIL	bazılar	
+full	PronounsTest/baziTest	FAIL	bazım	
+full	PronounsTest/baziTest	FAIL	bazın	
+full	PronounsTest/baziTest	FAIL	bazına	
+full	PronounsTest/benSenTest1	FAIL	bene	
+full	PronounsTest/benSenTest1	FAIL	benin	
+full	PronounsTest/benSenTest1	FAIL	beniz	
+full	PronounsTest/benSenTest1	FAIL	benler	
+full	PronounsTest/berikiTest	FAIL	berikim	
+full	PronounsTest/berikiTest	FAIL	berikimiz	
+full	PronounsTest/berikiTest	FAIL	berikin	
+full	PronounsTest/berikiTest	FAIL	berikiniz	
+full	PronounsTest/bizSizTest	FAIL	bizin	
+full	PronounsTest/coguTest	FAIL	çoğular	
+full	PronounsTest/coguTest	FAIL	çoğum	
+full	PronounsTest/falanFalancaTest1	SINGLE	falan	Pron + A3sg
+full	PronounsTest/falanFalancaTest1	SINGLE	falana	Pron + A3sg + Dat
+full	PronounsTest/falanFalancaTest1	SINGLE	falanca	Pron + A3sg
+full	PronounsTest/falanFalancaTest1	SINGLE	falancalar	Pron + A3pl
+full	PronounsTest/falanFalancaTest1	SINGLE	falancalara	Pron + A3pl + Dat
+full	PronounsTest/falanFalancaTest1	SINGLE	falancaya	Pron + A3sg + Dat
+full	PronounsTest/falanFalancaTest1	SINGLE	falancayı	Pron + A3sg + Acc
+full	PronounsTest/falanFalancaTest1	SINGLE	falanlar	Pron + A3pl
+full	PronounsTest/falanFalancaTest1	SINGLE	falanlara	Pron + A3pl + Dat
+full	PronounsTest/falanFalancaTest1	SINGLE	falanı	Pron + A3sg + Acc
+full	PronounsTest/hepTest	FAIL	hep	
+full	PronounsTest/oburuTest	SINGLE	öbürleri	Pron + A3pl + P3pl
+full	PronounsTest/oburuTest	SINGLE	öbürlerini	Pron + A3pl + P3pl + Acc
+full	PronounsTest/oburuTest	SINGLE	öbürü	Pron + A3sg + P3sg
+full	PronounsTest/oburuTest	SINGLE	öbürüne	Pron + A3sg + P3sg + Dat
+full	PronounsTest/oburuTest	SINGLE	öbürünü	Pron + A3sg + P3sg + Acc
+full	PronounsTest/umumTest	FAIL	umumlar	
+full	VerbsTest/reciprocalTest_IGNORED	ANY	dövüştük	Verb + Recip + Verb + Past + A1pl
+full	VerbsTest/reciprocalTest_IGNORED	ANY	kaçış	Verb + Recip + Verb + Imp + A2sg
+full	VerbsTest/reciprocalTest_IGNORED	ANY	kaçışma	Verb + Recip + Verb + Neg + Imp + A2sg
+full	VerbsTest/reciprocalTest_IGNORED	ANY	kaçıştık	Verb + Recip + Verb + Past + A1pl
+tiny	AdjectiveDerivationTest/justlikeAdjTest	SINGLE	siyahsı	Adj + JustLike + Adj
+tiny	FunctionalTests/defaultUrlEtc	COUNT	www.foo.com	1
+tiny	FunctionalTests/testAbbreviationVoicing_Issue_183	COUNT	Tübitaka	1
+tiny	NounCompoundsTest/mustHaveTwoResults	COUNT	zeytinyağı	2
+tiny	NounDerivationTest/justlikeTest	ANY	zeytinyağsı	Noun + A3sg + JustLike + Adj
+tiny	NounDerivationTest/justlikeTest	SINGLE	odunsu	A3sg + JustLike + Adj
+tiny	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdknın	Noun + A3sg + Gen
+tiny	NounsTest/abbreviationShouldNotGetPossessive	ANY	tdkya	Noun + A3sg + Dat
+tiny	NounsTest/uzeri	COUNT	üzeri	2
+tiny	VerbsTest/reciprocalTest_IGNORED	ANY	kaçış	Verb + Recip + Verb + Imp + A2sg
+tiny	VerbsTest/reciprocalTest_IGNORED	ANY	kaçışma	Verb + Recip + Verb + Neg + Imp + A2sg
+tiny	VerbsTest/reciprocalTest_IGNORED	ANY	kaçıştık	Verb + Recip + Verb + Past + A1pl
+tiny	VerbsTest/testImek	FAIL	i	

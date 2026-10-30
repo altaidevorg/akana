@@ -1,0 +1,214 @@
+> Bu davada Davacılar Ahmet Yılmaz ve Ayşe Kaya haklıdır.
+Bu davada Davacılar {{AD_1}} ve {{AD_2}} haklıdır.
+	AD	Ahmet Yılmaz
+	AD	Ayşe Kaya
+> Tanıklar Hasan Kara ve Mehmet Demir dinlendi.
+Tanıklar {{AD_1}} ve {{AD_2}} dinlendi.
+	AD	Hasan Kara
+	AD	Mehmet Demir
+> Avukatlar Selin Arslan ile Can Öztürk duruşmaya katıldı.
+Avukatlar {{AD_1}} ile {{AD_2}} duruşmaya katıldı.
+	AD	Selin Arslan
+	AD	Can Öztürk
+> Kardeşler Emre Kaya ve Zeynep Kaya mirası paylaştı.
+Kardeşler {{AD_1}} ve {{AD_2}} mirası paylaştı.
+	AD	Emre Kaya
+	AD	Zeynep Kaya
+> (2) Başvurucular Barış Karahan ve Erhan Özel itiraz etti.
+(2) Başvurucular {{AD_1}} ve {{AD_2}} itiraz etti.
+	AD	Barış Karahan
+	AD	Erhan Özel
+> Müdürler Ahmet Yılmaz ile görüştü.
+Müdürler {{AD_1}} ile görüştü.
+	AD	Ahmet Yılmaz
+> Sanıklar Murat Çelik ve Burak Şahin tutuklandı.
+Sanıklar {{AD_1}} ve {{AD_2}} tutuklandı.
+	AD	Murat Çelik
+	AD	Burak Şahin
+> Davalılar Fatma Aydın ve Elif Doğan vekilleri aracılığıyla cevap verdi.
+Davalılar {{AD_1}} ve {{AD_2}} vekilleri aracılığıyla cevap verdi.
+	AD	Fatma Aydın
+	AD	Elif Doğan
+> Davacı Ali Şeker 15.03.2021 tarihinde dava açtı.
+Davacı {{AD_1}} 15.03.2021 tarihinde dava açtı.
+	AD	Ali Şeker
+> Tanık Hüseyin Güneş ifade verdi.
+Tanık {{AD_1}} ifade verdi.
+	AD	Hüseyin Güneş
+> Sanık Kemal Demir'in savunması alındı.
+Sanık {{AD_1}}'in savunması alındı.
+	AD	Kemal Demir
+> Mahkeme, davalı Ayşe Kara'nın itirazını reddetti.
+Mahkeme, davalı {{AD_1}}'nın itirazını reddetti.
+	AD	Ayşe Kara
+> Bilirkişi Orhan Ak raporunu sundu.
+Bilirkişi {{AD_1}} raporunu sundu.
+	AD	Orhan Ak
+> Davacı Cemile Arslan, davalı Kenan Aslan'a karşı tazminat talep etti.
+Davacı {{AD_1}}, davalı {{AD_2}}'a karşı tazminat talep etti.
+	AD	Cemile Arslan
+	AD	Kenan Aslan
+> Sanık Gül Yıldız beraat etti.
+Sanık {{AD_1}} beraat etti.
+	AD	Gül Yıldız
+> Tanık Umut Deniz olay yerindeydi.
+Tanık {{AD_1}} olay yerindeydi.
+	AD	Umut Deniz
+> Başvurucu Barış Bulut hakkında karar verildi.
+Başvurucu {{AD_1}} hakkında karar verildi.
+	AD	Barış Bulut
+> Başvurucu: Korcan Pulatsü
+Başvurucu: {{AD_1}}
+	AD	Korcan Pulatsü
+> 7 Nisan - Duncan James, İngiliz şarkıcı
+7 Nisan - {{AD_1}}, İngiliz şarkıcı
+	AD	Duncan James
+> Davacı Kutlucan Toprak ile davalı Oğuzcan Er anlaştı.
+Davacı {{AD_1}} ile davalı {{AD_2}} anlaştı.
+	AD	Kutlucan Toprak
+	AD	Oğuzcan Er
+> Sanık Durucan Ateş ve Toycan Uz hakkında kovuşturma yapıldı.
+Sanık {{AD_1}} ve {{AD_2}} hakkında kovuşturma yapıldı.
+	AD	Durucan Ateş
+	AD	Toycan Uz
+> Tanık Sağcan Erdem dinlendi.
+Tanık {{AD_1}} dinlendi.
+	AD	Sağcan Erdem
+> Danıştay 5. Dairesi kararı bozdu.
+Danıştay 5. Dairesi kararı bozdu.
+> Yargıtay Hukuk Genel Kurulu kararı onadı.
+Yargıtay Hukuk Genel Kurulu kararı onadı.
+> KURULLARCA alınan kararlar kesindir.
+KURULLARCA alınan kararlar kesindir.
+> Askerî Yargıtay Daireler Kurulu toplandı.
+Askerî Yargıtay Daireler Kurulu toplandı.
+> Anayasa Mahkemesi başvuruyu kabul etti.
+Anayasa Mahkemesi başvuruyu kabul etti.
+> Savaş Anıtı ziyaretçilere açıldı.
+Savaş Anıtı ziyaretçilere açıldı.
+> Hava çok soğuk ve rüzgarlı.
+Hava çok soğuk ve rüzgarlı.
+> Kanun koyucu bu hükmü değiştirdi.
+Kanun koyucu bu hükmü değiştirdi.
+> Ahmet Bey 0532 123 45 67 numaralı telefondan aradı.
+{{AD_1}} Bey {{TEL_1}} numaralı telefondan aradı.
+	AD	Ahmet
+	TEL	0532 123 45 67
+> Av. Mehmet Öz, Ankara Barosu'na kayıtlıdır.
+Av. {{AD_1}}, Ankara Barosu'na kayıtlıdır.
+	AD	Mehmet Öz
+> Dr. Selim Koç hastayı muayene etti.
+Dr. {{AD_1}} hastayı muayene etti.
+	AD	Selim Koç
+> Prof. Dr. Nurten Aksoy konferans verdi.
+Prof. Dr. {{AD_1}} konferans verdi.
+	AD	Nurten Aksoy
+> Bu davada Tanıklar Ahmet Yılmaz ve Ayşe Kaya dinlendi.
+Bu davada Tanıklar {{AD_1}} ve {{AD_2}} dinlendi.
+	AD	Ahmet Yılmaz
+	AD	Ayşe Kaya
+> Bu davada Eşler Murat Çelik ve Elif Doğan boşandı.
+Bu davada Eşler {{AD_1}} ve {{AD_2}} boşandı.
+	AD	Murat Çelik
+	AD	Elif Doğan
+> Mahkeme, Davacılar Hasan Kara ve Mehmet Demir hakkında karar verdi.
+Mahkeme, Davacılar {{AD_1}} ve {{AD_2}} hakkında karar verdi.
+	AD	Hasan Kara
+	AD	Mehmet Demir
+> Bu davada İzzettin Demir haklıdır.
+Bu davada {{AD_1}} haklıdır.
+	AD	İzzettin Demir
+> Sanık Saadettin Doğan'ın temyiz talebi reddedildi.
+Sanık {{AD_1}}'ın temyiz talebi reddedildi.
+	AD	Saadettin Doğan
+> Tanık Cindi Yılmaz dinlendi.
+Tanık {{AD_1}} dinlendi.
+	AD	Cindi Yılmaz
+> Dün Deniz Pedersen ve Barış Boysan geldi.
+Dün {{AD_1}} ve {{AD_2}} geldi.
+	AD	Deniz Pedersen
+	AD	Barış Boysan
+> Raportör: Şebnem NEBİOĞLU ÖNER
+Raportör: {{AD_1}}
+	AD	Şebnem NEBİOĞLU ÖNER
+> Üyeler: Fatma Burcu NACAR YÜCE
+Üyeler: {{AD_1}}
+	AD	Fatma Burcu NACAR YÜCE
+> Başvurucu: Mustafa BAL
+Başvurucu: {{AD_1}}
+	AD	Mustafa BAL
+> Hicabi DURSUN
+{{AD_1}}
+	AD	Hicabi DURSUN
+> Hasan Tahsin GÖKCAN
+{{AD_1}}
+	AD	Hasan Tahsin GÖKCAN
+> Başvurucu: Bahadır YALÇINÖZ
+Başvurucu: {{AD_1}}
+	AD	Bahadır YALÇINÖZ
+> Davacı Cumali Yılmaz geldi.
+Davacı {{AD_1}} geldi.
+	AD	Cumali Yılmaz
+> Bu davada Davacı Kudret Demir itiraz etti.
+Bu davada Davacı {{AD_1}} itiraz etti.
+	AD	Kudret Demir
+> Bunu A. Yılmaz imzaladı.
+Bunu {{AD_1}} imzaladı.
+	AD	A. Yılmaz
+> ahmet yılmaz dün geldi.
+{{AD_1}} dün geldi.
+	AD	ahmet yılmaz
+> DAVACI AHMET YILMAZ VEKİLİ AV. MEHMET ÖZ
+DAVACI {{AD_1}} VEKİLİ AV. {{AD_2}}
+	AD	AHMET YILMAZ
+	AD	MEHMET ÖZ
+> Davalı Hayat Sigorta A.Ş. vekili cevap verdi.
+Davalı Hayat Sigorta A.Ş. vekili cevap verdi.
+> Ahmet Yılmaz İnşaat Ltd. Şti. davalıdır.
+{{AD_1}} İnşaat Ltd. Şti. davalıdır.
+	AD	Ahmet Yılmaz
+> E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
+E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
+> Kaya'nın ifadesi alındı.
+Kaya'nın ifadesi alındı.
+> Güneş'e bakmayın.
+Güneş'e bakmayın.
+> T.C. Anayasa Mahkemesi İkinci Bölüm
+T.C. Anayasa Mahkemesi İkinci Bölüm
+> DAVACI : GÜLSEN KOCABIYIK
+DAVACI : {{AD_1}}
+	AD	GÜLSEN KOCABIYIK
+> DAVALI : BERRİN ÖZKILIÇ
+DAVALI : {{AD_1}}
+	AD	BERRİN ÖZKILIÇ
+> BAŞVURUCU : ŞEBNEM NEBİOĞLU
+BAŞVURUCU : {{AD_1}}
+	AD	ŞEBNEM NEBİOĞLU
+> Davalı Seda'nın vekili geldi.
+Davalı {{AD_1}}'nın vekili geldi.
+	AD	Seda
+> DAVACI: UMUT ŞEKER
+DAVACI: {{AD_1}} ŞEKER
+	AD	UMUT
+> Davalı Hayat Sigorta A.Ş. vekili duruşmaya geldi.
+Davalı Hayat Sigorta A.Ş. vekili duruşmaya geldi.
+> Sanık Umut Kaya şirketi zarara uğratmıştır.
+Sanık {{AD_1}} şirketi zarara uğratmıştır.
+	AD	Umut Kaya
+> Umut Demir İnşaat Ltd. davalıdır.
+Umut Demir İnşaat Ltd. davalıdır.
+> Doğan Holding açıklama yaptı.
+Doğan Holding açıklama yaptı.
+> Ancak AİHM bu kararı verdi.
+Ancak AİHM bu kararı verdi.
+> Ayrıca OHAL ilan edildi.
+Ayrıca OHAL ilan edildi.
+> A. Adil yargılanma hakkının ihlali
+A. Adil yargılanma hakkının ihlali
+> Başvurucu Ahmet YILMAZ TARAFINDAN yapılan başvuru
+Başvurucu {{AD_1}} TARAFINDAN yapılan başvuru
+	AD	Ahmet YILMAZ
+> Hakim Mehmet KAYA KATİP Ayşe DEMİR
+Hakim {{AD_1}} KATİP {{AD_2}}
+	AD	Mehmet KAYA
+	AD	Ayşe DEMİR

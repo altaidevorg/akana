@@ -1,81 +1,301 @@
 //! PyO3 Python bindings for the Akana Turkish NLP toolkit.
+//!
+//! Conventions every binding follows:
+//! - Core calls run inside [`guard`], or [`release`] when they do real work. A Rust panic
+//!   becomes a Python `RuntimeError` carrying the panic message: PyO3 would raise
+//!   `PanicException`, which derives from `BaseException`, so `except Exception` would not
+//!   catch it. [`release`] also releases the GIL, so Python threads run calls in parallel.
+//! - Spans returned to Python (`start`/`end`, `start_offset`/`end_offset`) are character
+//!   offsets, so `text[start:end]` is the span; the core reports UTF-8 byte offsets.
+//! - Module-level functions use engines built once per process.
+//! - A class with configuration calls (`SpellChecker.add_word`, `Morphology.load_dictionary_*`,
+//!   `GrammarChecker.enable_rule`, `TurkishPiiEngine.disable_type`, a `PiiVault` that `mask`
+//!   adds to) is a frozen pyclass with its state behind a lock, where PyO3's borrow checking
+//!   made a configuration call fail with "Already borrowed" while another thread used the
+//!   object (review 3 BIND3-04). A lock held while a call runs is taken with the GIL released.
+//!   `SpellChecker` and `Morphology`: a configuration call waits for the calls running on the
+//!   object, and the calls after it wait for it. `GrammarChecker` copies its rules out, and the
+//!   PII engine's configuration is copy-on-write ([`Shared`]): no call on them waits for
+//!   another (review 4 BIND4-01/02).
 #![allow(clippy::useless_conversion)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::redundant_closure)]
 
+use pyo3::exceptions::{PyIOError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyList};
+use std::any::Any;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::RwLockWriteGuard;
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard};
 
-#[pyfunction]
-fn to_turkish_lower(text: &str) -> String {
-    akana_core::phonology::to_turkish_lower(text)
+/// The state behind a lock, for a call. A panic inside a call is a `RuntimeError` already; the
+/// lock it leaves poisoned is still used, as the object would be without one.
+fn read<T>(lock: &RwLock<T>) -> RwLockReadGuard<'_, T> {
+    lock.read().unwrap_or_else(PoisonError::into_inner)
 }
 
-#[pyfunction]
-fn to_turkish_upper(text: &str) -> String {
-    akana_core::phonology::to_turkish_upper(text)
+/// The state behind a lock, for a configuration call, once the calls in progress are done.
+fn write<T>(lock: &RwLock<T>) -> RwLockWriteGuard<'_, T> {
+    lock.write().unwrap_or_else(PoisonError::into_inner)
 }
 
-#[pyfunction]
-fn to_turkish_title(text: &str) -> String {
-    akana_core::phonology::to_turkish_title(text)
+/// A vault's state, for one call at a time.
+fn locked<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {
+    lock.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-#[pyfunction]
-fn check_major_vowel_harmony(word: &str) -> bool {
-    akana_core::phonology::check_major_vowel_harmony(word)
+/// A value that calls use without holding a lock while they run: a call takes the current
+/// value (a reference count, under a lock held for no longer than that), and a configuration
+/// call builds the next value from it and swaps it in; configuration calls take turns. A long
+/// call never holds up a configuration call, nor a configuration call the calls after it, as
+/// a read-write lock did (review 4 BIND4-02).
+struct Shared<T> {
+    current: RwLock<Arc<T>>,
+    writer: Mutex<()>,
 }
 
-#[pyfunction]
-fn check_minor_vowel_harmony(word: &str) -> bool {
-    akana_core::phonology::check_minor_vowel_harmony(word)
+impl<T: Clone> Shared<T> {
+    fn new(value: T) -> Self {
+        Self {
+            current: RwLock::new(Arc::new(value)),
+            writer: Mutex::new(()),
+        }
+    }
+
+    fn get(&self) -> Arc<T> {
+        Arc::clone(&read(&self.current))
+    }
+
+    fn update<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        let _turn = locked(&self.writer);
+        let mut next = self.get();
+        let out = f(Arc::make_mut(&mut next));
+        *write(&self.current) = next;
+        out
+    }
 }
 
-#[pyfunction]
-fn asciify(text: &str) -> String {
-    akana_core::normalization::TurkishAsciifier::asciify(text)
-}
-
-#[pyfunction]
-fn deasciify(text: &str) -> String {
-    akana_core::normalization::TurkishDeasciifier::deasciify(text)
-}
-
-#[pyfunction]
-fn normalize_informal(text: &str) -> String {
-    akana_core::normalization::TurkishInformalNormalizer::normalize_text(text)
-}
-
-#[pyfunction]
-fn tokenize_words(text: &str) -> Vec<String> {
-    akana_core::tokenization::TurkishTokenizer::tokenize_words(text)
-        .into_iter()
+/// A `RuntimeError` for a Rust panic, with the panic message.
+fn panic_error(payload: Box<dyn Any + Send>) -> PyErr {
+    let message = payload
+        .downcast_ref::<&str>()
         .map(|s| s.to_string())
+        .or_else(|| payload.downcast_ref::<String>().cloned())
+        .unwrap_or_else(|| "unknown panic".to_string());
+    PyRuntimeError::new_err(format!("internal error in akana: {message}"))
+}
+
+/// Runs `f` with the GIL held, turning a panic into a `RuntimeError`. For cheap calls, where
+/// releasing the GIL would cost more than the call.
+fn guard<T>(f: impl FnOnce() -> T) -> PyResult<T> {
+    catch_unwind(AssertUnwindSafe(f)).map_err(panic_error)
+}
+
+/// Runs `f` with the GIL released, turning a panic into a `RuntimeError`. Other Python threads
+/// run meanwhile, so `f` must not touch Python objects.
+fn release<T: Send>(py: Python<'_>, f: impl FnOnce() -> T + Send) -> PyResult<T> {
+    py.allow_threads(|| catch_unwind(AssertUnwindSafe(f)))
+        .map_err(panic_error)
+}
+
+fn json_error(e: serde_json::Error) -> PyErr {
+    PyValueError::new_err(e.to_string())
+}
+
+/// Character offsets (Python string indices) of byte offsets into `text`, in one pass over
+/// the text: counting from the start of the text for every span was quadratic on span-dense
+/// input (a log with an IP address on every line).
+fn char_offsets(text: &str, bytes: &[usize]) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..bytes.len()).collect();
+    order.sort_by_key(|&i| bytes[i]);
+    let mut chars_at = vec![0usize; bytes.len()];
+    let (mut pos, mut chars) = (0usize, 0usize);
+    let mut it = text.char_indices();
+    for i in order {
+        while pos < bytes[i] {
+            match it.next() {
+                Some((b, c)) => {
+                    pos = b + c.len_utf8();
+                    chars += 1;
+                }
+                None => break,
+            }
+        }
+        chars_at[i] = chars;
+    }
+    chars_at
+}
+
+/// Rewrites `(start, end)` byte offsets into `text` as character offsets, in place.
+fn spans_to_chars<'a>(text: &str, spans: impl IntoIterator<Item = (&'a mut usize, &'a mut usize)>) {
+    let mut spans: Vec<_> = spans.into_iter().collect();
+    let bytes: Vec<usize> = spans.iter().flat_map(|(s, e)| [**s, **e]).collect();
+    let chars = char_offsets(text, &bytes);
+    for ((start, end), c) in spans.iter_mut().zip(chars.chunks(2)) {
+        **start = c[0];
+        **end = c[1];
+    }
+}
+
+/// Character offsets of the PII entities' byte spans.
+fn entity_char_offsets(text: &str, entities: &[akana_core::pii::PiiEntity]) -> Vec<(usize, usize)> {
+    let bytes: Vec<usize> = entities.iter().flat_map(|e| [e.start, e.end]).collect();
+    char_offsets(text, &bytes)
+        .chunks(2)
+        .map(|p| (p[0], p[1]))
         .collect()
 }
 
-#[pyclass(name = "SpellChecker")]
+/// A grammar check of `text` with `rules`, its findings' offsets in characters.
+fn grammar_check_json(
+    checker: &akana_core::grammar::TurkishGrammarChecker,
+    text: &str,
+    rules: akana_core::grammar::RuleSet,
+) -> Result<String, serde_json::Error> {
+    let mut res = checker.check_with_rules(text, rules);
+    spans_to_chars(
+        text,
+        res.findings
+            .iter_mut()
+            .map(|f| (&mut f.start_offset, &mut f.end_offset)),
+    );
+    serde_json::to_string(&res)
+}
+
+static ENGINE: LazyLock<akana_core::AkanaEngine> = LazyLock::new(akana_core::AkanaEngine::new);
+static STEMMER: LazyLock<akana_core::morphology::TurkishStemmer> =
+    LazyLock::new(akana_core::morphology::TurkishStemmer::new);
+static STOPWORDS: LazyLock<akana_core::morphology::TurkishStopwords> =
+    LazyLock::new(akana_core::morphology::TurkishStopwords::new);
+static KEYWORD_EXTRACTOR: LazyLock<akana_core::analysis::TurkishKeywordExtractor> =
+    LazyLock::new(akana_core::analysis::TurkishKeywordExtractor::new);
+static SUMMARIZER: LazyLock<akana_core::analysis::TurkishSummarizer> =
+    LazyLock::new(akana_core::analysis::TurkishSummarizer::new);
+static STYLE_AUDITOR: LazyLock<akana_core::style::TurkishStyleAuditor> =
+    LazyLock::new(akana_core::style::TurkishStyleAuditor::new);
+static GRAMMAR_CHECKER: LazyLock<akana_core::grammar::TurkishGrammarChecker> =
+    LazyLock::new(akana_core::grammar::TurkishGrammarChecker::new);
+static EMBEDDINGS: LazyLock<akana_core::TurkishEmbeddings> =
+    LazyLock::new(akana_core::TurkishEmbeddings::new);
+static HYBRID_EMBEDDINGS: LazyLock<akana_core::TurkishHybridEmbeddings> =
+    LazyLock::new(akana_core::TurkishHybridEmbeddings::new);
+static SPARSE_ENCODER: LazyLock<akana_core::MorphologicalSparseEncoder> =
+    LazyLock::new(akana_core::MorphologicalSparseEncoder::new);
+/// A PII engine with the embedding scorer, whose centroids are computed once; engines with
+/// `use_embeddings=True` start as a copy of it.
+static PII_ENGINE_WITH_EMBEDDINGS: LazyLock<akana_core::pii::TurkishPiiEngine> =
+    LazyLock::new(|| {
+        akana_core::pii::TurkishPiiEngine::with_embeddings(Arc::new(
+            akana_core::embeddings::TurkishEmbeddings::new(),
+        ))
+    });
+
+/// The text in lower case by Turkish rules: I is ı and İ is i (`KITAP` → `kıtap`).
+#[pyfunction]
+fn to_turkish_lower(text: &str) -> PyResult<String> {
+    guard(|| akana_core::phonology::to_turkish_lower(text))
+}
+
+/// The text in capitals by Turkish rules: i is İ and ı is I (`istanbul` → `İSTANBUL`).
+#[pyfunction]
+fn to_turkish_upper(text: &str) -> PyResult<String> {
+    guard(|| akana_core::phonology::to_turkish_upper(text))
+}
+
+/// The text in title case by Turkish rules: each word's first letter a capital, the rest in
+/// lower case (`iSTANBUL` → `İstanbul`).
+#[pyfunction]
+fn to_turkish_title(text: &str) -> PyResult<String> {
+    guard(|| akana_core::phonology::to_turkish_title(text))
+}
+
+/// Whether the word keeps major vowel harmony (büyük ünlü uyumu): its vowels all back (a ı o
+/// u) or all front (e i ö ü).
+#[pyfunction]
+fn check_major_vowel_harmony(word: &str) -> PyResult<bool> {
+    guard(|| akana_core::phonology::check_major_vowel_harmony(word))
+}
+
+/// Whether the word keeps minor vowel harmony (küçük ünlü uyumu): flat vowels after flat ones,
+/// and after rounded ones flat-wide or rounded-narrow.
+#[pyfunction]
+fn check_minor_vowel_harmony(word: &str) -> PyResult<bool> {
+    guard(|| akana_core::phonology::check_minor_vowel_harmony(word))
+}
+
+/// The text with Turkish letters written as their ASCII look-alikes (ç c, ğ g, ı i, İ I, ö o,
+/// ş s, ü u).
+#[pyfunction]
+fn asciify(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || {
+        akana_core::normalization::TurkishAsciifier::asciify(text)
+    })
+}
+
+/// Turkish letters put back into text typed without them (`cocuk` → `çocuk`): each word takes
+/// its likeliest spelling under the corpus prior, so a word of correct text that reads mostly
+/// stays (`konusu`, not `konuşu`). A suffix after an apostrophe takes the spelling its word
+/// reads with (`Kanun'un`), and the question particle the vowel of the word before it
+/// (`değil mi`). A word that already has Turkish letters and reads, a name as written, a word
+/// with a capital after a small letter (`iPhone`), a letter alone and a Roman numeral in
+/// capitals (`II.`) stay as they are.
+#[pyfunction]
+fn deasciify(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || {
+        akana_core::normalization::TurkishDeasciifier::deasciify(text)
+    })
+}
+
+/// Informal and chat spellings rewritten as written Turkish (`napıyon` → `ne yapıyorsun`).
+#[pyfunction]
+fn normalize_informal(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || {
+        akana_core::normalization::TurkishInformalNormalizer::normalize_text(text)
+    })
+}
+
+/// The text's words and punctuation as akana's tokenizer splits them: the tokens the
+/// analyzer, the encoders and the grammar checker read (`1924'te` and `H.M.K.` are one token).
+#[pyfunction]
+fn tokenize_words(py: Python<'_>, text: &str) -> PyResult<Vec<String>> {
+    release(py, || {
+        akana_core::tokenization::TurkishTokenizer::tokenize_words(text)
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
+    })
+}
+
+/// A spell checker over akana's lexicon: common words, and names and abbreviations as
+/// written. Words added go to this checker only.
+#[pyclass(name = "SpellChecker", frozen)]
 struct PySpellChecker {
-    inner: akana_core::normalization::TurkishSpellChecker,
+    inner: RwLock<akana_core::normalization::TurkishSpellChecker>,
 }
 
 #[pymethods]
 impl PySpellChecker {
     #[new]
-    fn new() -> Self {
-        Self {
-            inner: akana_core::normalization::TurkishSpellChecker::new(),
-        }
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
+            inner: RwLock::new(akana_core::normalization::TurkishSpellChecker::new()),
+        })
     }
 
-    fn add_word(&mut self, word: &str) {
-        self.inner.add_word(word);
+    /// Adds a word to this checker's vocabulary.
+    fn add_word(&self, py: Python<'_>, word: &str) -> PyResult<()> {
+        release(py, || write(&self.inner).add_word(word))
     }
 
-    fn is_correct(&self, word: &str) -> bool {
-        self.inner.is_correct(word)
+    /// Whether the word is a correct spelling: a standard reading of the analyzer (a name as
+    /// written with its capital), or a word added.
+    fn is_correct(&self, py: Python<'_>, word: &str) -> PyResult<bool> {
+        release(py, || read(&self.inner).is_correct(word))
     }
 
+    /// Corrections for the word, the best first: `{"word", "distance", "score"}` within
+    /// `max_distance` edits (default 2), at most `max_suggestions` (default 5).
     #[pyo3(signature = (word, max_distance=None, max_suggestions=None))]
     fn suggest<'py>(
         &self,
@@ -86,7 +306,7 @@ impl PySpellChecker {
     ) -> PyResult<Bound<'py, PyList>> {
         let dist = max_distance.unwrap_or(2);
         let count = max_suggestions.unwrap_or(5);
-        let suggestions = self.inner.suggest(word, dist, count);
+        let suggestions = release(py, || read(&self.inner).suggest(word, dist, count))?;
 
         let list = PyList::empty_bound(py);
         for s in suggestions {
@@ -100,56 +320,95 @@ impl PySpellChecker {
     }
 }
 
-#[pyclass(name = "Morphology")]
+/// The morphological analyzer and generator (Zemberek's design, with akana's lexicon). Each
+/// instance has its own lexicon: a dictionary loaded into one does not change another.
+#[pyclass(name = "Morphology", frozen)]
 struct PyMorphology {
-    inner: akana_core::morphology::TurkishMorphology,
+    inner: RwLock<akana_core::morphology::TurkishMorphology>,
 }
 
 #[pymethods]
 impl PyMorphology {
     #[new]
-    fn new() -> Self {
-        Self {
-            inner: akana_core::morphology::TurkishMorphology::new(),
-        }
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
+            inner: RwLock::new(akana_core::morphology::TurkishMorphology::new()),
+        })
     }
 
+    /// The word's readings, the most likely first: dicts with `surface`, `lemma` (folded),
+    /// `display_lemma`, `root`, `primary_pos` (the root's), `pos` (after derivation),
+    /// `secondary_pos`, `morphemes` (akana's tags), `generation_tags` (for `generate`),
+    /// `formatted`, `analysis` (Zemberek's format), `score` and `nonstandard`. An unknown word has
+    /// none.
     fn analyze<'py>(&self, py: Python<'py>, word: &str) -> PyResult<Bound<'py, PyList>> {
-        let parses = self.inner.analyze(word);
+        let parses = release(py, || read(&self.inner).analyze(word))?;
         let list = PyList::empty_bound(py);
 
         for p in parses {
             let dict = PyDict::new_bound(py);
+            let display_lemma = p.display_lemma().to_string();
+            let generation_tags = p.generation_tags();
             dict.set_item("surface", p.surface)?;
             dict.set_item("lemma", p.lemma)?;
+            dict.set_item("display_lemma", display_lemma)?;
             dict.set_item("root", p.root)?;
             dict.set_item("primary_pos", p.primary_pos.as_str())?;
+            dict.set_item("pos", p.pos.as_str())?;
             dict.set_item("secondary_pos", p.secondary_pos.as_str())?;
+            dict.set_item("generation_tags", generation_tags)?;
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;
+            dict.set_item("analysis", p.analysis)?;
             dict.set_item("score", p.score)?;
+            dict.set_item("nonstandard", p.nonstandard)?;
             list.append(dict)?;
         }
         Ok(list)
     }
 
-    fn generate(&self, lemma: &str, tags: Vec<String>) -> Option<String> {
-        let generator = akana_core::morphology::TurkishGenerator::new();
-        let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
-        generator.generate(lemma, &tag_refs)
+    /// Generates a word from a lemma or root and akana's tags, from this analyzer's lexicon
+    /// with any dictionary it has loaded: `generate("kitap", ["Noun", "P1sg", "Dat"])` gives
+    /// `"kitabıma"`.
+    ///
+    /// The tags are a reading's `morphemes` as `analyze` shows them, the root's POS first
+    /// (`["Noun", "P1sg", "Dat"]`), in any case; A3sg, Pnon and Nom may be left out. The
+    /// copula after a verb is CopPres3sg (`gelmektedir`), CopPast, CopEvid or CopCond. Prog is
+    /// -Iyor (`diyor`), or -mAktA before CopPres3sg; Prog1 and Prog2 ask for -Iyor or -mAktA,
+    /// and a reading's `generation_tags` name the one it has, so that the word comes back with
+    /// its progressive (most words come back so; a form with a silent morpheme, HMK'na, or a
+    /// variant suffix, istenilmektedir, may come back in its other spelling).
+    /// The lemma may be spelt as `display_lemma` gives it (`kâğıt`, `e-posta`, `FIFA`) or
+    /// folded (`kağıt`); the word comes back folded, a name as the dictionary spells it with
+    /// its apostrophe (`Hakkâri'de`). Returns None for an unknown word, POS or tag, or a form
+    /// the morphotactics cannot build.
+    fn generate(&self, py: Python<'_>, lemma: &str, tags: Vec<String>) -> PyResult<Option<String>> {
+        release(py, || {
+            let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
+            read(&self.inner).generate(lemma, &tag_refs)
+        })
     }
 
-    fn load_dictionary_file(&mut self, path: &str) -> PyResult<()> {
-        self.inner
-            .load_dictionary_file(path)
-            .map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))
+    /// Loads dictionary lines (akana's `lemma root POS ...` columns or Zemberek's
+    /// `word [P:..; A:..]` syntax, read as akana's lexicon build reads it) from a file.
+    ///
+    /// Returns the lines it could not read in full, which add nothing: an unknown POS,
+    /// attribute or field (a misspelt `Voicng`), a missing column, an unclosed `[`, or a root
+    /// with characters no Turkish word has. A UTF-8 byte-order mark is skipped.
+    fn load_dictionary_file(&self, py: Python<'_>, path: &str) -> PyResult<Vec<String>> {
+        release(py, || write(&self.inner).load_dictionary_file(path))?
+            .map_err(|e| PyIOError::new_err(e.to_string()))
     }
 
-    fn load_dictionary_str(&mut self, text: &str) {
-        self.inner.load_dictionary_str(text);
+    /// Loads dictionary lines from a string, as `load_dictionary_file` does; returns the lines
+    /// it could not read in full.
+    fn load_dictionary_str(&self, py: Python<'_>, text: &str) -> PyResult<Vec<String>> {
+        release(py, || write(&self.inner).load_dictionary_str(text))
     }
 }
 
+/// The analyzer's readings split into inflectional groups with Universal Dependencies
+/// features.
 #[pyclass(name = "SyntacticMorphology")]
 struct PySyntacticMorphology {
     inner: akana_core::syntactic_morphology::TurkishSyntacticMorphology,
@@ -158,14 +417,17 @@ struct PySyntacticMorphology {
 #[pymethods]
 impl PySyntacticMorphology {
     #[new]
-    fn new() -> Self {
-        Self {
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
             inner: akana_core::syntactic_morphology::TurkishSyntacticMorphology::new(),
-        }
+        })
     }
 
+    /// The word's readings in inflectional groups: dicts with `surface`, `root`, `root_pos`,
+    /// `is_proper`, `formatted` and `inflectional_groups` (each with `pos`, `derivation` and UD
+    /// `features`).
     fn analyze<'py>(&self, py: Python<'py>, word: &str) -> PyResult<Bound<'py, PyList>> {
-        let parses = self.inner.analyze(word);
+        let parses = release(py, || self.inner.analyze(word))?;
         let list = PyList::empty_bound(py);
 
         for p in parses {
@@ -192,6 +454,8 @@ impl PySyntacticMorphology {
     }
 }
 
+/// Splits compounds the lexicon lists, or that end in a productive head (`cumhurbaşkanı`:
+/// `cumhur` + `başkan`).
 #[pyclass(name = "CompoundDecomposer")]
 struct PyCompoundDecomposer {
     inner: akana_core::morphology::CompoundDecomposer,
@@ -200,14 +464,16 @@ struct PyCompoundDecomposer {
 #[pymethods]
 impl PyCompoundDecomposer {
     #[new]
-    fn new() -> Self {
-        Self {
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
             inner: akana_core::morphology::CompoundDecomposer::new(),
-        }
+        })
     }
 
+    /// The word's compound splits: dicts with `surface`, `part1`, `part2` and each part's
+    /// `parse1`/`parse2` (`root`, `pos`); none for a word that is no compound.
     fn decompose<'py>(&self, py: Python<'py>, word: &str) -> PyResult<Bound<'py, PyList>> {
-        let analyses = self.inner.decompose(word);
+        let analyses = release(py, || self.inner.decompose(word))?;
         let list = PyList::empty_bound(py);
 
         for a in analyses {
@@ -232,6 +498,7 @@ impl PyCompoundDecomposer {
     }
 }
 
+/// Chooses each word's reading in its sentence, from the analyzer's prior and the context.
 #[pyclass(name = "Disambiguator")]
 struct PyDisambiguator {
     inner: akana_core::morphology::MorphologicalDisambiguator,
@@ -240,36 +507,49 @@ struct PyDisambiguator {
 #[pymethods]
 impl PyDisambiguator {
     #[new]
-    fn new() -> Self {
-        Self {
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
             inner: akana_core::morphology::MorphologicalDisambiguator::new(),
-        }
+        })
     }
 
+    /// One reading for each token, chosen in its sentence: the dicts of `Morphology.analyze`
+    /// (without `score`), in token order.
     fn disambiguate<'py>(
         &self,
         py: Python<'py>,
         tokens: Vec<String>,
     ) -> PyResult<Bound<'py, PyList>> {
-        let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
-        let parses = self.inner.disambiguate(&token_refs);
+        let parses = release(py, || {
+            let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
+            self.inner.disambiguate(&token_refs)
+        })?;
         let list = PyList::empty_bound(py);
 
         for p in parses {
             let dict = PyDict::new_bound(py);
+            let display_lemma = p.display_lemma().to_string();
+            let generation_tags = p.generation_tags();
             dict.set_item("surface", p.surface)?;
             dict.set_item("lemma", p.lemma)?;
+            dict.set_item("display_lemma", display_lemma)?;
             dict.set_item("root", p.root)?;
             dict.set_item("primary_pos", p.primary_pos.as_str())?;
+            dict.set_item("pos", p.pos.as_str())?;
             dict.set_item("secondary_pos", p.secondary_pos.as_str())?;
+            dict.set_item("generation_tags", generation_tags)?;
             dict.set_item("morphemes", p.morpheme_tags)?;
             dict.set_item("formatted", p.formatted)?;
+            dict.set_item("analysis", p.analysis)?;
+            dict.set_item("nonstandard", p.nonstandard)?;
             list.append(dict)?;
         }
         Ok(list)
     }
 }
 
+/// A rule-based dependency parser with Universal Dependencies relations (UD Turkish test
+/// splits: 55.9 UAS, 41.9 LAS); for rough structure.
 #[pyclass(name = "DependencyParser")]
 struct PyDependencyParser {
     inner: akana_core::parser::TurkishDependencyParser,
@@ -278,176 +558,379 @@ struct PyDependencyParser {
 #[pymethods]
 impl PyDependencyParser {
     #[new]
-    fn new() -> Self {
-        Self {
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
             inner: akana_core::parser::TurkishDependencyParser::new(),
-        }
+        })
     }
 
-    fn parse_conllu(&self, tokens: Vec<String>) -> String {
-        let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
-        let tree = self.inner.parse(&token_refs);
-        tree.to_conllu()
+    /// The tokens' dependency tree in CoNLL-U, with UD relations (one sentence).
+    fn parse_conllu(&self, py: Python<'_>, tokens: Vec<String>) -> PyResult<String> {
+        release(py, || {
+            let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
+            self.inner.parse(&token_refs).to_conllu()
+        })
     }
 }
 
+/// The document's analysis as JSON (sentences, tokens with their readings, entities,
+/// dependency trees); `analyze` reads it.
 #[pyfunction]
-fn analyze_document_json(text: &str) -> PyResult<String> {
-    let engine = akana_core::AkanaEngine::new();
-    let doc = engine.analyze_document(text);
-    serde_json::to_string(&doc).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+fn analyze_document_json(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || serde_json::to_string(&ENGINE.analyze_document(text)))?.map_err(json_error)
 }
 
+/// The readability report as JSON (statistics, Ateşman, Çetinkaya-Uzun, Bezirci-Yılmaz and the
+/// four Kalyoncu formulas); `analyze_readability` reads it.
 #[pyfunction]
-fn analyze_readability_json(text: &str) -> PyResult<String> {
-    let report = akana_core::readability::analyze_readability(text);
-    serde_json::to_string(&report)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+fn analyze_readability_json(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || {
+        serde_json::to_string(&akana_core::readability::analyze_readability(text))
+    })?
+    .map_err(json_error)
 }
 
+/// The word's syllables (`kitaplık` → `["ki", "tap", "lık"]`).
 #[pyfunction]
-fn syllabify(word: &str) -> Vec<String> {
-    akana_core::phonology::TurkishSyllabifier::syllabify(word)
+fn syllabify(word: &str) -> PyResult<Vec<String>> {
+    guard(|| akana_core::phonology::TurkishSyllabifier::syllabify(word))
 }
 
+/// The word with `delimiter` (default `-`) between its syllables.
 #[pyfunction]
 #[pyo3(signature = (word, delimiter=None))]
-fn hyphenate(word: &str, delimiter: Option<&str>) -> String {
+fn hyphenate(word: &str, delimiter: Option<&str>) -> PyResult<String> {
     let delim = delimiter.unwrap_or("-");
-    akana_core::phonology::TurkishSyllabifier::hyphenate(word, delim)
+    guard(|| akana_core::phonology::TurkishSyllabifier::hyphenate(word, delim))
 }
 
+/// How many syllables the word has.
 #[pyfunction]
-fn count_syllables(word: &str) -> usize {
-    akana_core::phonology::TurkishSyllabifier::count_syllables(word)
+fn count_syllables(word: &str) -> PyResult<usize> {
+    guard(|| akana_core::phonology::TurkishSyllabifier::count_syllables(word))
 }
 
+/// The integer in Turkish words (`1923` → `bin dokuz yüz yirmi üç`, `-42` → `eksi kırk
+/// iki`).
 #[pyfunction]
-fn number_to_words(n: i64) -> String {
-    akana_core::normalization::TurkishNumberConverter::number_to_words(n)
+fn number_to_words(n: i64) -> PyResult<String> {
+    guard(|| akana_core::normalization::TurkishNumberConverter::number_to_words(n))
 }
 
+/// The ordinal in Turkish words (`3` → `üçüncü`, `40` → `kırkıncı`).
 #[pyfunction]
-fn ordinal_to_words(n: i64) -> String {
-    akana_core::normalization::TurkishNumberConverter::ordinal_to_words(n)
+fn ordinal_to_words(n: i64) -> PyResult<String> {
+    guard(|| akana_core::normalization::TurkishNumberConverter::ordinal_to_words(n))
 }
 
+/// The amount in words; `ValueError` for an amount that is not finite or too large (review 3
+/// BIND3-08).
 #[pyfunction]
 #[pyo3(signature = (amount, currency=None))]
-fn currency_to_words(amount: f64, currency: Option<&str>) -> String {
+fn currency_to_words(amount: f64, currency: Option<&str>) -> PyResult<String> {
     let curr = currency.unwrap_or("TL");
-    akana_core::normalization::TurkishNumberConverter::currency_to_words(amount, curr)
+    guard(|| {
+        akana_core::normalization::TurkishNumberConverter::try_currency_to_words(amount, curr)
+    })?
+    .ok_or_else(|| PyValueError::new_err(format!("no words for the amount {amount}")))
 }
 
+/// The cosine of two vectors of the same length; `ValueError` for two lengths, which the
+/// product of their common part only pretended to compare (review 3 BIND3-08).
+fn cosine_of(vec_a: &[f32], vec_b: &[f32]) -> PyResult<f32> {
+    if vec_a.len() != vec_b.len() {
+        return Err(PyValueError::new_err(format!(
+            "vectors of {} and {} dimensions",
+            vec_a.len(),
+            vec_b.len()
+        )));
+    }
+    guard(|| akana_core::cosine_similarity(vec_a, vec_b))
+}
+
+/// The integer that Turkish number words spell (`beş yüz` → 500); `ValueError` for text that
+/// is no number.
 #[pyfunction]
 fn words_to_number(text: &str) -> PyResult<i64> {
-    akana_core::normalization::TurkishNumberConverter::words_to_number(text)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))
+    guard(|| akana_core::normalization::TurkishNumberConverter::words_to_number(text))?
+        .map_err(|e| PyValueError::new_err(e))
 }
 
+/// The root of the word's best analysis, or the word in lower case when the analyzer does not
+/// know it. The word is read as written: a capital keeps a name (`Buhara`, not `buhar`).
 #[pyfunction]
-fn stem(word: &str) -> String {
-    let stemmer = akana_core::morphology::TurkishStemmer::new();
-    stemmer.stem(word)
+fn stem(py: Python<'_>, word: &str) -> PyResult<String> {
+    release(py, || STEMMER.stem(word))
 }
 
+/// Whether the word is one of akana's Turkish stopwords.
 #[pyfunction]
-fn is_stopword(word: &str) -> bool {
-    let sw = akana_core::morphology::TurkishStopwords::new();
-    sw.is_stopword(word)
+fn is_stopword(word: &str) -> PyResult<bool> {
+    guard(|| STOPWORDS.is_stopword(word))
 }
 
+/// The tokens that are no stopwords, in order.
 #[pyfunction]
-fn remove_stopwords(tokens: Vec<String>) -> Vec<String> {
-    let sw = akana_core::morphology::TurkishStopwords::new();
-    let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
-    sw.filter_tokens(&token_refs)
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect()
+fn remove_stopwords(tokens: Vec<String>) -> PyResult<Vec<String>> {
+    guard(|| {
+        let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
+        STOPWORDS
+            .filter_tokens(&token_refs)
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
+    })
 }
 
+/// Named entities as JSON; `start`/`end` are character offsets into `text`.
 #[pyfunction]
-fn extract_entities_json(text: &str) -> PyResult<String> {
-    let entities = akana_core::ner::TurkishNER::extract_entities(text);
-    serde_json::to_string(&entities)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+fn extract_entities_json(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || {
+        let mut entities = akana_core::ner::TurkishNER::extract_entities(text);
+        spans_to_chars(
+            text,
+            entities.iter_mut().map(|e| (&mut e.start, &mut e.end)),
+        );
+        serde_json::to_string(&entities)
+    })?
+    .map_err(json_error)
 }
 
+/// The text's `top_k` (default 10) keywords as JSON, the best first; `extract_keywords` reads
+/// it.
 #[pyfunction]
 #[pyo3(signature = (text, top_k=None))]
-fn extract_keywords_json(text: &str, top_k: Option<usize>) -> PyResult<String> {
-    let extractor = akana_core::analysis::TurkishKeywordExtractor::new();
-    let keywords = extractor.extract_keywords(text, top_k.unwrap_or(10));
-    serde_json::to_string(&keywords)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+fn extract_keywords_json(py: Python<'_>, text: &str, top_k: Option<usize>) -> PyResult<String> {
+    release(py, || {
+        serde_json::to_string(&KEYWORD_EXTRACTOR.extract_keywords(text, top_k.unwrap_or(10)))
+    })?
+    .map_err(json_error)
 }
 
+/// The text's `max_sentences` (default 3) most important sentences, in text order.
 #[pyfunction]
 #[pyo3(signature = (text, max_sentences=None))]
-fn summarize(text: &str, max_sentences: Option<usize>) -> Vec<String> {
-    let summarizer = akana_core::analysis::TurkishSummarizer::new();
-    summarizer.summarize(text, max_sentences.unwrap_or(3))
+fn summarize(py: Python<'_>, text: &str, max_sentences: Option<usize>) -> PyResult<Vec<String>> {
+    release(py, || {
+        SUMMARIZER.summarize(text, max_sentences.unwrap_or(3))
+    })
 }
 
+/// The style audit as JSON; findings' `start`/`end` are character offsets into `text`.
 #[pyfunction]
-fn audit_ai_style_json(text: &str) -> PyResult<String> {
-    let auditor = akana_core::style::TurkishStyleAuditor::new();
-    let report = auditor.audit(text);
-    serde_json::to_string(&report)
-        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+fn audit_ai_style_json(py: Python<'_>, text: &str) -> PyResult<String> {
+    release(py, || {
+        let mut report = STYLE_AUDITOR.audit(text);
+        spans_to_chars(
+            text,
+            report
+                .findings
+                .iter_mut()
+                .map(|f| (&mut f.start, &mut f.end)),
+        );
+        serde_json::to_string(&report)
+    })?
+    .map_err(json_error)
 }
 
+/// A prompt that asks a language model to rewrite the text as natural Turkish in a `register`
+/// (default `blog`), naming the patterns the style audit found in it.
 #[pyfunction]
 #[pyo3(signature = (text, register=None))]
-fn generate_humanizer_prompt(text: &str, register: Option<&str>) -> String {
+fn generate_humanizer_prompt(
+    py: Python<'_>,
+    text: &str,
+    register: Option<&str>,
+) -> PyResult<String> {
     let reg = register.unwrap_or("blog");
-    akana_core::style::TurkishHumanizer::generate_prompt(text, reg)
+    release(py, || {
+        akana_core::style::TurkishHumanizer::generate_prompt(text, reg)
+    })
 }
 
-#[pyclass(name = "GrammarChecker")]
+fn grammar_rule(id: &str) -> PyResult<akana_core::grammar::GrammarRule> {
+    id.parse()
+        .map_err(|e: akana_core::grammar::UnknownRule| PyValueError::new_err(e.to_string()))
+}
+
+/// The grammar rules to run: `rules` (ids) or else the default set, plus every experimental
+/// rule with `experimental`, then `enable` added and `disable` removed. An unknown id raises
+/// `ValueError`.
+fn grammar_rule_set(
+    rules: Option<Vec<String>>,
+    enable: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
+    experimental: bool,
+) -> PyResult<akana_core::grammar::RuleSet> {
+    let mut set = match rules {
+        Some(ids) => ids
+            .iter()
+            .map(|id| grammar_rule(id))
+            .collect::<PyResult<_>>()?,
+        None => akana_core::grammar::RuleSet::default(),
+    };
+    if experimental {
+        set = set.with_experimental();
+    }
+    for id in enable.iter().flatten() {
+        set.enable(grammar_rule(id)?);
+    }
+    for id in disable.iter().flatten() {
+        set.disable(grammar_rule(id)?);
+    }
+    Ok(set)
+}
+
+/// A grammar checker with its own rule selection; checks run on the process's shared engine.
+/// `GrammarChecker()` runs the default rules. `rules` replaces them with a list of rule ids,
+/// `experimental=True` adds every experimental rule, and `enable`/`disable` add or remove ids.
+#[pyclass(name = "GrammarChecker", frozen)]
 struct PyGrammarChecker {
-    inner: akana_core::grammar::TurkishGrammarChecker,
+    rules: Mutex<akana_core::grammar::RuleSet>,
 }
 
 #[pymethods]
 impl PyGrammarChecker {
     #[new]
-    fn new() -> Self {
-        Self {
-            inner: akana_core::grammar::TurkishGrammarChecker::new(),
-        }
+    #[pyo3(signature = (rules=None, enable=None, disable=None, experimental=false))]
+    fn new(
+        rules: Option<Vec<String>>,
+        enable: Option<Vec<String>>,
+        disable: Option<Vec<String>>,
+        experimental: bool,
+    ) -> PyResult<Self> {
+        Ok(Self {
+            rules: Mutex::new(grammar_rule_set(rules, enable, disable, experimental)?),
+        })
     }
 
-    fn check_json(&self, text: &str) -> PyResult<String> {
-        let res = self.inner.check(text);
-        serde_json::to_string(&res)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    /// The check as JSON; findings' `start_offset`/`end_offset` are character offsets into
+    /// `text`.
+    fn check_json(&self, py: Python<'_>, text: &str) -> PyResult<String> {
+        let rules = *locked(&self.rules);
+        release(py, || grammar_check_json(&GRAMMAR_CHECKER, text, rules))?.map_err(json_error)
     }
 
-    fn correct(&self, text: &str) -> String {
-        self.inner.correct(text)
+    /// The text with the corrections of this checker's rules applied.
+    fn correct(&self, py: Python<'_>, text: &str) -> PyResult<String> {
+        let rules = *locked(&self.rules);
+        release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
+    }
+
+    /// Turns a rule on for this checker; `ValueError` for an unknown id.
+    fn enable_rule(&self, rule: &str) -> PyResult<()> {
+        let rule = grammar_rule(rule)?;
+        locked(&self.rules).enable(rule);
+        Ok(())
+    }
+
+    /// Turns a rule off for this checker; `ValueError` for an unknown id.
+    fn disable_rule(&self, rule: &str) -> PyResult<()> {
+        let rule = grammar_rule(rule)?;
+        locked(&self.rules).disable(rule);
+        Ok(())
+    }
+
+    /// Also runs every experimental rule.
+    fn enable_experimental(&self) {
+        let mut rules = locked(&self.rules);
+        *rules = rules.with_experimental();
+    }
+
+    /// The ids of the rules this checker runs.
+    fn enabled_rules(&self) -> Vec<&'static str> {
+        locked(&self.rules).iter().map(|r| r.id()).collect()
     }
 }
 
-lazy_static::lazy_static! {
-    static ref GLOBAL_GRAMMAR_CHECKER: akana_core::grammar::TurkishGrammarChecker = akana_core::grammar::TurkishGrammarChecker::new();
-    static ref GLOBAL_EMBEDDINGS: akana_core::TurkishEmbeddings = akana_core::TurkishEmbeddings::new();
-    static ref GLOBAL_HYBRID_EMBEDDINGS: akana_core::TurkishHybridEmbeddings = akana_core::TurkishHybridEmbeddings::new();
-    static ref GLOBAL_SPARSE_ENCODER: akana_core::MorphologicalSparseEncoder = akana_core::MorphologicalSparseEncoder::new();
-}
-
+/// The grammar check as JSON; findings' `start_offset`/`end_offset` are character offsets
+/// into `text`. The rule arguments are those of `GrammarChecker`.
 #[pyfunction]
-fn check_grammar_json(text: &str) -> PyResult<String> {
-    let res = GLOBAL_GRAMMAR_CHECKER.check(text);
-    serde_json::to_string(&res).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+#[pyo3(signature = (text, rules=None, enable=None, disable=None, experimental=false))]
+fn check_grammar_json(
+    py: Python<'_>,
+    text: &str,
+    rules: Option<Vec<String>>,
+    enable: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
+    experimental: bool,
+) -> PyResult<String> {
+    let rules = grammar_rule_set(rules, enable, disable, experimental)?;
+    release(py, || grammar_check_json(&GRAMMAR_CHECKER, text, rules))?.map_err(json_error)
 }
 
+/// `text` with the grammar corrections applied. The rule arguments are those of
+/// `GrammarChecker`.
 #[pyfunction]
-fn correct_grammar(text: &str) -> String {
-    GLOBAL_GRAMMAR_CHECKER.correct(text)
+#[pyo3(signature = (text, rules=None, enable=None, disable=None, experimental=false))]
+fn correct_grammar(
+    py: Python<'_>,
+    text: &str,
+    rules: Option<Vec<String>>,
+    enable: Option<Vec<String>>,
+    disable: Option<Vec<String>>,
+    experimental: bool,
+) -> PyResult<String> {
+    let rules = grammar_rule_set(rules, enable, disable, experimental)?;
+    release(py, || GRAMMAR_CHECKER.correct_with_rules(text, rules))
 }
 
+/// The encoders' contract as JSON (`akana_core::embeddings::encoder_info_json`): release,
+/// Unicode version, spec, hybrid layout, dense model, analysis version and the fingerprints an
+/// index records.
+#[pyfunction]
+fn encoder_info_json(py: Python<'_>) -> PyResult<String> {
+    release(py, || {
+        akana_core::embeddings::encoder_info_json().to_string()
+    })
+}
+
+/// `identical`, `compatible` or `rebuild`: how an index of `kind` (sparse, dense or hybrid)
+/// built by a library whose encoder info was `stored_json` relates to this one
+/// (`akana_core::embeddings::compatibility_of`); a record that is no such JSON object needs a
+/// rebuild.
+#[pyfunction]
+fn encoder_compatibility(py: Python<'_>, stored_json: &str, kind: &str) -> PyResult<String> {
+    let kind = akana_core::embeddings::IndexKind::from_name(kind).ok_or_else(|| {
+        PyValueError::new_err(format!(
+            "unknown index kind {kind:?}: sparse, dense or hybrid"
+        ))
+    })?;
+    release(py, || {
+        let stored = serde_json::from_str(stored_json).unwrap_or(serde_json::Value::Null);
+        akana_core::embeddings::compatibility_of(kind, &stored)
+            .as_str()
+            .to_string()
+    })
+}
+
+/// Every grammar rule as JSON: `id`, `category`, `default` (in the default set),
+/// `confidence` (its measured precision) and `summary`.
+#[pyfunction]
+fn grammar_rules_json() -> PyResult<String> {
+    let rules: Vec<serde_json::Value> = akana_core::grammar::GrammarRule::ALL
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.id(),
+                "category": r.category().as_str(),
+                "default": r.is_default(),
+                "confidence": r.confidence(),
+                "summary": r.summary(),
+            })
+        })
+        .collect();
+    serde_json::to_string(&rules).map_err(json_error)
+}
+
+fn packed_2bit<'a>(v: &'a [u8], what: &str) -> PyResult<&'a [u8; 64]> {
+    v.try_into().map_err(|_| {
+        PyValueError::new_err(format!("{what} packed vectors must be exactly 64 bytes"))
+    })
+}
+
+/// The dense (Model2Vec, 256 dimensions), packed (2-bit, 1-bit), sparse and hybrid encoders,
+/// and the distances an index uses.
 #[pyclass(name = "Embeddings")]
 struct PyEmbeddings {
     inner: akana_core::TurkishEmbeddings,
@@ -456,170 +939,215 @@ struct PyEmbeddings {
 #[pymethods]
 impl PyEmbeddings {
     #[new]
-    fn new() -> Self {
-        Self {
+    fn new(py: Python<'_>) -> PyResult<Self> {
+        release(py, || Self {
             inner: akana_core::TurkishEmbeddings::new(),
-        }
+        })
     }
 
-    fn embed(&self, text: &str) -> Vec<f32> {
-        self.inner.embed(text)
+    /// The text's dense embedding (`akana.embed`).
+    fn embed(&self, py: Python<'_>, text: &str) -> PyResult<Vec<f32>> {
+        release(py, || self.inner.embed(text))
     }
 
-    fn embed_packed_2bit<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-        let packed = self.inner.embed_packed_2bit(text);
-        PyBytes::new_bound(py, &packed)
+    /// The text's 2-bit embedding (`akana.embed_packed_2bit`).
+    fn embed_packed_2bit<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+        let packed = release(py, || self.inner.embed_packed_2bit(text))?;
+        Ok(PyBytes::new_bound(py, &packed))
     }
 
-    fn embed_packed_1bit<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-        let packed = self.inner.embed_packed_1bit(text);
-        PyBytes::new_bound(py, &packed)
+    /// The text's 1-bit embedding (`akana.embed_packed_1bit`).
+    fn embed_packed_1bit<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+        let packed = release(py, || self.inner.embed_packed_1bit(text))?;
+        Ok(PyBytes::new_bound(py, &packed))
     }
 
+    /// The 2-bit embeddings of the texts, in order.
     fn embed_batch_packed_2bit<'py>(
         &self,
         py: Python<'py>,
         texts: Vec<String>,
-    ) -> Bound<'py, PyList> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        let packed_vecs = self.inner.embed_batch_packed_2bit(&text_refs);
-        PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
+    ) -> PyResult<Bound<'py, PyList>> {
+        let packed_vecs = release(py, || {
+            let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+            self.inner.embed_batch_packed_2bit(&text_refs)
+        })?;
+        Ok(PyList::new_bound(
+            py,
+            packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)),
+        ))
     }
 
+    /// The 1-bit embeddings of the texts, in order.
     fn embed_batch_packed_1bit<'py>(
         &self,
         py: Python<'py>,
         texts: Vec<String>,
-    ) -> Bound<'py, PyList> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        let packed_vecs = self.inner.embed_batch_packed_1bit(&text_refs);
-        PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
+    ) -> PyResult<Bound<'py, PyList>> {
+        let packed_vecs = release(py, || {
+            let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+            self.inner.embed_batch_packed_1bit(&text_refs)
+        })?;
+        Ok(PyList::new_bound(
+            py,
+            packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)),
+        ))
     }
 
+    /// The text's sparse vector (`akana.sparse_embed`).
     fn sparse_embed<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyDict>> {
-        let sparse = GLOBAL_SPARSE_ENCODER.encode_sparse(text);
-        let dict = PyDict::new_bound(py);
-        dict.set_item("indices", sparse.indices)?;
-        dict.set_item("values", sparse.values)?;
-        dict.set_item("terms", sparse.terms)?;
-        Ok(dict)
+        sparse_embed(py, text)
     }
 
-    fn hybrid_embed<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-        let hybrid = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid(text);
-        PyBytes::new_bound(py, &hybrid)
+    /// `embed_hybrid` under its older name.
+    fn hybrid_embed<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+        hybrid_embed(py, text)
     }
 
-    fn embed_hybrid<'py>(&self, py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-        self.hybrid_embed(py, text)
+    /// The text's 128-byte hybrid vector (`akana.embed_hybrid`).
+    fn embed_hybrid<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+        hybrid_embed(py, text)
     }
 
-    fn embed_batch_hybrid<'py>(&self, py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        let hybrid_vecs = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs);
-        PyList::new_bound(py, hybrid_vecs.iter().map(|h| PyBytes::new_bound(py, h)))
+    /// The hybrid vectors of the texts, in order.
+    fn embed_batch_hybrid<'py>(
+        &self,
+        py: Python<'py>,
+        texts: Vec<String>,
+    ) -> PyResult<Bound<'py, PyList>> {
+        embed_batch_hybrid(py, texts)
     }
 
+    /// The dot product of two 64-byte 2-bit vectors: their similarity.
     fn similarity_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        let arr_a: &[u8; 64] = a.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
-        })?;
-        let arr_b: &[u8; 64] = b.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
-        })?;
-        Ok(akana_core::dot_product_2bit_64(arr_a, arr_b))
+        let arr_a = packed_2bit(a, "2-bit")?;
+        let arr_b = packed_2bit(b, "2-bit")?;
+        guard(|| akana_core::dot_product_2bit_64(arr_a, arr_b))
     }
 
+    /// The cosine distance of two 64-byte 2-bit vectors; `ValueError` for other lengths.
     fn distance_packed_2bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        let arr_a: &[u8; 64] = a.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
-        })?;
-        let arr_b: &[u8; 64] = b.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("2-bit packed vectors must be exactly 64 bytes")
-        })?;
-        Ok(akana_core::cosine_distance_2bit_64(arr_a, arr_b))
+        let arr_a = packed_2bit(a, "2-bit")?;
+        let arr_b = packed_2bit(b, "2-bit")?;
+        guard(|| akana_core::cosine_distance_2bit_64(arr_a, arr_b))
     }
 
+    /// The Hamming distance of two 32-byte 1-bit vectors; `ValueError` for other lengths.
     fn distance_packed_1bit(&self, a: &[u8], b: &[u8]) -> PyResult<f32> {
-        let arr_a: &[u8; 32] = a.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("1-bit packed vectors must be exactly 32 bytes")
-        })?;
-        let arr_b: &[u8; 32] = b.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("1-bit packed vectors must be exactly 32 bytes")
-        })?;
-        Ok(akana_core::hamming_distance_1bit_32(arr_a, arr_b))
+        let arr_a: &[u8; 32] = a
+            .try_into()
+            .map_err(|_| PyValueError::new_err("1-bit packed vectors must be exactly 32 bytes"))?;
+        let arr_b: &[u8; 32] = b
+            .try_into()
+            .map_err(|_| PyValueError::new_err("1-bit packed vectors must be exactly 32 bytes"))?;
+        guard(|| akana_core::hamming_distance_1bit_32(arr_a, arr_b))
     }
 
+    /// The hybrid distance of two 128-byte vectors: the dense halves' distance weighted by `alpha`
+    /// (default 0.5) and the sparse halves' by the rest. `ValueError` for other lengths or an alpha
+    /// that is not a number.
     #[pyo3(signature = (a, b, alpha=None))]
     fn distance_hybrid(&self, a: &[u8], b: &[u8], alpha: Option<f32>) -> PyResult<f32> {
-        let arr_a: &[u8; 128] = a.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("hybrid vectors must be exactly 128 bytes")
-        })?;
-        let arr_b: &[u8; 128] = b.try_into().map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err("hybrid vectors must be exactly 128 bytes")
-        })?;
-        let a_val = alpha.unwrap_or(0.5);
-        Ok(akana_core::hybrid_distance_128(arr_a, arr_b, a_val))
+        let arr_a: &[u8; 128] = a
+            .try_into()
+            .map_err(|_| PyValueError::new_err("hybrid vectors must be exactly 128 bytes"))?;
+        let arr_b: &[u8; 128] = b
+            .try_into()
+            .map_err(|_| PyValueError::new_err("hybrid vectors must be exactly 128 bytes"))?;
+        let a_val =
+            finite_alpha(alpha)?.unwrap_or(akana_core::embeddings::hybrid::DEFAULT_HYBRID_ALPHA);
+        guard(|| akana_core::hybrid_distance_128(arr_a, arr_b, a_val))
     }
 
-    fn tokenize(&self, text: &str) -> Vec<usize> {
-        self.inner.tokenize(text)
+    /// The dense model's token ids for the text.
+    fn tokenize(&self, py: Python<'_>, text: &str) -> PyResult<Vec<usize>> {
+        release(py, || self.inner.tokenize(text))
     }
 
-    fn embed_batch(&self, texts: Vec<String>) -> Vec<Vec<f32>> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        self.inner.embed_batch(&text_refs)
+    /// The dense embeddings of the texts, in order.
+    fn embed_batch(&self, py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<Vec<f32>>> {
+        release(py, || {
+            let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+            self.inner.embed_batch(&text_refs)
+        })
     }
 
-    fn similarity(&self, text_a: &str, text_b: &str) -> f32 {
-        self.inner.similarity(text_a, text_b)
+    /// The cosine similarity of the two texts' dense embeddings.
+    fn similarity(&self, py: Python<'_>, text_a: &str, text_b: &str) -> PyResult<f32> {
+        release(py, || self.inner.similarity(text_a, text_b))
     }
 
+    /// The cosine similarity of two vectors of the same length; `ValueError` for two lengths.
     #[staticmethod]
-    fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> f32 {
-        akana_core::cosine_similarity(&vec_a, &vec_b)
+    fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> PyResult<f32> {
+        cosine_of(&vec_a, &vec_b)
     }
 
+    /// The dense embedding's dimension (256).
     #[getter]
     fn dimension(&self) -> usize {
         self.inner.embedding_dim()
     }
 }
 
+/// The text's dense embedding: 256 floats, unit length (the bundled Model2Vec model).
 #[pyfunction]
-fn embed(text: &str) -> Vec<f32> {
-    GLOBAL_EMBEDDINGS.embed(text)
+fn embed(py: Python<'_>, text: &str) -> PyResult<Vec<f32>> {
+    release(py, || EMBEDDINGS.embed(text))
 }
 
+/// The dense embedding with 2 bits a dimension: 64 bytes, for `get_usearch_metric_pointer_2bit`.
 #[pyfunction]
-fn embed_packed_2bit<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-    let packed = GLOBAL_EMBEDDINGS.embed_packed_2bit(text);
-    PyBytes::new_bound(py, &packed)
+fn embed_packed_2bit<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+    let packed = release(py, || EMBEDDINGS.embed_packed_2bit(text))?;
+    Ok(PyBytes::new_bound(py, &packed))
 }
 
+/// The dense embedding's signs, a bit a dimension: 32 bytes, for
+/// `get_usearch_metric_pointer_1bit`.
 #[pyfunction]
-fn embed_packed_1bit<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-    let packed = GLOBAL_EMBEDDINGS.embed_packed_1bit(text);
-    PyBytes::new_bound(py, &packed)
+fn embed_packed_1bit<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+    let packed = release(py, || EMBEDDINGS.embed_packed_1bit(text))?;
+    Ok(PyBytes::new_bound(py, &packed))
 }
 
+/// The 2-bit embeddings of the texts, in order.
 #[pyfunction]
-fn embed_batch_packed_2bit<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
-    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-    let packed_vecs = GLOBAL_EMBEDDINGS.embed_batch_packed_2bit(&text_refs);
-    PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
+fn embed_batch_packed_2bit<'py>(
+    py: Python<'py>,
+    texts: Vec<String>,
+) -> PyResult<Bound<'py, PyList>> {
+    let packed_vecs = release(py, || {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        EMBEDDINGS.embed_batch_packed_2bit(&text_refs)
+    })?;
+    Ok(PyList::new_bound(
+        py,
+        packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)),
+    ))
 }
 
+/// The 1-bit embeddings of the texts, in order.
 #[pyfunction]
-fn embed_batch_packed_1bit<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
-    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-    let packed_vecs = GLOBAL_EMBEDDINGS.embed_batch_packed_1bit(&text_refs);
-    PyList::new_bound(py, packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)))
+fn embed_batch_packed_1bit<'py>(
+    py: Python<'py>,
+    texts: Vec<String>,
+) -> PyResult<Bound<'py, PyList>> {
+    let packed_vecs = release(py, || {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        EMBEDDINGS.embed_batch_packed_1bit(&text_refs)
+    })?;
+    Ok(PyList::new_bound(
+        py,
+        packed_vecs.iter().map(|p| PyBytes::new_bound(py, p)),
+    ))
 }
 
+/// The text's sparse vector: `{"indices", "values", "terms"}`, a term for each disambiguated
+/// lemma (sparse spec 1.0, `embeddings/spec.rs`), its value BM25-saturated.
 #[pyfunction]
 fn sparse_embed<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyDict>> {
-    let sparse = GLOBAL_SPARSE_ENCODER.encode_sparse(text);
+    let sparse = release(py, || SPARSE_ENCODER.encode_sparse(text))?;
     let dict = PyDict::new_bound(py);
     dict.set_item("indices", sparse.indices)?;
     dict.set_item("values", sparse.values)?;
@@ -627,84 +1155,132 @@ fn sparse_embed<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyDict>
     Ok(dict)
 }
 
+/// `embed_hybrid` under its older name.
 #[pyfunction]
-fn hybrid_embed<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
-    let hybrid = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid(text);
-    PyBytes::new_bound(py, &hybrid)
+fn hybrid_embed<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
+    let hybrid = release(py, || HYBRID_EMBEDDINGS.embed_hybrid(text))?;
+    Ok(PyBytes::new_bound(py, &hybrid))
 }
 
+/// The text's 128-byte hybrid vector: the 2-bit dense embedding and the 16 heaviest sparse
+/// terms (`embeddings/spec.rs`), for `get_usearch_metric_pointer_hybrid`.
 #[pyfunction]
-fn embed_hybrid<'py>(py: Python<'py>, text: &str) -> Bound<'py, PyBytes> {
+fn embed_hybrid<'py>(py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyBytes>> {
     hybrid_embed(py, text)
 }
 
+/// The hybrid vectors of the texts, in order; 512 texts or more are split across the CPU
+/// cores.
 #[pyfunction]
-fn embed_batch_hybrid<'py>(py: Python<'py>, texts: Vec<String>) -> Bound<'py, PyList> {
-    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-    let hybrid_vecs = GLOBAL_HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs);
-    PyList::new_bound(py, hybrid_vecs.iter().map(|h| PyBytes::new_bound(py, h)))
+fn embed_batch_hybrid<'py>(py: Python<'py>, texts: Vec<String>) -> PyResult<Bound<'py, PyList>> {
+    let hybrid_vecs = release(py, || {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        HYBRID_EMBEDDINGS.embed_hybrid_batch(&text_refs)
+    })?;
+    Ok(PyList::new_bound(
+        py,
+        hybrid_vecs.iter().map(|h| PyBytes::new_bound(py, h)),
+    ))
 }
 
+/// The address of the 2-bit cosine distance, for a USearch `CompiledMetric`.
 #[pyfunction]
-fn get_usearch_metric_pointer_2bit() -> usize {
-    akana_core::get_usearch_metric_pointer_2bit()
+fn get_usearch_metric_pointer_2bit() -> PyResult<usize> {
+    guard(akana_core::get_usearch_metric_pointer_2bit)
 }
 
+/// The address of the 1-bit Hamming distance, for a USearch `CompiledMetric`.
 #[pyfunction]
-fn get_usearch_metric_pointer_1bit() -> usize {
-    akana_core::get_usearch_metric_pointer_1bit()
+fn get_usearch_metric_pointer_1bit() -> PyResult<usize> {
+    guard(akana_core::get_usearch_metric_pointer_1bit)
 }
 
+/// `alpha` when it is a number: NaN or infinity raises `ValueError` (review 2 EMB-06). A value
+/// outside `[0, 1]` is clamped.
+fn finite_alpha(alpha: Option<f32>) -> PyResult<Option<f32>> {
+    match alpha {
+        Some(a) if !a.is_finite() => Err(PyValueError::new_err(format!(
+            "alpha must be a finite number in [0, 1], not {a}"
+        ))),
+        _ => Ok(alpha),
+    }
+}
+
+/// The hybrid metric for USearch. Its alpha is one value for the whole process: passing one
+/// here sets it for every open index that uses the metric.
 #[pyfunction]
 #[pyo3(signature = (alpha=None))]
-fn get_usearch_metric_pointer_hybrid(alpha: Option<f32>) -> usize {
-    akana_core::get_usearch_metric_pointer_hybrid(alpha)
+fn get_usearch_metric_pointer_hybrid(alpha: Option<f32>) -> PyResult<usize> {
+    let alpha = finite_alpha(alpha)?;
+    guard(|| akana_core::get_usearch_metric_pointer_hybrid(alpha))
 }
 
+/// Sets the hybrid metric's alpha for the whole process (every open index that uses it).
 #[pyfunction]
-fn set_hybrid_metric_alpha(alpha: f32) {
-    akana_core::set_hybrid_metric_alpha(alpha);
+fn set_hybrid_metric_alpha(alpha: f32) -> PyResult<()> {
+    finite_alpha(Some(alpha))?;
+    guard(|| akana_core::set_hybrid_metric_alpha(alpha))
 }
 
+/// The hybrid metric's alpha: the dense half's weight (0.5 unless set).
 #[pyfunction]
-fn get_hybrid_metric_alpha() -> f32 {
-    akana_core::embeddings::hybrid::get_hybrid_metric_alpha()
+fn get_hybrid_metric_alpha() -> PyResult<f32> {
+    guard(akana_core::embeddings::hybrid::get_hybrid_metric_alpha)
 }
 
+/// Reciprocal rank fusion of two ranked lists of `(id, score)`: each id scores `1 / (k + rank)`
+/// in each list (`k` default 60), the sparse list's weighted by `alpha` (default 1); ties go to
+/// the better rank, then the lower id. `ValueError` for a `k` that is not positive and finite or
+/// an `alpha` that is not finite.
 #[pyfunction]
 #[pyo3(signature = (dense_results, sparse_results, k=None, alpha=None))]
 fn reciprocal_rank_fusion(
+    py: Python<'_>,
     dense_results: Vec<(u64, f32)>,
     sparse_results: Vec<(u64, f32)>,
     k: Option<f32>,
     alpha: Option<f32>,
-) -> Vec<(u64, f32)> {
+) -> PyResult<Vec<(u64, f32)>> {
     let k_val = k.unwrap_or(60.0);
     let alpha_val = alpha.unwrap_or(1.0);
-    let fused =
-        akana_core::reciprocal_rank_fusion(&dense_results, &sparse_results, k_val, alpha_val);
-    fused.into_iter().map(|f| (f.id, f.score)).collect()
+    if !(k_val > 0.0 && k_val.is_finite()) || !alpha_val.is_finite() {
+        return Err(PyValueError::new_err(format!(
+            "k must be positive and finite and alpha finite (got k={k_val}, alpha={alpha_val})"
+        )));
+    }
+    release(py, || {
+        akana_core::reciprocal_rank_fusion(&dense_results, &sparse_results, k_val, alpha_val)
+            .into_iter()
+            .map(|f| (f.id, f.score))
+            .collect()
+    })
 }
 
+/// The dense model's token ids for the text.
 #[pyfunction]
-fn tokenize_embedding_text(text: &str) -> Vec<usize> {
-    GLOBAL_EMBEDDINGS.tokenize(text)
+fn tokenize_embedding_text(py: Python<'_>, text: &str) -> PyResult<Vec<usize>> {
+    release(py, || EMBEDDINGS.tokenize(text))
 }
 
+/// The dense embeddings of the texts, in order.
 #[pyfunction]
-fn embed_batch(texts: Vec<String>) -> Vec<Vec<f32>> {
-    let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-    GLOBAL_EMBEDDINGS.embed_batch(&text_refs)
+fn embed_batch(py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<Vec<f32>>> {
+    release(py, || {
+        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+        EMBEDDINGS.embed_batch(&text_refs)
+    })
 }
 
+/// The cosine similarity of the two texts' dense embeddings.
 #[pyfunction]
-fn similarity(text_a: &str, text_b: &str) -> f32 {
-    GLOBAL_EMBEDDINGS.similarity(text_a, text_b)
+fn similarity(py: Python<'_>, text_a: &str, text_b: &str) -> PyResult<f32> {
+    release(py, || EMBEDDINGS.similarity(text_a, text_b))
 }
 
+/// The cosine similarity of two vectors of the same length; `ValueError` for two lengths.
 #[pyfunction]
-fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> f32 {
-    akana_core::cosine_similarity(&vec_a, &vec_b)
+fn similarity_vectors(vec_a: Vec<f32>, vec_b: Vec<f32>) -> PyResult<f32> {
+    cosine_of(&vec_a, &vec_b)
 }
 
 fn parse_threshold_mode(
@@ -743,6 +1319,8 @@ fn parse_threshold_mode(
     }
 }
 
+/// A chunk of text: `text`, its character span in the chunked text (`start_index`,
+/// `end_index`), `token_count` and its `sentences`.
 #[pyclass(name = "Chunk")]
 #[derive(Clone)]
 struct PyChunk {
@@ -751,26 +1329,31 @@ struct PyChunk {
 
 #[pymethods]
 impl PyChunk {
+    /// The chunk's text.
     #[getter]
     fn text(&self) -> String {
         self.inner.text.clone()
     }
 
+    /// Where the chunk starts in the chunked text, in characters.
     #[getter]
     fn start_index(&self) -> usize {
         self.inner.start_index
     }
 
+    /// Where the chunk ends in the chunked text, in characters (exclusive).
     #[getter]
     fn end_index(&self) -> usize {
         self.inner.end_index
     }
 
+    /// The chunk's length in the dense model's tokens.
     #[getter]
     fn token_count(&self) -> usize {
         self.inner.token_count
     }
 
+    /// The sentences the chunk is made of.
     #[getter]
     fn sentences(&self) -> Vec<String> {
         self.inner.sentences.clone()
@@ -790,6 +1373,7 @@ impl PyChunk {
         )
     }
 
+    /// The chunk as a dict of its fields.
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new_bound(py);
         dict.set_item("text", &self.inner.text)?;
@@ -801,25 +1385,27 @@ impl PyChunk {
     }
 }
 
+fn py_chunks(chunks: Vec<akana_core::chunking::Chunk>) -> Vec<PyChunk> {
+    chunks.into_iter().map(|c| PyChunk { inner: c }).collect()
+}
+
+fn py_chunk_batches(batches: Vec<Vec<akana_core::chunking::Chunk>>) -> Vec<Vec<PyChunk>> {
+    batches.into_iter().map(py_chunks).collect()
+}
+
+/// Cuts text where consecutive sentences' embeddings grow apart, into chunks of at most
+/// `chunk_size` tokens (default 512). `threshold_mode` (`similarity`, `percentile` (default),
+/// `stdev`, `iqr` or `auto`) and `threshold_value` decide what counts as apart;
+/// `similarity_window` (default 1) sentences are compared, `min_chunk_size` (default 30 tokens)
+/// and `min_sentences_per_chunk` (default 1) bound a chunk, and `use_smoothing` (default on)
+/// smooths the similarities.
 #[pyclass(name = "SemanticChunker")]
 struct PySemanticChunker {
     inner: akana_core::chunking::SemanticChunker,
 }
 
-#[pymethods]
 impl PySemanticChunker {
-    #[new]
-    #[pyo3(signature = (
-        chunk_size=None,
-        threshold=None,
-        threshold_mode=None,
-        threshold_value=None,
-        similarity_window=None,
-        min_chunk_size=None,
-        min_sentences_per_chunk=None,
-        use_smoothing=None
-    ))]
-    fn new(
+    fn build(
         chunk_size: Option<usize>,
         threshold: Option<f32>,
         threshold_mode: Option<&str>,
@@ -828,7 +1414,7 @@ impl PySemanticChunker {
         min_chunk_size: Option<usize>,
         min_sentences_per_chunk: Option<usize>,
         use_smoothing: Option<bool>,
-    ) -> Self {
+    ) -> akana_core::chunking::SemanticChunker {
         let size = chunk_size.unwrap_or(512);
         let mode = parse_threshold_mode(threshold, threshold_mode, threshold_value);
         let mut chunker = akana_core::chunking::SemanticChunker::new(size, mode);
@@ -845,35 +1431,85 @@ impl PySemanticChunker {
         if let Some(smooth) = use_smoothing {
             chunker = chunker.with_smoothing(smooth);
         }
-
-        Self { inner: chunker }
-    }
-
-    fn chunk(&self, text: &str) -> Vec<PyChunk> {
-        self.inner
-            .chunk(text)
-            .into_iter()
-            .map(|c| PyChunk { inner: c })
-            .collect()
-    }
-
-    fn chunk_batch(&self, texts: Vec<String>) -> Vec<Vec<PyChunk>> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        self.inner
-            .chunk_batch(&text_refs)
-            .into_iter()
-            .map(|batch| batch.into_iter().map(|c| PyChunk { inner: c }).collect())
-            .collect()
-    }
-
-    fn __call__(&self, text: &str) -> Vec<PyChunk> {
-        self.chunk(text)
+        chunker
     }
 }
 
+#[pymethods]
+impl PySemanticChunker {
+    #[new]
+    #[pyo3(signature = (
+        chunk_size=None,
+        threshold=None,
+        threshold_mode=None,
+        threshold_value=None,
+        similarity_window=None,
+        min_chunk_size=None,
+        min_sentences_per_chunk=None,
+        use_smoothing=None
+    ))]
+    fn new(
+        py: Python<'_>,
+        chunk_size: Option<usize>,
+        threshold: Option<f32>,
+        threshold_mode: Option<&str>,
+        threshold_value: Option<f32>,
+        similarity_window: Option<usize>,
+        min_chunk_size: Option<usize>,
+        min_sentences_per_chunk: Option<usize>,
+        use_smoothing: Option<bool>,
+    ) -> PyResult<Self> {
+        release(py, || Self {
+            inner: Self::build(
+                chunk_size,
+                threshold,
+                threshold_mode,
+                threshold_value,
+                similarity_window,
+                min_chunk_size,
+                min_sentences_per_chunk,
+                use_smoothing,
+            ),
+        })
+    }
+
+    /// The text's chunks.
+    fn chunk(&self, py: Python<'_>, text: &str) -> PyResult<Vec<PyChunk>> {
+        release(py, || py_chunks(self.inner.chunk(text)))
+    }
+
+    /// The chunks of each text, in order.
+    fn chunk_batch(&self, py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<Vec<PyChunk>>> {
+        release(py, || {
+            let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+            py_chunk_batches(self.inner.chunk_batch(&text_refs))
+        })
+    }
+
+    fn __call__(&self, py: Python<'_>, text: &str) -> PyResult<Vec<PyChunk>> {
+        self.chunk(py, text)
+    }
+}
+
+/// Packs whole sentences into chunks of at most `chunk_size` tokens (default 512), with
+/// `chunk_overlap` tokens shared by neighbours (default 0) and at least
+/// `min_sentences_per_chunk` sentences (default 1).
 #[pyclass(name = "SentenceChunker")]
 struct PySentenceChunker {
     inner: akana_core::chunking::SentenceChunker,
+}
+
+impl PySentenceChunker {
+    fn build(
+        chunk_size: Option<usize>,
+        chunk_overlap: Option<usize>,
+        min_sentences_per_chunk: Option<usize>,
+    ) -> akana_core::chunking::SentenceChunker {
+        let size = chunk_size.unwrap_or(512);
+        let overlap = chunk_overlap.unwrap_or(0);
+        let min_sent = min_sentences_per_chunk.unwrap_or(1);
+        akana_core::chunking::SentenceChunker::new(size, overlap, min_sent)
+    }
 }
 
 #[pymethods]
@@ -881,43 +1517,65 @@ impl PySentenceChunker {
     #[new]
     #[pyo3(signature = (chunk_size=None, chunk_overlap=None, min_sentences_per_chunk=None))]
     fn new(
+        py: Python<'_>,
         chunk_size: Option<usize>,
         chunk_overlap: Option<usize>,
         min_sentences_per_chunk: Option<usize>,
-    ) -> Self {
-        let size = chunk_size.unwrap_or(512);
-        let overlap = chunk_overlap.unwrap_or(0);
-        let min_sent = min_sentences_per_chunk.unwrap_or(1);
-        Self {
-            inner: akana_core::chunking::SentenceChunker::new(size, overlap, min_sent),
-        }
+    ) -> PyResult<Self> {
+        release(py, || Self {
+            inner: Self::build(chunk_size, chunk_overlap, min_sentences_per_chunk),
+        })
     }
 
-    fn chunk(&self, text: &str) -> Vec<PyChunk> {
-        self.inner
-            .chunk(text)
-            .into_iter()
-            .map(|c| PyChunk { inner: c })
-            .collect()
+    /// The text's chunks.
+    fn chunk(&self, py: Python<'_>, text: &str) -> PyResult<Vec<PyChunk>> {
+        release(py, || py_chunks(self.inner.chunk(text)))
     }
 
-    fn chunk_batch(&self, texts: Vec<String>) -> Vec<Vec<PyChunk>> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        self.inner
-            .chunk_batch(&text_refs)
-            .into_iter()
-            .map(|batch| batch.into_iter().map(|c| PyChunk { inner: c }).collect())
-            .collect()
+    /// The chunks of each text, in order.
+    fn chunk_batch(&self, py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<Vec<PyChunk>>> {
+        release(py, || {
+            let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+            py_chunk_batches(self.inner.chunk_batch(&text_refs))
+        })
     }
 
-    fn __call__(&self, text: &str) -> Vec<PyChunk> {
-        self.chunk(text)
+    fn __call__(&self, py: Python<'_>, text: &str) -> PyResult<Vec<PyChunk>> {
+        self.chunk(py, text)
     }
 }
 
+/// A semantic chunker that also merges chunks a gap apart whose similarity is at least
+/// `merge_threshold` (default 0.32): semantic double-pass merging. The other arguments are
+/// `SemanticChunker`'s (`min_chunk_size` default 20).
 #[pyclass(name = "SDPMChunker")]
 struct PySDPMChunker {
     inner: akana_core::chunking::SDPMChunker,
+}
+
+impl PySDPMChunker {
+    fn build(
+        chunk_size: Option<usize>,
+        threshold: Option<f32>,
+        threshold_mode: Option<&str>,
+        threshold_value: Option<f32>,
+        merge_threshold: Option<f32>,
+        similarity_window: Option<usize>,
+        min_chunk_size: Option<usize>,
+    ) -> akana_core::chunking::SDPMChunker {
+        let size = chunk_size.unwrap_or(512);
+        let mode = parse_threshold_mode(threshold, threshold_mode, threshold_value);
+        let merge_thresh = merge_threshold.unwrap_or(0.32);
+        let mut chunker = akana_core::chunking::SDPMChunker::new(size, mode, merge_thresh);
+
+        if let Some(w) = similarity_window {
+            chunker = chunker.with_similarity_window(w);
+        }
+        if let Some(min_s) = min_chunk_size {
+            chunker = chunker.with_min_chunk_size(min_s);
+        }
+        chunker
+    }
 }
 
 #[pymethods]
@@ -933,6 +1591,7 @@ impl PySDPMChunker {
         min_chunk_size=None
     ))]
     fn new(
+        py: Python<'_>,
         chunk_size: Option<usize>,
         threshold: Option<f32>,
         threshold_mode: Option<&str>,
@@ -940,41 +1599,35 @@ impl PySDPMChunker {
         merge_threshold: Option<f32>,
         similarity_window: Option<usize>,
         min_chunk_size: Option<usize>,
-    ) -> Self {
-        let size = chunk_size.unwrap_or(512);
-        let mode = parse_threshold_mode(threshold, threshold_mode, threshold_value);
-        let merge_thresh = merge_threshold.unwrap_or(0.32);
-        let mut chunker = akana_core::chunking::SDPMChunker::new(size, mode, merge_thresh);
-
-        if let Some(w) = similarity_window {
-            chunker = chunker.with_similarity_window(w);
-        }
-        if let Some(min_s) = min_chunk_size {
-            chunker = chunker.with_min_chunk_size(min_s);
-        }
-
-        Self { inner: chunker }
+    ) -> PyResult<Self> {
+        release(py, || Self {
+            inner: Self::build(
+                chunk_size,
+                threshold,
+                threshold_mode,
+                threshold_value,
+                merge_threshold,
+                similarity_window,
+                min_chunk_size,
+            ),
+        })
     }
 
-    fn chunk(&self, text: &str) -> Vec<PyChunk> {
-        self.inner
-            .chunk(text)
-            .into_iter()
-            .map(|c| PyChunk { inner: c })
-            .collect()
+    /// The text's chunks.
+    fn chunk(&self, py: Python<'_>, text: &str) -> PyResult<Vec<PyChunk>> {
+        release(py, || py_chunks(self.inner.chunk(text)))
     }
 
-    fn chunk_batch(&self, texts: Vec<String>) -> Vec<Vec<PyChunk>> {
-        let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-        self.inner
-            .chunk_batch(&text_refs)
-            .into_iter()
-            .map(|batch| batch.into_iter().map(|c| PyChunk { inner: c }).collect())
-            .collect()
+    /// The chunks of each text, in order.
+    fn chunk_batch(&self, py: Python<'_>, texts: Vec<String>) -> PyResult<Vec<Vec<PyChunk>>> {
+        release(py, || {
+            let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
+            py_chunk_batches(self.inner.chunk_batch(&text_refs))
+        })
     }
 
-    fn __call__(&self, text: &str) -> Vec<PyChunk> {
-        self.chunk(text)
+    fn __call__(&self, py: Python<'_>, text: &str) -> PyResult<Vec<PyChunk>> {
+        self.chunk(py, text)
     }
 }
 
@@ -990,7 +1643,9 @@ impl PySDPMChunker {
     min_sentences_per_chunk=None,
     use_smoothing=None
 ))]
+/// The text's chunks from a `SemanticChunker` with these arguments.
 fn chunk_semantic(
+    py: Python<'_>,
     text: &str,
     chunk_size: Option<usize>,
     threshold: Option<f32>,
@@ -1000,30 +1655,36 @@ fn chunk_semantic(
     min_chunk_size: Option<usize>,
     min_sentences_per_chunk: Option<usize>,
     use_smoothing: Option<bool>,
-) -> Vec<PyChunk> {
-    let chunker = PySemanticChunker::new(
-        chunk_size,
-        threshold,
-        threshold_mode,
-        threshold_value,
-        similarity_window,
-        min_chunk_size,
-        min_sentences_per_chunk,
-        use_smoothing,
-    );
-    chunker.chunk(text)
+) -> PyResult<Vec<PyChunk>> {
+    release(py, || {
+        let chunker = PySemanticChunker::build(
+            chunk_size,
+            threshold,
+            threshold_mode,
+            threshold_value,
+            similarity_window,
+            min_chunk_size,
+            min_sentences_per_chunk,
+            use_smoothing,
+        );
+        py_chunks(chunker.chunk(text))
+    })
 }
 
+/// The text's chunks from a `SentenceChunker` with these arguments.
 #[pyfunction]
 #[pyo3(signature = (text, chunk_size=None, chunk_overlap=None, min_sentences_per_chunk=None))]
 fn chunk_sentences(
+    py: Python<'_>,
     text: &str,
     chunk_size: Option<usize>,
     chunk_overlap: Option<usize>,
     min_sentences_per_chunk: Option<usize>,
-) -> Vec<PyChunk> {
-    let chunker = PySentenceChunker::new(chunk_size, chunk_overlap, min_sentences_per_chunk);
-    chunker.chunk(text)
+) -> PyResult<Vec<PyChunk>> {
+    release(py, || {
+        let chunker = PySentenceChunker::build(chunk_size, chunk_overlap, min_sentences_per_chunk);
+        py_chunks(chunker.chunk(text))
+    })
 }
 
 #[pyfunction]
@@ -1037,7 +1698,9 @@ fn chunk_sentences(
     similarity_window=None,
     min_chunk_size=None
 ))]
+/// The text's chunks from an `SDPMChunker` with these arguments.
 fn chunk_sdpm(
+    py: Python<'_>,
     text: &str,
     chunk_size: Option<usize>,
     threshold: Option<f32>,
@@ -1046,59 +1709,77 @@ fn chunk_sdpm(
     merge_threshold: Option<f32>,
     similarity_window: Option<usize>,
     min_chunk_size: Option<usize>,
-) -> Vec<PyChunk> {
-    let chunker = PySDPMChunker::new(
-        chunk_size,
-        threshold,
-        threshold_mode,
-        threshold_value,
-        merge_threshold,
-        similarity_window,
-        min_chunk_size,
-    );
-    chunker.chunk(text)
+) -> PyResult<Vec<PyChunk>> {
+    release(py, || {
+        let chunker = PySDPMChunker::build(
+            chunk_size,
+            threshold,
+            threshold_mode,
+            threshold_value,
+            merge_threshold,
+            similarity_window,
+            min_chunk_size,
+        );
+        py_chunks(chunker.chunk(text))
+    })
 }
 
+/// Whether `s` is a valid T.C. identity number: 11 digits, no leading 0, both check digits
+/// right.
 #[pyfunction]
-fn validate_tckn(s: &str) -> bool {
-    akana_core::pii::validate_tckn(s)
+fn validate_tckn(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_tckn(s))
 }
 
+/// Whether `s` is a valid tax number (VKN): 10 digits with a right check digit.
 #[pyfunction]
-fn validate_vkn(s: &str) -> bool {
-    akana_core::pii::validate_vkn(s)
+fn validate_vkn(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_vkn(s))
 }
 
+/// Whether `s` is a valid IBAN: its country's length and the mod-97 check (spaces allowed).
 #[pyfunction]
-fn validate_iban(s: &str) -> bool {
-    akana_core::pii::validate_iban(s)
+fn validate_iban(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_iban(s))
 }
 
+/// The card network's name when `s` is a card number that passes the Luhn check, else None.
 #[pyfunction]
-fn validate_credit_card(s: &str) -> Option<String> {
-    akana_core::pii::validate_credit_card(s).map(|b| format!("{:?}", b))
+fn validate_credit_card(s: &str) -> PyResult<Option<String>> {
+    guard(|| akana_core::pii::validate_credit_card(s).map(|b| format!("{:?}", b)))
 }
 
+/// Whether `s` is a Turkish vehicle plate (`34 ABC 123`): a province code 01-81, letters and
+/// digits in one of the issued patterns.
 #[pyfunction]
-fn validate_plate(s: &str) -> bool {
-    akana_core::pii::validate_plate(s)
+fn validate_plate(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_plate(s))
 }
 
+/// Whether `s` is a vehicle identification number: 17 characters without I, O or Q, and a
+/// right check digit.
 #[pyfunction]
-fn validate_vin(s: &str) -> bool {
-    akana_core::pii::validate_vin(s)
+fn validate_vin(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_vin(s))
 }
 
+/// Whether `s` is an IMEI: 15 digits that pass the Luhn check.
 #[pyfunction]
-fn validate_imei(s: &str) -> bool {
-    akana_core::pii::validate_imei(s)
+fn validate_imei(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_imei(s))
 }
 
+/// Whether `s` is a US social security number in the form `000-00-0000` with valid area, group
+/// and serial numbers.
 #[pyfunction]
-fn validate_ssn(s: &str) -> bool {
-    akana_core::pii::validate_ssn(s)
+fn validate_ssn(s: &str) -> PyResult<bool> {
+    guard(|| akana_core::pii::validate_ssn(s))
 }
 
+/// The name `stem` with the case suffix its vowels and last sound take, after an apostrophe
+/// (`Ahmet`, `dative` → `Ahmet'e`; `Can`, `locative` → `Can'da`). `case`: dative, genitive,
+/// accusative, locative, ablative, instrumental or plural (Turkish names too); `ValueError` for
+/// another.
 #[pyfunction]
 fn harmonize_suffix(stem: &str, case: &str) -> PyResult<String> {
     let turkish_case = match case.to_lowercase().as_str() {
@@ -1109,49 +1790,89 @@ fn harmonize_suffix(stem: &str, case: &str) -> PyResult<String> {
         "ablative" | "abl" | "ayrilma" => akana_core::pii::TurkishCase::Ablative,
         "instrumental" | "ins" | "vasita" => akana_core::pii::TurkishCase::Instrumental,
         "plural" | "plu" | "cogul" => akana_core::pii::TurkishCase::Plural,
-        _ => {
-            return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "Unknown case: {}",
-                case
-            )))
-        }
+        _ => return Err(PyValueError::new_err(format!("Unknown case: {}", case))),
     };
-    Ok(akana_core::pii::harmonize_suffix(stem, turkish_case))
+    guard(|| akana_core::pii::harmonize_suffix(stem, turkish_case))
 }
 
-#[pyclass(name = "PiiVault")]
+/// Panics with `message`; the tests use it to check that a panic raises `RuntimeError`.
+#[pyfunction]
+fn _panic_for_tests(py: Python<'_>, message: &str) -> PyResult<()> {
+    release(py, || panic!("{message}"))
+}
+
+/// The `{placeholder: original}` map of a plain or detailed mapping dict.
+fn mapping_from_dict(
+    mapping: &Bound<'_, PyDict>,
+) -> PyResult<std::collections::HashMap<String, String>> {
+    let mut map = std::collections::HashMap::new();
+    for (k, v) in mapping.iter() {
+        let key: String = k.extract()?;
+        if let Ok(val_str) = v.extract::<String>() {
+            map.insert(key, val_str);
+        } else if let Ok(sub_dict) = v.downcast::<PyDict>() {
+            if let Some(orig) = sub_dict.get_item("original_text")? {
+                let val_str: String = orig.extract()?;
+                map.insert(key, val_str);
+            }
+        }
+    }
+    Ok(map)
+}
+
+/// A session's vault: the placeholders and surrogates `TurkishPiiEngine.mask` issued and the
+/// originals they stand for, kept across turns so that `restore` gives them back.
+#[pyclass(name = "PiiVault", frozen)]
 pub struct PyPiiVault {
-    inner: akana_core::pii::PiiVault,
+    inner: Mutex<akana_core::pii::PiiVault>,
+}
+
+impl PyPiiVault {
+    fn new_with(vault: akana_core::pii::PiiVault) -> Self {
+        Self {
+            inner: Mutex::new(vault),
+        }
+    }
+
+    /// A copy of the vault, taken with the GIL released (a `mask` on another thread may hold
+    /// it).
+    fn snapshot(&self, py: Python<'_>) -> akana_core::pii::PiiVault {
+        py.allow_threads(|| locked(&self.inner).clone())
+    }
 }
 
 #[pymethods]
 impl PyPiiVault {
     #[new]
     fn new() -> Self {
-        Self {
-            inner: akana_core::pii::PiiVault::new(),
-        }
+        Self::new_with(akana_core::pii::PiiVault::new())
     }
 
-    fn restore(&self, llm_response: &str) -> String {
-        self.inner.restore(llm_response)
+    /// The response with this vault's placeholders and surrogates turned back into the originals,
+    /// a case suffix written after one harmonised onto the original (`{{AD_1}}'e` → `Ahmet'e`).
+    fn restore(&self, py: Python<'_>, llm_response: &str) -> PyResult<String> {
+        release(py, || locked(&self.inner).restore(llm_response))
     }
 
-    fn to_json(&self) -> PyResult<String> {
-        serde_json::to_string(&self.inner)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+    /// The vault as JSON, for `from_json`; the same session gives the same JSON.
+    fn to_json(&self, py: Python<'_>) -> PyResult<String> {
+        serde_json::to_string(&self.snapshot(py)).map_err(json_error)
     }
 
+    /// A vault from the JSON `to_json` wrote; `ValueError` for other JSON.
     #[staticmethod]
     fn from_json(json_str: &str) -> PyResult<Self> {
-        let vault: akana_core::pii::PiiVault = serde_json::from_str(json_str)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-        Ok(Self { inner: vault })
+        let vault: akana_core::pii::PiiVault =
+            serde_json::from_str(json_str).map_err(json_error)?;
+        Ok(Self::new_with(vault))
     }
 
+    /// The vault's entries as a dict: placeholder → `{original_text, pii_label, original_stem,
+    /// original_suffix}`.
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new_bound(py);
-        for (k, v) in &self.inner.placeholder_to_entry {
+        let vault = self.snapshot(py);
+        for (k, v) in &vault.placeholder_to_entry {
             let entry_dict = PyDict::new_bound(py);
             entry_dict.set_item("placeholder", &v.placeholder)?;
             entry_dict.set_item("original_text", &v.original_text)?;
@@ -1163,67 +1884,42 @@ impl PyPiiVault {
         Ok(dict)
     }
 
+    /// Every entry as `{placeholder_or_surrogate: original}`.
     fn get_mapping<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new_bound(py);
-        for (k, v) in &self.inner.placeholder_to_entry {
+        let vault = self.snapshot(py);
+        for (k, v) in &vault.placeholder_to_entry {
             dict.set_item(k, &v.original_text)?;
         }
         Ok(dict)
     }
 
+    /// `restore` with a plain `{placeholder_or_surrogate: original}` mapping instead of a vault.
     #[staticmethod]
-    fn restore_with_mapping(llm_response: &str, mapping: &Bound<'_, PyDict>) -> PyResult<String> {
-        let mut map = std::collections::HashMap::new();
-        for (k, v) in mapping.iter() {
-            let key: String = k.extract()?;
-            if let Ok(val_str) = v.extract::<String>() {
-                map.insert(key, val_str);
-            } else if let Ok(sub_dict) = v.downcast::<PyDict>() {
-                if let Some(orig) = sub_dict.get_item("original_text")? {
-                    let val_str: String = orig.extract()?;
-                    map.insert(key, val_str);
-                }
-            }
-        }
-        Ok(akana_core::pii::PiiVault::restore_with_mapping(
-            llm_response,
-            &map,
-        ))
+    fn restore_with_mapping(
+        py: Python<'_>,
+        llm_response: &str,
+        mapping: &Bound<'_, PyDict>,
+    ) -> PyResult<String> {
+        let map = mapping_from_dict(mapping)?;
+        release(py, || {
+            akana_core::pii::PiiVault::restore_with_mapping(llm_response, &map)
+        })
     }
 
-    fn __len__(&self) -> usize {
-        self.inner.len()
+    fn __len__(&self, py: Python<'_>) -> usize {
+        py.allow_threads(|| locked(&self.inner).len())
     }
 }
 
-/// Character offsets (Python string indices) of the entities' byte spans, in one pass over the
-/// text: counting from the start of the text for every entity was quadratic on entity-dense
-/// input (a log with an IP address on every line).
-fn entity_char_offsets(text: &str, entities: &[akana_core::pii::PiiEntity]) -> Vec<(usize, usize)> {
-    let bytes: Vec<usize> = entities.iter().flat_map(|e| [e.start, e.end]).collect();
-    let mut order: Vec<usize> = (0..bytes.len()).collect();
-    order.sort_by_key(|&i| bytes[i]);
-    let mut chars_at = vec![0usize; bytes.len()];
-    let (mut pos, mut chars) = (0usize, 0usize);
-    let mut it = text.char_indices();
-    for i in order {
-        while pos < bytes[i] {
-            match it.next() {
-                Some((b, c)) => {
-                    pos = b + c.len_utf8();
-                    chars += 1;
-                }
-                None => break,
-            }
-        }
-        chars_at[i] = chars;
-    }
-    chars_at.chunks(2).map(|p| (p[0], p[1])).collect()
-}
-
-#[pyclass(name = "TurkishPiiEngine")]
+/// Detects and masks Turkish personal data: names, T.C. identity and tax numbers, IBANs,
+/// cards, phones, e-mail and IP addresses, plates, dates, addresses and more.
+/// `use_embeddings` scores borderline names with the dense model; `preserve_corporate_emails`
+/// (default on) leaves role addresses (`info@`); `disabled_types` lists types not to detect;
+/// `preserve_public_figures` leaves well-known public names.
+#[pyclass(name = "TurkishPiiEngine", frozen)]
 pub struct PyTurkishPiiEngine {
-    inner: akana_core::pii::TurkishPiiEngine,
+    inner: Shared<akana_core::pii::TurkishPiiEngine>,
 }
 
 #[pymethods]
@@ -1231,17 +1927,19 @@ impl PyTurkishPiiEngine {
     #[new]
     #[pyo3(signature = (use_embeddings=false, preserve_corporate_emails=true, disabled_types=None, preserve_public_figures=false))]
     fn new(
+        py: Python<'_>,
         use_embeddings: bool,
         preserve_corporate_emails: bool,
         disabled_types: Option<Vec<String>>,
         preserve_public_figures: bool,
-    ) -> Self {
-        let mut engine = if use_embeddings {
-            let emb = std::sync::Arc::new(akana_core::embeddings::TurkishEmbeddings::new());
-            akana_core::pii::TurkishPiiEngine::with_embeddings(emb)
-        } else {
-            akana_core::pii::TurkishPiiEngine::new()
-        };
+    ) -> PyResult<Self> {
+        let mut engine = release(py, || {
+            if use_embeddings {
+                PII_ENGINE_WITH_EMBEDDINGS.clone()
+            } else {
+                akana_core::pii::TurkishPiiEngine::new()
+            }
+        })?;
         engine.set_preserve_corporate_emails(preserve_corporate_emails);
         engine.set_preserve_public_figures(preserve_public_figures);
         if let Some(types) = disabled_types {
@@ -1251,56 +1949,76 @@ impl PyTurkishPiiEngine {
                 }
             }
         }
-        Self { inner: engine }
+        Ok(Self {
+            inner: Shared::new(engine),
+        })
     }
 
-    fn disable_type(&mut self, pii_type: &str) -> PyResult<()> {
+    /// Stops detecting a PII type (`TCKN`, `IBAN`, `AD`, ...); `ValueError` for an unknown one.
+    fn disable_type(&self, py: Python<'_>, pii_type: &str) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.disable_type(pt);
-            Ok(())
+            release(py, || {
+                self.inner.update(|e| {
+                    e.disable_type(pt);
+                })
+            })
         } else {
-            Err(pyo3::exceptions::PyValueError::new_err(format!(
+            Err(PyValueError::new_err(format!(
                 "Unknown PiiType: {}",
                 pii_type
             )))
         }
     }
 
-    fn enable_type(&mut self, pii_type: &str) -> PyResult<()> {
+    /// Detects a PII type again; `ValueError` for an unknown one.
+    fn enable_type(&self, py: Python<'_>, pii_type: &str) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.enable_type(pt);
-            Ok(())
+            release(py, || {
+                self.inner.update(|e| {
+                    e.enable_type(pt);
+                })
+            })
         } else {
-            Err(pyo3::exceptions::PyValueError::new_err(format!(
+            Err(PyValueError::new_err(format!(
                 "Unknown PiiType: {}",
                 pii_type
             )))
         }
     }
 
-    fn set_type_enabled(&mut self, pii_type: &str, enabled: bool) -> PyResult<()> {
+    /// Turns detection of a PII type on or off; `ValueError` for an unknown one.
+    fn set_type_enabled(&self, py: Python<'_>, pii_type: &str, enabled: bool) -> PyResult<()> {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.set_type_enabled(pt, enabled);
-            Ok(())
+            release(py, || {
+                self.inner.update(|e| {
+                    e.set_type_enabled(pt, enabled);
+                })
+            })
         } else {
-            Err(pyo3::exceptions::PyValueError::new_err(format!(
+            Err(PyValueError::new_err(format!(
                 "Unknown PiiType: {}",
                 pii_type
             )))
         }
     }
 
+    /// Whether a PII type is detected; `ValueError` for an unknown one.
     fn is_type_enabled(&self, pii_type: &str) -> bool {
         if let Some(pt) = akana_core::pii::PiiType::from_name(pii_type) {
-            self.inner.is_type_enabled(pt)
+            self.inner.get().is_type_enabled(pt)
         } else {
             false
         }
     }
 
+    /// The personal data in the text: dicts with `text`, `label`, `pii_type`, character `start`
+    /// and `end`, `confidence`, and a name's `stem` and `suffix` (`Ahmet'e`: `Ahmet`, `'e`).
     fn detect<'py>(&self, py: Python<'py>, text: &str) -> PyResult<Bound<'py, PyList>> {
-        let entities = self.inner.detect(text);
-        let offsets = entity_char_offsets(text, &entities);
+        let (entities, offsets) = release(py, || {
+            let entities = self.inner.get().detect(text);
+            let offsets = entity_char_offsets(text, &entities);
+            (entities, offsets)
+        })?;
         let list = PyList::empty_bound(py);
         for (e, (char_start, char_end)) in entities.into_iter().zip(offsets) {
             let dict = PyDict::new_bound(py);
@@ -1317,46 +2035,79 @@ impl PyTurkishPiiEngine {
         Ok(list)
     }
 
+    /// The text with its personal data masked. `mode`: `placeholder` (`{{AD_1}}`), `tag` (`[AD]`),
+    /// `anonymize` or `surrogate` (realistic fake values). With a `vault` the same value keeps its
+    /// placeholder across calls. Returns `original_text`, `masked_text`, `entities`, `mapping` and
+    /// `detailed_mapping` (the placeholders of this call's text) and `vault` (the one passed, or a
+    /// new one).
     #[pyo3(signature = (text, mode="placeholder", vault=None))]
     fn mask<'py>(
         &self,
         py: Python<'py>,
         text: &str,
         mode: &str,
-        vault: Option<PyRefMut<'py, PyPiiVault>>,
+        vault: Option<PyRef<'py, PyPiiVault>>,
     ) -> PyResult<Bound<'py, PyDict>> {
         let pii_mode = match mode.to_lowercase().as_str() {
             "placeholder" => akana_core::pii::PiiMode::Placeholder,
             "tag" => akana_core::pii::PiiMode::Tag,
             "anonymize" => akana_core::pii::PiiMode::Anonymize,
             "surrogate" | "syntheticsurrogate" => akana_core::pii::PiiMode::SyntheticSurrogate,
-            _ => {
-                return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                    "Invalid mode: {}",
-                    mode
-                )))
-            }
+            _ => return Err(PyValueError::new_err(format!("Invalid mode: {}", mode))),
         };
 
-        let result = if let Some(mut v) = vault {
-            self.inner.mask_with_vault(text, pii_mode, &mut v.inner)
-        } else {
-            self.inner.mask(text, pii_mode)
-        };
+        let shared: Option<&PyPiiVault> = vault.as_deref();
+        let (masked_text, entities, entries, new_vault, offsets) = release(py, || {
+            let engine = self.inner.get();
+            let (masked_text, entities, entries, new_vault) = match shared {
+                // The text is read before the vault is taken, and only this call's entries are
+                // copied out of it (review 4 BIND4-06).
+                Some(v) => {
+                    let entities = engine.detect(text);
+                    let mut vault = locked(&v.inner);
+                    let (masked, used) = akana_core::pii::TurkishPiiEngine::mask_into(
+                        text, &entities, pii_mode, &mut vault,
+                    );
+                    let entries: Vec<akana_core::pii::VaultEntry> = used
+                        .iter()
+                        .filter_map(|p| vault.placeholder_to_entry.get(p).cloned())
+                        .collect();
+                    (masked, entities, entries, None)
+                }
+                None => {
+                    let result = engine.mask(text, pii_mode);
+                    let entries = result
+                        .vault
+                        .placeholder_to_entry
+                        .values()
+                        .cloned()
+                        .collect();
+                    (
+                        result.masked_text,
+                        result.entities,
+                        entries,
+                        Some(result.vault),
+                    )
+                }
+            };
+            let offsets = entity_char_offsets(text, &entities);
+            (masked_text, entities, entries, new_vault, offsets)
+        })?;
         let dict = PyDict::new_bound(py);
-        dict.set_item("original_text", &result.original_text)?;
-        dict.set_item("masked_text", &result.masked_text)?;
+        dict.set_item("original_text", text)?;
+        dict.set_item("masked_text", &masked_text)?;
 
-        // Plain string mapping: { placeholder_or_surrogate: original_text }
+        // Plain string mapping of this call: { placeholder_or_surrogate: original_text }
         let mapping_dict = PyDict::new_bound(py);
-        for (k, v) in &result.mapping {
-            mapping_dict.set_item(k, v)?;
+        for v in &entries {
+            mapping_dict.set_item(&v.placeholder, &v.original_text)?;
         }
         dict.set_item("mapping", mapping_dict)?;
 
         // Detailed mapping: { placeholder: { original_text, pii_label, stem, suffix } }
         let detailed_dict = PyDict::new_bound(py);
-        for (k, v) in &result.vault.placeholder_to_entry {
+        for v in &entries {
+            let k = &v.placeholder;
             let entry_dict = PyDict::new_bound(py);
             entry_dict.set_item("placeholder", &v.placeholder)?;
             entry_dict.set_item("original_text", &v.original_text)?;
@@ -1367,9 +2118,8 @@ impl PyTurkishPiiEngine {
         }
         dict.set_item("detailed_mapping", detailed_dict)?;
 
-        let offsets = entity_char_offsets(&result.original_text, &result.entities);
         let ent_list = PyList::empty_bound(py);
-        for (e, (char_start, char_end)) in result.entities.into_iter().zip(offsets) {
+        for (e, (char_start, char_end)) in entities.into_iter().zip(offsets) {
             let ent_dict = PyDict::new_bound(py);
             ent_dict.set_item("text", e.text)?;
             ent_dict.set_item("label", e.label)?;
@@ -1380,15 +2130,15 @@ impl PyTurkishPiiEngine {
             ent_list.append(ent_dict)?;
         }
         dict.set_item("entities", ent_list)?;
-        dict.set_item(
-            "vault",
-            Py::new(
-                py,
-                PyPiiVault {
-                    inner: result.vault,
-                },
+        // The vault passed in, itself (review 4 BIND4-06); a new one otherwise.
+        match (vault, new_vault) {
+            (Some(v), _) => dict.set_item("vault", v.into_py(py))?,
+            (None, Some(new)) => dict.set_item("vault", Py::new(py, PyPiiVault::new_with(new))?)?,
+            (None, None) => dict.set_item(
+                "vault",
+                Py::new(py, PyPiiVault::new_with(Default::default()))?,
             )?,
-        )?;
+        }
 
         Ok(dict)
     }
@@ -1399,7 +2149,7 @@ impl PyTurkishPiiEngine {
         &self,
         py: Python<'py>,
         text: &str,
-        vault: PyRefMut<'py, PyPiiVault>,
+        vault: PyRef<'py, PyPiiVault>,
         mode: &str,
     ) -> PyResult<Bound<'py, PyDict>> {
         self.mask(py, text, mode, Some(vault))
@@ -1410,58 +2160,63 @@ impl PyTurkishPiiEngine {
     #[pyo3(signature = (llm_response, mapping_or_vault))]
     fn restore(
         &self,
-        _py: Python<'_>,
+        py: Python<'_>,
         llm_response: &str,
         mapping_or_vault: &Bound<'_, PyAny>,
     ) -> PyResult<String> {
         if let Ok(vault) = mapping_or_vault.extract::<PyRef<PyPiiVault>>() {
-            Ok(self.inner.restore_response(llm_response, &vault.inner))
+            let vault: &PyPiiVault = &vault;
+            release(py, || {
+                self.inner
+                    .get()
+                    .restore_response(llm_response, &locked(&vault.inner))
+            })
         } else if let Ok(dict) = mapping_or_vault.downcast::<PyDict>() {
-            let mut map = std::collections::HashMap::new();
-            for (k, v) in dict.iter() {
-                let key: String = k.extract()?;
-                if let Ok(val_str) = v.extract::<String>() {
-                    map.insert(key, val_str);
-                } else if let Ok(sub_dict) = v.downcast::<PyDict>() {
-                    if let Some(orig) = sub_dict.get_item("original_text")? {
-                        let val_str: String = orig.extract()?;
-                        map.insert(key, val_str);
-                    }
-                }
-            }
-            Ok(akana_core::pii::PiiVault::restore_with_mapping(
-                llm_response,
-                &map,
-            ))
+            let map = mapping_from_dict(dict)?;
+            release(py, || {
+                akana_core::pii::PiiVault::restore_with_mapping(llm_response, &map)
+            })
         } else if let Ok(json_str) = mapping_or_vault.extract::<&str>() {
-            if let Ok(vault) = serde_json::from_str::<akana_core::pii::PiiVault>(json_str) {
-                Ok(self.inner.restore_response(llm_response, &vault))
-            } else if let Ok(map) =
-                serde_json::from_str::<std::collections::HashMap<String, String>>(json_str)
-            {
-                Ok(akana_core::pii::PiiVault::restore_with_mapping(
-                    llm_response,
-                    &map,
-                ))
-            } else {
-                Err(pyo3::exceptions::PyValueError::new_err(
-                    "Invalid JSON format for mapping or vault",
-                ))
-            }
+            release(py, || {
+                if let Ok(vault) = serde_json::from_str::<akana_core::pii::PiiVault>(json_str) {
+                    Some(self.inner.get().restore_response(llm_response, &vault))
+                } else if let Ok(map) =
+                    serde_json::from_str::<std::collections::HashMap<String, String>>(json_str)
+                {
+                    Some(akana_core::pii::PiiVault::restore_with_mapping(
+                        llm_response,
+                        &map,
+                    ))
+                } else {
+                    None
+                }
+            })?
+            .ok_or_else(|| PyValueError::new_err("Invalid JSON format for mapping or vault"))
         } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
+            Err(PyTypeError::new_err(
                 "Expected PiiVault, dict mapping, or JSON string for restoration",
             ))
         }
     }
 
-    fn restore_response(&self, llm_response: &str, vault: &PyPiiVault) -> String {
-        self.inner.restore_response(llm_response, &vault.inner)
+    /// The response with the vault's values restored (`PiiVault.restore`).
+    fn restore_response(
+        &self,
+        py: Python<'_>,
+        llm_response: &str,
+        vault: &PyPiiVault,
+    ) -> PyResult<String> {
+        release(py, || {
+            self.inner
+                .get()
+                .restore_response(llm_response, &locked(&vault.inner))
+        })
     }
 }
 
 #[pymodule]
 fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     m.add_function(wrap_pyfunction!(to_turkish_lower, m)?)?;
     m.add_function(wrap_pyfunction!(to_turkish_upper, m)?)?;
     m.add_function(wrap_pyfunction!(to_turkish_title, m)?)?;
@@ -1490,6 +2245,9 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(generate_humanizer_prompt, m)?)?;
     m.add_function(wrap_pyfunction!(check_grammar_json, m)?)?;
     m.add_function(wrap_pyfunction!(correct_grammar, m)?)?;
+    m.add_function(wrap_pyfunction!(grammar_rules_json, m)?)?;
+    m.add_function(wrap_pyfunction!(encoder_info_json, m)?)?;
+    m.add_function(wrap_pyfunction!(encoder_compatibility, m)?)?;
     m.add_function(wrap_pyfunction!(embed, m)?)?;
     m.add_function(wrap_pyfunction!(embed_packed_2bit, m)?)?;
     m.add_function(wrap_pyfunction!(embed_packed_1bit, m)?)?;
@@ -1525,6 +2283,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(validate_imei, m)?)?;
     m.add_function(wrap_pyfunction!(validate_ssn, m)?)?;
     m.add_function(wrap_pyfunction!(harmonize_suffix, m)?)?;
+    m.add_function(wrap_pyfunction!(_panic_for_tests, m)?)?;
     m.add_class::<PySpellChecker>()?;
     m.add_class::<PyMorphology>()?;
     m.add_class::<PySyntacticMorphology>()?;

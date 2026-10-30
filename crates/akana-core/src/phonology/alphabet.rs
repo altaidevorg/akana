@@ -42,7 +42,8 @@ pub const SOFT_CONSONANTS: [char; 13] = [
 pub const MUTABLE_CONSONANTS: [char; 4] = ['p', 'ç', 't', 'k'];
 
 /// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
-/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+/// detector's inputs and fails `style::ai_detector::tests::inputs_match_drift_canary` (and
+/// `outputs_match_training_reference` when its sample shows it).
 #[inline]
 pub fn is_turkish_vowel(c: char) -> bool {
     matches!(
@@ -98,7 +99,8 @@ pub fn is_unrounded_vowel(c: char) -> bool {
 }
 
 /// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
-/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+/// detector's inputs and fails `style::ai_detector::tests::inputs_match_drift_canary` (and
+/// `outputs_match_training_reference` when its sample shows it).
 #[inline]
 pub fn is_hard_consonant(c: char) -> bool {
     matches!(
@@ -153,30 +155,33 @@ pub fn is_soft_consonant(c: char) -> bool {
     )
 }
 
-/// Converts a single character to lower case following Turkish casing rules.
+/// Converts a single character to lower case following Turkish casing rules (ÇAĞ -> çağ). A
+/// character whose lower case is several characters keeps its first.
 #[inline]
 pub fn to_turkish_lower_char(c: char) -> char {
     match c {
         'I' => 'ı',
         'İ' => 'i',
-        _ => c.to_ascii_lowercase(),
+        _ => c.to_lowercase().next().unwrap_or(c),
     }
 }
 
-/// Converts a single character to upper case following Turkish casing rules.
+/// Converts a single character to upper case following Turkish casing rules (Türkçe ->
+/// TÜRKÇE). A character whose upper case is several characters keeps its first.
 #[inline]
 pub fn to_turkish_upper_char(c: char) -> char {
     match c {
         'ı' => 'I',
         'i' => 'İ',
-        _ => c.to_ascii_uppercase(),
+        _ => c.to_uppercase().next().unwrap_or(c),
     }
 }
 
 /// Converts a string slice to lowercase according to Turkish locale rules (e.g. 'I' -> 'ı', 'İ' -> 'i').
 ///
 /// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
-/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+/// detector's inputs and fails `style::ai_detector::tests::inputs_match_drift_canary` (and
+/// `outputs_match_training_reference` when its sample shows it).
 pub fn to_turkish_lower(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     for c in s.chars() {
@@ -286,4 +291,17 @@ pub fn first_vowel(s: &str) -> Option<char> {
 /// Returns the number of syllables (vowels) in a Turkish word.
 pub fn syllable_count(s: &str) -> usize {
     s.chars().filter(|&c| is_turkish_vowel(c)).count()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_the_case_of_every_turkish_letter() {
+        let lower: String = "ÇAĞ İŞÖÜI".chars().map(to_turkish_lower_char).collect();
+        assert_eq!(lower, "çağ işöüı");
+        let upper: String = "çağ işöüı".chars().map(to_turkish_upper_char).collect();
+        assert_eq!(upper, "ÇAĞ İŞÖÜI");
+    }
 }

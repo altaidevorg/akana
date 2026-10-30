@@ -173,6 +173,14 @@ lazy_static! {
     };
 }
 
+/// The default stopword list, sorted, as text for the encoder fingerprint
+/// ([`crate::embeddings::encoder_info`]): the sparse encoder drops these lemmas.
+pub fn stopwords_fingerprint_constants() -> String {
+    let mut words: Vec<&str> = DEFAULT_STOPWORDS.iter().copied().collect();
+    words.sort_unstable();
+    words.join(" ")
+}
+
 pub struct TurkishStopwords {
     stopwords: HashSet<String>,
 }

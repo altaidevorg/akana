@@ -1,0 +1,41 @@
+# What the grammar checker writes for sentences with an error, and for their look-alikes it
+# must leave alone (review 3 GRAM3-04): input, then the exact `correct()` output, separated by
+# a tab. Synthetic sentences. Edit by hand: a line changes only when a rule deliberately does.
+# --- de/da written on a word (GRAM3-01: no apostrophe left behind)
+Ben onu'da gördüm.	Ben onu da gördüm.
+Ben kitabı'da aldım.	Ben kitabı da aldım.
+Gittide geldi.	Gitti de geldi.
+Evede gitti.	Eve de gitti.
+KİTABIDA ALDIM.	KİTABI DA ALDIM.
+ALİ GİTTİDE GELDİ.	ALİ GİTTİ DE GELDİ.
+Ben de geldim.	Ben de geldim.
+Mahkeme kararında bunu belirtti.	Mahkeme kararında bunu belirtti.
+# --- a genitive with -da written on it, and the misspelt locatives that look like one (GRAM3-02)
+Bu ülkeninde vatandaşıydı.	Bu ülkenin de vatandaşıydı.
+Her iki aileninde fertleri geldi.	Her iki ailenin de fertleri geldi.
+Benim seninde gelmeni isterim.	Benim senin de gelmeni isterim.
+Dosyanında incelenmesi gerekir.	Dosyanın da incelenmesi gerekir.
+Davanında reddine karar verildi.	Davanın da reddine karar verildi.
+Mahkemeninde kabulünde olduğu üzere dava reddedildi.	Mahkemenin de kabulünde olduğu üzere dava reddedildi.
+Hakkınında karar verildi.	Hakkının da karar verildi.
+Faturasınında ödenmesi gerekir.	Faturasının da ödenmesi gerekir.
+Bölünmeninde etkisi var.	Bölünmenin de etkisi var.
+Faiz aranında artış oldu.	Faiz aranında artış oldu.
+Davanın alınında görüldüğü gibi.	Davanın alınında görüldüğü gibi.
+Hediyelik eşya alınında indirim var.	Hediyelik eşya alınında indirim var.
+# --- the question particle written on the word (GRAM3-03)
+Ahmetmi geldi?	Ahmet mi geldi?
+Öztürkmü soyadı?	Öztürk mü soyadı?
+Türkiye'denmi geldin?	Türkiye'den mi geldin?
+Ankara'nınmı yoksa AB'ninmi?	Ankara'nın mı yoksa AB'nin mi?
+İtalyanmısınız?	İtalyan mısınız?
+Varmı?	Var mı?
+Yokmu?	Yok mu?
+VARMI?	VAR MI?
+Bunu biliyormusun?	Bunu biliyor musun?
+Yarın gelecekmisin?	Yarın gelecek misin?
+Hükmü kesinleşti.	Hükmü kesinleşti.
+# --- words that look like an error and are not
+Dava, ketmi verese hukuki nedenine dayalı tapu iptali istemine ilişkindir.	Dava, ketmi verese hukuki nedenine dayalı tapu iptali istemine ilişkindir.
+Hükümet toplandı.	Hükümet toplandı.
+Alınan karar.	Alınan karar.

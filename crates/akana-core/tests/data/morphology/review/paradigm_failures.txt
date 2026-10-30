@@ -1,0 +1,18 @@
+# Gold items the analyzer gets wrong today (tests/review_gold.rs).
+# 722 of 735 checks pass (98.2 %)
+#   ACC 596/598
+#   REJ 74/85
+#   REJL 52/52
+nouns: -ki -lI -sIz -lIk -CI -CIk	ACC	benimki	ben	*
+nouns: vowel drop / doubling / inverse harmony	REJ	akılı
+nouns: vowel drop / doubling / inverse harmony	REJ	burunu
+nouns: vowel drop / doubling / inverse harmony	REJ	isimi
+nouns: vowel drop / doubling / inverse harmony	REJ	sırı
+nouns: vowel-final, buffers	REJ	evye
+nouns: vowel-final, buffers	REJ	sunun
+pronouns	REJ	banı
+pronouns	REJ	bene
+pronouns	REJ	sene
+proper nouns and abbreviations	REJ	Ahmed'e
+question particle, değil, imek	ACC	iken	imek	*
+question particle, değil, imek	REJ	değilsiniz'

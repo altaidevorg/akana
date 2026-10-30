@@ -1,281 +1,321 @@
-//! Two-level Syntactic Morphological Analyzer with Inflectional Groups (IG) and zero-derivation elimination.
+//! Syntactic analysis: the morphological analyzer's readings split into inflectional groups
+//! (IGs) with Universal Dependencies features.
+//!
+//! The groups come from the morphotactic path of each reading, as in Zemberek: a derivative
+//! state (PastPart, Caus, Ness, ...) opens a group, and the POS-root state that follows it gives
+//! the group's POS. Zero derivations are eliminated as in Öztürel et al. (FSMNLP 2019): a zero
+//! derivation to a noun (güzel-ler, ev-de-ki-ler) re-categorises the group it follows, and only
+//! the copula (zero derivation to a nominal predicate: evde-yim, güzel-di) opens a group, which
+//! UD treebanks split off as the auxiliary.
 
-use super::lexicon::{SyntacticLexicon, SyntacticPOS};
 use super::types::{InflectionalGroup, SyntacticParse};
-use crate::morphology::{PrimaryPos, TurkishMorphology};
-use crate::phonology::to_turkish_lower;
+use crate::morphology::analyzer::ENGINE;
+use crate::morphology::morphotactics::Morpheme as M;
+use crate::morphology::{verb_form_of, MorphParse, PrimaryPos, SecondaryPos, TurkishMorphology};
+use std::collections::BTreeMap;
 
+/// The syntactic analyzer. It shares the morphological analyzer's lexicon and ranking, so its
+/// parses come most likely first.
+#[derive(Clone, Default)]
 pub struct TurkishSyntacticMorphology {
-    lexicon: SyntacticLexicon,
-    fallback_morphology: TurkishMorphology,
-}
-
-impl Default for TurkishSyntacticMorphology {
-    fn default() -> Self {
-        Self::new()
-    }
+    morphology: TurkishMorphology,
 }
 
 impl TurkishSyntacticMorphology {
     pub fn new() -> Self {
         Self {
-            lexicon: SyntacticLexicon::new(),
-            fallback_morphology: TurkishMorphology::new(),
+            morphology: TurkishMorphology::new(),
         }
     }
 
-    /// Performs two-level syntactic morphological analysis on a Turkish word,
-    /// returning hierarchical Inflectional Group (IG) structured parses.
+    /// An analyzer over a morphological analyzer of one's own (a custom lexicon).
+    pub fn with_morphology(morphology: TurkishMorphology) -> Self {
+        Self { morphology }
+    }
+
+    /// The parses of a word, most likely first, each split into inflectional groups.
     pub fn analyze(&self, word: &str) -> Vec<SyntacticParse> {
-        let lower = to_turkish_lower(word);
-        let mut results = Vec::new();
-
-        // 1. Direct dictionary match (Roots without suffixes)
-        if let Some(entries) = self.lexicon.lookup(&lower) {
-            for entry in entries {
-                let is_proper = entry.primary_pos == SyntacticPOS::ProperNoun;
-                let mut ig = InflectionalGroup::new(entry.primary_pos.as_str());
-
-                match entry.primary_pos {
-                    SyntacticPOS::Noun => {
-                        ig.set_feature("PersonNumber", "A3sg");
-                        ig.set_feature("Possessive", "Pnon");
-                        ig.set_feature("Case", "Nom");
-                    }
-                    SyntacticPOS::Verb => {
-                        ig.set_feature("Polarity", "Pos");
-                        ig.set_feature("PersonNumber", "A3sg");
-                    }
-                    SyntacticPOS::Adj | SyntacticPOS::Adv => {}
-                    _ => {}
-                }
-
-                results.push(SyntacticParse::new(
-                    word,
-                    &entry.lemma,
-                    entry.primary_pos.as_str(),
-                    vec![ig],
-                    is_proper,
-                ));
-
-                // Add cross-categorized zero-derivation-free parses (e.g. "güzel" -> [ADJ], [ADV], [NN])
-                for &sec_pos in &entry.secondary_pos {
-                    let mut sec_ig = InflectionalGroup::new(sec_pos.as_str());
-                    if sec_pos == SyntacticPOS::Noun {
-                        sec_ig.set_feature("PersonNumber", "A3sg");
-                        sec_ig.set_feature("Possessive", "Pnon");
-                        sec_ig.set_feature("Case", "Nom");
-                    }
-                    results.push(SyntacticParse::new(
-                        word,
-                        &entry.lemma,
-                        sec_pos.as_str(),
-                        vec![sec_ig],
-                        false,
-                    ));
-                }
+        let mut parses: Vec<SyntacticParse> = Vec::new();
+        for reading in self.morphology.analyze(word) {
+            // Readings that differ only in what zero derivations hide come out equal (güzel-ler
+            // from the adjective and from the noun).
+            let parse = Self::from_parse(word, &reading);
+            if !parses.iter().any(|p| p.formatted == parse.formatted) {
+                parses.push(parse);
             }
         }
-
-        // 2. Multi-tier Inflectional Group synthesis from underlying morphotactic engine
-        let base_parses = self.fallback_morphology.analyze(word);
-        for bp in base_parses {
-            let root_lemma = bp.lemma.clone();
-            let root_pos = bp.primary_pos;
-            let root_pos_str = match root_pos {
-                PrimaryPos::Verb => "VB",
-                PrimaryPos::Adj => "ADJ",
-                PrimaryPos::Adv => "ADV",
-                PrimaryPos::Pron => "PRON",
-                PrimaryPos::Num => "NUM",
-                PrimaryPos::Conj => "CONJ",
-                PrimaryPos::Postp => "POSTP",
-                PrimaryPos::Interj => "INTERJ",
-                PrimaryPos::Det => "DET",
-                _ => "NN",
-            };
-
-            let morphemes = bp.morpheme_tags;
-            let mut groups = Vec::new();
-            let mut current_ig = InflectionalGroup::new(root_pos_str);
-
-            // Set default root features
-            if root_pos == PrimaryPos::Verb {
-                current_ig.set_feature("Polarity", "Pos");
-            } else if root_pos == PrimaryPos::Noun {
-                current_ig.set_feature("PersonNumber", "A3sg");
-                current_ig.set_feature("Possessive", "Pnon");
-                current_ig.set_feature("Case", "Nom");
-            }
-
-            for m in &morphemes {
-                match m.as_str() {
-                    // Derivational Boundaries (Creating new Inflectional Groups)
-                    "PastNom" | "PastPart" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("NOMP", "PastNom");
-                        current_ig.set_feature("PersonNumber", "A3sg");
-                        current_ig.set_feature("Possessive", "Pnon");
-                        current_ig.set_feature("Case", "Nom");
-                    }
-                    "PresPart" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("ADJP", "PresPart");
-                    }
-                    "FutPart" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("ADJP", "FutPart");
-                    }
-                    "NarrPart" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("ADJP", "NarrPart");
-                    }
-                    "Inf" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("NOMP", "Inf");
-                        current_ig.set_feature("PersonNumber", "A3sg");
-                        current_ig.set_feature("Possessive", "Pnon");
-                        current_ig.set_feature("Case", "Nom");
-                    }
-                    "Agt" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("NN", "Agt");
-                        current_ig.set_feature("PersonNumber", "A3sg");
-                        current_ig.set_feature("Possessive", "Pnon");
-                        current_ig.set_feature("Case", "Nom");
-                    }
-                    "Dim" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("NN", "Dim");
-                    }
-                    "With" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("ADJP", "With");
-                    }
-                    "Without" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("ADJP", "Without");
-                    }
-                    "Become" => {
-                        groups.push(current_ig);
-                        current_ig = InflectionalGroup::with_derivation("VB", "Become");
-                        current_ig.set_feature("Polarity", "Pos");
-                    }
-                    "Caus" => {
-                        current_ig.set_feature("Voice", "Caus");
-                    }
-                    "Pass" => {
-                        current_ig.set_feature("Voice", "Pass");
-                    }
-                    "Neg" => {
-                        current_ig.set_feature("Polarity", "Neg");
-                    }
-
-                    // Nominal Inflections
-                    "A1sg" => {
-                        current_ig.set_feature("PersonNumber", "A1sg");
-                    }
-                    "A2sg" => {
-                        current_ig.set_feature("PersonNumber", "A2sg");
-                    }
-                    "A3sg" => {
-                        current_ig.set_feature("PersonNumber", "A3sg");
-                    }
-                    "A1pl" => {
-                        current_ig.set_feature("PersonNumber", "A1pl");
-                    }
-                    "A2pl" => {
-                        current_ig.set_feature("PersonNumber", "A2pl");
-                    }
-                    "A3pl" => {
-                        current_ig.set_feature("PersonNumber", "A3pl");
-                    }
-
-                    "Pnon" => {
-                        current_ig.set_feature("Possessive", "Pnon");
-                    }
-                    "P1sg" => {
-                        current_ig.set_feature("Possessive", "P1sg");
-                    }
-                    "P2sg" => {
-                        current_ig.set_feature("Possessive", "P2sg");
-                    }
-                    "P3sg" => {
-                        current_ig.set_feature("Possessive", "P3sg");
-                    }
-                    "P1pl" => {
-                        current_ig.set_feature("Possessive", "P1pl");
-                    }
-                    "P2pl" => {
-                        current_ig.set_feature("Possessive", "P2pl");
-                    }
-                    "P3pl" => {
-                        current_ig.set_feature("Possessive", "P3pl");
-                    }
-
-                    "Nom" => {
-                        current_ig.set_feature("Case", "Nom");
-                    }
-                    "Acc" => {
-                        current_ig.set_feature("Case", "Acc");
-                    }
-                    "Dat" => {
-                        current_ig.set_feature("Case", "Dat");
-                    }
-                    "Loc" => {
-                        current_ig.set_feature("Case", "Loc");
-                    }
-                    "Abl" => {
-                        current_ig.set_feature("Case", "Abl");
-                    }
-                    "Gen" => {
-                        current_ig.set_feature("Case", "Gen");
-                    }
-                    "Ins" => {
-                        current_ig.set_feature("Case", "Ins");
-                    }
-
-                    // Verbal Inflections
-                    "Past" => {
-                        current_ig.set_feature("Tense", "Past");
-                    }
-                    "Narr" => {
-                        current_ig.set_feature("Tense", "Narr");
-                    }
-                    "Fut" => {
-                        current_ig.set_feature("Tense", "Fut");
-                    }
-                    "Prog1" | "Prog2" => {
-                        current_ig.set_feature("Aspect", "Prog");
-                    }
-                    "Aor" => {
-                        current_ig.set_feature("Tense", "Aor");
-                    }
-                    "Des" => {
-                        current_ig.set_feature("Mood", "Des");
-                    }
-                    "Nec" => {
-                        current_ig.set_feature("Mood", "Nec");
-                    }
-                    "Cop" => {
-                        current_ig.set_feature("Copula", "PresCop");
-                    }
-                    _ => {}
-                }
-            }
-
-            groups.push(current_ig);
-
-            let is_proper = bp.secondary_pos == crate::morphology::SecondaryPos::ProperNoun;
-            let parse = SyntacticParse::new(word, &root_lemma, root_pos_str, groups, is_proper);
-
-            results.push(parse);
-        }
-
-        // Deduplicate parses by formatted representation
-        results.sort_by(|a, b| a.formatted.cmp(&b.formatted));
-        results.dedup_by(|a, b| a.formatted == b.formatted);
-
-        results
+        parses
     }
+
+    /// The inflectional groups of one morphological reading (a disambiguated one, say). A
+    /// reading not made by the analyzer (deserialized, or the disambiguator's unknown word) has no
+    /// path and gives one group with its POS.
+    pub fn from_parse(surface: &str, parse: &MorphParse) -> SyntacticParse {
+        let groups = groups_of(parse);
+        let root_pos = groups.first().map_or("UNK", |g| g.pos.as_str()).to_string();
+        SyntacticParse::new(
+            surface,
+            &parse.root,
+            root_pos,
+            groups,
+            parse.secondary_pos == SecondaryPos::ProperNoun,
+        )
+    }
+}
+
+/// One group while the path is read.
+struct Group {
+    /// The POS of the group's last POS-root state.
+    pos: PrimaryPos,
+    /// The morpheme that opened the group (`Zero` for the copula); `None` for the root's group.
+    derivation: Option<M>,
+    /// The POS of the group it was derived from.
+    source: Option<PrimaryPos>,
+    /// A nominal predicate (the copula, değil, the question particle, imek): no default polarity.
+    predicate: bool,
+    features: BTreeMap<String, String>,
+    /// Mood and Voice values, which UD Turkish concatenates when a word has several (GenPot,
+    /// CauPass).
+    moods: Vec<&'static str>,
+    voices: Vec<&'static str>,
+    /// The last tense or mood suffix of the group: a past or evidential after it is the copula.
+    tense: Option<M>,
+}
+
+impl Group {
+    fn new(pos: PrimaryPos, derivation: Option<M>, source: Option<PrimaryPos>) -> Self {
+        Group {
+            pos,
+            derivation,
+            source,
+            predicate: false,
+            features: BTreeMap::new(),
+            moods: Vec::new(),
+            voices: Vec::new(),
+            tense: None,
+        }
+    }
+
+    fn set(&mut self, key: &str, value: &str) {
+        self.features.insert(key.to_string(), value.to_string());
+    }
+
+    /// The UD features of an inflectional morpheme.
+    fn inflect(&mut self, m: M) {
+        let person = |m: M| match m {
+            M::A1sg | M::A1pl | M::P1sg | M::P1pl => "1",
+            M::A2sg | M::A2pl | M::P2sg | M::P2pl => "2",
+            _ => "3",
+        };
+        let number = |m: M| match m {
+            M::A1sg | M::A2sg | M::A3sg | M::P1sg | M::P2sg | M::P3sg => "Sing",
+            _ => "Plur",
+        };
+        match m {
+            M::A1sg | M::A2sg | M::A3sg | M::A1pl | M::A2pl | M::A3pl => {
+                self.set("Number", number(m));
+                self.set("Person", person(m));
+            }
+            M::P1sg | M::P2sg | M::P3sg | M::P1pl | M::P2pl | M::P3pl => {
+                self.set("Number[psor]", number(m));
+                self.set("Person[psor]", person(m));
+            }
+            M::Nom | M::Dat | M::Acc | M::Abl | M::Loc | M::Ins | M::Gen | M::Equ => {
+                self.set("Case", m.id());
+            }
+            M::Neg => self.set("Polarity", "Neg"),
+            M::Unable => {
+                self.set("Polarity", "Neg");
+                self.moods.push("Pot");
+            }
+            M::Pres => self.set("Tense", "Pres"),
+            M::Past | M::Narr => {
+                match self.tense {
+                    // A second past is the pluperfect (gelmişti, gittiydi).
+                    Some(M::Past | M::Narr) => self.set("Tense", "Pqp"),
+                    // The future in the past is prospective (gelecekti).
+                    Some(M::Fut) => {
+                        self.set("Tense", "Past");
+                        self.set("Aspect", "Prosp");
+                    }
+                    // After another tense or mood the aspect stays (geliyordu, gelirdi).
+                    Some(_) => self.set("Tense", "Past"),
+                    None => {
+                        self.set("Tense", "Past");
+                        self.set("Aspect", "Perf");
+                    }
+                }
+                self.set("Evident", if m == M::Past { "Fh" } else { "Nfh" });
+            }
+            M::Prog1 | M::Prog2 => {
+                self.set("Tense", "Pres");
+                self.set("Aspect", "Prog");
+            }
+            M::Aor => {
+                self.set("Tense", "Pres");
+                self.set("Aspect", "Hab");
+                self.moods.push("Gen");
+            }
+            M::Fut => {
+                self.set("Tense", "Fut");
+                self.set("Aspect", "Perf");
+            }
+            M::Neces => {
+                self.set("Tense", "Pres");
+                self.moods.push("Nec");
+            }
+            M::Imp => self.moods.push("Imp"),
+            M::Opt => self.moods.push("Opt"),
+            M::Desr => self.moods.push("Des"),
+            M::Cond => self.moods.push("Cnd"),
+            M::Cop => self.moods.push("Gen"),
+            _ => {}
+        }
+        if matches!(
+            m,
+            M::Prog1 | M::Prog2 | M::Aor | M::Fut | M::Past | M::Narr | M::Opt | M::Desr | M::Neces
+        ) {
+            self.tense = Some(m);
+        }
+    }
+
+    fn finish(mut self) -> InflectionalGroup {
+        let derived = self.derivation.is_some();
+        let from_verb = self.source == Some(PrimaryPos::Verb);
+        let pos = match self.pos {
+            PrimaryPos::Noun if derived && from_verb => "NOMP",
+            PrimaryPos::Noun => "NN",
+            PrimaryPos::Adj if derived => "ADJP",
+            PrimaryPos::Adj => "ADJ",
+            PrimaryPos::Verb => "VB",
+            PrimaryPos::Adv => "ADV",
+            PrimaryPos::Pron => "PRON",
+            PrimaryPos::Num => "NUM",
+            PrimaryPos::Det => "DET",
+            PrimaryPos::Conj => "CONJ",
+            PrimaryPos::Postp => "POSTP",
+            PrimaryPos::Interj => "INTERJ",
+            PrimaryPos::Q => "QUES",
+            PrimaryPos::Dup => "DUP",
+            PrimaryPos::Punc => "PUNC",
+            PrimaryPos::Unknown => "UNK",
+        };
+        if !self.voices.is_empty() {
+            self.voices.sort_unstable();
+            self.set("Voice", &self.voices.concat());
+        }
+        let verbal = self.pos == PrimaryPos::Verb || self.pos == PrimaryPos::Q;
+        if verbal {
+            // Every finite verb ends in a person (Zemberek's paths carry the silent 3rd person);
+            // a tense or mood before a converb or participle is not finite (gel-ir-ken,
+            // gel-ebil-ir "able to come").
+            let finite = self.features.contains_key("Person");
+            if finite {
+                if self.moods.is_empty() {
+                    self.moods.push("Ind");
+                }
+                self.set("VerbForm", "Fin");
+            }
+            if self.pos == PrimaryPos::Verb && !self.predicate {
+                self.features
+                    .entry("Polarity".to_string())
+                    .or_insert_with(|| "Pos".to_string());
+            }
+        }
+        if !self.moods.is_empty() {
+            self.moods.sort_unstable();
+            self.set("Mood", &self.moods.concat());
+        }
+        if let Some(form) = self
+            .derivation
+            .filter(|_| from_verb)
+            .and_then(|m| verb_form_of(m, self.pos))
+        {
+            self.set("VerbForm", form.as_str());
+        }
+        let derivation = self.derivation.map(|m| match m {
+            M::Zero => "Cop",
+            // The -DIk and -(y)AcAk nominalisations (gel-diğ-imiz-de), as Öztürel et al. name
+            // them; as adjectives they are participles (gel-diğ-imiz gün).
+            M::PastPart if self.pos == PrimaryPos::Noun => "PastNom",
+            M::FutPart if self.pos == PrimaryPos::Noun => "FutNom",
+            m => m.id(),
+        });
+        InflectionalGroup {
+            pos: pos.to_string(),
+            derivation: derivation.map(str::to_string),
+            features: self.features,
+        }
+    }
+}
+
+/// The inflectional groups of a reading, read off its morphotactic path.
+fn groups_of(parse: &MorphParse) -> Vec<InflectionalGroup> {
+    let engine = &*ENGINE;
+    let graph = &engine.graph;
+    let path = &parse.path;
+    let Some(root) = path.root else {
+        return vec![Group::new(parse.primary_pos, None, None).finish()];
+    };
+    let root_state = &graph.states[root.0 as usize];
+    let mut current = Group::new(
+        root_state.morpheme.pos().unwrap_or(parse.primary_pos),
+        None,
+        None,
+    );
+    current.predicate = engine.roots.nominal_verb.contains(root);
+    let mut groups = Vec::new();
+    // A zero derivation waiting for the POS root it leads to.
+    let mut zero = false;
+    for step in &path.steps {
+        let state = &graph.states[step.state.0 as usize];
+        let m = state.morpheme;
+        // A postposition read as a noun (sonra-sı) reaches its noun state without a POS root.
+        if state.pos_root || (zero && m.pos().is_some()) {
+            let Some(pos) = m.pos() else { continue };
+            if zero && engine.roots.nominal_verb.contains(step.state) {
+                // The copula: a group of its own.
+                let source = current.pos;
+                groups.push(std::mem::replace(
+                    &mut current,
+                    Group::new(pos, Some(M::Zero), Some(source)),
+                ));
+                current.predicate = true;
+            } else if !(zero && current.pos == PrimaryPos::Num) {
+                // Zero derivation eliminated: the group takes the POS it inflects as (güzel-ler
+                // is a noun); a numeral stays one (1923'te, iki-si).
+                current.pos = pos;
+            }
+            zero = false;
+            continue;
+        }
+        if state.derivative {
+            if m == M::Zero {
+                zero = true;
+            } else if !step.overt && matches!(m, M::Recip | M::Reflex) {
+                // A lexically reciprocal or reflexive verb (dövüş, giyin): a voice, no group.
+                current
+                    .voices
+                    .push(if m == M::Recip { "Rcp" } else { "Rfl" });
+            } else {
+                let source = current.pos;
+                groups.push(std::mem::replace(
+                    &mut current,
+                    Group::new(source, Some(m), Some(source)),
+                ));
+                match m {
+                    M::Caus => current.voices.push("Cau"),
+                    M::Pass => current.voices.push("Pass"),
+                    M::Recip => current.voices.push("Rcp"),
+                    M::Reflex => current.voices.push("Rfl"),
+                    M::Able => current.moods.push("Pot"),
+                    _ => {}
+                }
+            }
+            continue;
+        }
+        current.inflect(m);
+    }
+    groups.push(current);
+    groups.into_iter().map(Group::finish).collect()
 }

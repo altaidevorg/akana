@@ -6,9 +6,8 @@
 
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use stringzilla::StringZilla;
 
-use super::{ErrorCategory, GrammarFinding};
+use super::{match_case, GrammarFinding, GrammarRule, RuleSet};
 use crate::phonology::to_turkish_lower;
 
 lazy_static! {
@@ -70,7 +69,6 @@ lazy_static! {
         m.insert("beraber birlikte", ("beraber", "Gereksiz sözcük tekrarı."));
         m.insert("ilk başlangıç", ("başlangıç", "Gereksiz sözcük kullanımı."));
         m.insert("geri iade", ("iade", "'İade etmek' zaten geri vermektir; 'geri' sözcüğü gereksizdir."));
-        m.insert("kendi öz", ("öz", "Gereksiz sözcük kullanımı."));
         m.insert("şüphesiz kuşkusuz", ("şüphesiz", "Gereksiz sözcük tekrarı."));
         m.insert("aynen tamamen", ("tamamen", "Gereksiz sözcük tekrarı."));
         m
@@ -84,10 +82,13 @@ impl LexiconRuleEngine {
         text: &str,
         tokens: &[&str],
         token_spans: &[(usize, usize)],
+        rules: RuleSet,
         findings: &mut Vec<GrammarFinding>,
     ) {
-        Self::check_compound_verbs(tokens, token_spans, findings);
-        Self::check_tautologies(text, findings);
+        Self::check_compound_verbs(tokens, token_spans, rules, findings);
+        if rules.contains(GrammarRule::Tautology) {
+            Self::check_tautologies(text, tokens, token_spans, findings);
+        }
     }
 
     /// 1. Compound Verbs:
@@ -96,6 +97,7 @@ impl LexiconRuleEngine {
     fn check_compound_verbs(
         tokens: &[&str],
         token_spans: &[(usize, usize)],
+        rules: RuleSet,
         findings: &mut Vec<GrammarFinding>,
     ) {
         let n = tokens.len();
@@ -105,23 +107,24 @@ impl LexiconRuleEngine {
             let lower = to_turkish_lower(tok);
             let (start, end) = token_spans[i];
 
+            if !rules.contains(GrammarRule::CompoundVerbMerged) {
+                break;
+            }
             if let Some(&correct_form) = SEPARATE_COMPOUND_VERBS.get(lower.as_str()) {
-                findings.push(GrammarFinding {
-                    category: ErrorCategory::CompoundWordOrthography,
-                    start_offset: start,
-                    end_offset: end,
-                    original_text: tok.to_string(),
-                    replacement: correct_form.to_string(),
-                    message_tr: "Ses düşmesi veya türemesi olmayan birleşik fiiller ayrı yazılır.".to_string(),
-                    message_en: "Compound auxiliary verbs without phonological mutation must be written separately.".to_string(),
-                    confidence: 0.99,
-                });
+                findings.push(GrammarFinding::new(
+                    GrammarRule::CompoundVerbMerged,
+                    (start, end),
+                    tok.to_string(),
+                    match_case(tok, correct_form),
+                    "Ses düşmesi veya türemesi olmayan birleşik fiiller ayrı yazılır.".to_string(),
+                    "Compound auxiliary verbs without phonological mutation must be written separately.".to_string(),
+                ));
             }
         }
 
         // Check two-token pairs that should be attached (e.g. "hiss etmek", "kayıp olmak")
         for i in 0..n {
-            if i + 1 < n {
+            if rules.contains(GrammarRule::CompoundVerbSplit) && i + 1 < n {
                 let pair = format!(
                     "{} {}",
                     to_turkish_lower(tokens[i]),
@@ -130,45 +133,49 @@ impl LexiconRuleEngine {
                 if let Some(&attached_form) = ATTACHED_COMPOUND_VERBS.get(pair.as_str()) {
                     let start = token_spans[i].0;
                     let end = token_spans[i + 1].1;
-                    findings.push(GrammarFinding {
-                        category: ErrorCategory::CompoundWordOrthography,
-                        start_offset: start,
-                        end_offset: end,
-                        original_text: format!("{} {}", tokens[i], tokens[i + 1]),
-                        replacement: attached_form.to_string(),
-                        message_tr: "Ses düşmesi veya ünsüz türemesine uğrayan birleşik fiiller bitişik yazılır.".to_string(),
-                        message_en: "Compound auxiliary verbs with sound changes must be written attached.".to_string(),
-                        confidence: 0.99,
-                    });
+                    findings.push(GrammarFinding::new(
+                        GrammarRule::CompoundVerbSplit,
+                        (start, end),
+                        format!("{} {}", tokens[i], tokens[i + 1]),
+                        match_case(tokens[i], attached_form),
+                        "Ses düşmesi veya ünsüz türemesine uğrayan birleşik fiiller bitişik yazılır.".to_string(),
+                        "Compound auxiliary verbs with sound changes must be written attached.".to_string(),
+                    ));
                 }
             }
         }
     }
 
-    /// 2. Tautologies & Pleonasms (Accelerated with StringZilla SIMD find):
-    fn check_tautologies(text: &str, findings: &mut Vec<GrammarFinding>) {
-        // Offsets in the lower-cased copy differ from `text`'s after every İ/I: map them back,
-        // or the finding (and the correction applied from it) lands on the wrong bytes, and
-        // slicing `text` panics inside a character.
-        let (text_lower, origin) = crate::phonology::to_turkish_lower_with_origin(text);
-        let orig = |i| crate::phonology::origin_offset(&origin, text.len(), i);
-
-        for (&bad_phrase, &(replacement, explanation)) in TAUTOLOGY_PAIRS.iter() {
-            if let Some(lower_offset) = text_lower.as_str().sz_find(bad_phrase) {
-                let offset = orig(lower_offset);
-                let end = orig(lower_offset + bad_phrase.len());
-                let original_snippet = &text[offset..end];
-
-                findings.push(GrammarFinding {
-                    category: ErrorCategory::TautologyRedundancy,
-                    start_offset: offset,
-                    end_offset: end,
-                    original_text: original_snippet.to_string(),
-                    replacement: replacement.to_string(),
-                    message_tr: explanation.to_string(),
-                    message_en: "Tautological redundancy in phrase pairing.".to_string(),
-                    confidence: 0.98,
-                });
+    /// 2. Tautologies & Pleonasms:
+    ///
+    /// Every pair of whole words in the list, separated by nothing but space ("Kendi özel
+    /// hayatına" holds no "kendi öz"). The replacement keeps the first word's case.
+    fn check_tautologies(
+        text: &str,
+        tokens: &[&str],
+        token_spans: &[(usize, usize)],
+        findings: &mut Vec<GrammarFinding>,
+    ) {
+        for i in 1..tokens.len() {
+            let (start, mid) = (token_spans[i - 1].0, token_spans[i - 1].1);
+            let (next, end) = token_spans[i];
+            if start >= end || !text[mid..next].chars().all(char::is_whitespace) {
+                continue;
+            }
+            let pair = format!(
+                "{} {}",
+                to_turkish_lower(tokens[i - 1]),
+                to_turkish_lower(tokens[i])
+            );
+            if let Some(&(replacement, explanation)) = TAUTOLOGY_PAIRS.get(pair.as_str()) {
+                findings.push(GrammarFinding::new(
+                    GrammarRule::Tautology,
+                    (start, end),
+                    &text[start..end],
+                    match_case(tokens[i - 1], replacement),
+                    explanation,
+                    "Tautological redundancy in phrase pairing.",
+                ));
             }
         }
     }

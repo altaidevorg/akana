@@ -1,0 +1,444 @@
+## Zemberek entries akana drops (matched on word, POS and secondary POS). Each one has a
+## replacement in akana-legal.dict or is a POS error with no replacement needed.
+## Nisba adjectives Zemberek lists without a POS, so they were read as nouns.
+idarî
+kanunî
+ihtiyatî
+tıbbî
+fizikî
+vicdanî
+hususî
+ziraî
+içtimaî
+hakikî
+ihtiyarî
+ulusal
+## sulh takes front-vowel suffixes (sulhe, sulhü); replaced with InverseHarmony.
+sulh
+## Inflected common words and misspelled stems in proper-from-corpus.dict that the build's
+## junk filter does not catch (the 2026-10-20 review's examples).
+Kitab
+Kalb
+Grub
+Grubu
+Kurulu
+Nehri
+Ligi
+Klübü
+Fiyatı
+Geçiti
+Kasedi
+Meclisini
+Mamülleri
+Tevdiine
+Umumiye
+Sonucta
+Mitingte
+
+## Common words with -lIk that proper-from-corpus.dict lists as names, from company names
+## (X Mimarlık Ltd.): their name item ranked first even in lower case, so mimarlık and
+## yayıncılık had a name's lemma (review 4 MORPH4-10). Places of the same shape stay (Ayvalık,
+## Gemlik, İncirlik, Kozluk, Yumurtalık), as do Krallık (Birleşik Krallık) and Başbakanlık.
+Mimarlık
+Yayıncılık
+Denizcilik
+Kuyumculuk
+Mağazacılık
+Fuarcılık
+
+## Interjection twins of content words (review 2, MLEX2-01). Zemberek lists commands, vocatives
+## and exclamations as interjections beside the noun, adjective or adverb they are (ileri,
+## devam, ay, teslim, ölüm, amca, kamera). The corpus prior cannot tell the two apart, so the
+## interjection often won the best reading: 0.55 % of court tokens. UD Turkish's train and dev
+## splits tag none of these forms INTJ in 10 % or more of their uses (most never); the
+## interjections they do tag so (haydi, hadi, eyvah, of, ah, ha, aferin, e, a, evet, hayır,
+## ya, neyse ...) keep theirs, as do exclamations UD lacks (amin, oley, zinhar, vallahi).
+## The rare true interjection uses of the others lose to their content reading: ay "ouch", oy,
+## tabi (mostly tabii misspelt, which keeps its own readings).
+acayip [P:Interj]
+ahbap [P:Interj]
+alarga [P:Interj]
+amca [P:Interj]
+ana [P:Interj]
+aptal [P:Interj]
+arş [P:Interj]
+avara [P:Interj]
+ay [P:Interj]
+ayı [P:Interj]
+ağababa [P:Interj]
+ağabey [P:Interj]
+aşık [P:Interj]
+bacı [P:Interj]
+banko [P:Interj]
+bari [P:Interj]
+bayan [P:Interj]
+bebek [P:Interj]
+beybaba [P:Interj]
+birader [P:Interj]
+cicoz [P:Interj]
+dadaş [P:Interj]
+dandini [P:Interj]
+dayı [P:Interj]
+dede [P:Interj]
+dehşet [P:Interj]
+delikanlı [P:Interj]
+devam [P:Interj]
+deyyus [P:Interj]
+dikkat [P:Interj]
+efendi [P:Interj]
+fayrap [P:Interj]
+fonda [P:Interj]
+fora [P:Interj]
+garip [P:Interj]
+geri [P:Interj]
+gidi [P:Interj]
+hain [P:Interj]
+hanımanne [P:Interj]
+hapur [P:Interj]
+harika [P:Interj]
+hayret [P:Interj]
+hazret [P:Interj]
+hücum [P:Interj]
+ibne [P:Interj]
+İlahî [P:Interj]
+ileri [P:Interj]
+insaf [P:Interj]
+isabet [P:Interj]
+kafi [P:Interj]
+kafir [P:Interj]
+kamera [P:Interj]
+kardeş [P:Interj]
+keşke [P:Interj]
+kısmet [P:Interj]
+kız [P:Interj]
+kurban [P:Interj]
+köftehor [P:Interj]
+köpekoğlu [P:Interj]
+köpoğlu [P:Interj]
+külhani [P:Interj]
+laf [P:Interj]
+lala [P:Interj]
+lanet [P:Interj]
+manyak [P:Interj]
+marş [P:Interj]
+mayna [P:Interj]
+minnoş [P:Interj]
+monşer [P:Interj]
+mübarek [P:Interj]
+müjde [P:Interj]
+müthiş [P:Interj]
+ne [P:Interj]
+nerede [P:Interj]
+nine [P:Interj]
+ninni [P:Interj]
+o [P:Interj]
+orsa [P:Interj]
+oy [P:Interj]
+oğul [P:Interj]
+pas [P:Interj]
+paydos [P:Interj]
+pezevenk [P:Interj]
+pist [P:Interj]
+puşt [P:Interj]
+rahat [P:Interj]
+tabi [P:Interj]
+teslim [P:Interj]
+teyze [P:Interj]
+tu [P:Interj]
+tuhaf [P:Interj]
+tü [P:Interj]
+ufaklık [P:Interj]
+velet [P:Interj]
+vira [P:Interj]
+viya [P:Interj]
+yenge [P:Interj]
+yeğen [P:Interj]
+çabuk [P:Interj]
+çapkın [P:Interj]
+çinko [P:Interj]
+ölüm [P:Interj]
+öyle [P:Interj]
+üstat [P:Interj]
+## Verb forms Zemberek lists as interjections only; the verb reads them (ol-amaz, yaşa). sakın
+## and yaşasın stay interjections: UD tags them INTJ 89 % and 60 % of the time, at least the
+## 10 % the rule above keeps (review 3 LEX3-07).
+affetmişsin [P:Interj]
+kahrolsun [P:Interj]
+olamaz [P:Interj]
+yaşa [P:Interj]
+## Words person-names.dict lists as names (review 3 LEX3-03): evrensel and ruhsal are
+## adjectives (akana-extra.dict), sevgilim and dahi common words, and the rest inflected forms
+## of a word. scripts/audit_corpus_names.py --person-names picks 149 more, but they are given
+## names too (Aslı, Faiz, Sabit, Üstün), which only the context tells from the word.
+Sevgilim
+Ruhsal
+Evrensel
+Dahi
+Bilgiye
+Takdire
+Zemine
+Yağın
+Yaşın
+Korur
+Erer
+Kuşat
+
+## Months and days are common nouns (TDK writes them capitalised only in a full date); their
+## proper-noun twins made Mayıs, Aralık or Pazar read as names (review 2, MLEX2-03).
+Ocak
+Şubat
+Mart
+Mayıs
+Ağustos
+Aralık
+Çarşamba
+Perşembe
+Pazar
+## Two-letter abbreviations of Zemberek's corpus-collected list that spell suffixes, so that
+## fragments such as -ın or -lu read as abbreviations (MLEX2-08).
+In [P:Abbrv]
+Lu [P:Abbrv]
+Li [P:Abbrv]
+Yi [P:Abbrv]
+Na [P:Abbrv]
+Ne [P:Abbrv]
+Ni [P:Abbrv]
+Nu [P:Abbrv]
+Ri [P:Abbrv]
+Ra [P:Abbrv]
+Re [P:Abbrv]
+Me [P:Abbrv]
+Ta [P:Abbrv]
+Te [P:Abbrv]
+## Names only proper-from-corpus.dict lists that are common words (MLEX2-03): the analyzer has
+## a common reading for them, and the court and RagTurk samples write them in lower case at
+## least as often as capitalised (ten times as often where TRmorph's or Google's name lists
+## have them: Edip, Gerçek, Sona, Verdi), or, seen fewer than ten times, they are a common
+## root with a suffix (Ruha, Satar). Their capitals were sentence-initial: Açık, Kadar, Banka,
+## Danışmanlık read as names before. Names without a common reading (temyizen, usuli) wait
+## until their own entries are added.
+Akit
+Akti
+Anne
+Atar
+Atıksu
+Ayine
+Ayrık
+Açık
+Aşka
+Banka
+Bara
+Bazan
+Başarır
+Başdenetçi
+Baştan
+Beklerken
+Belki
+Bent
+Bizde
+Bize
+Bırak
+Danışmanlık
+Defi
+Deyince
+Diyetetik
+Durak
+Edip
+Ekmek
+Elatma
+Elektrik
+Elektronik
+Elle
+Emeklilik
+Erek
+Factoring
+Fire
+Gayrimenkul
+Gazetecilik
+Gere
+Gerçek
+Geçti
+Global
+Golf
+Grup
+Gördüm
+Görür
+Gözardı
+Gümrük
+Güç
+Hale
+Halefiyet
+Havacılık
+Havagazı
+Hole
+İnanç
+İntifada
+İçecek
+Kadar
+Kapitalizasyon
+Karşıoy
+Kaynak
+Kağıt
+Kitap
+Kontrol
+Kozmetik
+Kulüp
+Küçük
+Laik
+Lake
+Leasing
+Lem
+Lisanslama
+Mahsusa
+Maktule
+Maktül
+Mantolama
+Marker
+Master
+Mele
+Mezkür
+Mobbing
+Muhakemat
+Muhdesatın
+Muvakkat
+Müdafii
+Müddeabihin
+Mühür
+Mükerrirlere
+Müteahhit
+Müterafik
+Müzik
+Norma
+Ortaöğretim
+Ortez
+Oruç
+Park
+Pert
+Peşinde
+Prime
+Rafa
+Ruha
+Sade
+Sana
+Satar
+Sağol
+Selahiyetleri
+Sensin
+Seramik
+Seyrek
+Size
+Sona
+Söyler
+Sürer
+Süreç
+Tasaddi
+Teknik
+Tekraren
+Temellük
+Temlik
+Tenfiz
+Tevkifat
+Uyanık
+Uzak
+Uçak
+Vakit
+Verdi
+Vince
+Vinci
+Yanık
+Yasak
+Yurt
+Yükselir
+Zora
+Zoralımına
+Çalışır
+Çıplak
+Öden
+Ölçer
+Önizleme
+Önödeme
+Özelge
+Özür
+Şehit
+Şerefeli
+Şunu
+## Inherited junk (MLEX2-08): a misspelt compound (aşçıbaşı is listed), a compound with a
+## nonsense split (şöylem-es), and abbreviations with junk pronunciations or none of their own.
+aşcıbaşı
+şöylemesine
+B1 [P:Abbrv]
+FIGC [P:Abbrv]
+Löw [P:Abbrv]
+Mdlüğü [P:Abbrv]
+
+## Inflected forms listed as words (non-tdk.dict's camii, mevzuu, sanayii, mevkii, bayii, zayii
+## and tevazuu, a corpus name Tevzii): the ayn entries of akana-legal.dict read them as cami,
+## mevzu, sanayi, mevki, bayi, zayi, tevazu and tevzi with the possessive or the accusative.
+camii
+mevzuu
+sanayii
+mevkii
+bayii
+zayii
+tevazuu
+Tevzii
+## Corpus "names" that are misspellings of the words akana-spelling.dict respells (review 3
+## LEX3-01).
+Şöför
+Çünki
+Teba
+Resül
+Klüp
+Kampus
+Traş
+## hazırun, which the master dictionary spells so, is hazirun's entry in akana-legal.dict (56
+## sample tokens against 7).
+hazırun
+
+## Corpus names of words that now have their own entries (plan step E6): the samples write them
+## in lower case (temyizen 4,941 against 1,146 capitalised), so the name only competed with the
+## word.
+Temyizen
+Rücuen
+Kayden
+Rızaen
+Usuli
+İhtirazi
+İcrai
+İnşai
+Kadastral
+Mutad
+Lehdar
+Konişmento
+Nesafet
+Muhdesat
+Malüliyet
+Muacceliyet
+Tramer
+Ohal
+Uyap
+
+## Turkish words typed in capitals without the Turkish keyboard, which Zemberek's
+## abbreviations.dict took for acronyms (Iki, Ilk: İKİ, İLK; Şıh), and the Roman numerals IV,
+## VI and VII. Their lemmas had ı; with the i of a Latin acronym's I they would be abbreviation
+## twins of iki, ilk, il, in and it (plan step D3).
+Iki [P:Abbrv]
+Il [P:Abbrv]
+Ilk [P:Abbrv]
+Iyi [P:Abbrv]
+It [P:Abbrv]
+Iv [P:Abbrv]
+Vı [P:Abbrv]
+Vıı [P:Abbrv]
+Şıh [P:Abbrv]
+## Inflected idioms the master dictionary lists as nouns (yerine "instead of", hesabına "on behalf
+## of", elinden), which read as a bare noun beside yer-i-ne, hesab-ı-na and el-i-nden. yerine
+## keeps its adverb entry; the others read through their noun (plan step C6).
+yerine
+hesabına
+elinden
+## A corpus name that is a verb's converb written right (deyip, which the morphotactics now read
+## as de-yip, plan step F, review 2 MORPH2-06), and a master-dictionary noun edi, no TDK word,
+## whose -lAn verb read edilen as "acquire edi!" (MORPH-05).
+Deyip
+edi

@@ -5,11 +5,13 @@
 //!
 //! ## Memory Layout
 //! - Bytes 0..63 (64 bytes): Dense 2-bit TurboQuant embedding (256 dims @ 2 bits)
-//! - Bytes 64..127 (64 bytes): Top-16 salient unhashed sparse terms (16 slots x 4 bytes)
-//!   - Slot: `[id_hi, id_mid, id_lo, weight_u8]` (24-bit term ID + 8-bit BM25 weight)
-//!   - Sorted ascending by `term_id` for O(K) two-pointer merge intersection.
+//! - Bytes 64..127 (64 bytes): Top-16 salient sparse terms (16 slots x 4 bytes)
+//!   - Slot: `[id_hi, id_mid, id_lo, weight_u8]`: the term's 32-bit id folded to 24 bits
+//!     ([`term_id_24bit`]) and its quantized weight. Two of a vector's 16 terms share a 24-bit id
+//!     about once in 140,000 vectors; the heavier of the two then keeps the slot.
+//!   - Sorted ascending by the 24-bit id for O(K) two-pointer merge intersection.
 
-use super::sparse::{MorphologicalSparseEncoder, MorphologicalSparseVector};
+use super::sparse::{term_id_24bit, MorphologicalSparseEncoder, MorphologicalSparseVector};
 use super::usearch_metrics::cosine_distance_2bit_64;
 use super::{pack_2bit_vector, TurkishEmbeddings, PACKED_2BIT_BYTES};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -26,17 +28,27 @@ pub const HYBRID_SPARSE_BYTES: usize = 64;
 /// Maximum number of unhashed sparse terms packed in the buffer (16 terms).
 pub const HYBRID_MAX_SPARSE_SLOTS: usize = 16;
 
+/// The hybrid metric's default alpha.
+pub const DEFAULT_HYBRID_ALPHA: f32 = 0.5;
+
 /// Global tunable alpha weight for the C-ABI hybrid metric (default 0.5).
 /// Stored as bits of f32 for thread-safe lock-free atomic access.
 static HYBRID_ALPHA_BITS: AtomicU32 = AtomicU32::new(0x3f000000); // 0.5f32
 
-/// Set the global alpha parameter for `akana_usearch_metric_hybrid`.
+/// Set the global alpha parameter for `akana_usearch_metric_hybrid`. It is one value for the
+/// whole process: every open index that uses the metric sees the change.
 ///
 /// Alpha controls the balance between dense (semantic) and sparse (lexical) distance:
 /// - `alpha = 0.0`: Pure dense 2-bit search
 /// - `alpha = 0.5`: Balanced hybrid (default)
 /// - `alpha = 1.0`: Pure sparse morphological BM25 search
+///
+/// A value outside `[0, 1]` is clamped; NaN is ignored, and the alpha stays as it was (it made
+/// every distance NaN; review 2 EMB-06).
 pub fn set_hybrid_metric_alpha(alpha: f32) {
+    if alpha.is_nan() {
+        return;
+    }
     let clamped = alpha.clamp(0.0, 1.0);
     HYBRID_ALPHA_BITS.store(clamped.to_bits(), Ordering::Relaxed);
 }
@@ -74,9 +86,10 @@ impl TurkishHybridEmbeddings {
         pack_hybrid_vector(&dense_vec, &sparse_vec)
     }
 
-    /// Embed multiple texts into 128-byte hybrid vectors (batch processing).
+    /// Embed multiple texts into 128-byte hybrid vectors (batch processing; large batches run
+    /// on several threads).
     pub fn embed_hybrid_batch(&self, texts: &[&str]) -> Vec<[u8; HYBRID_VECTOR_BYTES]> {
-        texts.iter().map(|t| self.embed_hybrid(t)).collect()
+        super::map_batch(texts, |t| self.embed_hybrid(t))
     }
 
     /// Compute fused hybrid distance between two 128-byte vectors.
@@ -105,7 +118,7 @@ pub fn pack_hybrid_vector(
     let mut term_pairs: Vec<(u32, f32)> = sparse_vec
         .indices
         .iter()
-        .copied()
+        .map(|&id| term_id_24bit(id))
         .zip(sparse_vec.values.iter().copied())
         .collect();
 
@@ -113,13 +126,14 @@ pub fn pack_hybrid_vector(
     term_pairs.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     term_pairs.truncate(HYBRID_MAX_SPARSE_SLOTS);
 
-    // Sort selected top-16 by term_id ascending for O(K) two-pointer merge intersection
-    term_pairs.sort_by_key(|p| p.0);
+    // Sort selected top-16 by term_id ascending for O(K) two-pointer merge intersection; of two
+    // terms with the same 24-bit id the heavier keeps the slot.
+    term_pairs.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.total_cmp(&a.1)));
+    term_pairs.dedup_by_key(|p| p.0);
 
     // 3. Write into bytes 64..128
-    for (slot_idx, (term_id, weight)) in term_pairs.iter().enumerate() {
+    for (slot_idx, &(id24, weight)) in term_pairs.iter().enumerate() {
         let offset = 64 + slot_idx * 4;
-        let id24 = term_id & 0x00FF_FFFF;
         // Quantize BM25 weight into u8 (clamped to [1, 255])
         let q_weight = ((weight / 4.0) * 255.0).clamp(1.0, 255.0) as u8;
 
@@ -134,13 +148,19 @@ pub fn pack_hybrid_vector(
 
 /// Compute distance between two 128-byte hybrid vectors.
 ///
-/// Returns a distance scalar in `[0.0, 2.0]`. Identical vectors return `0.0`.
+/// Returns a distance scalar in `[0.0, 2.0]`. Identical vectors return `0.0`. `alpha` is
+/// clamped to `[0, 1]`, and NaN counts as [`DEFAULT_HYBRID_ALPHA`].
 #[inline]
 pub fn hybrid_distance_128(
     a: &[u8; HYBRID_VECTOR_BYTES],
     b: &[u8; HYBRID_VECTOR_BYTES],
     alpha: f32,
 ) -> f32 {
+    let alpha = if alpha.is_nan() {
+        DEFAULT_HYBRID_ALPHA
+    } else {
+        alpha.clamp(0.0, 1.0)
+    };
     let dense_a = &a.as_chunks::<64>().0[0];
     let dense_b = &b.as_chunks::<64>().0[0];
 
@@ -217,8 +237,7 @@ pub fn hybrid_distance_128(
         }
     };
 
-    let a_clamped = alpha.clamp(0.0, 1.0);
-    (1.0 - a_clamped) * dense_dist + a_clamped * sparse_dist
+    (1.0 - alpha) * dense_dist + alpha * sparse_dist
 }
 
 // ── C-ABI Exported Function for USearch CompiledMetric ───────────────────────
@@ -284,6 +303,21 @@ mod tests {
             dist_related < dist_unrelated,
             "expected related 'ev/kredi' distance ({dist_related}) < unrelated ({dist_unrelated})"
         );
+    }
+
+    /// Review 2 EMB-06: a NaN alpha never reaches a distance.
+    #[test]
+    fn nan_alpha_is_ignored() {
+        let engine = TurkishHybridEmbeddings::new();
+        let a = engine.embed_hybrid("Davacı vekili temyiz etti.");
+        let b = engine.embed_hybrid("Kira bedelinin tespiti istendi.");
+        assert_eq!(
+            hybrid_distance_128(&a, &b, f32::NAN),
+            hybrid_distance_128(&a, &b, DEFAULT_HYBRID_ALPHA)
+        );
+        let before = get_hybrid_metric_alpha();
+        set_hybrid_metric_alpha(f32::NAN);
+        assert_eq!(get_hybrid_metric_alpha(), before);
     }
 
     #[test]

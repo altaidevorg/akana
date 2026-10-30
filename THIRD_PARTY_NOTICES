@@ -1,0 +1,317 @@
+THIRD-PARTY NOTICES
+
+akana is distributed under the MIT License or the Apache License 2.0, at your option. It
+contains, or is built from, the third-party material listed here. Every shipped file derived
+from such material is named with its source, licence and changes. A file derived from data
+under CC BY-SA is marked "DERIVED FROM CC BY-SA DATA", and the CC BY-SA terms apply to that
+file.
+
+The sources akana's tools may download are pinned, with the licence each one states, in
+scripts/morph_sources.json. A source appears below only once something derived from it ships.
+
+-------------------------------------------------------------------------------------------------
+1. Zemberek dictionaries (zemberek-nlp)
+-------------------------------------------------------------------------------------------------
+
+Source:     https://github.com/ahmetaa/zemberek-nlp, morphology/src/main/resources/tr (the default
+            dictionaries of TurkishDictionaryLoader), as copied unmodified into Zeyrek 0.1.3.
+            Vendored in scripts/lexicon/zemberek/ (see NOTICE.md there for checksums).
+Copyright:  Ahmet A. Akın and the zemberek-nlp contributors.
+Licence:    Apache License 2.0 (full text at the end of this file).
+
+Shipped as: crates/akana-core/src/morphology/zemberek_lexicon.txt, compiled into the library.
+            scripts/build_full_lexicon.py builds it from the Zemberek dictionaries.
+Changes:    duplicate entries merged; corpus-collected proper nouns that are inflected common
+            words or common words without their Turkish letters, and roots with stray
+            characters, dropped; Zemberek's Ref: pointers made lemmas; entries added, replaced,
+            respelled and removed by akana's own supplements (scripts/lexicon/akana-legal.dict,
+            akana-extra.dict, akana-variants.dict, akana-names.dict, akana-spelling.dict,
+            akana-remove.dict, which carry akana's own attributes Lexicalized,
+            NotLexicalized, Rare and Nonstandard); homographs numbered; written in akana's
+            one-line format.
+
+Shipped as: crates/akana-core/src/pii/person_names.txt, compiled into the library: the given
+            names of Zemberek's person-names.dict (morphology/src/main/resources/tr), which PII
+            masking reads as first names.
+Changes:    lower-cased with Turkish rules; forms without circumflexes added.
+
+The morphotactics (crates/akana-core/src/morphology/turkish_morphotactics.rs, stems.rs,
+analyzer.rs) port the design of zemberek-nlp's TurkishMorphotactics, StemTransitionsBase and
+RuleBasedAnalyzer (Apache License 2.0) to Rust.
+
+crates/akana-core/tests/data/morphology/review/zemberek_tests.tsv is test data, not compiled
+into the library. It is part of the source repository and of the crate's source package. It
+holds the analysis checks of zemberek-nlp's morphology tests
+(morphology/src/test/java/zemberek/morphology/analysis, Apache License 2.0). They were
+converted to one check per line, and their dictionary lines were rewritten in akana's
+lexicon format.
+
+-------------------------------------------------------------------------------------------------
+2. Universal Dependencies Turkish treebanks BOUN, Kenet, Penn, Tourism, Atis and FrameNet
+-------------------------------------------------------------------------------------------------
+
+Source:     https://github.com/UniversalDependencies/UD_Turkish-BOUN, UD_Turkish-Kenet,
+            UD_Turkish-Penn, UD_Turkish-Tourism, UD_Turkish-Atis and UD_Turkish-FrameNet,
+            release r2.18: the train and dev splits (no test split).
+Authors:    BOUN: Büşra Marşan, Furkan Akkurt, Utku Türk, Furkan Atmaca, Şaziye Betül Özateş,
+            Gözde Berk, Seyyit Talha Bedir, Abdullatif Köksal, Balkız Öztürk Başaran, Tunga
+            Güngör, Arzucan Özgür (Türk et al. 2022, "Resources for Turkish Dependency Parsing:
+            Introducing the BOUN Treebank and the BoAT Annotation Tool", Language Resources and
+            Evaluation 56(1), doi:10.1007/s10579-021-09558-0; Marşan et al. 2022,
+            arXiv:2207.11782). Kenet: Aslı Kuzgun, Neslihan Cesur, Olcay Taner Yıldız, Oğuzhan
+            Kuyrukçu, Arife Betül Yenice, Bilge Nas Arıcan, Ezgi Sanıyar. Penn: Neslihan Cesur,
+            Aslı Kuzgun, Olcay Taner Yıldız, Büşra Marşan, Neslihan Kara, Bilge Nas Arıcan, Merve
+            Özçelik, Deniz Baran Aslan. Tourism: Aslı Kuzgun, Neslihan Cesur, Olcay Taner Yıldız,
+            Oğuzhan Kuyrukçu, Büşra Marşan, Bilge Nas Arıcan, Neslihan Kara, Deniz Baran Aslan,
+            Ezgi Sanıyar, Cengiz Asmazoğlu. Atis: Mehmet Köse, Olcay Taner Yıldız. FrameNet:
+            Neslihan Cesur, Aslı Kuzgun, Olcay Taner Yıldız, Büşra Marşan, Oğuzhan Kuyrukçu,
+            Bilge Nas Arıcan, Ezgi Sanıyar, Neslihan Kara, Merve Özçelik (Marşan et al. 2021,
+            "Building the Turkish FrameNet", Proceedings of the 11th Global Wordnet Conference,
+            118-125).
+Licence:    Creative Commons Attribution-ShareAlike 4.0 International,
+            https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Shipped as: crates/akana-core/src/embeddings/function_lemmas.tsv, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no text is shipped. The table holds, for 20 lemmas, the number of 256-token chunks
+            of the BOUN and Kenet sentences (and of a court-decision sample) each occurs in, and
+            the weight akana gives it (examples/sparse_idf.rs).
+
+Shipped as: crates/akana-core/src/morphology/prior.tsv.gz, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no text is shipped. The analyzer's frequency prior is estimated
+            (examples/morph_prior.rs) from a court-decision word list mixed with the word
+            counts of the six treebanks' sentences, with the words the analyzer reads in more
+            than one part of speech split among them as the treebanks tag them, and per-word
+            corrections that keep those shares. Both inputs are part of the source repository
+            and also DERIVED FROM CC BY-SA DATA: data/morphology/prior_general_types.tsv.gz
+            (scripts/prior_general_types.py: each word of the sentences and how often it
+            occurs) and data/morphology/pos_twins.tsv (scripts/pos_twins.py: for each word form
+            read in more than one part of speech, how many times its tokens are tagged in each
+            of fourteen part-of-speech classes).
+
+Shipped as: crates/akana-core/src/parser/light_verbs.txt, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no text is shipped. The list holds the 31 verb roots that a bare noun right before
+            them is more often a compound with than their object or subject, counted in the
+            train splits (scripts/parser_ud_eval.py --light-verbs).
+
+-------------------------------------------------------------------------------------------------
+3. Turkish WikiNER (Turkish NLP Suite)
+-------------------------------------------------------------------------------------------------
+
+Source:     https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER, revision
+            99df1dd7f5a01d39cd5903e51e361d708cb2a5a6: the train and validation splits (the test
+            split is used for evaluation only). Wikipedia sentences sampled from the Kuzgunlar
+            NER dataset and annotated again by Co-one.
+Authors:    Duygu Altinok (Altinok 2023, "A Diverse Set of Freely Available Linguistic Resources
+            for Turkish", Proceedings of the 61st Annual Meeting of the Association for
+            Computational Linguistics (Volume 1: Long Papers), 13739-13750,
+            https://aclanthology.org/2023.acl-long.768).
+Licence:    Creative Commons Attribution-ShareAlike 4.0 International,
+            https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Shipped as: crates/akana-core/src/ner/model.tsv.gz, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no sentence is shipped. The file holds the weights of the named-entity tagger
+            (crates/akana-core/src/ner/model.rs, trained by its ignored test train_ner_model on
+            what scripts/prepare_wikiner.py writes): a weight per tag for each feature seen more
+            than once in training (a word, its first or last letters, its shape, a word next to
+            it, ...). WikiNER's PERSON entities are its PER, GPE and LOC its LOC, ORG its ORG;
+            the other types are left out.
+
+-------------------------------------------------------------------------------------------------
+4. Sources approved for use, from which nothing ships yet
+-------------------------------------------------------------------------------------------------
+
+- Google Research turkish-morphology lexicon (Apache License 2.0), commit 83d4b967.
+- TRmorph lexicon by Çağrı Çöltekin (MIT License, copyright (c) 2011-2015 Çağrı Çöltekin),
+  commit fbceb113.
+- Universal Dependencies Turkish IMST (CC BY-NC-SA 3.0), release r2.18: evaluation only;
+  nothing akana ships is derived from it, nor from any UD test split.
+- Turkish Wiktionary, as extracted by kaikki.org (Wiktionary content: CC BY-SA 4.0 and GFDL):
+  an optional add-on dictionary, distributed apart from the core library if ever built.
+
+When one of these contributes to a shipped file, its entry moves to the list above with the
+file, the changes and the licence text (the MIT text for TRmorph).
+
+-------------------------------------------------------------------------------------------------
+Apache License 2.0
+-------------------------------------------------------------------------------------------------
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS

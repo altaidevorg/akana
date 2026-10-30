@@ -1,0 +1,211 @@
+# Review 2's hand-checked gold for the analyzer and the disambiguator in context (everyday sentences written by the reviewer).
+# Each sentence is a "> " line of its tokens separated by single spaces, preceded by "@ source",
+# then one row per checked token: token index, token, kind, gold.
+# kind: ok | C colloquial non-standard form | T misspelling | S foreign or corrupt (T and S are
+# not scored). gold: the acceptable readings separated by " || ", each lemma|POS|tags|flag
+# (flag P proper noun, A abbreviation); the first is preferred.
+@ colloquial
+> Bugün akşam yemeğinde ne yiyelim ?
+0	Bugün	ok	bugün|Adv|Adv| || bugün|Noun|Noun+A3sg+Nom|
+1	akşam	ok	akşam|Noun|Noun+A3sg+Nom|
+2	yemeğinde	ok	yemek|Noun|Noun+P3sg+Loc|
+3	ne	ok	ne|Pron|Pron+A3sg+Nom|
+4	yiyelim	ok	yemek|Verb|Verb+Opt+A1pl|
+@ colloquial
+> Annem bana yeni bir kazak ördü .
+0	Annem	ok	anne|Noun|Noun+P1sg|
+1	bana	ok	ben|Pron|Pron+A1sg+Dat|
+2	yeni	ok	yeni|Adj|Adj|
+3	bir	ok	bir|Det|Det|
+4	kazak	ok	kazak|Noun|Noun+A3sg+Nom|
+5	ördü	ok	örmek|Verb|Verb+Past|
+@ colloquial
+> Yarın sabah erkenden yola çıkacağız .
+0	Yarın	ok	yarın|Adv|Adv| || yarın|Noun|Noun+A3sg+Nom|
+1	sabah	ok	sabah|Adv|Adv| || sabah|Noun|Noun+A3sg+Nom|
+2	erkenden	ok	erkenden|Adv|Adv| || erken|Noun|Noun+Abl|
+3	yola	ok	yol|Noun|Noun+Dat|
+4	çıkacağız	ok	çıkmak|Verb|Verb+Fut+A1pl|
+@ colloquial
+> Bu kitabı okudun mu , çok güzel bence .
+0	Bu	ok	bu|Det|Det|
+1	kitabı	ok	kitap|Noun|Noun+Acc|
+2	okudun	ok	okumak|Verb|Verb+Past+A2sg|
+3	mu	ok	mu|Q|Q|
+5	çok	ok	çok|Adv|Adv|
+6	güzel	ok	güzel|Adj|Adj|
+7	bence	ok	bence|Adv|Adv| || ben|Pron|Pron+A1sg+Equ|
+@ colloquial
+> Kapıyı kapat , içerisi soğuk oldu .
+0	Kapıyı	ok	kapı|Noun|Noun+Acc|
+1	kapat	ok	kapatmak|Verb|Verb+Imp+A2sg| || kapamak|Verb|Verb+Caus+Imp+A2sg|
+3	içerisi	ok	içeri|Noun|Noun+P3sg|
+4	soğuk	ok	soğuk|Adj|Adj|
+5	oldu	ok	olmak|Verb|Verb+Past|
+@ colloquial
+> Çocuklar bahçede top oynuyorlar .
+0	Çocuklar	ok	çocuk|Noun|Noun+A3pl|
+1	bahçede	ok	bahçe|Noun|Noun+Loc|
+2	top	ok	top|Noun|Noun+A3sg+Nom|
+3	oynuyorlar	ok	oynamak|Verb|Verb+Prog+A3pl|
+@ colloquial
+> Dün akşam arkadaşlarla sinemaya gittik .
+0	Dün	ok	dün|Adv|Adv| || dün|Noun|Noun+A3sg+Nom|
+1	akşam	ok	akşam|Noun|Noun+A3sg+Nom|
+2	arkadaşlarla	ok	arkadaş|Noun|Noun+A3pl+Ins|
+3	sinemaya	ok	sinema|Noun|Noun+Dat|
+4	gittik	ok	gitmek|Verb|Verb+Past+A1pl|
+@ colloquial
+> Saat kaçta buluşalım ?
+0	Saat	ok	saat|Noun|Noun+A3sg+Nom|
+1	kaçta	ok	kaçta|Adv|Adv| || kaç|Adj|Adj+Loc|
+2	buluşalım	ok	buluşmak|Verb|Verb+Opt+A1pl|
+@ colloquial
+> Bir çay daha alır mısın ?
+0	Bir	ok	bir|Det|Det| || bir|Num|Num|
+1	çay	ok	çay|Noun|Noun+A3sg+Nom|
+2	daha	ok	daha|Adv|Adv|
+3	alır	ok	almak|Verb|Verb+Aor|
+4	mısın	ok	mı|Q|Q+CopPres2sg|
+@ colloquial
+> Telefonumu evde unutmuşum .
+0	Telefonumu	ok	telefon|Noun|Noun+P1sg+Acc|
+1	evde	ok	ev|Noun|Noun+Loc|
+2	unutmuşum	ok	unutmak|Verb|Verb+Evid+A1sg|
+@ colloquial
+> Hava çok sıcak , denize gidelim mi ?
+0	Hava	ok	hava|Noun|Noun+A3sg+Nom|
+1	çok	ok	çok|Adv|Adv|
+2	sıcak	ok	sıcak|Adj|Adj|
+4	denize	ok	deniz|Noun|Noun+Dat|
+5	gidelim	ok	gitmek|Verb|Verb+Opt+A1pl|
+6	mi	ok	mi|Q|Q|
+@ colloquial
+> Onu hiç tanımıyorum ama sesi tanıdık geliyor .
+0	Onu	ok	o|Pron|Pron+Acc| || o|Pron|Pron+Acc|
+1	hiç	ok	hiç|Adv|Adv|
+2	tanımıyorum	ok	tanımak|Verb|Verb+Neg+Prog+A1sg|
+3	ama	ok	ama|Conj|Conj|
+4	sesi	ok	ses|Noun|Noun+P3sg|
+5	tanıdık	ok	tanıdık|Adj|Adj|
+6	geliyor	ok	gelmek|Verb|Verb+Prog|
+@ colloquial
+> Kardeşim üniversiteyi bu yıl bitirdi .
+0	Kardeşim	ok	kardeş|Noun|Noun+P1sg|
+1	üniversiteyi	ok	üniversite|Noun|Noun+Acc|
+2	bu	ok	bu|Det|Det|
+3	yıl	ok	yıl|Noun|Noun+A3sg+Nom|
+4	bitirdi	ok	bitirmek|Verb|Verb+Past|
+@ colloquial
+> Yüzünü yıka , sonra kahvaltıya gel .
+0	Yüzünü	ok	yüz|Noun|Noun+P2sg+Acc|
+1	yıka	ok	yıkamak|Verb|Verb+Imp+A2sg|
+3	sonra	ok	sonra|Adv|Adv|
+4	kahvaltıya	ok	kahvaltı|Noun|Noun+Dat|
+5	gel	ok	gelmek|Verb|Verb+Imp+A2sg|
+@ colloquial
+> Bu yaz tatile çıkamayacağız galiba .
+0	Bu	ok	bu|Det|Det|
+1	yaz	ok	yaz|Noun|Noun+A3sg+Nom|
+2	tatile	ok	tatil|Noun|Noun+Dat|
+3	çıkamayacağız	ok	çıkmak|Verb|Verb+NegAbil+Fut+A1pl|
+4	galiba	ok	galiba|Adv|Adv|
+@ colloquial
+> Gül bahçesinde yüz gül açmış .
+0	Gül	ok	gül|Noun|Noun+A3sg+Nom|
+1	bahçesinde	ok	bahçe|Noun|Noun+P3sg+Loc|
+2	yüz	ok	yüz|Num|Num|
+3	gül	ok	gül|Noun|Noun+A3sg+Nom|
+4	açmış	ok	açmak|Verb|Verb+Evid|
+@ colloquial
+> Bin lira verdim , üstünü almadım .
+0	Bin	ok	bin|Num|Num|
+1	lira	ok	lira|Noun|Noun+A3sg+Nom|
+2	verdim	ok	vermek|Verb|Verb+Past+A1sg|
+4	üstünü	ok	üst|Noun|Noun+P3sg+Acc|
+5	almadım	ok	almak|Verb|Verb+Neg+Past+A1sg|
+@ colloquial
+> Sana söylediklerimi unutma .
+0	Sana	ok	sen|Pron|Pron+A2sg+Dat|
+1	söylediklerimi	ok	söylemek|Verb|Verb+PastPart+A3pl+P1sg+Acc|
+2	unutma	ok	unutmak|Verb|Verb+Neg+Imp+A2sg|
+@ colloquial
+> Biz de sizinle gelmek istiyoruz .
+0	Biz	ok	biz|Pron|Pron+A1pl+Nom|
+1	de	ok	de|Conj|Conj|
+2	sizinle	ok	siz|Pron|Pron+A2pl+Ins|
+3	gelmek	ok	gelmek|Verb|Verb+Inf|
+4	istiyoruz	ok	istemek|Verb|Verb+Prog+A1pl|
+@ colloquial
+> Ödevini bitirmeden dışarı çıkamazsın .
+0	Ödevini	ok	ödev|Noun|Noun+P2sg+Acc|
+1	bitirmeden	ok	bitirmek|Verb|Verb+WithoutHavingDoneSo|
+2	dışarı	ok	dışarı|Adv|Adv| || dışarı|Noun|Noun+Dat|
+3	çıkamazsın	ok	çıkmak|Verb|Verb+NegAbil+Aor+A2sg|
+@ colloquial
+> Marketten ekmek , süt ve yumurta aldım .
+0	Marketten	ok	market|Noun|Noun+Abl|
+1	ekmek	ok	ekmek|Noun|Noun+A3sg+Nom|
+3	süt	ok	süt|Noun|Noun+A3sg+Nom|
+4	ve	ok	ve|Conj|Conj|
+5	yumurta	ok	yumurta|Noun|Noun+A3sg+Nom|
+6	aldım	ok	almak|Verb|Verb+Past+A1sg|
+@ colloquial
+> Otobüs yine geç kaldı , işe yetişemedim .
+0	Otobüs	ok	otobüs|Noun|Noun+A3sg+Nom|
+1	yine	ok	yine|Adv|Adv|
+2	geç	ok	geç|Adv|Adv| || geç|Adj|Adj|
+3	kaldı	ok	kalmak|Verb|Verb+Past|
+5	işe	ok	iş|Noun|Noun+Dat|
+6	yetişemedim	ok	yetişmek|Verb|Verb+NegAbil+Past+A1sg|
+@ colloquial
+> Kalemini bana verir misin ?
+0	Kalemini	ok	kalem|Noun|Noun+P2sg+Acc|
+1	bana	ok	ben|Pron|Pron+A1sg+Dat|
+2	verir	ok	vermek|Verb|Verb+Aor|
+3	misin	ok	mi|Q|Q+CopPres2sg|
+@ colloquial
+> Bunları kim yaptı acaba ?
+0	Bunları	ok	bu|Pron|Pron+A3pl+Acc|
+1	kim	ok	kim|Pron|Pron+A3sg+Nom|
+2	yaptı	ok	yapmak|Verb|Verb+Past|
+3	acaba	ok	acaba|Adv|Adv|
+@ colloquial
+> Hastaneye gitmen lazım , ateşin çok yüksek .
+0	Hastaneye	ok	hastane|Noun|Noun+Dat|
+1	gitmen	ok	gitmek|Verb|Verb+ActN+P2sg|
+2	lazım	ok	lazım|Adj|Adj|
+4	ateşin	ok	ateş|Noun|Noun+P2sg|
+5	çok	ok	çok|Adv|Adv|
+6	yüksek	ok	yüksek|Adj|Adj|
+@ colloquial
+> Dolu yağınca arabanın camı kırıldı .
+0	Dolu	ok	dolu|Noun|Noun+A3sg+Nom|
+1	yağınca	ok	yağmak|Verb|Verb+AdvInce|
+2	arabanın	ok	araba|Noun|Noun+Gen|
+3	camı	ok	cam|Noun|Noun+P3sg|
+4	kırıldı	ok	kırmak|Verb|Verb+Pass+Past|
+@ colloquial
+> Ben şimdi çıkıyorum , sonra konuşuruz .
+0	Ben	ok	ben|Pron|Pron+A1sg+Nom|
+1	şimdi	ok	şimdi|Adv|Adv|
+2	çıkıyorum	ok	çıkmak|Verb|Verb+Prog+A1sg|
+4	sonra	ok	sonra|Adv|Adv|
+5	konuşuruz	ok	konuşmak|Verb|Verb+Aor+A1pl|
+@ colloquial
+> Napıyorsun , iyi misin ?
+0	Napıyorsun	C	yapmak|Verb|Verb+Prog+A2sg|
+2	iyi	ok	iyi|Adj|Adj|
+3	misin	ok	mi|Q|Q+CopPres2sg|
+@ colloquial
+> Yarın gelcem , merak etme .
+0	Yarın	ok	yarın|Adv|Adv| || yarın|Noun|Noun+A3sg+Nom|
+1	gelcem	C	gelmek|Verb|Verb+Fut+A1sg|
+3	merak	ok	merak|Noun|Noun+A3sg+Nom|
+4	etme	ok	etmek|Verb|Verb+Neg+Imp+A2sg|
+@ colloquial
+> Bi dakka bekle , geliyorum .
+0	Bi	C	bir|Det|Det|
+1	dakka	C	dakika|Noun|Noun+A3sg+Nom|
+2	bekle	ok	beklemek|Verb|Verb+Imp+A2sg|
+4	geliyorum	ok	gelmek|Verb|Verb+Prog+A1sg|

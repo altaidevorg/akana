@@ -3,6 +3,7 @@
 use crate::morphology::TurkishMorphology;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::sync::{Arc, LazyLock};
 use stringzilla::StringZilla;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,9 +13,46 @@ pub struct SpellSuggestion {
     pub score: f32,
 }
 
+/// The words a checker accepts and suggests: a set for lookups, and the words in the order
+/// they were added, which fixes the order of equally good suggestions.
+#[derive(Clone, Default)]
+struct Vocabulary {
+    words: HashSet<String>,
+    list: Vec<String>,
+}
+
+impl Vocabulary {
+    fn add(&mut self, lower: String) {
+        if self.words.insert(lower.clone()) {
+            self.list.push(lower);
+        }
+    }
+}
+
+/// The vocabulary of the built-in lexicon, built once per process and shared by every checker
+/// until it adds a word of its own (copy-on-write): its common words. A nonstandard item is no
+/// spelling (herşey, whose lemma is its own), and names and abbreviations are judged as written
+/// by the analyzer (`Türkiye`, `TBMM`): in this lower-cased list the corpus names made
+/// misspellings words (egitim, varmı) and abbreviations made suggestions (cok: cbk; review 3
+/// NORM3-01).
+static DEFAULT_VOCABULARY: LazyLock<Arc<Vocabulary>> = LazyLock::new(|| {
+    let mut vocabulary = Vocabulary::default();
+    for line in crate::morphology::ZEMBEREK_LEXICON.lines() {
+        let mut fields = line.split_whitespace();
+        if matches!(fields.nth(3), Some("ProperNoun" | "Abbrv"))
+            || line.split_whitespace().any(|f| f == "Nonstandard")
+        {
+            continue;
+        }
+        if let Some(first_word) = line.split_whitespace().next() {
+            vocabulary.add(super::super::phonology::to_turkish_lower(first_word));
+        }
+    }
+    Arc::new(vocabulary)
+});
+
 pub struct TurkishSpellChecker {
-    vocabulary: HashSet<String>,
-    vocab_list: Vec<String>,
+    vocabulary: Arc<Vocabulary>,
     morphology: TurkishMorphology,
 }
 
@@ -26,63 +64,41 @@ impl Default for TurkishSpellChecker {
 
 impl TurkishSpellChecker {
     pub fn new() -> Self {
-        let mut checker = Self {
-            vocabulary: HashSet::new(),
-            vocab_list: Vec::new(),
+        Self {
+            vocabulary: Arc::clone(&DEFAULT_VOCABULARY),
             morphology: TurkishMorphology::new(),
-        };
-        checker.load_default_vocabulary();
-        checker
+        }
     }
 
     pub fn with_vocabulary(words: impl IntoIterator<Item = String>) -> Self {
-        let mut set = HashSet::new();
-        let mut list = Vec::new();
+        let mut vocabulary = Vocabulary::default();
         for w in words {
-            let lower = super::super::phonology::to_turkish_lower(&w);
-            if set.insert(lower.clone()) {
-                list.push(lower);
-            }
+            vocabulary.add(super::super::phonology::to_turkish_lower(&w));
         }
         Self {
-            vocabulary: set,
-            vocab_list: list,
+            vocabulary: Arc::new(vocabulary),
             morphology: TurkishMorphology::new(),
-        }
-    }
-
-    fn load_default_vocabulary(&mut self) {
-        let lex_str = crate::morphology::ZEMBEREK_LEXICON;
-        for line in lex_str.lines() {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            if let Some(first_word) = line.split_whitespace().next() {
-                let lower = super::super::phonology::to_turkish_lower(first_word);
-                if self.vocabulary.insert(lower.clone()) {
-                    self.vocab_list.push(lower);
-                }
-            }
         }
     }
 
     /// Adds a word to the spell checker vocabulary.
     pub fn add_word(&mut self, word: &str) {
         let lower = super::super::phonology::to_turkish_lower(word);
-        if self.vocabulary.insert(lower.clone()) {
-            self.vocab_list.push(lower);
+        if !self.vocabulary.words.contains(&lower) {
+            Arc::make_mut(&mut self.vocabulary).add(lower);
         }
     }
 
-    /// Checks if a word is correctly spelled (either in root dictionary or recognized by morphological analyzer).
+    /// Checks if a word is correctly spelled: in the vocabulary, or read by the morphological
+    /// analyzer as TDK spells it, in the case it is written in (a nonstandard reading,
+    /// temerrüte or olmıyan, is no spelling, nor a name's reading of ankarada).
     #[inline]
     pub fn is_correct(&self, word: &str) -> bool {
         let lower = super::super::phonology::to_turkish_lower(word);
-        if self.vocabulary.contains(&lower) {
+        if self.vocabulary.words.contains(&lower) {
             return true;
         }
-        !self.morphology.analyze(&lower).is_empty()
+        !self.morphology.analyze_standard(word).is_empty()
     }
 
     /// Suggests correctly spelled words using StringZilla SIMD-accelerated edit distance.
@@ -93,7 +109,7 @@ impl TurkishSpellChecker {
         max_suggestions: usize,
     ) -> Vec<SpellSuggestion> {
         let lower = super::super::phonology::to_turkish_lower(word);
-        if self.is_correct(&lower) {
+        if self.is_correct(word) {
             return vec![SpellSuggestion {
                 word: lower,
                 distance: 0,
@@ -103,7 +119,7 @@ impl TurkishSpellChecker {
 
         let mut candidates: Vec<SpellSuggestion> = Vec::new();
 
-        for candidate in &self.vocab_list {
+        for candidate in &self.vocabulary.list {
             // Fast length difference heuristic before SIMD distance check
             let len_diff = (candidate.len() as isize - lower.len() as isize).unsigned_abs();
             if len_diff > max_distance {

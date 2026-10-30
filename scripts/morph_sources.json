@@ -1,0 +1,1010 @@
+{
+ "cache": ".cache/morph_sources",
+ "sources": [
+  {
+   "name": "UD_Turkish-BOUN",
+   "version": "r2.18",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-BOUN/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-BOUN/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+     "size": 202
+    },
+    {
+     "path": "ud/UD_Turkish-BOUN/tr_boun-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-BOUN/r2.18/tr_boun-ud-dev.conllu",
+     "use": "train",
+     "sha256": "b3531bb26337b3ef258796e6948d2c3469e71704613b9373cd87f341409e2d8d",
+     "size": 977609
+    },
+    {
+     "path": "ud/UD_Turkish-BOUN/tr_boun-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-BOUN/r2.18/tr_boun-ud-test.conllu",
+     "use": "eval",
+     "sha256": "c7f234f6a7c1b7025f8cab9025239286836e971b653fb1dd3f266a84ac74dbeb",
+     "size": 965937
+    },
+    {
+     "path": "ud/UD_Turkish-BOUN/tr_boun-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-BOUN/r2.18/tr_boun-ud-train.conllu",
+     "use": "train",
+     "sha256": "ae54aef82e69cb7ccc54703a07e2ebcde66c2e4453a5debfac1eb78dfed60e9f",
+     "size": 7975961
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  },
+  {
+   "name": "UD_Turkish-Kenet",
+   "version": "r2.18",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-Kenet/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Kenet/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+     "size": 202
+    },
+    {
+     "path": "ud/UD_Turkish-Kenet/tr_kenet-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Kenet/r2.18/tr_kenet-ud-dev.conllu",
+     "use": "train",
+     "sha256": "4c62af7127578f6801f5d01b01038efeeaf7a98400949886df150a603626036f",
+     "size": 1313101
+    },
+    {
+     "path": "ud/UD_Turkish-Kenet/tr_kenet-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Kenet/r2.18/tr_kenet-ud-test.conllu",
+     "use": "eval",
+     "sha256": "74eeefb83d2914b749aa85096ad038db1bd371dc75586d58afc2f78e441b6e74",
+     "size": 1339498
+    },
+    {
+     "path": "ud/UD_Turkish-Kenet/tr_kenet-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Kenet/r2.18/tr_kenet-ud-train.conllu",
+     "use": "train",
+     "sha256": "81fc5495903b30c46de19a92158ce7cc4b3aa305d06e26b0055503b9b280e834",
+     "size": 10398888
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  },
+  {
+   "name": "UD_Turkish-Penn",
+   "version": "r2.18",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-Penn/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Penn/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+     "size": 202
+    },
+    {
+     "path": "ud/UD_Turkish-Penn/tr_penn-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Penn/r2.18/tr_penn-ud-dev.conllu",
+     "use": "train",
+     "sha256": "37bed806ceffe9e49ec16697330658ea849c0695ae8c36aaa9810fd7de63067c",
+     "size": 495413
+    },
+    {
+     "path": "ud/UD_Turkish-Penn/tr_penn-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Penn/r2.18/tr_penn-ud-test.conllu",
+     "use": "eval",
+     "sha256": "85845ebc49211199b815b5a20d46ddfa99c5bfddd42e881074b1a28ef1d43026",
+     "size": 710107
+    },
+    {
+     "path": "ud/UD_Turkish-Penn/tr_penn-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Penn/r2.18/tr_penn-ud-train.conllu",
+     "use": "train",
+     "sha256": "10b9a46c0115b110e6f638ee06e91e5a893b9cf842e949d637186de64f3c4fda",
+     "size": 11821582
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  },
+  {
+   "name": "UD_Turkish-Tourism",
+   "version": "r2.18",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-Tourism/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Tourism/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+     "size": 202
+    },
+    {
+     "path": "ud/UD_Turkish-Tourism/tr_tourism-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Tourism/r2.18/tr_tourism-ud-dev.conllu",
+     "use": "train",
+     "sha256": "09439a32d0e06ec70da126bc877872644754824f4d0f6616334d189f53e14af5",
+     "size": 730154
+    },
+    {
+     "path": "ud/UD_Turkish-Tourism/tr_tourism-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Tourism/r2.18/tr_tourism-ud-test.conllu",
+     "use": "eval",
+     "sha256": "7735c10f1a9b0f58b6f2aa9fcc8880277594ec5ce5c2aef1605687e58ae16ba4",
+     "size": 697602
+    },
+    {
+     "path": "ud/UD_Turkish-Tourism/tr_tourism-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Tourism/r2.18/tr_tourism-ud-train.conllu",
+     "use": "train",
+     "sha256": "e06e68d3734a6bf33e08e0def3aef8c7a524bbf6f5d87dcaa35a2e545ef573d6",
+     "size": 5039588
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  },
+  {
+   "name": "UD_Turkish-Atis",
+   "version": "r2.18",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-Atis/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Atis/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+     "size": 202
+    },
+    {
+     "path": "ud/UD_Turkish-Atis/tr_atis-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Atis/r2.18/tr_atis-ud-dev.conllu",
+     "use": "train",
+     "sha256": "20a7de11cf1c5685f905e6d3a1eebf7a26bb4d6ff5c96b3e7a93a4a2ea92bcc2",
+     "size": 385326
+    },
+    {
+     "path": "ud/UD_Turkish-Atis/tr_atis-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Atis/r2.18/tr_atis-ud-test.conllu",
+     "use": "eval",
+     "sha256": "011de5ad556c78368712eb5aeaa67449a319e708b682a69001ca4bba17452ac5",
+     "size": 380319
+    },
+    {
+     "path": "ud/UD_Turkish-Atis/tr_atis-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-Atis/r2.18/tr_atis-ud-train.conllu",
+     "use": "train",
+     "sha256": "0339a34dd4032fc06fda9d13cde5185a1906a0fa45a21c491059595de3fb9df1",
+     "size": 2745991
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  },
+  {
+   "name": "UD_Turkish-FrameNet",
+   "version": "r2.18",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-FrameNet/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-FrameNet/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+     "size": 202
+    },
+    {
+     "path": "ud/UD_Turkish-FrameNet/tr_framenet-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-FrameNet/r2.18/tr_framenet-ud-dev.conllu",
+     "use": "train",
+     "sha256": "f74c9206d0feec31c7e0f160c25133ac83cf5b79763595c188dcfd4a34999b82",
+     "size": 113434
+    },
+    {
+     "path": "ud/UD_Turkish-FrameNet/tr_framenet-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-FrameNet/r2.18/tr_framenet-ud-test.conllu",
+     "use": "eval",
+     "sha256": "0a6efc7910e3e931099e30a7a14be94dba21866b4403e9cb80e329ea20e50ec1",
+     "size": 117142
+    },
+    {
+     "path": "ud/UD_Turkish-FrameNet/tr_framenet-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-FrameNet/r2.18/tr_framenet-ud-train.conllu",
+     "use": "train",
+     "sha256": "0f2de87422653aac01a3bc98dd43dd44ddbedb59f1c3e1a90b451352e0f06b09",
+     "size": 1303525
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  },
+  {
+   "name": "UD_Turkish-IMST",
+   "version": "r2.18",
+   "license_expected": "CC BY-NC-SA 3.0",
+   "files": [
+    {
+     "path": "ud/UD_Turkish-IMST/LICENSE.txt",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-IMST/r2.18/LICENSE.txt",
+     "use": "license",
+     "sha256": "446deff834665054c41eff659e9a7f22b62c00879574dde2aebb1d5db83b842b",
+     "size": 20746
+    },
+    {
+     "path": "ud/UD_Turkish-IMST/tr_imst-ud-dev.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-IMST/r2.18/tr_imst-ud-dev.conllu",
+     "use": "eval",
+     "sha256": "f58d60666d3a9a7fea843b36444da5d6a7849b1172a851b2223479682c53d0d4",
+     "size": 899931
+    },
+    {
+     "path": "ud/UD_Turkish-IMST/tr_imst-ud-test.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-IMST/r2.18/tr_imst-ud-test.conllu",
+     "use": "eval",
+     "sha256": "299d3af2adb8722b5dd09cd17a20302af3670d36f2e57ed26170bf21526fd3d4",
+     "size": 846218
+    },
+    {
+     "path": "ud/UD_Turkish-IMST/tr_imst-ud-train.conllu",
+     "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Turkish-IMST/r2.18/tr_imst-ud-train.conllu",
+     "use": "eval",
+     "sha256": "d7d65fb10bd0f6ed6ecb0258938d6d126a2b93b409582759d2b52195dd5b7313",
+     "size": 3139065
+    }
+   ],
+   "license_found": "CC BY-NC-SA 3.0"
+  },
+  {
+   "name": "turkish-morphology",
+   "version": "83d4b967dc09ff947d15a4b20a81dd328c2c4f81",
+   "license_expected": "Apache-2.0",
+   "files": [
+    {
+     "path": "turkish-morphology/LICENSE",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/LICENSE",
+     "use": "license",
+     "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+     "size": 11358
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/adj_jj.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/adj_jj.tsv",
+     "use": "lexicon",
+     "sha256": "ab2384c804c5d0622a982cee5867a779f7f4cd270cc8c54d0d7208ee68edc527",
+     "size": 6823
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/adj_jjn.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/adj_jjn.tsv",
+     "use": "lexicon",
+     "sha256": "17bf437c81344646ceb8bd5205a097093d602099a5e869bb334e12bb6718428c",
+     "size": 105916
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/adp_in.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/adp_in.tsv",
+     "use": "lexicon",
+     "sha256": "803154ab28ed454164ff2779e304ad2dbf1719bd7c8257e4596ed275c4d24b53",
+     "size": 9283
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/adv_rb.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/adv_rb.tsv",
+     "use": "lexicon",
+     "sha256": "2875c7a406243bee44e910ca253f8bd54b1b08e66682be9f22185f2acbea4f86",
+     "size": 13804
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/adv_rb_temp.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/adv_rb_temp.tsv",
+     "use": "lexicon",
+     "sha256": "aec4d0790a237896569ed42a19361532d6d2db729af9727af4435b8661d6d219",
+     "size": 3150
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/adv_wrb.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/adv_wrb.tsv",
+     "use": "lexicon",
+     "sha256": "6b39cd78d7a7bf176a75945e8279b0bf71b1d2213e287ab9f77c37c75de10251",
+     "size": 146
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/affix_pfx.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/affix_pfx.tsv",
+     "use": "lexicon",
+     "sha256": "f9c4b5d0b812c01c13d8e77b8ccf4b9130326f6761ff175f48ed186bf1571a6f",
+     "size": 335
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/conj_cc.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/conj_cc.tsv",
+     "use": "lexicon",
+     "sha256": "eeb8cd97afe9f37a2f99e8f1c9dbc43d025a8f1ee65ef39b2d44b2419bcb619a",
+     "size": 6128
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/det_dt.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/det_dt.tsv",
+     "use": "lexicon",
+     "sha256": "8d22961e29019d58891b4dbcd904721ccae472eea541ea5343a06a01b08f98e7",
+     "size": 2185
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/det_pdt.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/det_pdt.tsv",
+     "use": "lexicon",
+     "sha256": "8355d3b07ef46043122d1ed10c3b752bcdc4b9512703abf49e005226645ce928",
+     "size": 142
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/det_wdt.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/det_wdt.tsv",
+     "use": "lexicon",
+     "sha256": "5591ef79a6c84cb51e42e3b2c7e3336857ab6040aae9e1edd2733d1a9e77bc7c",
+     "size": 105
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/exs_ex.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/exs_ex.tsv",
+     "use": "lexicon",
+     "sha256": "b1bfec97013da363ce0b1fbaf83c3737c6c3157293b54f822b4de2e645ab23cf",
+     "size": 140
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nn.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nn.tsv",
+     "use": "lexicon",
+     "sha256": "9b63caad8d42378b6c6f3334be33f852d7d06085ee112fbc48427cd7e3979cf1",
+     "size": 416895
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nn_abbr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nn_abbr.tsv",
+     "use": "lexicon",
+     "sha256": "b913c62ad171ab7b43cae3337b91ff06e9cf682607debd4ef40ff590d02a59aa",
+     "size": 7824
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nn_abbr_apos.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nn_abbr_apos.tsv",
+     "use": "lexicon",
+     "sha256": "0a69d426cd106351ae911b93406314dd597da716b8d358b7bdc925e1e5693101",
+     "size": 4404
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nn_foreign.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nn_foreign.tsv",
+     "use": "lexicon",
+     "sha256": "cec6365f30d4a8cce45d269ce503cf626c68bc9cd9636ac82724768223c0aa24",
+     "size": 2578
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nn_temp.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nn_temp.tsv",
+     "use": "lexicon",
+     "sha256": "c49a9c4fa675949fe61d418737cbddd94edafe8166300e1d820ff157664ecb1e",
+     "size": 85
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nnp.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nnp.tsv",
+     "use": "lexicon",
+     "sha256": "719ee8d5041ae07e2b3d0ffa55d907cd4129c952eb59d69440ec5c5bdd9315bb",
+     "size": 435168
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/noun_nnp_abbr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/noun_nnp_abbr.tsv",
+     "use": "lexicon",
+     "sha256": "d44dbc64287f89519591c4684bb8804a53f5b0f2bfa377eadc960129a8533782",
+     "size": 4416
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/num_cd.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/num_cd.tsv",
+     "use": "lexicon",
+     "sha256": "599fe68c78a20110b47422304a983cf7eb24d8d60623dd5cdfae98b1fc0e2b23",
+     "size": 1502
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/num_cd_dist.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/num_cd_dist.tsv",
+     "use": "lexicon",
+     "sha256": "1211efb6cdac9f9d6d276309fb318ee440f3569c3928778ec2f61821a6dc92db",
+     "size": 1934
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/num_cd_ord.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/num_cd_ord.tsv",
+     "use": "lexicon",
+     "sha256": "cc8ba15012703db87407745f88f408f1d0a83c0bb1e3bc43bb6fab37da6c03e7",
+     "size": 2002
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/onom_dup.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/onom_dup.tsv",
+     "use": "lexicon",
+     "sha256": "3c61460fd38a0d0bc9f9c3f1881f144a09f23d999cd461a8f856baabdaad919b",
+     "size": 6269
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prd.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prd.tsv",
+     "use": "lexicon",
+     "sha256": "ddec829c556bd247486b5ae350d2a6cb7c222e42ce7fe712a3c31857a9e472fa",
+     "size": 226
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prd_pnon.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prd_pnon.tsv",
+     "use": "lexicon",
+     "sha256": "62028dae1335249995bf689b9cafe400ee2964b8d6466ca55597861052d8b24d",
+     "size": 363
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prd_pnposs.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prd_pnposs.tsv",
+     "use": "lexicon",
+     "sha256": "3b3863ff57465253a4828d0175d8bc6dd2ab8999423c140f86715a6353d751a8",
+     "size": 92
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_pri.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_pri.tsv",
+     "use": "lexicon",
+     "sha256": "5ed0a9df9566242d02840b4123035a1b7d6b829044b439ebd121b5425a6b8847",
+     "size": 318
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prp$.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prp$.tsv",
+     "use": "lexicon",
+     "sha256": "a92c4b6df12549e5d883e4df65cce030be23cb68568ab3e48cb11b5170372040",
+     "size": 581
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prp.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prp.tsv",
+     "use": "lexicon",
+     "sha256": "52945f39f76de3b1ed15097b0bfe502ee8105113cbb5eb2c26c4ad13adef3697",
+     "size": 316
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prp_case.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prp_case.tsv",
+     "use": "lexicon",
+     "sha256": "c2f2e983888af246ac54a3145988cc22af8a938edcd99a0fdbe2328072fc9e67",
+     "size": 190
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prp_irr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prp_irr.tsv",
+     "use": "lexicon",
+     "sha256": "9aab20740a51bd8584cb206802ff071be263c659abfede417377a04a7325258e",
+     "size": 164
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_prr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_prr.tsv",
+     "use": "lexicon",
+     "sha256": "83a4acde206ce1d8bf2e405979c3169a24978eef995b08e547d2550b969421f5",
+     "size": 66
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/pron_wp.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/pron_wp.tsv",
+     "use": "lexicon",
+     "sha256": "fe1ece5e22678eec8eba4db5631567f2020428b375f76551491c5464cd2dec75",
+     "size": 116
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/prt_ep.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/prt_ep.tsv",
+     "use": "lexicon",
+     "sha256": "29fce207edb05e39fcc1075cccbc50defe54f606d7908596b40927c2a661cd3e",
+     "size": 151
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/prt_op.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/prt_op.tsv",
+     "use": "lexicon",
+     "sha256": "842ce4c4b05e63b65166e025f747a0560610e1dc0e94e0b67201c05b61635cc4",
+     "size": 85
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/prt_rpc.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/prt_rpc.tsv",
+     "use": "lexicon",
+     "sha256": "f95634a2d39f0eba21c7a6a4c4b5a7513119cd58ccc6d7354cd9690f06f79ba3",
+     "size": 211
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/prt_rpneg.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/prt_rpneg.tsv",
+     "use": "lexicon",
+     "sha256": "e56b1d2c34845464933d7f850bd1c15871d39839046c0bf7db389de7ae9b235f",
+     "size": 69
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/prt_rpq.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/prt_rpq.tsv",
+     "use": "lexicon",
+     "sha256": "866e5cb5b47f6550f8d6a8ab9e317c2990735ef23ed8c84191569d5f65a6052c",
+     "size": 116
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_1.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_1.tsv",
+     "use": "lexicon",
+     "sha256": "307ccda8eb4bfe6287bd983ebc29c554f62cbeb358f0d71e195ffeb798ca99e2",
+     "size": 149
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_2.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_2.tsv",
+     "use": "lexicon",
+     "sha256": "2033ea0512be8c0ba060f0cc8fe6fcebf281bebfefb7bff4b68580dbbfd3a9f2",
+     "size": 66
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_3.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_3.tsv",
+     "use": "lexicon",
+     "sha256": "7142a27a38880ab4bcc393d2169323554c01b161abd418a3c70303c779b44b9e",
+     "size": 86
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_4.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_4.tsv",
+     "use": "lexicon",
+     "sha256": "ec4eb99e4f7784e5a82a46ba6b08d68fb9be946e5a7024f6bb73bec235dd9f7f",
+     "size": 106
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_5.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_5.tsv",
+     "use": "lexicon",
+     "sha256": "02b6250c3e32cbf5e5793c7fdc1c3932d30551ece55fe23dc9cbb996469177ed",
+     "size": 126
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_6.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_6.tsv",
+     "use": "lexicon",
+     "sha256": "eb6e01ea35c6e84422446c30d9f7d0c599cb82fbbf23437f82934f055025d759",
+     "size": 192
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_7.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_7.tsv",
+     "use": "lexicon",
+     "sha256": "390dcd37cce54b18f906747628e4a08c0341626db7a6978211dd73ec490af8a7",
+     "size": 151
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/punct_punct_8.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/punct_punct_8.tsv",
+     "use": "lexicon",
+     "sha256": "7725d8e38402a520f14103f24ddf81a78a4b8798d8243f303337a3876ae4c72d",
+     "size": 108
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_ar_dhr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_ar_dhr.tsv",
+     "use": "lexicon",
+     "sha256": "4d2225061a64e7dcf49030d36c38c6a1ecacc628ad3da15d70975d8bfbf6c7dd",
+     "size": 10757
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_ar_hr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_ar_hr.tsv",
+     "use": "lexicon",
+     "sha256": "e65183f30cc4f721dc92035000317ce6aa6fed9e03a4c267005720a756181318",
+     "size": 436
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_ar_ht.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_ar_ht.tsv",
+     "use": "lexicon",
+     "sha256": "b31eebbb4749837babfc9747d9e999226b6bc6cfa626913359c05d12851d5fd2",
+     "size": 216
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_ar_no.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_ar_no.tsv",
+     "use": "lexicon",
+     "sha256": "c5bf5b5de0a9646bd727cef648a5470afd737d1d5ffa2bd9aab0be7529242f73",
+     "size": 101
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_ar_t.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_ar_t.tsv",
+     "use": "lexicon",
+     "sha256": "8f8c8d0ec52932268969fb0546773af550aa80b3d9c1de9387fcf93c2134cbbc",
+     "size": 97
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_hr_dhr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_hr_dhr.tsv",
+     "use": "lexicon",
+     "sha256": "2867a74f3f760507f182f98df392eb7b3c975dbf11827dafe80d084e2df3d8d1",
+     "size": 8235
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_hr_no.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_hr_no.tsv",
+     "use": "lexicon",
+     "sha256": "81f529b17d67cb7f1369282f074792551c6391f46730ac66fb1ff0d5dc7a7fd7",
+     "size": 134
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hl_hr_t.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hl_hr_t.tsv",
+     "use": "lexicon",
+     "sha256": "edd392cc23eca0f5166ee71c95e6edcb2e99bf32e64a9acc9e62e36001628992",
+     "size": 4177
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hn_ar_dhr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hn_ar_dhr.tsv",
+     "use": "lexicon",
+     "sha256": "0a010969371237a5bd6141f231174fb7b5509ad91e6b6a263f34edbeda51b371",
+     "size": 457
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hn_hr_dhr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hn_hr_dhr.tsv",
+     "use": "lexicon",
+     "sha256": "b5c0d125ee18db60929357ccaefdf4a4c3281720486207c51c7ff9f10177ed93",
+     "size": 1977
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hn_hr_no.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hn_hr_no.tsv",
+     "use": "lexicon",
+     "sha256": "994e6825b6702ad6f2e95e2837001cbfcda8d34526ed61185e6957cf38733689",
+     "size": 130
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_hn_hr_t.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_hn_hr_t.tsv",
+     "use": "lexicon",
+     "sha256": "21cc3440604d2c489e415d129aa6820c78a05f7712c804c95a814a290e58e1ef",
+     "size": 1328
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_on_or_dhr.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_on_or_dhr.tsv",
+     "use": "lexicon",
+     "sha256": "1ceb80aa8d8e46b598cfb9286c931831743d4026642af202cebc00ef69b260b0",
+     "size": 248
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/verb_vb_on_or_t.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/verb_vb_on_or_t.tsv",
+     "use": "lexicon",
+     "sha256": "2c74ac83e284b63c1068561709eadca2bc77d2a200ce040983a0e1637afe4d29",
+     "size": 11859
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/x_ls.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/x_ls.tsv",
+     "use": "lexicon",
+     "sha256": "5479000686ad66aab7e9a40912b1c44cdeb36c5f22b053e2c1372007562b4eb3",
+     "size": 249
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/x_sym.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/x_sym.tsv",
+     "use": "lexicon",
+     "sha256": "125d910fc7ba1ec3ba7cbcb8f2bd73378030509fbe2c9ca816824dcba27e62f4",
+     "size": 110
+    },
+    {
+     "path": "turkish-morphology/src/analyzer/lexicon/base/x_uh.tsv",
+     "url": "https://raw.githubusercontent.com/google-research/turkish-morphology/83d4b967dc09ff947d15a4b20a81dd328c2c4f81/src/analyzer/lexicon/base/x_uh.tsv",
+     "use": "lexicon",
+     "sha256": "618b6c2720020cf310fbdfd5a2f4e3bb1cd3269a0145f62d0a9ea6b93bed7aec",
+     "size": 3308
+    }
+   ],
+   "license_found": "Apache-2.0"
+  },
+  {
+   "name": "TRmorph",
+   "version": "fbceb1133fbdc51bd63693d448b7cb75672e2256",
+   "license_expected": "MIT",
+   "files": [
+    {
+     "path": "TRmorph/LICENSE",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/LICENSE",
+     "use": "license",
+     "sha256": "c180279f52c13aa9df7a6487b5d70f0b544d8c2b6ee9a270fadee00a27ebd897",
+     "size": 1089
+    },
+    {
+     "path": "TRmorph/lexicon/abbreviation",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/abbreviation",
+     "use": "lexicon",
+     "sha256": "cad8761ee603594e7d68d63b266227b0db1ce2099f98ebed90feb37ac31d536b",
+     "size": 22330
+    },
+    {
+     "path": "TRmorph/lexicon/adjective",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/adjective",
+     "use": "lexicon",
+     "sha256": "18096e56b413553313858a189cc3862dc85bda8cc27a79e5d2fbfe245a397468",
+     "size": 62201
+    },
+    {
+     "path": "TRmorph/lexicon/adverb",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/adverb",
+     "use": "lexicon",
+     "sha256": "c16a4aef58d2b8908e09b49c18faae83006c7b53704953460e50612cb606c84d",
+     "size": 13617
+    },
+    {
+     "path": "TRmorph/lexicon/alpha",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/alpha",
+     "use": "lexicon",
+     "sha256": "c58f8217a72c52c02d6f94d38018385029ca126a0f4b74c7530dd3f2b0a205a5",
+     "size": 846
+    },
+    {
+     "path": "TRmorph/lexicon/childes-forms",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/childes-forms",
+     "use": "lexicon",
+     "sha256": "c8ed3c498c67fd04bb0515e498802757a6f6f274956a448c1de488da8f5249d5",
+     "size": 404
+    },
+    {
+     "path": "TRmorph/lexicon/circumflex",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/circumflex",
+     "use": "lexicon",
+     "sha256": "2c160989a77f3364e002d1a4f716faa7443173027f295800402497ef4c7f274c",
+     "size": 11179
+    },
+    {
+     "path": "TRmorph/lexicon/clitics",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/clitics",
+     "use": "lexicon",
+     "sha256": "b99777aab699b4b38b5fa1c293e67f3ae54718326d1a77ed187f6e948178830a",
+     "size": 425
+    },
+    {
+     "path": "TRmorph/lexicon/common_typos",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/common_typos",
+     "use": "lexicon",
+     "sha256": "86d7151ada47ed1477b4c45d805305f9ef7c13a828dc58098c5843ac3348eb2e",
+     "size": 1810
+    },
+    {
+     "path": "TRmorph/lexicon/conjunction",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/conjunction",
+     "use": "lexicon",
+     "sha256": "d97a54198f3294daa67820e2dee9d799130e40ad79f1f51c0a786a39a5406d5e",
+     "size": 4106
+    },
+    {
+     "path": "TRmorph/lexicon/determiner",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/determiner",
+     "use": "lexicon",
+     "sha256": "4f1058b5f7d4936ac08fd7eebb76aa7ff8e42a858c93517ba3bd8ec2e8dbc4d3",
+     "size": 2997
+    },
+    {
+     "path": "TRmorph/lexicon/emoticon",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/emoticon",
+     "use": "lexicon",
+     "sha256": "442194decce7718ff447017c7c8deaedbc4c335a3f32fddebe8601eab63cda82",
+     "size": 6662
+    },
+    {
+     "path": "TRmorph/lexicon/interjection",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/interjection",
+     "use": "lexicon",
+     "sha256": "2f0cd6ddb9aaca25ac631d7669c615ec3ac95a84042b8c6238e59aba9fa647d5",
+     "size": 14245
+    },
+    {
+     "path": "TRmorph/lexicon/location_names",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/location_names",
+     "use": "lexicon",
+     "sha256": "33ba7761d50404112f33e24ebc58ba34940de95415b7dd9dde1e15d838412c6e",
+     "size": 638094
+    },
+    {
+     "path": "TRmorph/lexicon/new-items",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/new-items",
+     "use": "lexicon",
+     "sha256": "6aa29ce28cca8f0bd399a2a2aae59ea43aa6a2ff60d5056d7927118df6e31616",
+     "size": 116567
+    },
+    {
+     "path": "TRmorph/lexicon/noun",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/noun",
+     "use": "lexicon",
+     "sha256": "25a4c192442696caf636d6444d9dd3ab3e640be128a02506a327ce33fce5fb4b",
+     "size": 415397
+    },
+    {
+     "path": "TRmorph/lexicon/onomatopoeia",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/onomatopoeia",
+     "use": "lexicon",
+     "sha256": "bf6b0de592a334dc79bb2d76cd37b86b1e2729f9db45167512c7cc33555d3287",
+     "size": 3304
+    },
+    {
+     "path": "TRmorph/lexicon/part-word.sh",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/part-word.sh",
+     "use": "lexicon",
+     "sha256": "56d0c43d429fb70076f476eee9c6e245bd435866709ac548cf6701ddcd3645b6",
+     "size": 754
+    },
+    {
+     "path": "TRmorph/lexicon/part_word",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/part_word",
+     "use": "lexicon",
+     "sha256": "9415d89939a8f32bfd97ea7874f663350f05ba24eb41eac4456bc3cb70a74d35",
+     "size": 4128
+    },
+    {
+     "path": "TRmorph/lexicon/person_names",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/person_names",
+     "use": "lexicon",
+     "sha256": "488bdd35f4bf9bd3ab26b2f1360fb5a34274aac857e17861c8c12424ba5ccb5f",
+     "size": 354409
+    },
+    {
+     "path": "TRmorph/lexicon/person_names.foreign",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/person_names.foreign",
+     "use": "lexicon",
+     "sha256": "b3264d114852f5de4261e658adf05279bc72fceea365765bf2f22d000a64098b",
+     "size": 11928
+    },
+    {
+     "path": "TRmorph/lexicon/postposition",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/postposition",
+     "use": "lexicon",
+     "sha256": "7dc7644771539d0c61a1781c4a4138b569a151ac417e7c314bdedbea93b6b419",
+     "size": 8960
+    },
+    {
+     "path": "TRmorph/lexicon/pronoun",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/pronoun",
+     "use": "lexicon",
+     "sha256": "fa680e3a9d430dbb1e67b71a4b83fa3a02c3b62aafe4ff59adcf983d2720369e",
+     "size": 1899
+    },
+    {
+     "path": "TRmorph/lexicon/proper_noun",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/proper_noun",
+     "use": "lexicon",
+     "sha256": "39b774c0ad3c986dde879874f03818b105647dcf8ad34d08eaa7948f06c19529",
+     "size": 261898
+    },
+    {
+     "path": "TRmorph/lexicon/punctuation",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/punctuation",
+     "use": "lexicon",
+     "sha256": "ffb4e0df45ec5d31d9027da462e56f60dba352f8dee274bcf831cd4459baecc4",
+     "size": 848
+    },
+    {
+     "path": "TRmorph/lexicon/qwords",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/qwords",
+     "use": "lexicon",
+     "sha256": "bd78dd497332614393220db9ef8806b9aa77e148bd0050c2f31a569c9024a4de",
+     "size": 373
+    },
+    {
+     "path": "TRmorph/lexicon/reduplication",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/reduplication",
+     "use": "lexicon",
+     "sha256": "3ea17b5d02ac4f2482b814cdb05144b26077f924fd05d8328a6543dce3ba5960",
+     "size": 8575
+    },
+    {
+     "path": "TRmorph/lexicon/reduplication.part",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/reduplication.part",
+     "use": "lexicon",
+     "sha256": "a565edc37c0a7f68a272e8b8c1c98911949cd121eb55c37f6c380844b94d6801",
+     "size": 5807
+    },
+    {
+     "path": "TRmorph/lexicon/symbol",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/symbol",
+     "use": "lexicon",
+     "sha256": "f24006f8f778a950cec795e6e8b5b46020395ff23c0b0501d3cdf036aa8ac0ce",
+     "size": 990
+    },
+    {
+     "path": "TRmorph/lexicon/tinglish",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/tinglish",
+     "use": "lexicon",
+     "sha256": "7fb21e7cfb2e0d8335cdc0762c84a5251588407212f1e7d2c02892027c40760c",
+     "size": 3982
+    },
+    {
+     "path": "TRmorph/lexicon/todo",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/todo",
+     "use": "lexicon",
+     "sha256": "99db92469cf6e8bc6d6d88b791c1954f420cc44e60be1ad37a4fdcec693a1d5e",
+     "size": 809
+    },
+    {
+     "path": "TRmorph/lexicon/verb",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/verb",
+     "use": "lexicon",
+     "sha256": "139e7033f66c760cd15d175e4d8b65639d1a84acdd2647ffa1f14097ed92200e",
+     "size": 30407
+    },
+    {
+     "path": "TRmorph/lexicon/verb_la",
+     "url": "https://raw.githubusercontent.com/coltekin/TRmorph/fbceb1133fbdc51bd63693d448b7cb75672e2256/lexicon/verb_la",
+     "use": "lexicon",
+     "sha256": "ed6f2b744a7089d878e5a468bb72a2fb7879442d6148c20472229687232265df",
+     "size": 15621
+    }
+   ],
+   "license_found": "MIT"
+  },
+  {
+   "name": "kaikki-trwiktionary",
+   "version": "extract of the trwiktionary dump of 2026-10-02, made 2026-10-25",
+   "license_expected": "CC BY-SA 4.0 + GFDL",
+   "files": [
+    {
+     "path": "kaikki/trwiktionary-raw-wiktextract-data.jsonl.gz",
+     "url": "https://kaikki.org/trwiktionary/raw-wiktextract-data.jsonl.gz",
+     "use": "addon",
+     "sha256": "cfb0ff0c5b50a2913a3d07c5ad3a90aa70000fa8217821ec749598c191b2223a",
+     "size": 45899849
+    }
+   ],
+   "license_found": "no licence file (Wiktionary content)"
+  },
+  {
+   "name": "turkish-wikiNER",
+   "version": "99df1dd7f5a01d39cd5903e51e361d708cb2a5a6",
+   "license_expected": "CC BY-SA 4.0",
+   "files": [
+    {
+     "path": "turkish-wikiNER/README.md",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/README.md",
+     "use": "license",
+     "sha256": "51182c199326d4b5d58878f89a36c67582ec8d423f94ae794b0b5c76b9ecc04d",
+     "size": 7201
+    },
+    {
+     "path": "turkish-wikiNER/tags.lst",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/tags.lst",
+     "use": "train",
+     "sha256": "4221871ef6dc877ea6f58ec75eb8b59e7b4b4191ba4489bfc4886514bd3883a9",
+     "size": 323
+    },
+    {
+     "path": "turkish-wikiNER/data/train-00000-of-00001.parquet",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/data/train-00000-of-00001.parquet",
+     "use": "train",
+     "sha256": "7862961d3ac283a0460bca75c64e827ee3f800e2febc7b36f398d8e7a6a58501",
+     "size": 1984874
+    },
+    {
+     "path": "turkish-wikiNER/data/validation-00000-of-00001.parquet",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/data/validation-00000-of-00001.parquet",
+     "use": "train",
+     "sha256": "a79fade31c37fade234ec7af2cd90aad0df944b72193a8cec097f9087f0141b8",
+     "size": 111625
+    },
+    {
+     "path": "turkish-wikiNER/data/test-00000-of-00001.parquet",
+     "url": "https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER/resolve/99df1dd7f5a01d39cd5903e51e361d708cb2a5a6/data/test-00000-of-00001.parquet",
+     "use": "eval",
+     "sha256": "60b4b8b5ba3d02542546019c8a1f85d02789f50099788a37d9ff9b44074cea7f",
+     "size": 115394
+    }
+   ],
+   "license_found": "CC BY-SA 4.0"
+  }
+ ]
+}

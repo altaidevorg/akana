@@ -90,3 +90,33 @@ impl SentenceSpan {
         }
     }
 }
+
+/// Converts byte offsets of a text into char offsets, front to back: each call counts only the
+/// chars since the previous offset, so converting every sentence boundary of a document is
+/// linear in its length. Counting the whole prefix per sentence made 8 M chars take 53 s.
+pub(crate) struct CharOffsets<'a> {
+    text: &'a str,
+    byte: usize,
+    chars: usize,
+}
+
+impl<'a> CharOffsets<'a> {
+    pub(crate) fn new(text: &'a str) -> Self {
+        Self {
+            text,
+            byte: 0,
+            chars: 0,
+        }
+    }
+
+    /// `text[..byte].chars().count()`. Offsets are expected in increasing order; an earlier one
+    /// is counted from the start again.
+    pub(crate) fn at(&mut self, byte: usize) -> usize {
+        if byte < self.byte {
+            (self.byte, self.chars) = (0, 0);
+        }
+        self.chars += self.text[self.byte..byte].chars().count();
+        self.byte = byte;
+        self.chars
+    }
+}

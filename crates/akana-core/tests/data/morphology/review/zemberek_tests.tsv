@@ -1,0 +1,1787 @@
+# The analysis checks of zemberek-nlp's morphology tests (morphology/src/test/java/zemberek/
+# morphology/analysis: NounsTest, VerbsTest, PronounsTest, NounDerivationTest,
+# VerbDerivationTest and smaller ones; Apache License 2.0, see THIRD_PARTY_NOTICES), converted
+# by review 2 to one check per line, their dictionary lines in akana's lexicon format.
+# FILE name | TEST name (a test name ending in _IGNORED is @Ignore'd in Zemberek) | DICT line
+# (the test's tiny lexicon; DEFAULT is the built-in one) | RESET (a new lexicon follows) |
+# ANY/TAILANY/SINGLE/NOTANY word analysis-tail | SUCCESS word (some analysis) | FAIL word |
+# COUNT word n | LEMMA word lemma | NOTCONTAINS word morpheme. NounCompoundsTest's expectsResult
+# and expectsResult2 were corrected against the Java source: their expectSuccess has no count,
+# so they are SUCCESS checks (the conversion had made them COUNT 1 and dropped zeytinyağı).
+FILE	NounsTest
+TEST	implicitDative_1
+DICT	içeri içeri Noun ImplicitDative
+ANY	içeri	Noun + A3sg + Dat
+ANY	içeri	Noun + A3sg
+TEST	implicitPLural_1
+DICT	hayvanat hayvanat Noun ImplicitPlural
+SINGLE	hayvanat	Noun + A3pl
+TEST	voicing_1
+DICT	kitap kitap Noun
+SINGLE	kitap	Noun + A3sg
+ANY	kitaplar	Noun + A3pl
+ANY	kitabım	Noun + A3sg + P1sg
+ANY	kitaba	Noun + A3sg + Dat
+ANY	kitapta	Noun + A3sg + Loc
+ANY	kitapçık	Noun + A3sg + Dim + Noun + A3sg
+FAIL	kitapım
+FAIL	kitab
+FAIL	kitabcık
+FAIL	kitapa
+FAIL	kitablar
+TEST	lastVowelDropExceptionTest
+DICT	içeri içeri Noun ImplicitDative
+ANY	içeri	Noun + A3sg + Dat
+ANY	içeride	Noun + A3sg + Loc
+ANY	içerilerde	Noun + A3pl + Loc
+ANY	içerde	Noun + A3sg + Loc
+ANY	içerlerde	Noun + A3pl + Loc
+FAIL	içer
+FAIL	içerdim
+RESET
+DICT	bura bura Noun
+ANY	burada	Noun + A3sg + Loc
+ANY	burda	Noun + A3sg + Loc
+ANY	burlarda	Noun + A3pl + Loc
+ANY	burdan	Noun + A3sg + Abl
+FAIL	burd
+FAIL	burdum
+TEST	suTest
+DICT	su su Noun
+SINGLE	su	Noun + A3sg
+SINGLE	sulara	Noun + A3pl + Dat
+SINGLE	suyuma	Noun + A3sg + P1sg + Dat
+ANY	suyun	Noun + A3sg + P2sg
+ANY	suyun	Noun + A3sg + Gen
+SINGLE	suyumuz	Noun + A3sg + P1pl
+FAIL	sunun
+FAIL	susu
+FAIL	sum
+FAIL	sun
+TEST	P2pl
+DICT	ev ev Noun
+ANY	eviniz	Noun + A3sg + P2pl
+SINGLE	evinize	Noun + A3sg + P2pl + Dat
+SINGLE	evinizi	Noun + A3sg + P2pl + Acc
+ANY	evleriniz	Noun + A3pl + P2pl
+SINGLE	evlerinize	Noun + A3pl + P2pl + Dat
+SINGLE	evlerinizi	Noun + A3pl + P2pl + Acc
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağınız	Noun + A3sg + P2pl
+SINGLE	zeytinyağınıza	Noun + A3sg + P2pl + Dat
+ANY	zeytinyağlarınız	Noun + A3pl + P2pl
+SINGLE	zeytinyağlarınıza	Noun + A3pl + P2pl + Dat
+TEST	dative
+DICT	ev ev Noun
+SINGLE	eve	Noun + A3sg + Dat
+SINGLE	evlere	Noun + A3pl + Dat
+SINGLE	evime	Noun + A3sg + P1sg + Dat
+SINGLE	evimize	Noun + A3sg + P1pl + Dat
+RESET
+DICT	kitap kitap Noun
+SINGLE	kitaba	Noun + A3sg + Dat
+SINGLE	kitabıma	Noun + A3sg + P1sg + Dat
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağına	Noun + A3sg + Dat
+SINGLE	zeytinyağıma	Noun + A3sg + P1sg + Dat
+SINGLE	zeytinyağlarımıza	Noun + A3pl + P1pl + Dat
+SINGLE	zeytinyağlarınıza	Noun + A3pl + P2pl + Dat
+TEST	Ablative
+DICT	ev ev Noun
+ANY	evden	Noun + A3sg + Abl
+SINGLE	evlerden	Noun + A3pl + Abl
+SINGLE	evimden	Noun + A3sg + P1sg + Abl
+ANY	evimizden	Noun + A3sg + P1pl + Abl
+RESET
+DICT	kitap kitap Noun
+ANY	kitaptan	Noun + A3sg + Abl
+ANY	kitabımdan	Noun + A3sg + P1sg + Abl
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağından	Noun + A3sg + Abl
+SINGLE	zeytinyağımdan	Noun + A3sg + P1sg + Abl
+SINGLE	zeytinyağlarımızdan	Noun + A3pl + P1pl + Abl
+SINGLE	zeytinyağlarınızdan	Noun + A3pl + P2pl + Abl
+TEST	Locative
+DICT	ev ev Noun
+ANY	evde	Noun + A3sg + Loc
+SINGLE	evlerde	Noun + A3pl + Loc
+SINGLE	evimde	Noun + A3sg + P1sg + Loc
+ANY	evimizde	Noun + A3sg + P1pl + Loc
+RESET
+DICT	kitap kitap Noun
+ANY	kitapta	Noun + A3sg + Loc
+ANY	kitabımda	Noun + A3sg + P1sg + Loc
+RESET
+DICT	elma elma Noun
+ANY	elmada	Noun + A3sg + Loc
+ANY	elmanda	Noun + A3sg + P2sg + Loc
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağında	Noun + A3sg + Loc
+SINGLE	zeytinyağımda	Noun + A3sg + P1sg + Loc
+SINGLE	zeytinyağlarımızda	Noun + A3pl + P1pl + Loc
+SINGLE	zeytinyağlarınızda	Noun + A3pl + P2pl + Loc
+TEST	Locative2
+DICT	ev ev Noun
+ANY	evdeyim	Noun + A3sg + Loc + Zero + Verb + Pres + A1sg
+TEST	Instrumental
+DICT	ev ev Noun
+ANY	evle	Noun + A3sg + Ins
+SINGLE	evlerle	Noun + A3pl + Ins
+SINGLE	evimle	Noun + A3sg + P1sg + Ins
+ANY	evimizle	Noun + A3sg + P1pl + Ins
+RESET
+DICT	kitap kitap Noun
+ANY	kitapla	Noun + A3sg + Ins
+ANY	kitabımla	Noun + A3sg + P1sg + Ins
+RESET
+DICT	elma elma Noun
+ANY	elmayla	Noun + A3sg + Ins
+ANY	elmanla	Noun + A3sg + P2sg + Ins
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağıyla	Noun + A3sg + Ins
+SINGLE	zeytinyağımla	Noun + A3sg + P1sg + Ins
+SINGLE	zeytinyağlarımızla	Noun + A3pl + P1pl + Ins
+SINGLE	zeytinyağlarınızla	Noun + A3pl + P2pl + Ins
+TEST	genitive
+DICT	ev ev Noun
+ANY	evin	Noun + A3sg + Gen
+ANY	evlerin	Noun + A3pl + Gen
+SINGLE	evimin	Noun + A3sg + P1sg + Gen
+SINGLE	evimizin	Noun + A3sg + P1pl + Gen
+RESET
+DICT	kitap kitap Noun
+ANY	kitabın	Noun + A3sg + Gen
+SINGLE	kitabımın	Noun + A3sg + P1sg + Gen
+RESET
+DICT	elma elma Noun
+SINGLE	elmamın	Noun + A3sg + P1sg + Gen
+ANY	elmanın	Noun + A3sg + P2sg + Gen
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağının	Noun + A3sg + Gen
+SINGLE	zeytinyağımın	Noun + A3sg + P1sg + Gen
+SINGLE	zeytinyağlarımızın	Noun + A3pl + P1pl + Gen
+SINGLE	zeytinyağlarınızın	Noun + A3pl + P2pl + Gen
+TEST	equ
+DICT	ev ev Noun
+ANY	evce	Noun + A3sg + Equ
+ANY	evlerce	Noun + A3pl + Equ
+SINGLE	evimce	Noun + A3sg + P1sg + Equ
+SINGLE	evimizce	Noun + A3sg + P1pl + Equ
+ANY	evlerince	Noun + A3pl + P3sg + Equ
+RESET
+DICT	kitap kitap Noun
+ANY	kitapça	Noun + A3sg + Equ
+ANY	kitaplarınca	Noun + A3pl + P3pl + Equ
+SINGLE	kitabımca	Noun + A3sg + P1sg + Equ
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağınca	Noun + A3sg + Equ
+TEST	P3pl
+DICT	ev ev Noun
+ANY	evleri	Noun + A3pl + Acc
+ANY	evleri	Noun + A3pl + P3sg
+ANY	evleri	Noun + A3sg + P3pl
+ANY	evleri	Noun + A3pl + P3pl
+ANY	evlerine	Noun + A3sg + P3pl + Dat
+ANY	evlerinde	Noun + A3sg + P3pl + Loc
+ANY	evlerinden	Noun + A3sg + P3pl + Abl
+ANY	evleriyle	Noun + A3sg + P3pl + Ins
+ANY	evlerini	Noun + A3sg + P3pl + Acc
+RESET
+DICT	kitap kitap Noun
+ANY	kitapları	Noun + A3pl + P3sg
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağları	Noun + A3pl
+ANY	zeytinyağları	Noun + A3pl + P3pl
+ANY	zeytinyağları	Noun + A3pl + P3sg
+ANY	zeytinyağları	Noun + A3sg + P3pl
+ANY	zeytinyağlarına	Noun + A3pl + P3sg + Dat
+TEST	family1
+DICT	annemler annemler Noun ImplicitPlural ImplicitP1sg FamilyMember
+FAIL	annemlerler
+FAIL	annemlerim
+TEST	family2
+DICT	annemler annemler Noun ImplicitPlural ImplicitP1sg FamilyMember
+COUNT	annemler	1
+COUNT	annemlere	1
+COUNT	annemleri	1
+TEST	family3
+DICT	annemler annemler Noun ImplicitPlural ImplicitP1sg FamilyMember
+SINGLE	annemleri	Acc
+NOTCONTAINS	annemleri	P3sg
+TEST	properNoun1
+DICT	Ankara Ankara Noun Prop
+ANY	ankara	Noun + A3sg
+TEST	abbreviationShouldNotGetPossessive
+DICT	Tdk Tdk Noun Prop pr=tedeka
+ANY	tdk	Noun + A3sg
+ANY	tdkya	Noun + A3sg + Dat
+ANY	tdknın	Noun + A3sg + Gen
+FAIL	Tdkm
+FAIL	Tdkn
+FAIL	Tdksı
+FAIL	Tdkmız
+FAIL	Tdknız
+TEST	uzeri
+DICT	üzeri üzeri Noun CompoundP3sg roots=üzer
+COUNT	üzeri	2
+FILE	VerbsTest
+TEST	Imp
+DICT	okumak oku Verb
+SINGLE	oku	Verb + Imp + A2sg
+SINGLE	okusana	Verb + Imp + A2sg
+SINGLE	okusun	Verb + Imp + A3sg
+SINGLE	okuyun	Verb + Imp + A2pl
+SINGLE	okuyunuz	Verb + Imp + A2pl
+SINGLE	okusanıza	Verb + Imp + A2pl
+SINGLE	okusunlar	Verb + Imp + A3pl
+RESET
+DICT	yazmak yaz Verb
+SINGLE	yaz	Verb + Imp + A2sg
+SINGLE	yazsın	Verb + Imp + A3sg
+SINGLE	yazın	Verb + Imp + A2pl
+SINGLE	yazınız	Verb + Imp + A2pl
+SINGLE	yazsınlar	Verb + Imp + A3pl
+TEST	ImpNeg
+DICT	okumak oku Verb
+ANY	okuma	Verb + Neg + Imp + A2sg
+ANY	okumasın	Verb + Neg + Imp + A3sg
+SINGLE	okumayın	Verb + Neg + Imp + A2pl
+SINGLE	okumayınız	Verb + Neg + Imp + A2pl
+SINGLE	okumasınlar	Verb + Neg + Imp + A3pl
+TEST	progressivePositive
+DICT	yazmak yaz Verb
+SINGLE	yazıyorum	Verb + Prog1 + A1sg
+SINGLE	yazıyorsun	Verb + Prog1 + A2sg
+SINGLE	yazıyor	Verb + Prog1 + A3sg
+SINGLE	yazıyoruz	Verb + Prog1 + A1pl
+SINGLE	yazıyorsunuz	Verb + Prog1 + A2pl
+SINGLE	yazıyorlar	Verb + Prog1 + A3pl
+RESET
+DICT	gitmek git Verb Voicing
+SINGLE	gidiyorum	Verb + Prog1 + A1sg
+SINGLE	gidiyorsun	Verb + Prog1 + A2sg
+SINGLE	gidiyor	Verb + Prog1 + A3sg
+RESET
+DICT	bilmek bil Verb Aorist_I
+SINGLE	biliyorsun	Verb + Prog1 + A2sg
+FAIL	gitiyor
+FAIL	gidyor
+TEST	progressivePositive2
+DICT	yazmak yaz Verb
+SINGLE	yazıyordum	Verb + Prog1 + Past + A1sg
+SINGLE	yazıyorsan	Verb + Prog1 + Cond + A2sg
+SINGLE	yazıyormuş	Verb + Prog1 + Narr + A3sg
+SINGLE	yazıyorduk	Verb + Prog1 + Past + A1pl
+FAIL	yazıyormuşsak
+TEST	progressiveDrop
+DICT	aramak ara Verb
+SINGLE	arıyorum	Verb + Prog1 + A1sg
+SINGLE	arıyor	Verb + Prog1 + A3sg
+FAIL	arayorum
+FAIL	ar
+FAIL	ardım
+RESET
+DICT	yürümek yürü Verb
+SINGLE	yürüyorum	Verb + Prog1 + A1sg
+SINGLE	yürüyor	Verb + Prog1 + A3sg
+RESET
+DICT	denemek dene Verb
+SINGLE	deniyorum	Verb + Prog1 + A1sg
+SINGLE	deniyor	Verb + Prog1 + A3sg
+TEST	progressiveNegative
+DICT	yazmak yaz Verb
+SINGLE	yazmıyorum	Verb + Neg + Prog1 + A1sg
+SINGLE	yazmıyorsun	Verb + Neg + Prog1 + A2sg
+SINGLE	yazmıyor	Verb + Neg + Prog1 + A3sg
+FAIL	yazmayorum
+FAIL	yazm
+FAIL	yazmz
+RESET
+DICT	aramak ara Verb
+SINGLE	aramıyoruz	Verb + Neg + Prog1 + A1pl
+SINGLE	aramıyorsunuz	Verb + Neg + Prog1 + A2pl
+SINGLE	aramıyorlar	Verb + Neg + Prog1 + A3pl
+FAIL	aramayoruz
+FAIL	armıyoruz
+FAIL	armıyor
+RESET
+DICT	affetmek affet Verb Voicing
+SINGLE	affetmiyor	Verb + Neg + Prog1 + A3sg
+TEST	progressiveNegative2
+DICT	yazmak yaz Verb
+SINGLE	yazmıyordum	Verb + Neg + Prog1 + Past + A1sg
+SINGLE	yazmıyorsan	Verb + Neg + Prog1 + Cond + A2sg
+SINGLE	yazmıyormuş	Verb + Neg + Prog1 + Narr + A3sg
+SINGLE	yazmıyorduk	Verb + Neg + Prog1 + Past + A1pl
+RESET
+DICT	aramak ara Verb
+SINGLE	aramıyorduk	Verb + Neg + Prog1 + Past + A1pl
+SINGLE	aramıyorsam	Verb + Neg + Prog1 + Cond + A1sg
+SINGLE	aramıyormuşuz	Verb + Neg + Prog1 + Narr + A1pl
+TEST	aorist
+DICT	yazmak yaz Verb
+SINGLE	yazarım	Verb + Aor + A1sg
+SINGLE	yazarsın	Verb + Aor + A2sg
+ANY	yazar	Verb + Aor + A3sg
+ANY	yazarız	Verb + Aor + A1pl
+SINGLE	yazarlar	Verb + Aor + A3pl
+ANY	yazdırır	Verb + Caus + Verb + Aor + A3sg
+ANY	yazdırtır	Verb + Caus + Verb + Caus + Verb + Aor + A3sg
+ANY	yazdırttırır	Verb + Caus + Verb + Caus + Verb + Caus + Verb + Aor + A3sg
+RESET
+DICT	semirmek semir Verb
+SINGLE	semiririm	Verb + Aor + A1sg
+SINGLE	semirirsin	Verb + Aor + A2sg
+ANY	semirir	Verb + Aor + A3sg
+SINGLE	semirtirim	Verb + Caus + Verb + Aor + A1sg
+SINGLE	semirttiririm	Verb + Caus + Verb + Caus + Verb + Aor + A1sg
+TEST	aorist2
+DICT	yazmak yaz Verb
+SINGLE	yazardım	Verb + Aor + Past + A1sg
+SINGLE	yazmazdım	Verb + Neg + Aor + Past + A1sg
+SINGLE	yazardık	Verb + Aor + Past + A1pl
+SINGLE	yazarmışsın	Verb + Aor + Narr + A2sg
+SINGLE	yazarsa	Verb + Aor + Cond + A3sg
+SINGLE	yazmazsa	Verb + Neg + Aor + Cond + A3sg
+SINGLE	yazmazmışız	Verb + Neg + Aor + Narr + A1pl
+RESET
+DICT	etmek et Verb Voicing
+ANY	eder	Verb + Aor + A3sg
+SINGLE	edermiş	Verb + Aor + Narr + A3sg
+SINGLE	etmezmiş	Verb + Neg + Aor + Narr + A3sg
+SINGLE	ederdik	Verb + Aor + Past + A1pl
+SINGLE	etmezsek	Verb + Neg + Aor + Cond + A1pl
+TEST	aoristNegative
+DICT	yazmak yaz Verb
+ANY	yazmam	Verb + Neg + Aor + A1sg
+ANY	yazmam	Verb + Inf2 + Noun + A3sg + P1sg
+SINGLE	yazmazsın	Verb + Neg + Aor + A2sg
+ANY	yazmaz	Verb + Neg + Aor + A3sg
+ANY	yazmayız	Verb + Neg + Aor + A1pl
+SINGLE	yazmazsınız	Verb + Neg + Aor + A2pl
+SINGLE	yazmazlar	Verb + Neg + Aor + A3pl
+ANY	yazdırmaz	Verb + Caus + Verb + Neg + Aor + A3sg
+ANY	yazdırtmaz	Verb + Caus + Verb + Caus + Verb + Neg + Aor + A3sg
+SINGLE	yazdırttırmazsınız	Verb + Caus + Verb + Caus + Verb + Caus + Verb + Neg + Aor + A2pl
+RESET
+DICT	semirmek semir Verb
+ANY	semirmem	Verb + Neg + Aor + A1sg
+SINGLE	semirmezsin	Verb + Neg + Aor + A2sg
+ANY	semirmez	Verb + Neg + Aor + A3sg
+ANY	semirtmem	Verb + Caus + Verb + Neg + Aor + A1sg
+ANY	semirttirmem	Verb + Caus + Verb + Caus + Verb + Neg + Aor + A1sg
+TEST	abilityPositive
+DICT	yazmak yaz Verb
+SINGLE	yazabil	Verb + Able + Verb + Imp + A2sg
+SINGLE	yazabiliyor	Verb + Able + Verb + Prog1 + A3sg
+FAIL	yazabildir
+FAIL	yazabilebil
+RESET
+DICT	okumak oku Verb
+SINGLE	okuyabil	Verb + Able + Verb + Imp + A2sg
+ANY	okuyabilir	Verb + Able + Verb + Aor + A3sg
+TEST	abilityAfterCausative
+DICT	okumak oku Verb
+SINGLE	okutabil	Verb + Caus + Verb + Able + Verb + Imp + A2sg
+SINGLE	okutturabil	Verb + Caus + Verb + Caus + Verb + Able + Verb + Imp + A2sg
+TEST	unable
+DICT	yazmak yaz Verb
+SINGLE	yazama	Verb + Unable + Imp + A2sg
+ANY	yazamaz	Verb + Unable + Aor + A3sg
+SINGLE	yazamıyor	Verb + Unable + Prog1 + A3sg
+RESET
+DICT	okumak oku Verb
+SINGLE	okuyama	Verb + Unable + Imp + A2sg
+SINGLE	okuyamadım	Verb + Unable + Past + A1sg
+ANY	okutmayabilir	Verb + Caus + Verb + Neg + Able + Verb + Aor + A3sg
+ANY	okutamayabilir	Verb + Caus + Verb + Unable + Able + Verb + Aor + A3sg
+ANY	okutamayabilirdik	Verb + Caus + Verb + Unable + Able + Verb + Aor + Past + A1pl
+ANY	okuyamayabilir	Verb + Unable + Able + Verb + Aor + A3sg
+RESET
+DICT	yakmak yak Verb
+SINGLE	yakamadım	Verb + Unable + Past + A1sg
+TEST	passive1
+DICT	yazmak yaz Verb
+SINGLE	yazıl	Verb + Pass + Verb + Imp + A2sg
+SINGLE	yazılıyor	Verb + Pass + Verb + Prog1 + A3sg
+SINGLE	yazdırılıyor	Verb + Caus + Verb + Pass + Verb + Prog1 + A3sg
+SINGLE	yazdırtılıyor	Verb + Caus + Verb + Caus + Verb + Pass + Verb + Prog1 + A3sg
+FAIL	yazınıyor
+FAIL	yazınıl
+FAIL	yazılınıl
+FAIL	yazıldır
+FAIL	yazdırınıyor
+FAIL	yazdırıldır
+RESET
+DICT	okumak oku Verb
+SINGLE	okun	Verb + Pass + Verb + Imp + A2sg
+SINGLE	okunul	Verb + Pass + Verb + Imp + A2sg
+ANY	okunulabilir	Verb + Pass + Verb + Able + Verb + Aor + A3sg
+TEST	passive2
+DICT	yazmak yaz Verb
+SINGLE	yazılmasın	Verb + Pass + Verb + Neg + Imp + A3sg
+SINGLE	yazılmıyor	Verb + Pass + Verb + Neg + Prog1 + A3sg
+SINGLE	yazdırılmıyor	Verb + Caus + Verb + Pass + Verb + Neg + Prog1 + A3sg
+SINGLE	yazdırtılmıyor	Verb + Caus + Verb + Caus + Verb + Pass + Verb + Neg + Prog1 + A3sg
+FAIL	yazınmıyor
+FAIL	yazınılma
+FAIL	yazılınılma
+FAIL	yazıldırma
+FAIL	yazdırınmıyor
+FAIL	yazdırıldırma
+RESET
+DICT	okumak oku Verb
+SINGLE	okunmayın	Verb + Pass + Verb + Neg + Imp + A2pl
+SINGLE	okunulmasın	Verb + Pass + Verb + Neg + Imp + A3sg
+ANY	okunulmayabilir	Verb + Pass + Verb + Neg + Able + Verb + Aor + A3sg
+ANY	okunulamayabilir	Verb + Pass + Verb + Unable + Able + Verb + Aor + A3sg
+TEST	passiveVazgecmek
+DICT	vazgeçmek vazgeç Verb Aorist_A
+DICT	yenmek yen Verb
+SINGLE	vazgeçil	Verb + Pass + Verb + Imp + A2sg
+ANY	vazgeçilmez	Verb + Pass + Verb + Neg + AorPart + Adj
+ANY	yenilmez	Verb + Pass + Verb + Neg + AorPart + Adj
+TEST	past
+DICT	yazmak yaz Verb
+SINGLE	yazdım	Verb + Past + A1sg
+SINGLE	yazmadım	Verb + Neg + Past + A1sg
+ANY	yazdık	Verb + Past + A1pl
+ANY	yazmadık	Verb + Neg + Past + A1pl
+SINGLE	yazdıysan	Verb + Past + Cond + A2sg
+SINGLE	yazmadıysan	Verb + Neg + Past + Cond + A2sg
+SINGLE	yazdır	Verb + Caus + Verb + Imp + A2sg
+RESET
+DICT	etmek et Verb Voicing
+SINGLE	etti	Verb + Past + A3sg
+SINGLE	etmedi	Verb + Neg + Past + A3sg
+ANY	ettik	Verb + Past + A1pl
+ANY	etmedik	Verb + Neg + Past + A1pl
+TEST	narrative
+DICT	yazmak yaz Verb
+ANY	yazmışım	Verb + Narr + A1sg
+ANY	yazmamışım	Verb + Neg + Narr + A1sg
+ANY	yazmışız	Verb + Narr + A1pl
+ANY	yazmamışız	Verb + Neg + Narr + A1pl
+ANY	yazmışsan	Verb + Narr + Cond + A2sg
+ANY	yazmamışsan	Verb + Neg + Narr + Cond + A2sg
+RESET
+DICT	etmek et Verb Voicing
+ANY	etmiş	Verb + Narr + A3sg
+ANY	etmemiş	Verb + Neg + Narr + A3sg
+ANY	etmişiz	Verb + Narr + A1pl
+ANY	etmemişiz	Verb + Neg + Narr + A1pl
+ANY	etmişmiş	Verb + Narr + Narr + A3sg
+TEST	future
+DICT	yazmak yaz Verb
+ANY	yazacağım	Verb + Fut + A1sg
+ANY	yazmayacağım	Verb + Neg + Fut + A1sg
+ANY	yazacağız	Verb + Fut + A1pl
+ANY	yazmayacağız	Verb + Neg + Fut + A1pl
+ANY	yazacaksan	Verb + Fut + Cond + A2sg
+ANY	yazmayacaksan	Verb + Neg + Fut + Cond + A2sg
+ANY	yazmayacaktın	Verb + Neg + Fut + Past + A2sg
+FAIL	yazmayacağ
+FAIL	yazmayacakım
+FAIL	yazacakım
+FAIL	yazacağsın
+RESET
+DICT	etmek et Verb Voicing
+ANY	edecek	Verb + Fut + A3sg
+ANY	etmeyecek	Verb + Neg + Fut + A3sg
+SINGLE	edeceğiz	Verb + Fut + A1pl
+SINGLE	etmeyeceğiz	Verb + Neg + Fut + A1pl
+TEST	future2
+DICT	aramak ara Verb
+ANY	arayacağım	Verb + Fut + A1sg
+SINGLE	aratacağız	Verb + Caus + Verb + Fut + A1pl
+SINGLE	arayabileceğiz	Verb + Able + Verb + Fut + A1pl
+SINGLE	aratabileceğiz	Verb + Caus + Verb + Able + Verb + Fut + A1pl
+SINGLE	aratmayabileceğiz	Verb + Caus + Verb + Neg + Able + Verb + Fut + A1pl
+SINGLE	arattıramayabileceğiz	Verb + Caus + Verb + Caus + Verb + Unable + Able + Verb + Fut + A1pl
+TEST	progressiveMakta
+DICT	yazmak yaz Verb
+ANY	yazmakta	Verb + Prog2 + A3sg
+ANY	yazmaktayım	Verb + Prog2 + A1sg
+ANY	yazmamaktayım	Verb + Neg + Prog2 + A1sg
+ANY	yazmaktayız	Verb + Prog2 + A1pl
+ANY	yazmamaktayız	Verb + Neg + Prog2 + A1pl
+SINGLE	yazmaktaysan	Verb + Prog2 + Cond + A2sg
+SINGLE	yazmaktaymışsınız	Verb + Prog2 + Narr + A2pl
+ANY	yazmamaktaydım	Verb + Neg + Prog2 + Past + A1sg
+RESET
+DICT	etmek et Verb Voicing
+ANY	etmekte	Verb + Prog2 + A3sg
+ANY	etmemekte	Verb + Neg + Prog2 + A3sg
+ANY	etmekteyiz	Verb + Prog2 + A1pl
+TEST	progressiveMakta2
+DICT	aramak ara Verb
+ANY	aramaktayım	Verb + Prog2 + A1sg
+ANY	aratmaktayız	Verb + Caus + Verb + Prog2 + A1pl
+ANY	arayabilmekteyiz	Verb + Able + Verb + Prog2 + A1pl
+ANY	aratabilmekteyiz	Verb + Caus + Verb + Able + Verb + Prog2 + A1pl
+ANY	aratmayabilmekteyiz	Verb + Caus + Verb + Neg + Able + Verb + Prog2 + A1pl
+ANY	arattıramayabilmekteyiz	Verb + Caus + Verb + Caus + Verb + Unable + Able + Verb + Prog2 + A1pl
+TEST	demekYemek
+DICT	demek de Verb
+DICT	yemek ye Verb
+SINGLE	de	Verb + Imp + A2sg
+ANY	deme	Verb + Neg + Imp + A2sg
+SINGLE	dedi	Verb + Past + A3sg
+SINGLE	deyip	Verb + AfterDoingSo + Adv
+ANY	demiş	Verb + Narr + A3sg
+SINGLE	den	Verb + Pass + Verb + Imp + A2sg
+SINGLE	denil	Verb + Pass + Verb + Imp + A2sg
+ANY	diyecek	Verb + Fut + A3sg
+ANY	diyecek	Verb + FutPart + Adj
+ANY	diyebilir	Verb + Able + Verb + Aor + A3sg
+ANY	deme	Verb + Neg + Imp + A2sg
+SINGLE	diyor	Verb + Prog1 + A3sg
+SINGLE	demiyor	Verb + Neg + Prog1 + A3sg
+SINGLE	der	Verb + Aor + A3sg
+ANY	demez	Verb + Neg + Aor + A3sg
+SINGLE	dedir	Verb + Caus + Verb + Imp + A2sg
+ANY	dedirme	Verb + Caus + Verb + Neg + Imp + A2sg
+SINGLE	diye	Verb + Opt + A3sg
+ANY	demeye	Verb + Neg + Opt + A3sg
+SINGLE	dese	Verb + Desr + A3sg
+SINGLE	demese	Verb + Neg + Desr + A3sg
+SINGLE	ye	Verb + Imp + A2sg
+SINGLE	yesin	Verb + Imp + A3sg
+SINGLE	yiyin	Verb + Imp + A2pl
+SINGLE	yiyip	Verb + AfterDoingSo + Adv
+SINGLE	yiyiniz	Verb + Imp + A2pl
+SINGLE	yesinler	Verb + Imp + A3pl
+SINGLE	yiyesim	Verb + FeelLike + Noun + A3sg + P1sg
+FAIL	dir
+FAIL	dimez
+FAIL	di
+FAIL	diyip
+FAIL	din
+FAIL	didir
+FAIL	deyor
+FAIL	deyecek
+FAIL	didi
+FAIL	yeyiş
+FAIL	diyiş
+FAIL	dimek
+FAIL	dime
+FAIL	yime
+FAIL	yimek
+FAIL	dimiş
+FAIL	dimiyor
+FAIL	yir
+FAIL	yimez
+FAIL	yi
+FAIL	yin
+FAIL	yidir
+FAIL	yeyor
+FAIL	yeyecek
+FAIL	yidi
+FAIL	yeyip
+FAIL	yeyin
+FAIL	yeyiniz
+FAIL	yisin
+FAIL	yisinler
+FAIL	yimiş
+FAIL	yimiyor
+TEST	optative
+DICT	yazmak yaz Verb
+SINGLE	yazayım	Verb + Opt + A1sg
+ANY	yazmayayım	Verb + Neg + Opt + A1sg
+ANY	yazasın	Verb + Opt + A2sg
+ANY	yazmayasın	Verb + Neg + Opt + A2sg
+SINGLE	yaza	Verb + Opt + A3sg
+ANY	yazmaya	Verb + Neg + Opt + A3sg
+SINGLE	yazalım	Verb + Opt + A1pl
+ANY	yazasınız	Verb + Opt + A2pl
+SINGLE	yazalar	Verb + Opt + A3pl
+SINGLE	yazaydı	Verb + Opt + Past + A3sg
+SINGLE	yazaymış	Verb + Opt + Narr + A3sg
+SINGLE	yazaymışlar	Verb + Opt + Narr + A3pl
+RESET
+DICT	etmek et Verb Voicing
+SINGLE	edeyim	Verb + Opt + A1sg
+SINGLE	ede	Verb + Opt + A3sg
+ANY	etmeye	Verb + Neg + Opt + A3sg
+TEST	desire
+DICT	yazmak yaz Verb
+SINGLE	yazsam	Verb + Desr + A1sg
+SINGLE	yazmasam	Verb + Neg + Desr + A1sg
+SINGLE	yazsan	Verb + Desr + A2sg
+SINGLE	yazmasan	Verb + Neg + Desr + A2sg
+SINGLE	yazsa	Verb + Desr + A3sg
+ANY	yazmasa	Verb + Neg + Desr + A3sg
+SINGLE	yazsak	Verb + Desr + A1pl
+SINGLE	yazsanız	Verb + Desr + A2pl
+SINGLE	yazsalar	Verb + Desr + A3pl
+SINGLE	yazsaydı	Verb + Desr + Past + A3sg
+SINGLE	yazsaymışlar	Verb + Desr + Narr + A3pl
+RESET
+DICT	etmek et Verb Voicing
+SINGLE	etsem	Verb + Desr + A1sg
+SINGLE	etse	Verb + Desr + A3sg
+SINGLE	etmese	Verb + Neg + Desr + A3sg
+TEST	necessity
+DICT	yazmak yaz Verb
+ANY	yazmalıyım	Verb + Neces + A1sg
+ANY	yazmamalıyım	Verb + Neg + Neces + A1sg
+SINGLE	yazmalısın	Verb + Neces + A2sg
+SINGLE	yazmamalısın	Verb + Neg + Neces + A2sg
+ANY	yazmalı	Verb + Neces + A3sg
+ANY	yazmamalı	Verb + Neg + Neces + A3sg
+ANY	yazmamalıysa	Verb + Neg + Neces + Cond + A3sg
+ANY	yazmalıyız	Verb + Neces + A1pl
+SINGLE	yazmalısınız	Verb + Neces + A2pl
+ANY	yazmalılar	Verb + Neces + A3pl
+ANY	yazmalıydı	Verb + Neces + Past + A3sg
+ANY	yazmalıymışlar	Verb + Neces + Narr + A3pl
+RESET
+DICT	etmek et Verb Voicing
+ANY	etmeliyim	Verb + Neces + A1sg
+ANY	etmeli	Verb + Neces + A3sg
+ANY	etmemeli	Verb + Neg + Neces + A3sg
+TEST	a3plExceptionTest
+DICT	yazmak yaz Verb
+SINGLE	yazarlardı	Verb + Aor + A3pl + Past
+SINGLE	yazardılar	Verb + Aor + Past + A3pl
+SINGLE	yazarlarmış	Verb + Aor + A3pl + Narr
+SINGLE	yazarmışlar	Verb + Aor + Narr + A3pl
+SINGLE	yazarsalar	Verb + Aor + Cond + A3pl
+SINGLE	yazarlarsa	Verb + Aor + A3pl + Cond
+FAIL	yazarlardılar
+FAIL	yazardılardı
+FAIL	yazarlarmışlar
+FAIL	yazarmışlarmış
+FAIL	yazarsalarsa
+FAIL	yazarlarsalar
+FAIL	yazardılarsa
+FAIL	yazarsalarmış
+FAIL	yazarsalardı
+FAIL	yazarmışlarsa
+TEST	copula
+DICT	yazmak yaz Verb
+ANY	yazardır	Verb + Aor + A3sg + Cop
+ANY	yazmazdır	Verb + Neg + Aor + A3sg + Cop
+ANY	yazacaktır	Verb + Fut + A3sg + Cop
+ANY	yazacağımdır	Verb + Fut + A1sg + Cop
+ANY	yazacaksındır	Verb + Fut + A2sg + Cop
+ANY	yazacağızdır	Verb + Fut + A1pl + Cop
+ANY	yazacaksınızdır	Verb + Fut + A2pl + Cop
+ANY	yazacaklardır	Verb + Fut + A3pl + Cop
+SINGLE	yazıyordur	Verb + Prog1 + A3sg + Cop
+ANY	yazmaktadır	Verb + Prog2 + A3sg + Cop
+ANY	yazmalıdır	Verb + Neces + A3sg + Cop
+FAIL	yazsadır
+FAIL	yazdıdır
+TEST	copulaBeforeA3pl
+DICT	yazmak yaz Verb
+ANY	yazardırlar	Verb + Aor + Cop + A3pl
+ANY	yazmazdırlar	Verb + Neg + Aor + Cop + A3pl
+ANY	yazacaktırlar	Verb + Fut + Cop + A3pl
+SINGLE	yazıyordurlar	Verb + Prog1 + Cop + A3pl
+ANY	yazmaktadırlar	Verb + Prog2 + Cop + A3pl
+ANY	yazmalıdırlar	Verb + Neces + Cop + A3pl
+FAIL	yazacaktırlardır
+TEST	condAfterPastPerson
+DICT	yazmak yaz Verb
+ANY	yazdınsa	Verb + Past + A2sg + Cond
+ANY	yazdımsa	Verb + Past + A1sg + Cond
+ANY	yazdınızsa	Verb + Past + A2pl + Cond
+ANY	yazmadınızsa	Verb + Neg + Past + A2pl + Cond
+FAIL	yazdınsaydın
+FAIL	yazsaydınsa
+TEST	lastVowelDropTest
+DICT	kavurmak kavur Verb LastVowelDrop
+ANY	kavur	Verb + Imp + A2sg
+ANY	kavuruyor	Verb + Prog1 + A3sg
+ANY	kavuracak	Verb + Fut + A3sg
+ANY	kavurur	Verb + Aor + A3sg
+ANY	kavurmuyor	Verb + Neg + Prog1 + A3sg
+ANY	kavurt	Verb + Caus + Verb + Imp + A2sg
+ANY	kavrul	Verb + Pass + Verb + Imp + A2sg
+ANY	kavurabil	Verb + Able + Verb + Imp + A2sg
+ANY	kavrulabil	Verb + Pass + Verb + Able + Verb + Imp + A2sg
+FAIL	kavr
+FAIL	kavurulacak
+FAIL	kavurul
+FAIL	kavracak
+FAIL	kavrıyor
+FAIL	kavruyor
+FAIL	kavurturacak
+TEST	reciprocalTest_IGNORED
+DICT	kaçmak kaç Verb
+ANY	kaçış	Verb + Recip + Verb + Imp + A2sg
+ANY	kaçışma	Verb + Recip + Verb + Neg + Imp + A2sg
+ANY	kaçıştık	Verb + Recip + Verb + Past + A1pl
+RESET
+DICT	dövüşmek dövüş Verb Reciprocal
+ANY	dövüştük	Verb + Recip + Verb + Past + A1pl
+TEST	testImek
+DICT	imek i Verb
+ANY	idi	Verb + Past + A3sg
+ANY	ise	Verb + Cond + A3sg
+ANY	imiş	Verb + Narr + A3sg
+FAIL	i
+FAIL	iyim
+TEST	negativeShouldNotCOmeAfterAbility_173
+DICT	yazmak yaz Verb
+SINGLE	yazabil	Verb + Able + Verb + Imp + A2sg
+SINGLE	yazabilme	Verb + Able + Verb + Inf2 + Noun + A3sg
+FILE	PronounsTest
+TEST	benSenTest1
+DICT	ben ben Pron Pers
+SINGLE	ben	Pron + A1sg
+SINGLE	bana	Pron + A1sg + Dat
+SINGLE	beni	Pron + A1sg + Acc
+ANY	benim	Pron + A1sg + Gen
+ANY	benken	Pron + A1sg + Zero + Verb + While + Adv
+SINGLE	benimle	Pron + A1sg + Ins
+FAIL	ban
+FAIL	bene
+FAIL	banı
+FAIL	benin
+FAIL	beniz
+FAIL	benler
+RESET
+DICT	sen sen Pron Pers
+SINGLE	sen	Pron + A2sg
+SINGLE	sana	Pron + A2sg + Dat
+SINGLE	seni	Pron + A2sg + Acc
+SINGLE	senin	Pron + A2sg + Gen
+SINGLE	seninle	Pron + A2sg + Ins
+FAIL	san
+FAIL	sene
+FAIL	sanı
+FAIL	senler
+TEST	oTest1
+DICT	o o Pron Pers
+SINGLE	o	Pron + A3sg
+SINGLE	ona	Pron + A3sg + Dat
+SINGLE	onu	Pron + A3sg + Acc
+SINGLE	onlar	Pron + A3pl
+SINGLE	onlara	Pron + A3pl + Dat
+SINGLE	onunla	Pron + A3sg + Ins
+TEST	falanFalancaTest1
+DICT	falan falan Pron Pers
+SINGLE	falan	Pron + A3sg
+SINGLE	falana	Pron + A3sg + Dat
+SINGLE	falanı	Pron + A3sg + Acc
+SINGLE	falanlar	Pron + A3pl
+SINGLE	falanlara	Pron + A3pl + Dat
+RESET
+DICT	falanca falanca Pron Pers
+SINGLE	falanca	Pron + A3sg
+SINGLE	falancaya	Pron + A3sg + Dat
+SINGLE	falancayı	Pron + A3sg + Acc
+SINGLE	falancalar	Pron + A3pl
+SINGLE	falancalara	Pron + A3pl + Dat
+TEST	bizSizTest
+DICT	biz biz Pron Pers
+SINGLE	biz	Pron + A1pl
+SINGLE	bize	Pron + A1pl + Dat
+SINGLE	bizi	Pron + A1pl + Acc
+SINGLE	bizim	Pron + A1pl + Gen
+SINGLE	bizce	Pron + A1pl + Equ
+SINGLE	bizimle	Pron + A1pl + Ins
+FAIL	bizin
+RESET
+DICT	siz siz Pron Pers
+SINGLE	siz	Pron + A2pl
+SINGLE	size	Pron + A2pl + Dat
+SINGLE	sizi	Pron + A2pl + Acc
+SINGLE	sizin	Pron + A2pl + Gen
+SINGLE	sizce	Pron + A2pl + Equ
+SINGLE	sizle	Pron + A2pl + Ins
+SINGLE	sizinle	Pron + A2pl + Ins
+TEST	buTest1
+DICT	bu bu Pron Demons
+SINGLE	bu	Pron + A3sg
+SINGLE	buna	Pron + A3sg + Dat
+SINGLE	bunu	Pron + A3sg + Acc
+SINGLE	bunlar	Pron + A3pl
+SINGLE	bunları	Pron + A3pl + Acc
+SINGLE	bununla	Pron + A3sg + Ins
+SINGLE	bunlaraymış	Pron + A3pl + Dat + Zero + Verb + Narr + A3sg
+TEST	biriTest1
+DICT	biri biri Pron Quant
+SINGLE	biri	Pron + A3sg + P3sg
+SINGLE	birisi	Pron + A3sg + P3sg
+SINGLE	birine	Pron + A3sg + P3sg + Dat
+SINGLE	birisine	Pron + A3sg + P3sg + Dat
+SINGLE	birini	Pron + A3sg + P3sg + Acc
+SINGLE	birisini	Pron + A3sg + P3sg + Acc
+SINGLE	birimiz	Pron + A1pl + P1pl
+SINGLE	biriniz	Pron + A2pl + P2pl
+SINGLE	birileri	Pron + A3pl + P3pl
+SINGLE	birilerine	Pron + A3pl + P3pl + Dat
+SINGLE	birilerini	Pron + A3pl + P3pl + Acc
+FAIL	biriler
+FAIL	birilerim
+TEST	herbiriTest1
+DICT	herbiri herbiri Pron Quant
+SINGLE	herbiri	Pron + A3sg + P3sg
+SINGLE	herbirisi	Pron + A3sg + P3sg
+SINGLE	herbirine	Pron + A3sg + P3sg + Dat
+SINGLE	herbirisine	Pron + A3sg + P3sg + Dat
+SINGLE	herbirimiz	Pron + A1pl + P1pl
+SINGLE	herbiriniz	Pron + A2pl + P2pl
+SINGLE	herbirini	Pron + A3sg + P3sg + Acc
+SINGLE	herbirisini	Pron + A3sg + P3sg + Acc
+FAIL	herbiriler
+FAIL	herbirileri
+FAIL	herbirilerine
+FAIL	herbirilerim
+FAIL	herbirilerin
+TEST	herkesTest
+DICT	herkes herkes Pron Quant
+SINGLE	herkes	Pron + A3pl
+SINGLE	herkese	Pron + A3pl + Dat
+SINGLE	herkesi	Pron + A3pl + Acc
+TEST	umumTest
+DICT	umum umum Pron Quant
+SINGLE	umum	Pron + A3pl
+SINGLE	umuma	Pron + A3pl + Dat
+SINGLE	umumu	Pron + A3pl + Acc
+FAIL	umumlar
+TEST	birbiriTest
+DICT	birbiri birbiri Pron Quant
+SINGLE	birbiri	Pron + A3sg + P3sg
+SINGLE	birbirine	Pron + A3sg + P3sg + Dat
+SINGLE	birbirimiz	Pron + A1pl + P1pl
+SINGLE	birbiriniz	Pron + A2pl + P2pl
+SINGLE	birbirileri	Pron + A3pl + P3pl
+SINGLE	birbirleri	Pron + A3pl + P3pl
+FAIL	birbir
+FAIL	birbire
+FAIL	birbirler
+FAIL	birbiriler
+FAIL	birbirlere
+TEST	hepTest
+DICT	hep hep Pron Quant
+SINGLE	hepimiz	Pron + A1pl + P1pl
+SINGLE	hepimize	Pron + A1pl + P1pl + Dat
+SINGLE	hepiniz	Pron + A2pl + P2pl
+SINGLE	hepinizi	Pron + A2pl + P2pl + Acc
+FAIL	hep
+FAIL	hepler
+FAIL	hepleri
+FAIL	hepe
+FAIL	hepim
+TEST	tumuTest
+DICT	tümü tümü Pron Quant
+SINGLE	tümü	Pron + A3pl + P3pl
+SINGLE	tümümüz	Pron + A1pl + P1pl
+SINGLE	tümümüze	Pron + A1pl + P1pl + Dat
+SINGLE	tümünüz	Pron + A2pl + P2pl
+SINGLE	tümünüzü	Pron + A2pl + P2pl + Acc
+FAIL	tümler
+FAIL	tümüler
+FAIL	tümleri
+FAIL	tümüleri
+FAIL	tümüm
+TEST	topuTest
+DICT	topu topu Pron Quant
+SINGLE	topu	Pron + A3pl + P3pl
+SINGLE	topumuz	Pron + A1pl + P1pl
+SINGLE	topumuza	Pron + A1pl + P1pl + Dat
+SINGLE	topunuz	Pron + A2pl + P2pl
+SINGLE	topunuzu	Pron + A2pl + P2pl + Acc
+FAIL	topular
+FAIL	topuları
+FAIL	topum
+TEST	birkaciTest
+DICT	birkaçı birkaçı Pron Quant
+SINGLE	birkaçı	Pron + A3pl + P3pl
+SINGLE	birkaçımız	Pron + A1pl + P1pl
+SINGLE	birkaçımıza	Pron + A1pl + P1pl + Dat
+SINGLE	birkaçınız	Pron + A2pl + P2pl
+SINGLE	birkaçınızı	Pron + A2pl + P2pl + Acc
+FAIL	birkaçılar
+FAIL	birkaçlar
+FAIL	birkaçım
+TEST	hepsiTest
+DICT	hepsi hepsi Pron Quant
+SINGLE	hepsi	Pron + A3pl + P3pl
+SINGLE	hepsine	Pron + A3pl + P3pl + Dat
+SINGLE	hepsini	Pron + A3pl + P3pl + Acc
+FAIL	hepsiler
+FAIL	hepsim
+FAIL	hepsin
+FAIL	hepsisi
+FAIL	hepsimiz
+FAIL	hepsiniz
+FAIL	hepsileri
+TEST	cumlesiTest
+DICT	cümlesi cümlesi Pron Quant
+SINGLE	cümlesi	Pron + A3pl + P3pl
+SINGLE	cümlesine	Pron + A3pl + P3pl + Dat
+SINGLE	cümlesini	Pron + A3pl + P3pl + Acc
+TEST	kimiTest
+DICT	kimi kimi Pron Quant
+SINGLE	kimi	Pron + A3sg + P3sg
+SINGLE	kimimiz	Pron + A1pl + P1pl
+SINGLE	kiminiz	Pron + A2pl + P2pl
+SINGLE	kimileri	Pron + A3pl + P3pl
+SINGLE	kimine	Pron + A3sg + P3sg + Dat
+SINGLE	kimisi	Pron + A3sg + P3sg
+SINGLE	kimimize	Pron + A1pl + P1pl + Dat
+FAIL	kimiler
+FAIL	kimim
+FAIL	kimin
+TEST	coguTest
+DICT	çoğu çoğu Pron Quant
+SINGLE	çoğu	Pron + A3pl + P3pl
+SINGLE	çoğumuz	Pron + A1pl + P1pl
+SINGLE	çoğunuz	Pron + A2pl + P2pl
+SINGLE	çokları	Pron + A3pl + P3pl
+SINGLE	çoğuna	Pron + A3pl + P3pl + Dat
+SINGLE	çoklarını	Pron + A3pl + P3pl + Acc
+FAIL	çoğular
+FAIL	çokumuz
+FAIL	çoğum
+TEST	baziTest
+DICT	bazı bazı Pron Quant
+SINGLE	bazımız	Pron + A1pl + P1pl
+SINGLE	bazınız	Pron + A2pl + P2pl
+SINGLE	bazıları	Pron + A3pl + P3pl
+SINGLE	bazısına	Pron + A3sg + P3sg + Dat
+SINGLE	bazımızdan	Pron + A1pl + P1pl + Abl
+SINGLE	bazınıza	Pron + A2pl + P2pl + Dat
+SINGLE	bazılarımızdan	Pron + A1pl + P1pl + Abl
+SINGLE	bazılarını	Pron + A3pl + P3pl + Acc
+FAIL	bazı
+FAIL	bazına
+FAIL	bazım
+FAIL	bazın
+FAIL	bazılar
+TEST	bircoguTest
+DICT	birçoğu birçoğu Pron Quant
+SINGLE	birçoğu	Pron + A3pl + P3pl
+SINGLE	birçoğumuz	Pron + A1pl + P1pl
+SINGLE	birçoğunuz	Pron + A2pl + P2pl
+SINGLE	birçokları	Pron + A3pl + P3pl
+SINGLE	birçoğuna	Pron + A3pl + P3pl + Dat
+SINGLE	birçoklarını	Pron + A3pl + P3pl + Acc
+FAIL	birçoğular
+FAIL	birçokumuz
+FAIL	birçoğum
+TEST	hicbiriTest
+DICT	hiçbiri hiçbiri Pron Quant
+SINGLE	hiçbiri	Pron + A3sg + P3sg
+SINGLE	hiçbirisi	Pron + A3sg + P3sg
+SINGLE	hiçbirine	Pron + A3sg + P3sg + Dat
+SINGLE	hiçbirisine	Pron + A3sg + P3sg + Dat
+SINGLE	hiçbirini	Pron + A3sg + P3sg + Acc
+SINGLE	hiçbirisini	Pron + A3sg + P3sg + Acc
+SINGLE	hiçbirimiz	Pron + A1pl + P1pl
+SINGLE	hiçbiriniz	Pron + A2pl + P2pl
+FAIL	hiçbiriler
+FAIL	hiçbirileri
+FAIL	hiçbirilerine
+FAIL	hiçbirilerim
+TEST	oburuTest
+DICT	öbürü öbürü Pron Quant
+SINGLE	öbürü	Pron + A3sg + P3sg
+SINGLE	öbürüne	Pron + A3sg + P3sg + Dat
+SINGLE	öbürünü	Pron + A3sg + P3sg + Acc
+SINGLE	öbürleri	Pron + A3pl + P3pl
+SINGLE	öbürlerini	Pron + A3pl + P3pl + Acc
+FAIL	öbürüler
+FAIL	öbürümüz
+FAIL	öbürünüz
+FAIL	öbürün
+FAIL	öbürüm
+FAIL	öbürüleri
+FAIL	öbürülerine
+FAIL	öbürülerim
+TEST	oburkuTest
+DICT	öbürkü öbürkü Pron Quant
+SINGLE	öbürkü	Pron + A3sg + P3sg
+SINGLE	öbürküne	Pron + A3sg + P3sg + Dat
+SINGLE	öbürkünü	Pron + A3sg + P3sg + Acc
+SINGLE	öbürküler	Pron + A3pl
+SINGLE	öbürkülerini	Pron + A3pl + P3pl + Acc
+ANY	öbürküleri	Pron + A3pl + Acc
+ANY	öbürküleri	Pron + A3pl + P3pl
+FAIL	öbürkümüz
+FAIL	öbürkünüz
+FAIL	öbürkün
+FAIL	öbürküm
+TEST	berikiTest
+DICT	beriki beriki Pron Quant
+SINGLE	beriki	Pron + A3sg + P3sg
+SINGLE	berikine	Pron + A3sg + P3sg + Dat
+SINGLE	berikini	Pron + A3sg + P3sg + Acc
+SINGLE	berikiler	Pron + A3pl
+SINGLE	berikilerini	Pron + A3pl + P3pl + Acc
+ANY	berikileri	Pron + A3pl + Acc
+ANY	berikileri	Pron + A3pl + P3pl
+FAIL	berikimiz
+FAIL	berikiniz
+FAIL	berikin
+FAIL	berikim
+TEST	kimseQuantTest
+DICT	kimse kimse Pron Quant
+SINGLE	kimse	Pron + A3sg
+SINGLE	kimsem	Pron + A3sg + P1sg
+SINGLE	kimseye	Pron + A3sg + Dat
+ANY	kimseler	Pron + A3pl
+TEST	kimTest
+DICT	kim kim Pron Ques
+SINGLE	kim	Pron + A3sg
+SINGLE	kime	Pron + A3sg + Dat
+SINGLE	kimlere	Pron + A3pl + Dat
+SINGLE	kimimiz	Pron + A3sg + P1pl
+SINGLE	kiminle	Pron + A3sg + P2sg + Ins
+SINGLE	kimimize	Pron + A3sg + P1pl + Dat
+SINGLE	kimsiniz	Pron + A3sg + Zero + Verb + Pres + A2pl
+ANY	kimim	Pron + A3sg + P1sg
+ANY	kimler	Pron + A3pl
+ANY	kimi	Pron + A3sg + Acc
+TEST	neTest
+DICT	ne ne Pron Ques
+SINGLE	neyimiz	Pron + A3sg + P1pl
+SINGLE	ne	Pron + A3sg
+SINGLE	neye	Pron + A3sg + Dat
+SINGLE	nelere	Pron + A3pl + Dat
+SINGLE	neyimize	Pron + A3sg + P1pl + Dat
+ANY	neler	Pron + A3pl
+ANY	neyim	Pron + A3sg + P1sg
+ANY	neyi	Pron + A3sg + Acc
+TEST	nereTest
+DICT	nere nere Pron Ques
+SINGLE	nere	Pron + A3sg
+SINGLE	nereye	Pron + A3sg + Dat
+SINGLE	nerelere	Pron + A3pl + Dat
+SINGLE	nerem	Pron + A3sg + P1sg
+SINGLE	neremiz	Pron + A3sg + P1pl
+SINGLE	neremize	Pron + A3sg + P1pl + Dat
+ANY	nereler	Pron + A3pl
+ANY	nereyi	Pron + A3sg + Acc
+ANY	nereli	Pron + A3sg + With + Adj
+TEST	kendiTest
+DICT	kendi kendi Pron Reflex
+SINGLE	kendi	Pron + A3sg + P3sg
+SINGLE	kendileri	Pron + A3pl + P3pl
+SINGLE	kendilerine	Pron + A3pl + P3pl + Dat
+SINGLE	kendim	Pron + A1sg + P1sg
+SINGLE	kendin	Pron + A2sg + P2sg
+SINGLE	kendisi	Pron + A3sg + P3sg
+SINGLE	kendimiz	Pron + A1pl + P1pl
+SINGLE	kendiniz	Pron + A2pl + P2pl
+SINGLE	kendisiyle	Pron + A3sg + P3sg + Ins
+SINGLE	kendimizle	Pron + A1pl + P1pl + Ins
+ANY	kendine	Pron + A3sg + P3sg + Dat
+ANY	kendine	Pron + A2sg + P2sg + Dat
+TEST	kendiTest_issues_171_172
+DICT	kendi kendi Pron Reflex
+SINGLE	kendime	Pron + A1sg + P1sg + Dat
+SINGLE	kendimde	Pron + A1sg + P1sg + Loc
+SINGLE	kendimden	Pron + A1sg + P1sg + Abl
+SINGLE	kendimce	Pron + A1sg + P1sg + Equ
+SINGLE	kendimle	Pron + A1sg + P1sg + Ins
+ANY	kendine	Pron + A2sg + P2sg + Dat
+ANY	kendinde	Pron + A2sg + P2sg + Loc
+ANY	kendinden	Pron + A2sg + P2sg + Abl
+ANY	kendince	Pron + A2sg + P2sg + Equ
+ANY	kendinle	Pron + A2sg + P2sg + Ins
+TEST	herkesteTest_issue_178
+DICT	herkes herkes Pron Quant
+SINGLE	herkese	Pron + A3pl + Dat
+SINGLE	herkeste	Pron + A3pl + Loc
+SINGLE	herkesten	Pron + A3pl + Abl
+SINGLE	herkesçe	Pron + A3pl + Equ
+SINGLE	herkesle	Pron + A3pl + Ins
+TEST	sendekiTest_issue_188
+DICT	ben ben Pron Pers
+DICT	sen sen Pron Pers
+DICT	o o Pron Pers
+DICT	biz biz Pron Pers
+DICT	siz siz Pron Pers
+SINGLE	bendeki	Pron + A1sg + Loc + Rel + Adj
+SINGLE	sendeki	Pron + A2sg + Loc + Rel + Adj
+SINGLE	ondaki	Pron + A3sg + Loc + Rel + Adj
+SINGLE	bizdeki	Pron + A1pl + Loc + Rel + Adj
+SINGLE	sizdeki	Pron + A2pl + Loc + Rel + Adj
+SINGLE	onlardaki	Pron + A3pl + Loc + Rel + Adj
+FILE	NounDerivationTest
+TEST	withTest
+DICT	meyve meyve Noun
+SINGLE	meyveli	A3sg + With + Adj
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağlı	Noun + A3sg + With + Adj
+TEST	withoutTest
+DICT	meyve meyve Noun
+SINGLE	meyvesiz	A3sg + Without + Adj
+SINGLE	meyvesizdi	A3sg + Without + Adj + Zero + Verb + Past + A3sg
+FAIL	meyvemsiz
+FAIL	meyvelersiz
+FAIL	meyvedesiz
+FAIL	meyvesizli
+FAIL	meyvelisiz
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağsız	Noun + A3sg + Without + Adj
+TEST	justlikeTest
+DICT	meyve meyve Noun
+SINGLE	meyvemsi	A3sg + JustLike + Adj
+RESET
+DICT	odun odun Noun
+SINGLE	odunsu	A3sg + JustLike + Adj
+SINGLE	odunumsu	A3sg + JustLike + Adj
+RESET
+DICT	kitap kitap Noun
+SINGLE	kitabımsı	A3sg + JustLike + Adj
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağımsı	Noun + A3sg + JustLike + Adj
+ANY	zeytinyağsı	Noun + A3sg + JustLike + Adj
+TEST	justLikeFalseTest
+DICT	meyve meyve Noun
+NOTANY	meyvemsi	P1sg + JustLike + Adj
+NOTANY	meyvesi	A3sg + JustLike + Adj
+TEST	incorrect1
+DICT	meyve meyve Noun
+FAIL	meyvelili
+FAIL	meyvelerli
+FAIL	meyvemli
+FAIL	meyveyeli
+FAIL	meyvelersi
+FAIL	meyveyemsi
+FAIL	meyvensi
+RESET
+DICT	armut armut Noun
+FAIL	armudsu
+FAIL	armutumsu
+FAIL	armutlarımsı
+FAIL	armutlarsı
+TEST	rel1
+DICT	meyve meyve Noun
+SINGLE	meyvedeki	Noun + A3sg + Loc + Rel + Adj
+ANY	meyvendeki	Noun + A3sg + P2sg + Loc + Rel + Adj
+ANY	meyvelerdeki	Noun + A3pl + Loc + Rel + Adj
+SINGLE	meyvedekiydi	Noun + A3sg + Loc + Rel + Adj + Zero + Verb + Past + A3sg
+FAIL	meyveki
+FAIL	meyveyeki
+FAIL	meyvedekideki
+FAIL	meyvemki
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağındaki	Noun + A3sg + Loc + Rel + Adj
+TEST	relTime
+DICT	dün dün Noun Time
+SINGLE	dünkü	Noun + A3sg + Rel + Adj
+SINGLE	dünküydü	Noun + A3sg + Rel + Adj + Zero + Verb + Past + A3sg
+RESET
+DICT	akşam akşam Noun Time
+SINGLE	akşamki	Noun + A3sg + Rel + Adj
+SINGLE	akşamkiydi	Noun + A3sg + Rel + Adj + Zero + Verb + Past + A3sg
+SINGLE	akşamdaki	Noun + A3sg + Loc + Rel + Adj
+ANY	akşamındaki	Noun + A3sg + P2sg + Loc + Rel + Adj
+RESET
+DICT	ileri ileri Noun
+SINGLE	ileriki	Noun + A3sg + Rel + Adj
+SINGLE	ilerikiydi	Noun + A3sg + Rel + Adj + Zero + Verb + Past + A3sg
+FAIL	dünki
+FAIL	akşamkü
+FAIL	akşamkı
+TEST	dim1
+DICT	kitap kitap Noun
+SINGLE	kitapçık	Noun + A3sg + Dim + Noun + A3sg
+SINGLE	kitapçıkta	Noun + A3sg + Dim + Noun + A3sg + Loc
+SINGLE	kitapçığa	Noun + A3sg + Dim + Noun + A3sg + Dat
+FAIL	kitaplarcık
+FAIL	kitapçıklarcık
+FAIL	kitapçığ
+FAIL	kitapcık
+FAIL	kitabımcık
+FAIL	kitaptacık
+FAIL	kitapçıkçık
+FAIL	kitabcığ
+FAIL	kitabçığ
+FAIL	kitabçık
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağcık	Noun + A3sg + Dim + Noun + A3sg
+TEST	nessTest
+DICT	elma elma Noun
+ANY	elmalık	Noun + A3sg + Ness + Noun + A3sg
+ANY	elmalığı	Noun + A3sg + Ness + Noun + A3sg + Acc
+ANY	elmalığa	Noun + A3sg + Ness + Noun + A3sg + Dat
+ANY	elmasızlık	Noun + A3sg + Without + Adj + Ness + Noun + A3sg
+FAIL	elmalarlık
+FAIL	elmamlık
+FAIL	elmlığ
+FAIL	elmayalık
+FAIL	elmadalık
+TEST	agtTest
+DICT	elma elma Noun
+ANY	elmacı	Noun + A3sg + Agt + Noun + A3sg
+ANY	elmacıyı	Noun + A3sg + Agt + Noun + A3sg + Acc
+ANY	elmacıya	Noun + A3sg + Agt + Noun + A3sg + Dat
+ANY	elmacıkçı	Noun + A3sg + Dim + Noun + A3sg + Agt + Noun + A3sg
+ANY	elmacılık	Noun + A3sg + Agt + Noun + A3sg + Ness + Noun + A3sg
+ANY	elmacılığı	Noun + A3sg + Agt + Noun + A3sg + Ness + Noun + A3sg + Acc
+FAIL	elmalarcı
+FAIL	elmamcı
+FAIL	elmayacı
+FAIL	elmadacı
+TEST	become
+DICT	tahta tahta Noun
+ANY	tahtalaş	Noun + A3sg + Become + Verb + Imp + A2sg
+ANY	tahtalaştık	Noun + A3sg + Become + Verb + Past + A1pl
+ANY	tahtalaşacak	Noun + A3sg + Become + Verb + Fut + A3sg
+FAIL	tahtamlaş
+FAIL	tahtalarlaştı
+FAIL	tahtayalaştı
+RESET
+DICT	kitap kitap Noun
+ANY	kitaplaştı	Noun + A3sg + Become + Verb + Past + A3sg
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağlaştık	Noun + A3sg + Become + Verb + Past + A1pl
+TEST	acquire
+DICT	tahta tahta Noun
+ANY	tahtalan	Noun + A3sg + Acquire + Verb + Imp + A2sg
+ANY	tahtalandık	Noun + A3sg + Acquire + Verb + Past + A1pl
+ANY	tahtalanacak	Noun + A3sg + Acquire + Verb + Fut + A3sg
+FAIL	tahtamlan
+FAIL	tahtalarlandı
+FAIL	tahtayaland
+RESET
+DICT	kitap kitap Noun
+ANY	kitaplandı	Noun + A3sg + Acquire + Verb + Past + A3sg
+RESET
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+ANY	zeytinyağlandık	Noun + A3sg + Acquire + Verb + Past + A1pl
+TEST	whileTest
+DICT	tahta tahta Noun
+ANY	tahtayken	Noun + A3sg + Zero + Verb + While + Adv
+ANY	tahtamken	Noun + A3sg + P1sg + Zero + Verb + While + Adv
+TEST	expectsSingleResult2
+DICT	elma elma Noun
+COUNT	elmayım	1
+COUNT	elmaydım	1
+COUNT	elmayımdır	1
+COUNT	elmaydı	1
+COUNT	elmadır	1
+COUNT	elmayadır	1
+COUNT	elmalar	2
+TEST	incorrect2
+DICT	elma elma Noun
+FAIL	elmaydıdır
+FAIL	elmayıdır
+FAIL	elmamdırım
+FAIL	elmamdımdır
+FAIL	elmalarlar
+FAIL	elmamım
+FAIL	elmamımdır
+FAIL	elmaydılardır
+TEST	degilTest
+DICT	değil değil Verb
+SINGLE	değil	Neg + Pres + A3sg
+SINGLE	değildi	Neg + Past + A3sg
+SINGLE	değilim	Neg + Pres + A1sg
+SINGLE	değildir	Neg + Pres + A3sg + Cop
+SINGLE	değilimdir	Neg + Pres + A1sg + Cop
+SINGLE	değilsindir	Neg + Pres + A2sg + Cop
+SINGLE	değilsinizdir	Neg + Pres + A2pl + Cop
+SINGLE	değilmişsinizdir	Neg + Narr + A2pl + Cop
+FAIL	değildinizdir
+TEST	nounVerbZeroTest
+DICT	elma elma Noun
+SINGLE	elmayım	Zero + Verb + Pres + A1sg
+SINGLE	elmanım	Zero + Verb + Pres + A1sg
+TEST	narrTest
+DICT	elma elma Noun
+SINGLE	elmaymış	Zero + Verb + Narr + A3sg
+SINGLE	elmaymışız	Zero + Verb + Narr + A1pl
+SINGLE	elmaymışım	Zero + Verb + Narr + A1sg
+SINGLE	elmaymışımdır	Zero + Verb + Narr + A1sg + Cop
+SINGLE	elmaymışsam	Zero + Verb + Narr + Cond + A1sg
+FAIL	elmaymışmış
+TEST	pastTest
+DICT	elma elma Noun
+SINGLE	elmaydı	Zero + Verb + Past + A3sg
+SINGLE	elmaydık	Zero + Verb + Past + A1pl
+SINGLE	elmaydım	Zero + Verb + Past + A1sg
+SINGLE	elmaydılar	Zero + Verb + Past + A3pl
+FAIL	elmaydıysa
+FAIL	elmaydıyız
+FAIL	elmaydılardır
+TEST	condTest
+DICT	elma elma Noun
+SINGLE	elmaysa	Zero + Verb + Cond + A3sg
+SINGLE	elmaysak	Zero + Verb + Cond + A1pl
+SINGLE	elmaymışsa	Zero + Verb + Narr + Cond + A3sg
+SINGLE	elmaymışsam	Zero + Verb + Narr + Cond + A1sg
+FAIL	elmaydıysa
+FAIL	elmaysadır
+FAIL	elmaysalardır
+TEST	A2plTest
+DICT	elma elma Noun
+SINGLE	elmasınız	Zero + Verb + Pres + A2pl
+SINGLE	elmaydınız	Zero + Verb + Past + A2pl
+SINGLE	elmaymışsınız	Zero + Verb + Narr + A2pl
+SINGLE	elmaysanız	Zero + Verb + Cond + A2pl
+SINGLE	elmaymışsanız	Zero + Verb + Narr + Cond + A2pl
+TEST	A3plAfterZeroVerbDerivationTest
+DICT	elma elma Noun
+ANY	elmalar	Zero + Verb + Pres + A3pl
+ANY	elmalardır	Zero + Verb + Pres + A3pl + Cop
+ANY	elmadırlar	A3sg + Zero + Verb + Pres + Cop + A3pl
+ANY	elmayadırlar	Dat + Zero + Verb + Pres + Cop + A3pl
+ANY	elmasındalar	Loc + Zero + Verb + Pres + A3pl
+TEST	afterLocTest
+DICT	elma elma Noun
+SINGLE	elmadayım	Loc + Zero + Verb + Pres + A1sg
+SINGLE	elmadasın	Loc + Zero + Verb + Pres + A2sg
+SINGLE	elmadaydı	Loc + Zero + Verb + Past + A3sg
+SINGLE	elmadaymışsınız	Loc + Zero + Verb + Narr + A2pl
+SINGLE	elmadaysak	Loc + Zero + Verb + Cond + A1pl
+TEST	copulaBeforeA3plTest
+DICT	elma elma Noun
+SINGLE	elmadırlar	Zero + Verb + Pres + Cop + A3pl
+ANY	elmadalardır	A3sg + Loc + Zero + Verb + Pres + A3pl + Cop
+SINGLE	elmamdadırlar	P1sg + Loc + Zero + Verb + Pres + Cop + A3pl
+FAIL	elmadalardırlar
+FAIL	elmadadırlardır
+TEST	related
+DICT	meyve meyve Noun
+SINGLE	meyvesel	Noun + A3sg + Related + Adj
+ANY	meyveseldi	Noun + A3sg + Related + Adj + Zero + Verb + Past + A3sg
+FAIL	meyvemsel
+FAIL	meyvedesel
+FAIL	meyveselsel
+FAIL	meyveselki
+TEST	relPronDerivationTest
+DICT	meyve meyve Noun
+ANY	meyveninki	Noun + A3sg + Gen + Rel + Pron + A3sg
+ANY	meyveninkine	Noun + A3sg + Gen + Rel + Pron + A3sg + Dat
+ANY	meyveminkine	Noun + A3sg + P1sg + Gen + Rel + Pron + A3sg + Dat
+ANY	meyveminkinde	Noun + A3sg + P1sg + Gen + Rel + Pron + A3sg + Loc
+ANY	meyveminkindeymiş	Noun + A3sg + P1sg + Gen + Rel + Pron + A3sg + Loc + Zero + Verb + Narr + A3sg
+TEST	noun2VerbAsIfTest
+DICT	dost dost Noun
+SINGLE	dostmuşçasına	Zero + Verb + Narr + A3sg + AsIf + Adv
+SINGLE	dostmuşlarcasına	Zero + Verb + Narr + A3pl + AsIf + Adv
+TEST	justlikeTest_Issue_170
+DICT	güzel güzel Adj
+SINGLE	güzelsin	Zero + Verb + Pres + A2sg
+RESET
+DICT	odun odun Noun
+SINGLE	odunsun	Noun + A3sg + Zero + Verb + Pres + A2sg
+TEST	nessTest_Issue_167
+DICT	mor mor Adj
+SINGLE	morluk	Adj + Ness + Noun + A3sg
+TEST	A2sgVerbAfterP1sgNounTest_Issue_184
+DICT	abi abi Noun
+SINGLE	abimsin	Noun + A3sg + P1sg + Zero + Verb + Pres + A2sg
+SINGLE	abimsiniz	Noun + A3sg + P1sg + Zero + Verb + Pres + A2pl
+SINGLE	abinim	Noun + A3sg + P2sg + Zero + Verb + Pres + A1sg
+FILE	VerbDerivationTest
+TEST	causativeTest
+DICT	okumak oku Verb
+SINGLE	okut	Verb + Caus + Verb + Imp + A2sg
+SINGLE	okuttur	Verb + Caus + Verb + Caus + Verb + Imp + A2sg
+SINGLE	okutturt	Verb + Caus + Verb + Caus + Verb + Caus + Verb + Imp + A2sg
+SINGLE	okutul	Verb + Caus + Verb + Pass + Verb + Imp + A2sg
+FAIL	okutt
+FAIL	okuturtur
+NOTANY	okutur	Verb + Caus + Verb + Imp + A2sg
+RESET
+DICT	semirmek semir Verb
+SINGLE	semirt	Verb + Caus + Verb + Imp + A2sg
+SINGLE	semirttir	Verb + Caus + Verb + Caus + Verb + Imp + A2sg
+SINGLE	semirttirt	Verb + Caus + Verb + Caus + Verb + Caus + Verb + Imp + A2sg
+FAIL	semirtt
+FAIL	semirtirtir
+TEST	infinitive1
+DICT	okumak oku Verb
+SINGLE	okumak	Verb + Inf1 + Noun + A3sg
+SINGLE	okumamak	Verb + Neg + Inf1 + Noun + A3sg
+SINGLE	okutmak	Verb + Caus + Verb + Inf1 + Noun + A3sg
+SINGLE	okutmaktan	Verb + Caus + Verb + Inf1 + Noun + A3sg + Abl
+FAIL	okumaka
+FAIL	okumaklar
+FAIL	okumağ
+FAIL	okumağı
+TEST	infinitive2
+DICT	okumak oku Verb
+ANY	okuma	Verb + Inf2 + Noun + A3sg
+ANY	okumama	Verb + Neg + Inf2 + Noun + A3sg
+ANY	okumama	Verb + Inf2 + Noun + A3sg + P1sg + Dat
+ANY	okutma	Verb + Caus + Verb + Inf2 + Noun + A3sg
+ANY	okutma	Verb + Caus + Verb + Neg + Imp + A2sg
+ANY	okutmama	Verb + Caus + Verb + Inf2 + Noun + A3sg + P1sg + Dat
+ANY	okuması	Verb + Inf2 + Noun + A3sg + P3sg
+ANY	okutması	Verb + Caus + Verb + Inf2 + Noun + A3sg + P3sg
+ANY	okutulması	Verb + Caus + Verb + Pass + Verb + Inf2 + Noun + A3sg + P3sg
+ANY	okutmamadan	Verb + Caus + Verb + Neg + Inf2 + Noun + A3sg + Abl
+TEST	infinitive3
+DICT	okumak oku Verb
+SINGLE	okuyuş	Verb + Inf3 + Noun + A3sg
+SINGLE	okumayış	Verb + Neg + Inf3 + Noun + A3sg
+SINGLE	okutmayış	Verb + Caus + Verb + Neg + Inf3 + Noun + A3sg
+SINGLE	okutmayıştan	Verb + Caus + Verb + Neg + Inf3 + Noun + A3sg + Abl
+TEST	pastPartTest
+DICT	okumak oku Verb
+ANY	okuduk	Verb + PastPart + Noun + A3sg
+ANY	okuduk	Verb + PastPart + Adj
+ANY	okumadık	Verb + Neg + PastPart + Noun + A3sg
+ANY	okumadık	Verb + Neg + PastPart + Adj
+ANY	okumadığım	Verb + Neg + PastPart + Noun + A3sg + P1sg
+ANY	okumadığım	Verb + Neg + PastPart + Adj + P1sg
+ANY	okuttuğumuz	Verb + Caus + Verb + PastPart + Noun + A3sg + P1pl
+ANY	okuttuğumuzdu	Verb + Caus + Verb + PastPart + Noun + A3sg + P1pl + Zero + Verb + Past + A3sg
+NOTANY	okuduğum	Verb + PastPart + Noun + A3sg + Zero + Verb + Pres + A1sg
+TEST	futurePartTest
+DICT	okumak oku Verb
+ANY	okuyacak	Verb + FutPart + Adj
+ANY	okumayacak	Verb + Neg + FutPart + Adj
+ANY	okumayacağım	Verb + Neg + FutPart + Noun + A3sg + P1sg
+ANY	okumayacağım	Verb + Neg + FutPart + Adj + P1sg
+ANY	okutmayacağımız	Verb + Caus + Verb + Neg + FutPart + Noun + A3sg + P1pl
+ANY	okutmayacağımızdı	Verb + Caus + Verb + Neg + FutPart + Noun + A3sg + P1pl + Zero + Verb + Past + A3sg
+ANY	okuyacaklarca	Verb + FutPart + Noun + A3pl + Equ
+NOTANY	okuyacağım	Verb + FutPart + Noun + A3sg + Zero + Verb + Pres + A1sg
+NOTANY	okuyacak	Verb + FutPart + Noun + A3sg
+NOTANY	okumayacak	Verb + Neg + FutPart + Noun + A3sg
+RESET
+DICT	cam cam Noun
+ANY	camlaşmayabileceği	FutPart + Adj + P3sg
+TEST	presPartTest
+DICT	okumak oku Verb
+ANY	okuyan	Verb + PresPart + Adj
+ANY	okumayan	Verb + Neg + PresPart + Adj
+ANY	okumayana	Verb + Neg + PresPart + Noun + A3sg + Dat
+ANY	okutmayanda	Verb + Caus + Verb + Neg + PresPart + Noun + A3sg + Loc
+ANY	okutmayanlarca	Verb + Caus + Verb + Neg + PresPart + Noun + A3pl + Equ
+TEST	narrPartTest
+DICT	okumak oku Verb
+ANY	okumuş	Verb + NarrPart + Adj
+ANY	okumuşa	Verb + NarrPart + Adj + Zero + Noun + A3sg + Dat
+TEST	aorPartNegativeTest
+DICT	okumak oku Verb
+ANY	okumaz	Verb + Neg + AorPart + Adj
+TEST	aorPartTest
+DICT	okumak oku Verb
+ANY	okur	Verb + AorPart + Adj
+ANY	okurluk	Verb + AorPart + Adj + Ness + Noun + A3sg
+TEST	multiVerbtoVerbTest
+DICT	okumak oku Verb
+SINGLE	okuyagel	Verb + EverSince + Verb + Imp + A2sg
+SINGLE	okuyadur	Verb + Repeat + Verb + Imp + A2sg
+SINGLE	okuyagör	Verb + Repeat + Verb + Imp + A2sg
+SINGLE	okuyayaz	Verb + Almost + Verb + Imp + A2sg
+SINGLE	okuyuver	Verb + Hastily + Verb + Imp + A2sg
+SINGLE	okuyakal	Verb + Stay + Verb + Imp + A2sg
+SINGLE	okuyakoy	Verb + Start + Verb + Imp + A2sg
+TEST	adverbDerivation
+DICT	okumak oku Verb
+SINGLE	okurcasına	Verb + Aor + A3sg + AsIf + Adv
+SINGLE	okumazcasına	Verb + Neg + Aor + A3sg + AsIf + Adv
+ANY	okumuşçasına	Verb + Narr + A3sg + AsIf + Adv
+SINGLE	okurmuşçasına	Verb + Aor + Narr + A3sg + AsIf + Adv
+SINGLE	okuyalı	Verb + SinceDoingSo + Adv
+SINGLE	okuyunca	Verb + When + Adv
+SINGLE	okumayınca	Verb + Neg + When + Adv
+SINGLE	okudukça	Verb + AsLongAs + Adv
+SINGLE	okuyarak	Verb + ByDoingSo + Adv
+ANY	okuyasıya	Verb + Adamantly + Adv
+SINGLE	okuyup	Verb + AfterDoingSo + Adv
+ANY	okumadan	Verb + WithoutHavingDoneSo + Adv
+SINGLE	okumaksızın	Verb + WithoutHavingDoneSo + Adv
+SINGLE	okuyamadan	Verb + WithoutBeingAbleToHaveDoneSo + Adv
+TEST	whileAdverbDerivation
+DICT	okumak oku Verb
+SINGLE	okurken	Verb + Aor + While + Adv
+SINGLE	okurlarken	Verb + Aor + A3pl + While + Adv
+SINGLE	okumazken	Verb + Neg + Aor + While + Adv
+SINGLE	okuyorken	Verb + Prog1 + While + Adv
+ANY	okumaktayken	Verb + Prog2 + While + Adv
+ANY	okuyacakken	Verb + Fut + While + Adv
+ANY	okumuşken	Verb + Narr + While + Adv
+SINGLE	okuyabilirken	Verb + Able + Verb + Aor + While + Adv
+FAIL	okuduyken
+FAIL	okurumken
+FAIL	okudularken
+TEST	agt
+DICT	okumak oku Verb
+ANY	okuyucu	Verb + Agt + Adj
+ANY	okuyucu	Verb + Agt + Noun + A3sg
+ANY	okutucu	Verb + Caus + Verb + Agt + Adj
+FAIL	okuyucucu
+TEST	actOf
+DICT	okumak oku Verb
+ANY	okumaca	Verb + ActOf + Noun + A3sg
+ANY	okumamaca	Verb + Neg + ActOf + Noun + A3sg
+ANY	okumacalar	Verb + ActOf + Noun + A3pl
+FAIL	okumacam
+FAIL	okumacaya
+TEST	feelLikeTest
+DICT	okumak oku Verb
+ANY	okuyası	Verb + FeelLike + Adj
+ANY	okumayası	Verb + Neg + FeelLike + Adj
+ANY	okuyasım	Verb + FeelLike + Noun + A3sg + P1sg
+ANY	okuyasıları	Verb + FeelLike + Noun + A3pl + P3pl
+TEST	notStateTest
+DICT	okumak oku Verb
+ANY	okumazlık	Verb + NotState + Noun + A3sg
+ANY	okumamazlık	Verb + Neg + NotState + Noun + A3sg
+ANY	okumamazlığı	Verb + Neg + NotState + Noun + A3sg + Acc
+FILE	NounCompoundsTest
+TEST	incorrect1
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+FAIL	zeytinyağ
+FAIL	zeytinyağıya
+FAIL	zeytinyağılar
+FAIL	zeytinyağlar
+FAIL	zeytinyağya
+FAIL	zeytinyağna
+FAIL	zeytinyağda
+FAIL	zeytinyağdan
+TEST	incorrect2
+DICT	bal bal Noun
+DICT	kabak kabak Noun
+DICT	balkabağı balkabağı Noun CompoundP3sg roots=bal-kabak
+FAIL	balkabak
+FAIL	balkabağa
+FAIL	balkabakta
+FAIL	balkabaktan
+TEST	expectsResult
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+SUCCESS	zeytinyağı
+SUCCESS	zeytinyağına
+SUCCESS	zeytinyağım
+SUCCESS	zeytinyağlarıma
+TEST	expectsResult2
+DICT	bal bal Noun
+DICT	kabak kabak Noun
+DICT	balkabağı balkabağı Noun CompoundP3sg roots=bal-kabak
+SUCCESS	balkabağı
+SUCCESS	balkabakları
+SUCCESS	balkabağına
+TEST	mustHaveTwoResults
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+COUNT	zeytinyağı	2
+TEST	resultDictionaryItemCannotBeDummy
+DICT	zeytin zeytin Noun
+DICT	yağ yağ Noun
+DICT	zeytinyağı zeytinyağı Noun CompoundP3sg roots=zeytin-yağ
+COUNT	zeytinyağlı	1
+LEMMA	zeytinyağlı	zeytinyağı
+FILE	AdjectiveDerivationTest
+TEST	become
+DICT	beyaz beyaz Adj
+SINGLE	beyazlaş	Adj + Become + Verb + Imp + A2sg
+ANY	beyazlaştık	Adj + Become + Verb + Past + A1pl
+ANY	beyazlaşacak	Adj + Become + Verb + Fut + A3sg
+FAIL	beyazımlaş
+FAIL	beyazlarlaştı
+FAIL	beyazyalaştı
+TEST	ly
+DICT	beyaz beyaz Adj
+ANY	beyazca	Adj + Ly + Adv
+TEST	justlikeAdjTest
+DICT	mavi mavi Adj
+SINGLE	mavimsi	Adj + JustLike + Adj
+RESET
+DICT	siyah siyah Adj
+SINGLE	siyahsı	Adj + JustLike + Adj
+SINGLE	siyahımsı	Adj + JustLike + Adj
+TEST	expectsSingleResult
+DICT	mavi mavi Adj
+COUNT	maviyim	1
+COUNT	maviydim	1
+COUNT	maviyimdir	1
+COUNT	maviydi	1
+COUNT	mavidir	1
+COUNT	maviliyimdir	1
+TEST	agtTest
+DICT	ucuz ucuz Adj
+ANY	ucuzcu	Adj + Agt + Noun + A3sg
+ANY	ucuzcuyu	Adj + Agt + Noun + A3sg + Acc
+ANY	ucuzcuya	Adj + Agt + Noun + A3sg + Dat
+ANY	ucuzculuk	Adj + Agt + Noun + A3sg + Ness + Noun + A3sg
+ANY	ucuzculuğu	Adj + Agt + Noun + A3sg + Ness + Noun + A3sg + Acc
+FAIL	ucuzcucu
+FAIL	ucuzlucu
+FAIL	ucuzumsucu
+FILE	AdjectivesTest
+TEST	expectsSingleResult
+DICT	mavi mavi Adj
+COUNT	mavi	1
+COUNT	maviye	1
+COUNT	mavilere	1
+COUNT	mavilerime	1
+COUNT	mavicik	1
+COUNT	mavili	1
+COUNT	mavicikli	1
+COUNT	mavicikliye	1
+TEST	expects2Results
+DICT	mavi mavi Adj
+COUNT	maviler	2
+FILE	QuestionTest
+TEST	mıTest
+DICT	mı mı Ques
+SINGLE	mı	Ques + Pres + A3sg
+SINGLE	mısın	Ques + Pres + A2sg
+SINGLE	mıydı	Ques + Past + A3sg
+SINGLE	mıymışsın	Ques + Narr + A2sg
+FAIL	mıymışsak
+TEST	mıCopulaTest
+DICT	mı mı Ques
+SINGLE	mıdır	Ques + Pres + A3sg + Cop
+SINGLE	mısındır	Ques + Pres + A2sg + Cop
+SINGLE	mıyımdır	Ques + Pres + A1sg + Cop
+SINGLE	mıyızdır	Ques + Pres + A1pl + Cop
+SINGLE	mıymışımdır	Ques + Narr + A1sg + Cop
+SINGLE	mıymışsındır	Ques + Narr + A2sg + Cop
+SINGLE	mıymıştır	Ques + Narr + A3sg + Cop
+SINGLE	mıdırlar	Ques + Pres + Cop + A3pl
+FAIL	mıydıdır
+FILE	PostpTest
+TEST	gibiTest
+DICT	gibi gibi Postp pc=Nom
+SINGLE	gibi	Postp
+SINGLE	gibisi	Postp + Zero + Noun + A3sg + P3sg
+ANY	gibiler	Postp + Zero + Noun + A3pl
+SINGLE	gibilere	Postp + Zero + Noun + A3pl + Dat
+SINGLE	gibisine	Postp + Zero + Noun + A3sg + P3sg + Dat
+SINGLE	gibisiyle	Postp + Zero + Noun + A3sg + P3sg + Ins
+SINGLE	gibilerle	Postp + Zero + Noun + A3pl + Ins
+TEST	gibimeTest_issue_178
+DICT	gibi gibi Postp pc=Nom
+SINGLE	gibime	Postp + Zero + Noun + A3sg + P1sg + Dat
+SINGLE	gibine	Postp + Zero + Noun + A3sg + P2sg + Dat
+SINGLE	gibinize	Postp + Zero + Noun + A3sg + P2pl + Dat
+SINGLE	gibimize	Postp + Zero + Noun + A3sg + P1pl + Dat
+FILE	NumeralTest
+TEST	ordinalTest
+DICT	bir bir Num Ord
+ANY	bir	Num
+ANY	bire	Num + Zero + Noun + A3sg + Dat
+ANY	birmiş	Num + Zero + Verb + Narr + A3sg
+FILE	AdverbsTest
+TEST	advTest
+DICT	işte işte Adv
+SINGLE	işte	Adv
+TEST	advTest2
+DICT	olmak ol Verb
+SINGLE	olunca	Verb + When + Adv
+SINGLE	oluncaya	Verb + When + Adv + Zero + Noun + A3sg + Dat
+FILE	ConjunctionTest
+TEST	conjTest
+DICT	ve ve Conj
+SINGLE	ve	Conj
+FILE	FunctionalTests
+TEST	testWordsWithCircumflex
+DICT	zekâ zekâ Noun
+COUNT	zekâ	1
+TEST	testPossibleProper2
+DICT	Air Air Noun Prop
+FAIL	Air'rrr
+COUNT	Air	1
+TEST	testWordsWithDot
+DICT	Dr Dr Noun Abbrv
+COUNT	Dr.	1
+TEST	testRomanNumeral
+DICT	dört dört Num Card Voicing
+COUNT	IV	1
+TEST	testRomanNumeral2
+DICT	dördüncü dördüncü Num Ord
+COUNT	XXIV.	1
+TEST	testRomanNumeral3
+DICT	dört dört Num Card Voicing
+COUNT	XXIV'ten	1
+TEST	testDate
+DICT	dört dört Num Card Voicing
+COUNT	1.1.2014	1
+TEST	testDate2
+DICT	dört dört Num Card Voicing
+COUNT	1.1.2014'te	1
+TAILANY	1.1.2014'te	A3sg + Loc
+TEST	testTime
+DICT	otuz otuz Num Card
+COUNT	20:30'da	1
+TEST	testTime2
+DICT	dört dört Num Card Voicing
+COUNT	10:24'te	1
+TAILANY	10:24'te	A3sg + Loc
+TEST	testRatio
+DICT	iki iki Num Card
+COUNT	1/2	1
+TEST	testPercent
+DICT	iki iki Num Card
+COUNT	%2	1
+COUNT	%2'si	1
+COUNT	%2.2'si	1
+COUNT	%2,2'si	1
+TEST	testWordsWithDash
+DICT	EMPTY
+COUNT	Blah-Foo'ya	1
+TEST	testUnidentifiedWordNoVowel
+DICT	DEFAULT
+FAIL	gnctrkcll
+TEST	testAbbreviationVoicing_Issue_183
+DICT	Tübitak Tübitak Noun Abbrv
+COUNT	Tübitak'a	1
+COUNT	Tübitaka	1
+FAIL	Tübitağa
+TEST	testAbbreviationShouldNotGetBecomeOrAcquire_Issue218
+DICT	aa aa Noun Abbrv
+FAIL	aalaş
+FAIL	aalan
+TEST	defaultUrlEtc
+DICT	DEFAULT
+COUNT	www.foo.com	1
+COUNT	www.foo.com'da	1
+COUNT	#haha_ha'ya	1
+COUNT	@haha_ha'ya	1
+COUNT	foo@bar.com'a	1

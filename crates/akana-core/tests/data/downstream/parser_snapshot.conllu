@@ -1,0 +1,281 @@
+# Ali güzel kitabı okudu .
+1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	4	nsubj
+2	güzel	güzel	ADJ	Adj	Adj	3	amod
+3	kitabı	kitap	NOUN	Noun	Noun|P3sg	4	obj
+4	okudu	okumak	VERB	Verb	Verb|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Hava çok soğuk .
+1	Hava	hava	NOUN	Noun	Noun|A3sg|Nom	3	nsubj
+2	çok	çok	ADV	Adv	Adv	3	advmod
+3	soğuk	soğuk	ADJ	Adj	Adj	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Evde kimse yok .
+1	Evde	ev	NOUN	Noun	Noun|Loc	3	obl
+2	kimse	kimse	PRON	Pron	Pron|A3sg|Nom	3	nsubj
+3	yok	yok	ADJ	Adj	Adj	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Sen öğrenci misin ?
+1	Sen	sen	PRON	Pron	Pron|A2sg|Nom	2	nsubj
+2	öğrenci	öğrenci	NOUN	Noun	Noun|A3sg|Nom	0	root
+3	misin	mi	AUX	Q	Q|CopPres2sg	2	aux:q
+4	?	?	PUNCT	Unk	Unk	2	punct
+
+# Bu da mı gitti ?
+1	Bu	bu	PRON	Pron	Pron|A3sg|Nom	4	nsubj
+2	da	da	CCONJ	Conj	Conj	4	cc
+3	mı	mı	AUX	Q	Q	2	aux:q
+4	gitti	gitmek	VERB	Verb	Verb|Past	0	root
+5	?	?	PUNCT	Unk	Unk	4	punct
+
+# Güldükçe güzelleşiyor .
+1	Güldükçe	gülmek	VERB	Verb	Verb|AsLongAs	2	advcl
+2	güzelleşiyor	güzel	VERB	Adj	Adj|BecomeVerb|Prog	0	root
+3	.	.	PUNCT	Unk	Unk	2	punct
+
+# Kırılmış camları topladı .
+1	Kırılmış	kırmak	VERB	Verb	Verb|Pass|NarrPart	2	acl
+2	camları	cam	NOUN	Noun	Noun|A3pl|P3sg	3	nsubj
+3	topladı	toplamak	VERB	Verb	Verb|Past	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Kaçarcasına gitti .
+1	Kaçarcasına	kaçmak	VERB	Verb	Verb|Aor|AsIf	2	advcl
+2	gitti	gitmek	VERB	Verb	Verb|Past	0	root
+3	.	.	PUNCT	Unk	Unk	2	punct
+
+# Okula gelince bana haber ver .
+1	Okula	okul	NOUN	Noun	Noun|Dat	5	obl
+2	gelince	gelmek	VERB	Verb	Verb|AdvInce	5	advcl
+3	bana	ben	PRON	Pron	Pron|A1sg|Dat	5	obl
+4	haber	haber	NOUN	Noun	Noun|A3sg|Nom	5	compound
+5	ver	vermek	VERB	Verb	Verb|Imp|A2sg	0	root
+6	.	.	PUNCT	Unk	Unk	5	punct
+
+# Eve gelip yemek yedi .
+1	Eve	ev	NOUN	Noun	Noun|Dat	4	obl
+2	gelip	gelmek	VERB	Verb	Verb|AdvIp	4	advcl
+3	yemek	yemek	NOUN	Noun	Noun|A3sg|Nom	4	compound
+4	yedi	yemek	VERB	Verb	Verb|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Sınava çalışarak başarılı oldu .
+1	Sınava	sınav	NOUN	Noun	Noun|Dat	4	obl
+2	çalışarak	çalışmak	VERB	Verb	Verb|AdvErek	4	advcl
+3	başarılı	başarı	ADJ	Noun	Noun|With	4	amod
+4	oldu	olmak	VERB	Verb	Verb|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Çocukken burada oturuyorduk .
+1	Çocukken	çocuk	ADV	Noun	Noun|While	3	advmod
+2	burada	bura	NOUN	Noun	Noun|Loc	3	obl
+3	oturuyorduk	oturmak	VERB	Verb	Verb|Prog|CopPast|A1pl	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Kitabı okuyan öğrenci sınıfta .
+1	Kitabı	kitap	NOUN	Noun	Noun|P3sg	4	nsubj
+2	okuyan	okumak	VERB	Verb	Verb|PresPart	3	acl
+3	öğrenci	öğrenci	NOUN	Noun	Noun|A3sg|Nom	4	obj
+4	sınıfta	sınıf	NOUN	Noun	Noun|Loc	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Ödevini yapmadan dışarı çıkma !
+1	Ödevini	ödev	NOUN	Noun	Noun|P3sg|Acc	4	obj
+2	yapmadan	yapmak	VERB	Verb	Verb|WithoutHavingDoneSo	4	advcl
+3	dışarı	dışarı	ADV	Adv	Adv	4	advmod
+4	çıkma	çıkmak	VERB	Verb	Verb|Neg|Imp|A2sg	0	root
+5	!	!	PUNCT	Unk	Unk	4	punct
+
+# Dilekçe ile başvurdu .
+1	Dilekçe	dilekçe	NOUN	Noun	Noun|A3sg|Nom	3	obl
+2	ile	ile	ADP	Postp	Postp	1	case
+3	başvurdu	başvurmak	VERB	Verb	Verb|Past	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Onun için her şeyi yaptı .
+1	Onun	o	PRON	Pron	Pron|Gen	5	obl
+2	için	için	ADP	Postp	Postp	1	case
+3	her	her	DET	Det	Det	4	det
+4	şeyi	şey	NOUN	Noun	Noun|Acc	5	obj
+5	yaptı	yapmak	VERB	Verb	Verb|Past	0	root
+6	.	.	PUNCT	Unk	Unk	5	punct
+
+# Ayşe ile Fatma okula gittiler .
+1	Ayşe	ayşe	PROPN	Noun	Noun|A3sg|Nom	5	nsubj
+2	ile	ile	CCONJ	Conj	Conj	3	cc
+3	Fatma	fatma	PROPN	Noun	Noun|A3sg|Nom	5	obj
+4	okula	okul	NOUN	Noun	Noun|Dat	5	obl
+5	gittiler	gitmek	VERB	Verb	Verb|Past|A3pl	0	root
+6	.	.	PUNCT	Unk	Unk	5	punct
+
+# Yarın Ankara'ya gideceğim .
+1	Yarın	yarın	ADV	Adv	Adv	3	advmod
+2	Ankara'ya	ankara	PROPN	Noun	Noun|Dat	3	obl
+3	gideceğim	gitmek	VERB	Verb	Verb|Fut|A1sg	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Bu karar kesindir .
+1	Bu	bu	PRON	Pron	Pron|A3sg|Nom	3	nsubj
+2	karar	karar	NOUN	Noun	Noun|A3sg|Nom	3	nsubj
+3	kesindir	kesin	ADJ	Adj	Adj|CopPres3sg	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Mahkeme , davanın reddine karar verdi .
+1	Mahkeme	mahkeme	NOUN	Noun	Noun|A3sg|Nom	6	nsubj
+2	,	,	PUNCT	Unk	Unk	6	punct
+3	davanın	dava	NOUN	Noun	Noun|Gen	4	nmod:poss
+4	reddine	ret	NOUN	Noun	Noun|P3sg|Dat	6	obl
+5	karar	karar	NOUN	Noun	Noun|A3sg|Nom	6	compound
+6	verdi	vermek	VERB	Verb	Verb|Past	0	root
+7	.	.	PUNCT	Unk	Unk	6	punct
+
+# Davacı vekili temyiz isteminde bulunmuştur .
+1	Davacı	davacı	NOUN	Noun	Noun|A3sg|Nom	5	nsubj
+2	vekili	vekil	NOUN	Noun	Noun|P3sg	5	nsubj
+3	temyiz	temyiz	NOUN	Noun	Noun|A3sg|Nom	5	obj
+4	isteminde	istem	NOUN	Noun	Noun|P3sg|Loc	5	obl
+5	bulunmuştur	bulunmak	VERB	Verb	Verb|Evid|CopPres3sg	0	root
+6	.	.	PUNCT	Unk	Unk	5	punct
+
+# Bilirkişi raporu dosyaya sunuldu .
+1	Bilirkişi	bilirkişi	NOUN	Noun	Noun|A3sg|Nom	4	nsubj
+2	raporu	rapor	NOUN	Noun	Noun|P3sg	4	nsubj
+3	dosyaya	dosya	NOUN	Noun	Noun|Dat	4	obl
+4	sunuldu	sunmak	VERB	Verb	Verb|Pass|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Dava dilekçesi davalıya tebliğ edildi .
+1	Dava	dava	NOUN	Noun	Noun|A3sg|Nom	5	nsubj
+2	dilekçesi	dilekçe	NOUN	Noun	Noun|P3sg	5	nsubj
+3	davalıya	davalı	NOUN	Adj	Adj|Dat	5	obl
+4	tebliğ	tebliğ	NOUN	Noun	Noun|A3sg|Nom	5	compound
+5	edildi	etmek	VERB	Verb	Verb|Pass|Past	0	root
+6	.	.	PUNCT	Unk	Unk	5	punct
+
+# Sanığın savunması alındıktan sonra karar açıklandı .
+1	Sanığın	sanık	NOUN	Noun	Noun|Gen	2	nmod:poss
+2	savunması	savunma	NOUN	Noun	Noun|P3sg	6	nsubj
+3	alındıktan	almak	VERB	Verb	Verb|Pass|PastPart|Abl	6	obl
+4	sonra	sonra	ADP	Postp	Postp	3	case
+5	karar	karar	NOUN	Noun	Noun|A3sg|Nom	6	nsubj
+6	açıklandı	açıklamak	VERB	Verb	Verb|Pass|Past	0	root
+7	.	.	PUNCT	Unk	Unk	6	punct
+
+# Hukuka aykırılık bulunmadığından istemin reddine oybirliğiyle karar verildi .
+1	Hukuka	hukuk	NOUN	Noun	Noun|Dat	8	obl
+2	aykırılık	aykırı	NOUN	Adj	Adj|Ness	8	nsubj
+3	bulunmadığından	bulunmak	VERB	Verb	Verb|Neg|PastPart|P3sg|Abl	8	obl
+4	istemin	istem	NOUN	Noun	Noun|Gen	5	nmod:poss
+5	reddine	ret	NOUN	Noun	Noun|P3sg|Dat	8	obl
+6	oybirliğiyle	oybirliği	NOUN	Noun	Noun|Ins	8	obl
+7	karar	karar	NOUN	Noun	Noun|A3sg|Nom	8	compound
+8	verildi	vermek	VERB	Verb	Verb|Pass|Past	0	root
+9	.	.	PUNCT	Unk	Unk	8	punct
+
+# Gelmeyecekmişsiniz gibi davranmayın .
+1	Gelmeyecekmişsiniz	gelmek	VERB	Verb	Verb|Neg|Fut|CopEvid|A2pl	3	dep
+2	gibi	gibi	ADP	Postp	Postp	1	case
+3	davranmayın	davranmak	VERB	Verb	Verb|Neg|Imp|A2pl	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Bilinmeyen bir sebeple gitti .
+1	Bilinmeyen	bilinmeyen	VERB	Adj	Adj	3	acl
+2	bir	bir	DET	Det	Det	3	det
+3	sebeple	sebep	NOUN	Noun	Noun|Ins	4	obl
+4	gitti	gitmek	VERB	Verb	Verb|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Gelen adam oturdu .
+1	Gelen	gelen	VERB	Adj	Adj	2	acl
+2	adam	adam	NOUN	Noun	Noun|A3sg|Nom	3	obj
+3	oturdu	oturmak	VERB	Verb	Verb|Past	0	root
+4	.	.	PUNCT	Unk	Unk	3	punct
+
+# Bu senin için .
+1	Bu	bu	DET	Det	Det	2	det
+2	senin	sen	PRON	Pron	Pron|A2sg|Gen	0	root
+3	için	için	ADP	Postp	Postp	2	case
+4	.	.	PUNCT	Unk	Unk	2	punct
+
+# Sen de mi ?
+1	Sen	sen	PRON	Pron	Pron|A2sg|Nom	0	root
+2	de	de	CCONJ	Conj	Conj	1	cc
+3	mi	mi	AUX	Q	Q	2	aux:q
+4	?	?	PUNCT	Unk	Unk	1	punct
+
+# Varken harca .
+1	Varken	var	ADV	Adj	Adj|While	2	advmod
+2	harca	harç	NOUN	Noun	Noun|Dat	0	root
+3	.	.	PUNCT	Unk	Unk	2	punct
+
+# Okur yazar biri .
+1	Okur	okumak	VERB	Verb	Verb|Aor	0	root
+2	yazar	yazar	NOUN	Noun	Noun|A3sg|Nom	1	nsubj
+3	biri	biri	PRON	Pron	Pron|A3sg|Nom	1	nsubj
+4	.	.	PUNCT	Unk	Unk	1	punct
+
+# mi ?
+1	mi	mi	AUX	Q	Q	0	root
+2	?	?	PUNCT	Unk	Unk	1	punct
+
+# Ali öğretmen değil .
+1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	2	nsubj
+2	öğretmen	öğretmen	NOUN	Noun	Noun|A3sg|Nom	0	root
+3	değil	değil	AUX	Verb	Verb	2	aux
+4	.	.	PUNCT	Unk	Unk	2	punct
+
+# Ali geldi , Veli gitti .
+1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	2	nsubj
+2	geldi	gelmek	VERB	Verb	Verb|Past	0	root
+3	,	,	PUNCT	Unk	Unk	2	punct
+4	Veli	veli	PROPN	Noun	Noun|A3sg|Nom	5	nsubj
+5	gitti	gitmek	VERB	Verb	Verb|Past	2	conj
+6	.	.	PUNCT	Unk	Unk	2	punct
+
+# Ali geldi ve Veli gitti .
+1	Ali	ali	PROPN	Noun	Noun|A3sg|Nom	2	nsubj
+2	geldi	gelmek	VERB	Verb	Verb|Past	0	root
+3	ve	ve	CCONJ	Conj	Conj	4	cc
+4	Veli	veli	PROPN	Noun	Noun|A3sg|Nom	5	nsubj
+5	gitti	gitmek	VERB	Verb	Verb|Past	2	conj
+6	.	.	PUNCT	Unk	Unk	2	punct
+
+# Bu konu ile ilgili karar verildi .
+1	Bu	bu	DET	Det	Det	2	det
+2	konu	konu	NOUN	Noun	Noun|A3sg|Nom	6	obl
+3	ile	ile	ADP	Postp	Postp	2	case
+4	ilgili	ilgili	ADJ	Adj	Adj	5	amod
+5	karar	karar	NOUN	Noun	Noun|A3sg|Nom	6	nsubj
+6	verildi	vermek	VERB	Verb	Verb|Pass|Past	0	root
+7	.	.	PUNCT	Unk	Unk	6	punct
+
+# Ahmet Yılmaz'ın kararı onandı .
+1	Ahmet	ahmet	PROPN	Noun	Noun|A3sg|Nom	3	nmod:poss
+2	Yılmaz'ın	yılmaz	PROPN	Noun	Noun|Gen	1	flat
+3	kararı	karar	NOUN	Noun	Noun|P3sg	4	obj
+4	onandı	onamak	VERB	Verb	Verb|Pass|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Davacı karar verilmesini istedi .
+1	Davacı	davacı	NOUN	Noun	Noun|A3sg|Nom	4	nsubj
+2	karar	karar	NOUN	Noun	Noun|A3sg|Nom	3	compound
+3	verilmesini	vermek	VERB	Verb	Verb|Pass|ActN|P3sg|Acc	4	obj
+4	istedi	istemek	VERB	Verb	Verb|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# Okuyalı üç gün oldu .
+1	Okuyalı	okumak	VERB	Verb	Verb|SinceDoingSo	4	advcl
+2	üç	üç	NUM	Num	Num	3	nummod
+3	gün	gün	NOUN	Noun	Noun|A3sg|Nom	4	obj
+4	oldu	olmak	VERB	Verb	Verb|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+
+# İki yıl önce taşındı .
+1	İki	iki	NUM	Num	Num	2	nummod
+2	yıl	yıl	NOUN	Noun	Noun|A3sg|Nom	4	nsubj
+3	önce	önce	ADV	Adv	Adv	4	advmod
+4	taşındı	taşımak	VERB	Verb	Verb|Pass|Past	0	root
+5	.	.	PUNCT	Unk	Unk	4	punct
+

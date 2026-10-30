@@ -1,0 +1,6 @@
+# The toolchain releases are built and tested with. Analyses and embeddings depend on std's
+# Unicode tables (lower-casing, character classes), so changing it is a measured change: run the
+# golden fixtures and the churn report before moving it.
+[toolchain]
+channel = "1.99.0"
+components = ["rustfmt", "clippy"]

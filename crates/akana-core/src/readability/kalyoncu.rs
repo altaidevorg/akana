@@ -2,14 +2,30 @@
 //! Based on M. Rahman Kalyoncu's master's thesis "Türkçe İçin Yeni Bir Okunabilirlik Formülü" (Ondokuz Mayıs Üniversitesi, 2025).
 
 use super::metrics::{FormulaResult, KalyoncuResults, TextStatistics};
-use crate::morphology::{PrimaryPos, SecondaryPos, TurkishMorphology};
+use crate::morphology::{
+    verb_form, MorphologicalDisambiguator, PrimaryPos, SecondaryPos, TurkishMorphology,
+};
 use crate::phonology;
 use crate::tokenization::{SentenceSegmenter, TurkishTokenizer};
 use std::collections::{HashMap, HashSet};
 
 pub struct KalyoncuAnalyzer {
-    word_list: HashSet<&'static str>,
+    word_list: HashSet<String>,
+    disambiguator: MorphologicalDisambiguator,
     morphology: TurkishMorphology,
+}
+
+/// A word as the familiarity list is looked up: without circumflexes, as the analyzer's roots
+/// are (hâl, hikâye, millî are hal, hikaye, milli; review 3 STYLE3-04).
+fn fold(word: &str) -> String {
+    word.chars()
+        .map(|c| match c {
+            'â' => 'a',
+            'î' => 'i',
+            'û' => 'u',
+            c => c,
+        })
+        .collect()
 }
 
 impl Default for KalyoncuAnalyzer {
@@ -25,12 +41,13 @@ impl KalyoncuAnalyzer {
         for line in raw_data.lines() {
             let w = line.trim();
             if !w.is_empty() {
-                set.insert(w);
+                set.insert(fold(w));
             }
         }
 
         Self {
             word_list: set,
+            disambiguator: MorphologicalDisambiguator::new(),
             morphology: TurkishMorphology::new(),
         }
     }
@@ -38,7 +55,9 @@ impl KalyoncuAnalyzer {
     /// Calculates comprehensive text statistics for Turkish readability.
     pub fn calculate_statistics(&self, text: &str) -> TextStatistics {
         let sentences = SentenceSegmenter::segment(text);
-        let total_sentences = sentences.len().max(1);
+        // Sentences with a word: a paragraph's number or letter alone (1., A.) is none
+        // (review 3 STYLE3-03).
+        let mut total_sentences = 0;
 
         let mut total_words = 0;
         let mut total_syllables = 0;
@@ -59,14 +78,25 @@ impl KalyoncuAnalyzer {
 
         for sent in &sentences {
             let tokens = TurkishTokenizer::tokenize_words(sent.text);
+            // Each word's reading in its sentence (review 2 PARSER2-02).
+            let parses = self.disambiguator.disambiguate(&tokens);
             let mut sent_word_count = 0;
             let mut sent_fiilimsi_count = 0;
             let mut has_conjunction = false;
 
-            for tok in tokens {
+            for (tok, parse) in tokens.into_iter().zip(&parses) {
                 let lower = phonology::to_turkish_lower(tok);
                 if lower.chars().all(|c| !c.is_alphabetic()) {
                     continue;
+                }
+                // A letter with its period (a heading's A., an abbreviation's s.) is no word
+                // (review 4 DOWN4-13).
+                let mut chars = lower.chars();
+                if let (Some(letter), Some('.'), None) = (chars.next(), chars.next(), chars.next())
+                {
+                    if letter.is_alphabetic() {
+                        continue;
+                    }
                 }
 
                 sent_word_count += 1;
@@ -87,34 +117,28 @@ impl KalyoncuAnalyzer {
                     has_conjunction = true;
                 }
 
-                // Morphological analysis for lemma, POS, and fiilimsi detection
-                let parses = self.morphology.analyze(&lower);
-                let (best_lemma, is_fiilimsi, is_proper_or_num) =
-                    if let Some(first_parse) = parses.first() {
-                        let fiilimsi = first_parse.morpheme_tags.iter().any(|tag| {
-                            matches!(
-                                tag.as_str(),
-                                "PresPart"
-                                    | "PastPart"
-                                    | "FutPart"
-                                    | "AdvErek"
-                                    | "AdvInce"
-                                    | "AdvIp"
-                                    | "Inf"
-                                    | "ActN"
-                                    | "Manner"
-                                    | "DevN"
-                                    | "DevGi"
-                                    | "DevGin"
-                                    | "DevGen"
-                            )
-                        });
-                        let proper_or_num = first_parse.secondary_pos == SecondaryPos::ProperNoun
-                            || first_parse.primary_pos == PrimaryPos::Num;
-                        (first_parse.root.clone(), fiilimsi, proper_or_num)
-                    } else {
-                        (lower.clone(), false, false)
-                    };
+                // The word's root, whether it is a verbal (fiilimsi: a verbal noun, participle
+                // or converb) and whether it is a name or a number.
+                let (best_lemma, is_fiilimsi, is_proper_or_num) = if parse.primary_pos
+                    == PrimaryPos::Unknown
+                {
+                    (lower.clone(), false, false)
+                } else {
+                    let proper_or_num = parse.secondary_pos == SecondaryPos::ProperNoun
+                        || parse.primary_pos == PrimaryPos::Num;
+                    // A plural verbal noun is a noun (ödemelerin, gelişmelere), no
+                    // fiilimsi (review 3 STYLE3-09).
+                    let plural_noun = parse
+                        .morpheme_tags
+                        .iter()
+                        .position(|t| matches!(t.as_str(), "ActN" | "Inf"))
+                        .is_some_and(|i| parse.morpheme_tags[i + 1..].iter().any(|t| t == "A3pl"));
+                    (
+                        phonology::to_turkish_lower(&parse.root),
+                        verb_form(parse).is_some() && !plural_noun,
+                        proper_or_num,
+                    )
+                };
 
                 if is_fiilimsi {
                     sent_fiilimsi_count += 1;
@@ -128,24 +152,43 @@ impl KalyoncuAnalyzer {
                 // 2. Lemma/Root in list
                 // 3. Verb infinitive (-mak / -mek) in list
                 // 4. Proper noun or numeral
-                let lemma_mak = format!("{best_lemma}mak");
-                let lemma_mek = format!("{best_lemma}mek");
+                // 5. A postposition or adverb the lexicon lists as a word of its own, by the
+                //    noun it is spelled from (taraf-ından, iç-inde, üzer-ine; review 3 STYLE3-04)
+                let lemma = fold(&best_lemma);
+                let lemma_mak = format!("{lemma}mak");
+                let lemma_mek = format!("{lemma}mek");
+                let known = |w: &str| self.word_list.contains(w);
+                let spelled_from_noun = || {
+                    matches!(parse.primary_pos, PrimaryPos::Postp | PrimaryPos::Adv)
+                        && self
+                            .morphology
+                            .analyze(&lower)
+                            .iter()
+                            .any(|p| p.primary_pos == PrimaryPos::Noun && known(&fold(&p.root)))
+                };
 
                 let is_familiar = is_proper_or_num
-                    || self.word_list.contains(lower.as_str())
-                    || self.word_list.contains(best_lemma.as_str())
-                    || self.word_list.contains(lemma_mak.as_str())
-                    || self.word_list.contains(lemma_mek.as_str());
+                    || known(&fold(&lower))
+                    || known(&lemma)
+                    || known(&lemma_mak)
+                    || known(&lemma_mek)
+                    || spelled_from_noun();
 
                 if !is_familiar {
                     unfamiliar_words += 1;
                 }
             }
 
+            if sent_word_count > 0 {
+                total_sentences += 1;
+            }
             if sent_fiilimsi_count > 0 || has_conjunction || sent_word_count > 10 {
                 complex_sentences += 1;
             }
         }
+        // No text has no sentence (review 4 DOWN4-13); the ratios divide by one at least.
+        let reported_sentences = total_sentences;
+        let total_sentences = total_sentences.max(1);
 
         let total_words_safe = total_words.max(1);
         let words_per_sentence = total_words as f64 / total_sentences as f64;
@@ -160,7 +203,7 @@ impl KalyoncuAnalyzer {
         let polysyllabic_word_ratio = (polysyllabic_words as f64 / total_words_safe as f64) * 100.0;
 
         TextStatistics {
-            total_sentences,
+            total_sentences: reported_sentences,
             total_words,
             total_syllables,
             words_per_sentence,
@@ -206,6 +249,27 @@ impl KalyoncuAnalyzer {
         let f4_score = 43.368 + (1.008 * kl) + (0.624 * ocu);
         let f4_grade = Self::grade_formula_4(f4_score);
 
+        // Without a word every formula grades the empty statistics (review 2 READ-05). The
+        // formulas are linear regressions fitted on ordinary texts, so a score is no
+        // percentage: K1 exceeds 100 on ordinary court paragraphs and is reported so. Below 0 a
+        // score means nothing (an 8,000-word sentence gave K1 -5,236, its sentence-length term
+        // extrapolated) and is reported as 0; the grades are those of the unclamped scores
+        // (review 4 DOWN4-13).
+        let no_text = stats.total_words == 0;
+        let grade = |g: &'static str| if no_text { super::metrics::NO_TEXT } else { g };
+        let score = |s: f64| if no_text { 0.0 } else { s.max(0.0) };
+        let (f1_grade, f2_grade, f3_grade, f4_grade) = (
+            grade(f1_grade),
+            grade(f2_grade),
+            grade(f3_grade),
+            grade(f4_grade),
+        );
+        let (f1_score, f2_score, f3_score, f4_score) = (
+            score(f1_score),
+            score(f2_score),
+            score(f3_score),
+            score(f4_score),
+        );
         KalyoncuResults {
             formula1: FormulaResult {
                 score: (f1_score * 100.0).round() / 100.0,

@@ -1,0 +1,84 @@
+# Synthetic sentences (no real people) that pin what PII masking makes of the analyzer's
+# readings (review 2 PII2-03, PII2-04): role plurals before names, surnames and first names
+# that are common words, names in no list, and words that look like names but are not.
+# --- role plurals before names
+Bu davada Davacılar Ahmet Yılmaz ve Ayşe Kaya haklıdır.
+Tanıklar Hasan Kara ve Mehmet Demir dinlendi.
+Avukatlar Selin Arslan ile Can Öztürk duruşmaya katıldı.
+Kardeşler Emre Kaya ve Zeynep Kaya mirası paylaştı.
+(2) Başvurucular Barış Karahan ve Erhan Özel itiraz etti.
+Müdürler Ahmet Yılmaz ile görüştü.
+Sanıklar Murat Çelik ve Burak Şahin tutuklandı.
+Davalılar Fatma Aydın ve Elif Doğan vekilleri aracılığıyla cevap verdi.
+# --- surnames and first names that are words
+Davacı Ali Şeker 15.03.2021 tarihinde dava açtı.
+Tanık Hüseyin Güneş ifade verdi.
+Sanık Kemal Demir'in savunması alındı.
+Mahkeme, davalı Ayşe Kara'nın itirazını reddetti.
+Bilirkişi Orhan Ak raporunu sundu.
+Davacı Cemile Arslan, davalı Kenan Aslan'a karşı tazminat talep etti.
+Sanık Gül Yıldız beraat etti.
+Tanık Umut Deniz olay yerindeydi.
+Başvurucu Barış Bulut hakkında karar verildi.
+# --- names in no list
+Başvurucu: Korcan Pulatsü
+7 Nisan - Duncan James, İngiliz şarkıcı
+Davacı Kutlucan Toprak ile davalı Oğuzcan Er anlaştı.
+Sanık Durucan Ateş ve Toycan Uz hakkında kovuşturma yapıldı.
+Tanık Sağcan Erdem dinlendi.
+# --- not names
+Danıştay 5. Dairesi kararı bozdu.
+Yargıtay Hukuk Genel Kurulu kararı onadı.
+KURULLARCA alınan kararlar kesindir.
+Askerî Yargıtay Daireler Kurulu toplandı.
+Anayasa Mahkemesi başvuruyu kabul etti.
+Savaş Anıtı ziyaretçilere açıldı.
+Hava çok soğuk ve rüzgarlı.
+Kanun koyucu bu hükmü değiştirdi.
+# --- other categories next to names
+Ahmet Bey 0532 123 45 67 numaralı telefondan aradı.
+Av. Mehmet Öz, Ankara Barosu'na kayıtlıdır.
+Dr. Selim Koç hastayı muayene etti.
+Prof. Dr. Nurten Aksoy konferans verdi.
+# --- review 3 PII3-03: the same classes mid-sentence, in capitals, in lower case and with an
+# apostrophe, and the paths the analyzer moved
+Bu davada Tanıklar Ahmet Yılmaz ve Ayşe Kaya dinlendi.
+Bu davada Eşler Murat Çelik ve Elif Doğan boşandı.
+Mahkeme, Davacılar Hasan Kara ve Mehmet Demir hakkında karar verdi.
+Bu davada İzzettin Demir haklıdır.
+Sanık Saadettin Doğan'ın temyiz talebi reddedildi.
+Tanık Cindi Yılmaz dinlendi.
+Dün Deniz Pedersen ve Barış Boysan geldi.
+Raportör: Şebnem NEBİOĞLU ÖNER
+Üyeler: Fatma Burcu NACAR YÜCE
+Başvurucu: Mustafa BAL
+Hicabi DURSUN
+Hasan Tahsin GÖKCAN
+Başvurucu: Bahadır YALÇINÖZ
+Davacı Cumali Yılmaz geldi.
+Bu davada Davacı Kudret Demir itiraz etti.
+Bunu A. Yılmaz imzaladı.
+ahmet yılmaz dün geldi.
+DAVACI AHMET YILMAZ VEKİLİ AV. MEHMET ÖZ
+Davalı Hayat Sigorta A.Ş. vekili cevap verdi.
+Ahmet Yılmaz İnşaat Ltd. Şti. davalıdır.
+E-BA İNŞAAT TAAHHÜT TİCARET LTD. ŞTİ. BAŞVURUSU
+Kaya'nın ifadesi alındı.
+Güneş'e bakmayın.
+T.C. Anayasa Mahkemesi İkinci Bölüm
+# --- review 4: names after a role in a petition heading (DOWN4-01), a lower-case company word
+# (DOWN4-02), a word before an acronym and a heading letter (DOWN4-03), the second surname (DOWN4-09)
+DAVACI : GÜLSEN KOCABIYIK
+DAVALI : BERRİN ÖZKILIÇ
+BAŞVURUCU : ŞEBNEM NEBİOĞLU
+Davalı Seda'nın vekili geldi.
+DAVACI: UMUT ŞEKER
+Davalı Hayat Sigorta A.Ş. vekili duruşmaya geldi.
+Sanık Umut Kaya şirketi zarara uğratmıştır.
+Umut Demir İnşaat Ltd. davalıdır.
+Doğan Holding açıklama yaptı.
+Ancak AİHM bu kararı verdi.
+Ayrıca OHAL ilan edildi.
+A. Adil yargılanma hakkının ihlali
+Başvurucu Ahmet YILMAZ TARAFINDAN yapılan başvuru
+Hakim Mehmet KAYA KATİP Ayşe DEMİR

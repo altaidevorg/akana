@@ -100,6 +100,17 @@ fn starts_with_at(chars: &[char], at: usize, s: &str) -> bool {
     (at..).zip(s.chars()).all(|(k, c)| chars.get(k) == Some(&c))
 }
 
+/// Whether `chars` is exactly `s`.
+fn chars_eq(chars: &[char], s: &str) -> bool {
+    s.chars().eq(chars.iter().copied())
+}
+
+/// Whether `chars` ends with `s`.
+fn ends_with_chars(chars: &[char], s: &str) -> bool {
+    let n = s.chars().count();
+    chars.len() >= n && starts_with_at(chars, chars.len() - n, s)
+}
+
 /// `-DIk` participle / nominaliser: `D I ğ` + vowel (`geldiği`, `olduğunu`) or
 /// `D I k` + `çA / tAn / lAr` (`geldikçe`, `geldikten`, `yaptıkları`), with at least two
 /// characters of stem before it.
@@ -142,11 +153,10 @@ fn passive_tail_at(chars: &[char], at: usize) -> bool {
         return true;
     }
     for an in ["an", "en"] {
-        if starts_with_at(chars, at, an) {
-            let rest: String = chars[at + 2..].iter().collect();
-            if AN_TAILS.contains(&rest.as_str()) {
-                return true;
-            }
+        // The rest of the word is compared in place: collecting it at every `-An` made one
+        // long word quadratic.
+        if starts_with_at(chars, at, an) && AN_TAILS.iter().any(|t| chars_eq(&chars[at + 2..], t)) {
+            return true;
         }
     }
     false
@@ -188,11 +198,11 @@ pub(super) fn is_passive(chars: &[char]) -> bool {
             && matches!(chars[p - 1], 'a' | 'e')
             && chars[p - 2] == 'l'
             && passive_tail_at(chars, p + 1)
+            && !N_STEM_EXCEPTIONS
+                .iter()
+                .any(|s| ends_with_chars(&chars[..p], s))
         {
-            let stem: String = chars[..p].iter().collect();
-            if !N_STEM_EXCEPTIONS.iter().any(|s| stem.ends_with(s)) {
-                return true;
-            }
+            return true;
         }
     }
     false
@@ -213,6 +223,10 @@ pub(super) static ROOTS: LazyLock<AHashSet<String>> = LazyLock::new(|| {
     }
     set
 });
+
+/// Byte length of the longest entry of [`ROOTS`].
+static MAX_ROOT_LEN: LazyLock<usize> =
+    LazyLock::new(|| ROOTS.iter().map(String::len).max().unwrap_or(0));
 
 /// Verb stems of the Zemberek lexicon (column 2 of the `Verb` rows), lower-cased with
 /// Turkish rules. Only used to tell `-lAr` plurals from aorists (see [`is_aorist`]).
@@ -333,8 +347,11 @@ pub(super) fn is_known(word: &str) -> bool {
             k + len <= n && ok[k + len] && suffixes.contains(&word[bounds[k]..bounds[k + len]])
         });
     }
+    // `unsoften` changes the length by at most one byte, so a longer stem matches no root.
+    // Skipping those keeps long words linear: hashing every prefix was quadratic.
+    let max_stem = *MAX_ROOT_LEN + 1;
     (2..n).rev().any(|k| {
-        if !ok[k] {
+        if !ok[k] || bounds[k] > max_stem {
             return false;
         }
         let stem = &word[..bounds[k]];
@@ -661,14 +678,15 @@ pub(super) fn label_colon_counts(text: &str) -> (usize, usize) {
             .map(|s| s.start)
             .filter(|&s| line.is_char_boundary(s))
             .collect();
+        // Sentence starts and colons both increase, so one forward walk finds the start of
+        // each colon's sentence (searching all starts per colon was colons × sentences).
+        let mut after = 0; // number of sentence starts at or before the current colon
         let mut prev_unit = None;
         for i in found {
-            let unit = starts
-                .iter()
-                .copied()
-                .filter(|&s| s <= i)
-                .max()
-                .unwrap_or(0);
+            while after < starts.len() && starts[after] <= i {
+                after += 1;
+            }
+            let unit = if after == 0 { 0 } else { starts[after - 1] };
             if prev_unit == Some(unit) {
                 continue;
             }

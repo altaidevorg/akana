@@ -107,7 +107,12 @@ fn pieces(run: &str) -> Vec<(usize, &str)> {
             && bytes[i - 1] == b' '
             && bytes[i + 1] == b' '
         {
-            out.push((start, run[start..i - 1].trim_end()));
+            // The space before this separator can be the one the previous split consumed
+            // ("257. - (1)", "5 / / 6"): then the piece before it is empty, and slicing up to
+            // `i - 1` would end before `start`.
+            if i > start {
+                out.push((start, run[start..i - 1].trim_end()));
+            }
             start = i + 2;
             i += 2;
             continue;

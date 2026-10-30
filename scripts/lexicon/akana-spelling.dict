@@ -1,0 +1,80 @@
+## Words Zemberek lists that are misspellings or variant spellings of a dictionary word, in
+## Zemberek's dictionary syntax (review 3 LEX3-01, LEX3-02). Every common entry of the spelling
+## (of the given POS only, if the line gives one) takes the `Ref:` lemma and spelling and the
+## attributes the line adds; it keeps its own root and other attributes, so it still reads as
+## written. A misspelling is Nonstandard: its readings yield to any standard reading of the word,
+## and the spell checker does not take it for a TDK spelling. A variant TDK refers to its other
+## spelling only takes that lemma, so that both spellings are one search term.
+##
+## scripts/audit_spellings.py proposes candidates from non-tdk.dict; each line here was checked
+## by hand against TDK's Güncel Türkçe Sözlük and the corpus sample. Zemberek's own `Ref:`
+## entries (motorsiklet, suiistimal, tevhid, hükümet ...) need no line: the build honours them.
+
+## One letter wrong, added or left out (non-tdk.dict).
+akibet [A:Nonstandard; Ref:akıbet]
+aktetmek [A:Nonstandard; Ref:akdetmek]
+ambülans [A:Nonstandard; Ref:ambulans]
+anektot [A:Nonstandard; Ref:anekdot]
+armatur [A:Nonstandard; Ref:armatür]
+bisküvit [A:Nonstandard; Ref:bisküvi]
+cimnastik [A:Nonstandard; Ref:jimnastik]
+cizik [A:Nonstandard; Ref:çizik]
+çünki [P:Conj; A:Nonstandard; Ref:çünkü]
+degişim [A:Nonstandard; Ref:değişim]
+dinazor [A:Nonstandard; Ref:dinozor]
+distiribütör [A:Nonstandard; Ref:distribütör]
+döküman [A:Nonstandard; Ref:doküman]
+egzos [A:Nonstandard; Ref:egzoz]
+eşgal [A:Nonstandard; Ref:eşkâl]
+gardrop [A:Nonstandard; Ref:gardırop]
+gaspetmek [A:Nonstandard; Ref:gasbetmek]
+gayrımüslim [A:Nonstandard; Ref:gayrimüslim]
+geciştirmek [A:Nonstandard; Ref:geçiştirmek]
+ıskonto [A:Nonstandard; Ref:iskonto]
+inisyatif [A:Nonstandard; Ref:inisiyatif]
+insiyatif [A:Nonstandard; Ref:inisiyatif]
+inşaa [A:Nonstandard; Ref:inşa]
+kacak [A:Nonstandard; Ref:kaçak]
+kampus [A:Nonstandard; Ref:kampüs]
+klüp [A:Nonstandard; Ref:kulüp]
+küsür [A:Nonstandard; Ref:küsur]
+küsürat [A:Nonstandard; Ref:küsurat]
+mahsül [A:Nonstandard; Ref:mahsul]
+menacer [A:Nonstandard; Ref:menajer]
+meslekdaş [A:Nonstandard; Ref:meslektaş]
+pancur [A:Nonstandard; Ref:panjur]
+pedagok [A:Nonstandard; Ref:pedagog]
+regülator [A:Nonstandard; Ref:regülâtör]
+resül [A:Nonstandard; Ref:resul]
+şöför [A:Nonstandard; Ref:şoför]
+şüfa [A:Nonstandard; Ref:şufa]
+teba [A:Nonstandard; Ref:tebaa]
+traş [A:Nonstandard; Ref:tıraş]
+ültrason [A:Nonstandard; Ref:ultrason]
+ünvan [A:Nonstandard; Ref:unvan]
+## Spellings that take the suffix vowels of the TDK spelling, as akana-legal.dict's
+## InverseHarmony makes them (gayrımenkulün, orjinalinde, şumulüne).
+gayrımenkul [A:Nonstandard; Ref:gayrimenkul]
+orjinal [A:Nonstandard; Ref:orijinal]
+şumul [A:Nonstandard; Ref:şümul]
+## Spelling twins that split one word into two lemmas (review 3 LEX3-02): etüdü read etüt or
+## etüd, standı stant 0.52 or stand 0.37. mahkümiyet keeps its t (mahkümiyeti), as mahkumiyet.
+etüd [A:Nonstandard; Ref:etüt]
+mahkümiyet [A:Nonstandard, NoVoicing; Ref:mahkumiyet]
+mezkür [A:Nonstandard; Ref:mezkûr]
+periyod [A:Nonstandard; Ref:periyot]
+stand [A:Nonstandard; Ref:stant]
+topyekün [A:Nonstandard; Ref:topyekûn]
+## Variants TDK refers to the other spelling (rızkı read rızk 0.44 or rızık 0.44; kastı only
+## through kast, so a search for kasıt missed it).
+kast [Ref:kasıt]
+rızk [Ref:rızık]
+sarmısak [Ref:sarımsak]
+## Phrases written as one word (TDK: her şey, bir şey, hiçbir şey, her gün, hiç kimse, her
+## zaman); they keep their lemma.
+birşey [A:Nonstandard]
+hergün [A:Nonstandard]
+herşey [A:Nonstandard]
+herzaman [A:Nonstandard]
+hiçbirşey [A:Nonstandard]
+hiçkimse [A:Nonstandard]

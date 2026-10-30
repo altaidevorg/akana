@@ -11,9 +11,13 @@ pub use kalyoncu::KalyoncuAnalyzer;
 pub use legacy::LegacyReadability;
 pub use metrics::*;
 
+/// The analyzer [`analyze_readability`] uses, built on first use.
+static ANALYZER: std::sync::LazyLock<KalyoncuAnalyzer> =
+    std::sync::LazyLock::new(KalyoncuAnalyzer::new);
+
 /// High-level convenience function to analyze Turkish text readability.
 pub fn analyze_readability(text: &str) -> ReadabilityReport {
-    let analyzer = KalyoncuAnalyzer::new();
+    let analyzer = &*ANALYZER;
     let stats = analyzer.calculate_statistics(text);
     let kalyoncu = analyzer.evaluate(&stats);
     let legacy = LegacyReadability::evaluate(&stats);

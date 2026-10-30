@@ -8,7 +8,8 @@ pub struct LegacyReadability;
 /// `198.825 − 40.175 · syllables per word − 2.610 · words per sentence`.
 ///
 /// The style auditor's AI-text detector was trained on this behaviour: changing it shifts the
-/// detector's inputs and fails `style::ai_detector::tests::outputs_match_training_reference`.
+/// detector's inputs and fails `style::ai_detector::tests::inputs_match_drift_canary` (and
+/// `outputs_match_training_reference` when its sample shows it).
 pub(crate) fn atesman_score(syllables_per_word: f64, words_per_sentence: f64) -> f64 {
     198.825 - (40.175 * syllables_per_word) - (2.610 * words_per_sentence)
 }
@@ -21,7 +22,8 @@ impl LegacyReadability {
         let poly_ratio = stats.polysyllabic_word_ratio;
 
         // 1. Ateşman (1997)
-        let atesman_score = atesman_score(osu, ocu);
+        // Reported on the formula's 0-100 scale: an 8,000-word sentence gave -20,761.
+        let atesman_score = atesman_score(osu, ocu).clamp(0.0, 100.0);
         let atesman_grade = Self::grade_atesman(atesman_score);
 
         // 2. Çetinkaya-Uzun (2010)
@@ -34,6 +36,18 @@ impl LegacyReadability {
         let bezirci_score = (ocu * poly_ratio).sqrt();
         let bezirci_grade = Self::grade_bezirci(bezirci_score);
 
+        let no_text = stats.total_words == 0;
+        let grade = |g: &'static str| if no_text { super::metrics::NO_TEXT } else { g };
+        let (atesman_grade, cetinkaya_grade, bezirci_grade) = (
+            grade(atesman_grade),
+            grade(cetinkaya_grade),
+            grade(bezirci_grade),
+        );
+        let (atesman_score, cetinkaya_score, bezirci_score) = if no_text {
+            (0.0, 0.0, 0.0)
+        } else {
+            (atesman_score, cetinkaya_score, bezirci_score)
+        };
         LegacyResults {
             atesman: FormulaResult {
                 score: (atesman_score * 100.0).round() / 100.0,

@@ -42,7 +42,8 @@ impl PrimaryPos {
 
     /// Parses a lexicon POS column (case-insensitive). Accepts Zemberek's `Ques` for `Q`.
     pub fn from_name(name: &str) -> Option<Self> {
-        Some(match name.to_lowercase().as_str() {
+        let mut buf = [0u8; NAME_BUF];
+        Some(match ascii_lower(name, &mut buf)? {
             "noun" => PrimaryPos::Noun,
             "verb" => PrimaryPos::Verb,
             "adj" => PrimaryPos::Adj,
@@ -104,7 +105,8 @@ impl SecondaryPos {
     /// Parses a lexicon secondary-POS token (case-insensitive): the short names of
     /// [`SecondaryPos::as_str`] plus the long forms the lexicon files use (`ProperNoun`).
     pub fn from_name(name: &str) -> Option<Self> {
-        Some(match name.to_lowercase().as_str() {
+        let mut buf = [0u8; NAME_BUF];
+        Some(match ascii_lower(name, &mut buf)? {
             "prop" | "proper" | "propernoun" => SecondaryPos::ProperNoun,
             "time" => SecondaryPos::Time,
             "ord" | "ordinal" => SecondaryPos::Ordinal,
@@ -122,6 +124,22 @@ impl SecondaryPos {
             _ => return None,
         })
     }
+}
+
+/// Room for the longest name the lexicon parsers know (progressivevoweldrop).
+pub(crate) const NAME_BUF: usize = 24;
+
+/// `name` lower-cased into `buf`, without allocating: the names the lexicon parsers know are
+/// short ASCII, and anything else is no name of theirs (`None`). The lexicon has several such
+/// names on each of its 66k lines.
+pub(crate) fn ascii_lower<'a>(name: &str, buf: &'a mut [u8; NAME_BUF]) -> Option<&'a str> {
+    if name.len() > NAME_BUF || !name.is_ascii() {
+        return None;
+    }
+    let lower = &mut buf[..name.len()];
+    lower.copy_from_slice(name.as_bytes());
+    lower.make_ascii_lowercase();
+    std::str::from_utf8(lower).ok()
 }
 
 bitflags::bitflags! {
@@ -143,7 +161,55 @@ bitflags::bitflags! {
         const VOWEL_MUTATION = 1 << 5;
         /// Compound noun with 3rd person possessive ending in base form (e.g. atkuyruğu, zeytinyağı)
         const COMPOUND_P3SG = 1 << 6;
-        /// Plural form by default
+        /// Plural form by default (Zemberek's ImplicitPlural: hayvanat, annemler)
         const PLURAL = 1 << 7;
+        /// A root ending in a stop consonant that keeps it before a vowel (saat-i, hukuk-u)
+        const NO_VOICING = 1 << 8;
+        /// A verb whose aorist is -Ar (yap-ar, et-er); most monosyllables
+        const AORIST_A = 1 << 9;
+        /// A verb whose aorist is -Ir (gel-ir, oku-r); polysyllables and 13 monosyllables
+        const AORIST_I = 1 << 10;
+        /// A vowel-final verb that loses its vowel before -Iyor (bekle -> bekl-iyor)
+        const PROGRESSIVE_VOWEL_DROP = 1 << 11;
+        /// A verb whose passive is -In / -InIl (oku-n, bil-in) rather than -Il
+        const PASSIVE_IN = 1 << 12;
+        /// A verb whose causative is -t (oku-t, getir-t) rather than -DIr
+        const CAUSATIVE_T = 1 << 13;
+        /// A verb that is reflexive in itself (kaşınmak)
+        const REFLEXIVE = 1 << 14;
+        /// A verb that is reciprocal in itself (boğuşmak)
+        const RECIPROCAL = 1 << 15;
+        /// A verb that ends like a reciprocal but is not one
+        const NON_RECIPROCAL = 1 << 16;
+        /// A plural that carries a 1st-person possessive (annemler)
+        const IMPLICIT_P1SG = 1 << 17;
+        /// A plural that carries a 2nd-person possessive (annenler)
+        const IMPLICIT_P2SG = 1 << 18;
+        /// A noun that is dative in itself (içeri, dışarı)
+        const IMPLICIT_DATIVE = 1 << 19;
+        /// A family noun that takes no possessive (Zemberek's FamilyMember)
+        const FAMILY_MEMBER = 1 << 20;
+        /// A word that takes no suffixes
+        const NO_SUFFIX = 1 << 21;
+        /// The stem of a CompoundP3sg noun without its possessive (cumhurbaşkan- of
+        /// cumhurbaşkanı), generated at load time; it cannot stand alone
+        const COMPOUND_P3SG_ROOT = 1 << 22;
+        /// A verb listed for a meaning of its own that also reads as a voice derivation of
+        /// another verb (katıl "join", not kat-ıl "be added"; kaynaklan "arise from", not
+        /// kaynakla-n "be welded"): its reading outranks the derivation (akana's attribute)
+        const LEXICALIZED = 1 << 23;
+        /// A verb listed although its forms are mostly the voice derivation of another verb
+        /// (alın: al-ın "be taken" far more than alın "take offence"; dinlen: dinle-n "be
+        /// heard"): the derivation outranks it (akana's attribute)
+        const NOT_LEXICALIZED = 1 << 24;
+        /// An item rare enough that any other reading of a word outranks it: its forms
+        /// coincide with a frequent word's (bulamak "smear": bula-ma-dığı beside bul-ama-dığı
+        /// "that he could not find"), which the corpus counts cannot tell apart (akana's
+        /// attribute)
+        const RARE = 1 << 25;
+        /// A second stem of an item with the alternation TDK does not write, which usage
+        /// does (temerrüte for temerrüde, gaspı for gasbı): it keeps the item's lemma, yields
+        /// to a standard reading, and its readings are `nonstandard` (akana's attribute)
+        const NONSTANDARD = 1 << 26;
     }
 }

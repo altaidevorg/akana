@@ -2,6 +2,10 @@
 Comprehensive Python unit test suite for Akana.
 """
 
+import json
+
+import pytest
+
 import akana
 
 
@@ -54,6 +58,28 @@ def test_morphology_analysis():
     top = parses[0]
     assert top["root"] == "kitap"
     assert "P1sg" in top["morphemes"]
+    # Zemberek's format, with every morpheme and its surface, next to akana's tags.
+    assert top["analysis"] == "[kitap:Noun] kitab:Noun+A3sg+ım:P1sg"
+    assert top["pos"] == "Noun"
+
+    # The lemma as the dictionary spells it, beside the folded key sparse terms use.
+    name = morph.analyze("Ankara'dan")[0]
+    assert (name["lemma"], name["display_lemma"]) == ("ankara", "Ankara")
+    assert name["analysis"] == "[Ankara:Noun,Prop] ankara:Noun+A3sg+dan:Abl"
+    paper = morph.analyze("kâğıdı")[0]
+    assert (paper["lemma"], paper["display_lemma"]) == ("kağıt", "kâğıt")
+    assert paper["nonstandard"] is False
+
+    # Old orthography reads with the modern lemma, marked as no standard spelling.
+    old = morph.analyze("karariyle")[0]
+    assert (old["lemma"], old["nonstandard"]) == ("karar", True)
+
+    # A participle reads as a noun ("that it is") and as an adjective ("which it is"): the
+    # same akana tags, told apart by pos and the Zemberek analysis.
+    olduğu = [p for p in morph.analyze("olduğu") if p["formatted"] == "[olmak:Verb] ol:Verb+PastPart+P3sg"]
+    assert [p["pos"] for p in olduğu] == ["Noun", "Adj"]
+    chosen = akana.Disambiguator().disambiguate(["Mahkemenin", "verdiği", "karar", "kesinleşti", "."])
+    assert chosen[1]["pos"] == "Adj"
 
     # Noun with vowel drop
     parses_burnum = morph.analyze("burnum")
@@ -88,10 +114,13 @@ def test_compound_decomposer():
     assert analyses[0]["part1"] == "deniz"
     assert analyses[0]["part2"] == "altı"
 
-    analyses2 = akana.decompose_compound("akbaba")
+    analyses2 = akana.decompose_compound("başbakanlar")
     assert len(analyses2) > 0
-    assert analyses2[0]["part1"] == "ak"
-    assert analyses2[0]["part2"] == "baba"
+    assert analyses2[0]["part1"] == "baş"
+    assert analyses2[0]["part2"] == "bakanlar"
+
+    # Two words that merely happen to make a third are no compound (mah + keme).
+    assert akana.decompose_compound("mahkeme") == []
 
 
 def test_dynamic_dictionary_loading():
@@ -143,6 +172,7 @@ def test_disambiguation():
     assert parses[1]["primary_pos"] == "Adj"
     assert parses[2]["primary_pos"] == "Noun"
     assert parses[3]["primary_pos"] == "Verb"
+    assert parses[3]["analysis"] == "[okumak:Verb] oku:Verb+du:Past+A3sg"
 
 
 def test_dependency_parser():
@@ -164,6 +194,7 @@ def test_document_pipeline():
     assert "Ak" in doc.sentences[0].tokens
     assert "kitap" in doc.sentences[1].tokens
     assert len(doc.sentences[0].parses) > 0
+    assert all(p["analysis"].startswith("[") for p in doc.sentences[1].parses)
 
 
 def test_readability_analysis():
@@ -262,12 +293,34 @@ def test_syntactic_morphology():
     assert parse.inflectional_groups[1].pos == "NOMP"
     assert parse.inflectional_groups[1].derivation == "PastNom"
     assert parse.inflectional_groups[1].features.get("Case") == "Loc"
+    # UD features: the possessor is Number[psor] and Person[psor].
+    assert parse.inflectional_groups[1].features == {
+        "Case": "Loc",
+        "Number": "Sing",
+        "Number[psor]": "Plur",
+        "Person": "3",
+        "Person[psor]": "1",
+        "VerbForm": "Vnoun",
+    }
 
     # Cross-categorization check (güzel as ADJ and ADV)
     guzel_parses = akana.syntactic_analyze("güzel")
     pos_set = {p.root_pos for p in guzel_parses}
     assert "ADJ" in pos_set
     assert "ADV" in pos_set
+
+    # Voice, the copula and converbs open groups of their own.
+    derivations = {
+        word: [
+            [ig.derivation for ig in p.inflectional_groups]
+            for p in akana.syntactic_analyze(word)
+        ]
+        for word in ["yaptırıldı", "evdeyim", "gelince"]
+    }
+    assert [None, "Caus", "Pass"] in derivations["yaptırıldı"]
+    assert [None, "Cop"] in derivations["evdeyim"]
+    assert [None, "When"] in derivations["gelince"]
+    assert akana.syntactic_analyze("xqzzt") == []
 
     natural_human_text = (
         "Dün sabah erkenden uyandım. Hava çok soğuktu. "
@@ -318,3 +371,80 @@ def test_embeddings():
     assert emb.dimension == 256
     assert len(emb.embed("test")) == 256
     assert emb.similarity("kedi", "kedi") > 0.99
+
+
+def test_encoder_info_and_check():
+    info = akana.encoder_info()
+    assert info["sparse_spec"].split(".")[0] == "1"
+    assert info["hybrid_layout"] == 1
+    assert info["akana_version"] == akana.__version__
+    for key in ["fingerprint", "sparse_fingerprint", "dense_fingerprint", "analysis_fingerprint"]:
+        assert len(info[key]) == 32
+    assert set(info["resources"]) >= {"tokenizer.json", "turboquant_weights.npz", "analysis"}
+    kinds = ["sparse", "dense", "hybrid"]
+    check = lambda record: [akana.check_encoder(record, kind) for kind in kinds]  # noqa: E731
+    other = "0123456789abcdef" * 2
+    assert check(info) == ["identical"] * 3
+    assert akana.check_encoder(info) == "identical"
+    moved = {**info, "fingerprint": other, "sparse_fingerprint": other}
+    assert check(moved) == ["compatible", "identical", "compatible"]
+    # Review 3 MSTAB3-01: another dense model is a rebuild for dense and hybrid indexes only.
+    assert check({**info, "dense_model": "other-model-512"}) == ["identical", "rebuild", "rebuild"]
+    assert check({**info, "sparse_spec": "0.9"}) == ["rebuild", "identical", "rebuild"]
+    # Review 3 MSTAB3-11: malformed records need a rebuild and raise nothing.
+    for record in [{}, None, "1.0", {**info, "hybrid_layout": None}, {**info, "hybrid_layout": -1},
+                   {**info, "hybrid_layout": 70000}, {**info, "sparse_spec": 1.0},
+                   {**info, "hybrid_layout": float("nan")}, {**info, "fingerprint": ""}]:
+        assert akana.check_encoder(record) == "rebuild", record
+    with pytest.raises(ValueError):
+        akana.check_encoder(info, "bm25")
+    # Review 4 BIND4-04 / CONTRACT4-06: what an index stores is read as it comes back.
+    np = pytest.importorskip("numpy")
+    assert check({**info, "hybrid_layout": np.int64(1)}) == ["identical"] * 3
+    assert check({**info, "note": float("nan"), "built": "2026-10-28"}) == ["identical"] * 3
+    assert check(json.dumps(info)) == ["identical"] * 3
+    assert check({**info, "fingerprint": info["fingerprint"].upper()}) == ["identical"] * 3
+    deep = {}
+    for _ in range(5000):
+        deep = {"x": deep}
+    assert akana.check_encoder({**info, "resources": deep}) == "rebuild"
+    assert akana.check_encoder({**info, "sparse_spec": "+1.0"}) == "rebuild"
+
+
+def test_numbers_currency_and_vectors_at_the_edges():
+    """Review 3 BIND3-08: i64::MIN, amounts without words, vectors of two lengths."""
+    assert akana.number_to_words(-(2**63)).startswith("eksi dokuz kentilyon")
+    assert akana.currency_to_words(2.999) == "üç lira"
+    assert akana.currency_to_words(-1.5) == "eksi bir lira elli kuruş"
+    for amount in (float("nan"), float("inf"), 1e300):
+        with pytest.raises(ValueError):
+            akana.currency_to_words(amount)
+    with pytest.raises(ValueError):
+        akana.similarity_vectors([1.0, 0.0], [1.0, 0.0, 0.0])
+    assert akana.similarity_vectors([1.0, 0.0], [1.0, 0.0]) == pytest.approx(1.0)
+
+
+def test_every_public_callable_has_a_docstring():
+    """Review 4 BIND4-07: 119 of 138 callables had none."""
+    import inspect
+
+    import akana._core as core
+
+    missing = []
+    for name in dir(core):
+        if name.startswith("_"):
+            continue
+        obj = getattr(core, name)
+        if inspect.isclass(obj):
+            if not (obj.__doc__ or "").strip():
+                missing.append(name)
+            for member in vars(obj):
+                if member.startswith("_"):
+                    continue
+                doc = getattr(getattr(obj, member), "__doc__", None)
+                if not (doc or "").strip():
+                    missing.append(f"{name}.{member}")
+        elif callable(obj) and not (obj.__doc__ or "").strip():
+            missing.append(name)
+    assert not missing, missing
+

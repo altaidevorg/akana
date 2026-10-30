@@ -6,7 +6,7 @@
 use super::morphology::{detect_suffix_case, harmonize_suffix};
 use super::validators::{validate_iban, validate_tckn};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// Masking / Pseudonymization mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,18 +32,20 @@ pub struct VaultEntry {
 }
 
 /// Bidirectional Session Vault holding mappings for prompt anonymization and response restoration.
+/// Its maps are ordered, so that the same session serialises to the same JSON on every run
+/// (review 3 PII3-07).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PiiVault {
     /// Maps placeholder (e.g. `"{{NAME_1}}"`) to VaultEntry
-    pub placeholder_to_entry: HashMap<String, VaultEntry>,
+    pub placeholder_to_entry: BTreeMap<String, VaultEntry>,
     /// Maps original text to placeholder (for consistent re-occurrence replacement within a session)
-    pub original_to_placeholder: HashMap<String, String>,
+    pub original_to_placeholder: BTreeMap<String, String>,
     /// Counts per entity label to produce sequential IDs (`NAME_1`, `NAME_2`, etc.)
-    label_counters: HashMap<String, usize>,
+    label_counters: BTreeMap<String, usize>,
     /// Tags (`[AD]`) issued for more than one original: restoring them would pick one of the
     /// originals for every occurrence, so `restore` leaves them as they are.
     #[serde(default)]
-    ambiguous: HashSet<String>,
+    ambiguous: BTreeSet<String>,
 }
 
 impl PiiVault {
@@ -175,20 +177,8 @@ impl PiiVault {
     /// placeholder's text (or a surrogate's) cannot pull a second value in. Placeholders with an
     /// empty key are ignored.
     pub fn restore(&self, llm_response: &str) -> String {
-        // Which keys occur in the response: a key of a placeholder or surrogate shape by one
-        // scan of the response (searching it once per key was quadratic in long sessions),
-        // any other key (tags, keys from `from_mapping`) by searching for it.
         let shapes = issued_shapes_in(llm_response);
-        let mut keys: Vec<&str> = self
-            .placeholder_to_entry
-            .keys()
-            .map(String::as_str)
-            .filter(|k| {
-                !k.is_empty()
-                    && (shapes.contains(*k)
-                        || (!issued_shapes_in(k).contains(*k) && llm_response.contains(*k)))
-            })
-            .collect();
+        let mut keys = self.keys_in(llm_response, &shapes);
         if keys.is_empty() {
             return llm_response.to_string();
         }
@@ -251,6 +241,37 @@ impl PiiVault {
             .into_owned()
     }
 
+    /// The keys of this vault that occur in `text`, `shapes` being `issued_shapes_in(text)`: a
+    /// key of a placeholder or surrogate shape by one scan of the text (searching it once per
+    /// key was quadratic in long sessions), any other key (tags, keys from `from_mapping`) by
+    /// searching for it.
+    fn keys_in<'a>(&'a self, text: &str, shapes: &HashSet<String>) -> Vec<&'a str> {
+        self.placeholder_to_entry
+            .keys()
+            .map(String::as_str)
+            .filter(|k| {
+                !k.is_empty() && (shapes.contains(*k) || (!is_issued_shape(k) && text.contains(*k)))
+            })
+            .collect()
+    }
+
+    /// Byte spans of every occurrence in `text` of a key this vault restores (`shapes` being
+    /// `issued_shapes_in(text)`), so that masking can keep such text as it is: an `[EMAIL_1]`
+    /// or a surrogate date issued in an earlier turn, if left in a later turn's masked text,
+    /// would come back from `restore` as the real e-mail or date. Occurrences of different
+    /// keys can overlap.
+    pub(crate) fn restorable_spans(
+        &self,
+        text: &str,
+        shapes: &HashSet<String>,
+    ) -> Vec<(usize, usize)> {
+        let mut spans = Vec::new();
+        for key in self.keys_in(text, shapes) {
+            spans.extend(text.match_indices(key).map(|(i, k)| (i, i + k.len())));
+        }
+        spans
+    }
+
     /// Returns a direct key-value mapping from placeholder/surrogate to the original sensitive text.
     pub fn get_mapping(&self) -> HashMap<String, String> {
         let mut map = HashMap::with_capacity(self.placeholder_to_entry.len());
@@ -262,13 +283,20 @@ impl PiiVault {
 
     /// Returns the detailed mapping containing full VaultEntry metadata.
     pub fn get_detailed_mapping(&self) -> HashMap<String, VaultEntry> {
-        self.placeholder_to_entry.clone()
+        self.placeholder_to_entry
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
     }
 
     /// Creates a PiiVault from a simple mapping { placeholder_or_surrogate: original_text }.
     pub fn from_mapping(mapping: &HashMap<String, String>) -> Self {
         let mut vault = Self::new();
-        for (placeholder, original) in mapping {
+        // In placeholder order, so that an original two placeholders share maps to the same
+        // one on every run.
+        let mut pairs: Vec<(&String, &String)> = mapping.iter().collect();
+        pairs.sort();
+        for (placeholder, original) in pairs {
             vault.placeholder_to_entry.insert(
                 placeholder.clone(),
                 VaultEntry {
@@ -328,6 +356,21 @@ lazy_static::lazy_static! {
     // ASCII digits only: the windows are cut by bytes, and the original text (not the folded
     // one) can hold full-width digits.
     static ref DIGIT_RUN: regex::Regex = regex::Regex::new(r"(?:TR)?[0-9]{11,64}").unwrap();
+    /// [`ISSUED_SHAPE`] as the whole string.
+    static ref WHOLE_ISSUED_SHAPE: regex::Regex =
+        regex::Regex::new(&format!("^(?:{})$", ISSUED_SHAPE.as_str())).unwrap();
+}
+
+/// Whether `key` is itself one of the strings [`issued_shapes_in`] finds, without scanning it:
+/// the vault asked that of every key on every mask, which grew with the session (review 4
+/// BIND4-06).
+fn is_issued_shape(key: &str) -> bool {
+    let digits = |d: &str| d.bytes().all(|b| b.is_ascii_digit());
+    WHOLE_ISSUED_SHAPE.is_match(key)
+        || (key.len() == 11 && digits(key))
+        || key
+            .strip_prefix("TR")
+            .is_some_and(|d| d.len() == 24 && digits(d))
 }
 
 /// Every string in `text` that a placeholder or a surrogate could be: placeholders ({{AD_1}}),
@@ -516,6 +559,27 @@ mod tests {
         let restored = vault.restore(llm_resp);
 
         assert_eq!(restored, "Murat'a başarıyla iletildi.");
+    }
+
+    #[test]
+    fn a_vault_serialises_in_one_order() {
+        // Review 3 PII3-07: the same session gave a different JSON in every process.
+        let session = || {
+            let mut vault = PiiVault::new();
+            for (text, label) in [
+                ("Zeynep Kaya", "NAME"),
+                ("Ahmet Yılmaz", "NAME"),
+                ("0532 123 45 67", "PHONE"),
+                ("Mehmet Demir", "NAME"),
+            ] {
+                vault.register(text, label, text, None, PiiMode::Placeholder);
+            }
+            serde_json::to_string(&vault).unwrap()
+        };
+        let json = session();
+        assert_eq!(json, session());
+        let at = |key: &str| json.find(key).unwrap();
+        assert!(at("{{NAME_1}}") < at("{{NAME_2}}") && at("{{NAME_2}}") < at("{{PHONE_1}}"));
     }
 
     #[test]

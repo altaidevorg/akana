@@ -1,0 +1,283 @@
+## General entries akana adds to Zemberek's dictionaries (previously built into dictionary.rs).
+istemci
+Akana [P:Noun,Prop]
+
+## Letter names (Zemberek's plain nouns for F, G, J, P and Ş) take no suffix written out: a
+## letter's suffixes follow the letter and an apostrophe (G'ye), as its abbreviation entry reads.
+## Without this geler, peler and the like read as plurals of the letter.
+fe [A:NoSuffix]
+ge [A:NoSuffix]
+je [A:NoSuffix]
+pe [A:NoSuffix]
+şe [A:NoSuffix]
+
+## Verbs that also read as a voice derivation of another verb (katıl-dı / kat-ıl-dı, alın-an /
+## al-ın-an). Both readings are in every word that has one, so corpus counts cannot rank them;
+## these entries do. Lexicalized: the verb's own meaning is the usual one (katılmak "join", not
+## kat-ıl "be added"; kaynaklanmak "arise from", not kaynakla-n "be welded"). NotLexicalized:
+## its forms are mostly the plain derivation (alınan "taken", sürülen "put forward", dinlen-
+## "be heard" in court text). Chosen from the contexts in the court sample; verbs whose uses
+## are mixed (ayrılmak, çekilmek, taşınmak, yenmek, yayılmak, dinlenmek) are left to the prior.
+anlatmak [A:Lexicalized]
+aksatmak [A:Lexicalized]
+arttırmak [A:Lexicalized]
+ayaklanmak [A:Lexicalized]
+azaltmak [A:Lexicalized]
+bastırmak [A:Lexicalized]
+belirtmek [A:Lexicalized]
+bildirmek [A:Lexicalized]
+bindirmek [A:Lexicalized]
+boşanmak [A:Lexicalized]
+bulundurmak [A:Lexicalized]
+bulunmak [A:Lexicalized]
+büyütmek [A:Lexicalized]
+caydırmak [A:Lexicalized]
+çıkartmak [A:Lexicalized]
+dayanmak [A:Lexicalized]
+değil [P:Verb; A:Lexicalized]
+değerlendirmek [A:Lexicalized]
+denetmek [A:Lexicalized]
+direnmek [A:Lexicalized]
+dokunmak [A:Lexicalized]
+dolandırmak [A:Lexicalized]
+dolanmak [A:Lexicalized]
+donatmak [A:Lexicalized]
+durdurmak [A:Lexicalized]
+düşündürmek [A:Lexicalized]
+düzeltmek [A:Lexicalized]
+geliştirmek [A:Lexicalized]
+gözetmek [A:Lexicalized]
+ıslanmak [A:Lexicalized]
+ilgilenmek [A:Lexicalized]
+indirmek [A:Lexicalized]
+kaldırmak [A:Lexicalized]
+kandırmak [A:Lexicalized]
+kapanmak [A:Lexicalized]
+kapatmak [A:Lexicalized]
+kapılmak [A:Lexicalized]
+karşılaştırmak [A:Lexicalized]
+katılmak [A:Lexicalized]
+katlanmak [A:Lexicalized]
+kaynaklanmak [A:Lexicalized]
+kızartmak [A:Lexicalized]
+nitelendirmek [A:Lexicalized]
+oynatmak [A:Lexicalized]
+öldürmek [A:Lexicalized]
+özenmek [A:Lexicalized]
+saldırmak [A:Lexicalized]
+savuşturmak [A:Lexicalized]
+sızdırmak [A:Lexicalized]
+soğutmak [A:Lexicalized]
+sonlanmak [A:Lexicalized]
+sonuçlandırmak [A:Lexicalized]
+sonuçlanmak [A:Lexicalized]
+soruşturmak [A:Lexicalized]
+söndürmek [A:Lexicalized]
+susturmak [A:Lexicalized]
+sürdürmek [A:Lexicalized]
+uğratmak [A:Lexicalized]
+uydurmak [A:Lexicalized]
+uzanmak [A:Lexicalized]
+uzatmak [A:Lexicalized]
+üretmek [A:Lexicalized]
+yanılmak [A:Lexicalized]
+yapılandırmak [A:Lexicalized]
+yaratmak [A:Lexicalized]
+yıpranmak [A:Lexicalized]
+yöneltmek [A:Lexicalized]
+yürütmek [A:Lexicalized]
+aklanmak [A:NotLexicalized]
+alıkonulmak [A:NotLexicalized]
+alınmak [A:NotLexicalized]
+aranmak [A:NotLexicalized]
+atılmak [A:NotLexicalized]
+azlolunmak [A:NotLexicalized]
+bozulmak [A:NotLexicalized]
+çağrılmak [A:NotLexicalized]
+çarpılmak [A:NotLexicalized]
+durulmak [A:NotLexicalized]
+elenmek [A:NotLexicalized]
+gördürmek [A:NotLexicalized]
+kalınmak [A:NotLexicalized]
+nitelenmek [A:NotLexicalized]
+saklanmak [A:NotLexicalized]
+salınmak [A:NotLexicalized]
+sarsılmak [A:NotLexicalized]
+savrulmak [A:NotLexicalized]
+seçilmek [A:NotLexicalized]
+silinmek [A:NotLexicalized]
+sokulmak [A:NotLexicalized]
+söylenmek [A:NotLexicalized]
+sökülmek [A:NotLexicalized]
+sürülmek [A:NotLexicalized]
+takılmak [A:NotLexicalized]
+taranmak [A:Reflexive, NotLexicalized]
+tutulmak [A:NotLexicalized]
+vurulmak [A:NotLexicalized]
+
+## Rare verbs whose forms coincide with a frequent word's (bula-ma-dığı / bul-ama-dığı "that he
+## could not find", il-iş / iliş, ay-an / ayan): any other reading of the word outranks them.
+aymak [A:Rare]
+bulamak [A:Rare]
+ilmek [A:Rare]
+
+## Compounds whose Roots: Zemberek misspells or truncates (review 2, MLEX2-08); the build now
+## checks that a compound's parts spell it. Words it marks CompoundP3sg that have no possessive
+## of their own (acemlale, üstderi) are plain nouns, and ortaparmak "middle finger" is no verb.
+tavuskuyruğu [A:CompoundP3sg; Roots:tavus-kuyruk]
+bacabaşı [A:CompoundP3sg; Roots:baca-baş]
+güveyfeneri [A:CompoundP3sg; Roots:güvey-fener]
+hasekiküpesi [A:CompoundP3sg; Roots:haseki-küpe]
+havvaanaeli [A:CompoundP3sg; Roots:havvaana-el]
+borazancıbaşı [A:CompoundP3sg; Roots:borazancı-baş]
+aşçıbaşı [A:CompoundP3sg; Roots:aşçı-baş]
+düşkırıklığı [A:CompoundP3sg; Roots:düş-kırıklık]
+elbirliği [A:CompoundP3sg; Roots:el-birlik]
+elyazması [A:CompoundP3sg; Roots:el-yazma]
+elyazması [P:Adj; A:CompoundP3sg; Roots:el-yazma]
+güvenoylaması [A:CompoundP3sg; Roots:güven-oylama]
+sözvarlığı [A:CompoundP3sg; Roots:söz-varlık]
+yabanasması [A:CompoundP3sg; Roots:yaban-asma]
+acemlale
+acıçiğdem
+acıyonca
+üstderi
+ortaparmak [P:Noun]
+
+## General vocabulary the dictionaries lack (plan step E6, review 2 MLEX2-07): -sI adjectives,
+## and words of the last years with the pronunciation their suffixes follow.
+çocuksu [P:Adj]
+kadınsı [P:Adj]
+erkeksi [P:Adj]
+insansı [P:Adj]
+koronavirüs
+kovid
+COVID [P:Abbrv; Pr:kovid; Ref:kovid]
+PCR [P:Abbrv]
+NFT [P:Abbrv]
+SİHA [P:Abbrv; Pr:siha]
+blokzincir
+gigabayt
+dron
+fintek
+özçekim
+karekod
+emoji
+otogaz
+## Common spellings of words the dictionary writes otherwise (takoğraf 15 sample tokens against
+## takograf 3); the lemma stays the dictionary's.
+takoğraf [Ref:takograf]
+asteroid [Ref:asteroit]
+
+## Clothing sizes, which are no Roman numerals (XL'i as iksel beside Zemberek's ikslarç); TL
+## read as lira as well as tele (TL'nın 53 sample tokens, TL'nin 3,831). Plan step D4.
+XS [P:Abbrv]
+XL [P:Abbrv; Pr:iksel; Index:1]
+XXL [P:Abbrv]
+TL [P:Abbrv; Pr:lira; Index:1]
+
+## Abbreviations written in lower case (bkz 4,100 training tokens against 140 capitalised, md
+## 2,269, vb 651, vs 371, cm 277, kg 217, km 185, mm 87): their dictionary spelling, which a word
+## written in lower case is checked against (plan step D7; the readings of bü, si or la, junk
+## abbreviations in capitals, do not count for one). md and mad read as madde.
+bkz [P:Abbrv; Pr:bekeze]
+md [P:Abbrv; Pr:madde; Ref:madde]
+mad [P:Abbrv; Pr:madde; Ref:madde]
+vb [P:Abbrv; Pr:vebe]
+vs [P:Abbrv; Pr:vese]
+sy [P:Abbrv; Pr:seye]
+cm [P:Abbrv; Pr:ceme]
+mm [P:Abbrv; Pr:meme]
+km [P:Abbrv; Pr:keme]
+kg [P:Abbrv; Pr:kege]
+kg [P:Abbrv; Pr:kilogram; Index:1]
+mg [P:Abbrv; Pr:mege]
+ml [P:Abbrv; Pr:mele]
+lt [P:Abbrv; Pr:lete]
+sn [P:Abbrv; Pr:sene]
+kr [P:Abbrv; Pr:kere]
+
+## Lexicalised derivations (plan step C6, review 2 RANK2-04). A derivation that spells a word the
+## dictionary lists yields to it (the analyzer's lexicalised_derivations), so that the word's lemma
+## no longer turns with every re-estimation of the prior: başvurucu was başvur-ucu or başvuru-cu
+## (0.36 / 0.30 / 0.30), uyuşmazlık uyuş-mazlık or uyuş-maz-lık, yüklenici yüklen-ici twice.
+başvurucu [P:Noun]
+uyuşmazlık [P:Noun]
+yüklenici [P:Noun]
+## Verbal nouns in -mA the dictionary lists as nouns: Lexicalized where the noun is the word meant
+## (görüşme "meeting", açıklama "statement", çarpma "collision"; açıklaması read 0.47 / 0.47),
+## Rare where it is another word (dolma "stuffed dish": sürenin dolması is dol-ma).
+görüşme [P:Noun; A:Lexicalized]
+açıklama [P:Noun; A:Lexicalized]
+çarpma [P:Noun; A:Lexicalized]
+dolma [P:Noun; A:Rare]
+## Causatives of -lAn and -lAş verbs that are words of their own (görevlendirmek "assign", not
+## görevlen-dir "make take up a post"), which Zemberek lacks.
+görevlendirmek [A:Lexicalized]
+birleştirmek [A:Lexicalized]
+bilgilendirmek [A:Lexicalized]
+
+## dolayı as a noun, for its possessive forms (dolayısı ile, dolayısıyla): Zemberek has only the
+## postposition (plan step F, review 2 MORPH2-16).
+dolayı [P:Noun]
+
+## Review 3 (LEX3-03, LEX3-07, RANK3-04, RANK3-08, LEX3-08).
+## Adjectives Zemberek has only as names (person-names.dict: Ruhsal, Evrensel, which
+## akana-remove.dict drops), and haksız and rahatsız, which read as hak and rahat.
+ruhsal [P:Adj]
+evrensel [P:Adj]
+haksız [P:Adj]
+rahatsız [P:Adj]
+## Names Zemberek lacks: Katar the country (read katmak+Aor), Yüksel the name (yük+sAl).
+Katar [P:Noun,Prop]
+Yüksel [P:Noun,Prop]
+## Found by the pre-release audit (round 2): Tahran the city (read tahra), Allan the given name
+## (allamak), Copa as in Copa América (cop "baton").
+Tahran [P:Noun,Prop]
+Allan [P:Noun,Prop]
+Copa [P:Noun,Prop]
+## Interjections that are inflected forms of a content word yield to it (sağlık-ınız-a,
+## güzel-im, baş üstü-ne, lav-a, can-a); efendim, mostly the interjection, stays.
+sağlığınıza [P:Interj; A:Rare]
+güzelim [P:Interj; A:Rare]
+başüstüne [P:Interj; A:Rare]
+lava [P:Interj; A:Rare]
+cana [P:Interj; A:Rare]
+## Rare words whose forms are a frequent word's: ekler "éclair" (dilekçe ve ekleri is ek, 790
+## court tokens), elem "grief" (eleme is elemek's), katar "train of animals" (Katar).
+ekler [A:Rare]
+elem [A:Rare]
+katar [A:Rare]
+## Medical words of expert reports and science words of RagTurk the dictionary lacks (LEX3-08);
+## glukoz is the common spelling of TDK's glikoz.
+tiroid
+endikasyon
+hematom
+karyotip
+trizomi
+fibula
+makroskopik [P:Adj]
+parsiyel [P:Adj]
+kompulsif [P:Adj]
+albedo
+ekliptik
+peptit
+dioksan
+fotometrik [P:Adj]
+mukarnas
+glukoz [Ref:glikoz]
+
+## Words of court decisions that only the approved Google and TRmorph lexicons have (review 3
+## LEX3-08): psikomotor, ayrıksı, and acenta, which TDK refers to acente.
+psikomotor [P:Adj]
+ayrıksı [P:Adj]
+acenta [Ref:acente]
+
+## Words the lexicon had only as corpus names, so that in lower case the spell checker rejected
+## them (review 4 DOWN4-10).
+rücuan [P:Adv]
+rızai [P:Adj]
+karz
+meskeniyet
+talasemi
+rapçi

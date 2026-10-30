@@ -1,0 +1,102 @@
+# Paragraphs for the AI-text detector's drift canary (style::ai_detector::tests), written for
+# akana (review 4 DOWN4-05): the shapes the court corpus lacks, so that the canary sees every
+# input the detector reads move. Questions, exclamations, ellipses, interrobangs, repeated
+# marks, openers and closers, first- and second-person pronouns, assistant-style answers,
+# encyclopedic text, redactions, initials, Roman ordinals and company forms. Paragraphs are
+# separated by a blank line; a line starting with # is a comment.
+
+Elbette! Size bu konuda yardımcı olmaktan memnuniyet duyarım. Öncelikle şunu belirtmek isterim ki kira artış oranı her yıl yeniden belirlenir. Kiracı ile ev sahibi arasında yapılan sözleşme bu konuda belirleyicidir. Ayrıca yasal sınırlar da göz önünde bulundurulmalıdır. Sonuç olarak, sözleşmenizi dikkatle okumanızı tavsiye ederim. Umarım bu bilgiler işinize yarar!
+
+Harika bir soru! Fotosentez, bitkilerin güneş ışığını kullanarak besin ürettiği bir süreçtir. Bu süreçte karbondioksit ve su, glikoza ve oksijene dönüşür. Klorofil, ışığı yakalayan temel pigmenttir. Özetle, fotosentez yeryüzündeki yaşamın temel taşlarından biridir. Başka bir sorunuz olursa çekinmeden sorabilirsiniz.
+
+Dün akşam eve geç geldim... Kapıyı açtım, ışıklar sönüktü. Kimse yoktu sanki. Sonra mutfaktan bir ses geldi. Kedimiz yine tezgâha çıkmış! Gülmekten kendimi alamadım.
+
+Neden hep aynı hataları yapıyoruz? Bunu kendime defalarca sordum. Belki de alışkanlıklarımızdan vazgeçmek sandığımızdan zor. Belki de değişmeyi gerçekten istemiyoruz. Sen ne düşünüyorsun? Gerçekten değişebilir miyiz?
+
+Bu nasıl bir karar?! Üç yıldır bu dosyayı takip ediyoruz ve sonuç yine aynı. Müvekkilimiz haklı olduğu hâlde kaybetti. Temyize gideceğiz, bundan kimsenin şüphesi olmasın!!! Adalet er ya da geç yerini bulur.
+
+Siz de bizim gibi kahve tutkunuysanız bu yazı tam size göre. Biz her sabah taze çekilmiş çekirdeklerle güne başlıyoruz. Sizin için en iyi demleme yöntemlerini derledik. Filtre kahveden Türk kahvesine kadar her şeyi denedik. Hangisi sizin favoriniz?
+
+Ben çocukken dedemin bahçesinde saatlerce oynardım. O bahçede elma, armut ve ceviz ağaçları vardı. Yaz akşamları hep birlikte çay içerdik. Şimdi o günleri özlemle anıyorum. Bazen düşünüyorum da, ne güzel günlermiş...
+
+Davacı ... vekili tarafından ... Asliye Hukuk Mahkemesine verilen dilekçede, müvekkilinin ... plakalı aracının hasar gördüğü belirtilmiştir. Davalı ... Sigorta A.Ş. vekili davanın reddini savunmuştur. Mahkemece bilirkişi raporu alınmıştır. Raporda kusur oranları belirlenmiştir. Davanın kısmen kabulüne karar verilmiştir.
+
+Sanık A.B. hakkında T.C.K.'nın 142. maddesi uyarınca kamu davası açılmıştır. Tanık M.E.N. duruşmada dinlenmiştir. Tanık beyanı ile sanığın savunması çelişmektedir. Dosyadaki deliller birlikte değerlendirilmiştir. Sanığın mahkûmiyetine karar verilmiştir.
+
+II. Dünya Savaşı 1939 yılında başlamış ve 1945 yılında sona ermiştir. Savaş, Avrupa'nın siyasi haritasını kökten değiştirmiştir. XIX. yüzyılda kurulan pek çok imparatorluk bu dönemde dağılmıştır. Birleşmiş Milletler savaşın ardından kurulmuştur. Soğuk Savaş dönemi de bu gelişmelerin bir sonucudur.
+
+İstanbul, Türkiye'nin en kalabalık şehridir. Şehir, Boğaziçi'nin iki yakasında kurulmuştur. Tarih boyunca pek çok uygarlığa başkentlik yapmıştır. Bizans ve Osmanlı dönemlerinden kalma yapıları ile tanınır. Bugün önemli bir ticaret ve kültür merkezidir.
+
+Merhaba! Bugün sizlere evde kolayca yapabileceğiniz bir tarif vereceğim. Malzemeler: iki su bardağı un, bir yumurta, bir paket kabartma tozu. Önce unu eleyin. Sonra yumurtayı ekleyip karıştırın. Fırını önceden ısıtmayı unutmayın! Afiyet olsun!
+
+Kısacası, yapay zekâ hayatımızın her alanına girmiş durumda. Bu teknolojinin faydaları kadar riskleri de bulunmaktadır. Özellikle veri gizliliği konusunda dikkatli olunmalıdır. Bununla birlikte, doğru kullanıldığında verimliliği önemli ölçüde artırabilir. Sonuç olarak dengeli bir yaklaşım benimsenmelidir. Bu konuda başka sorularınız varsa yardımcı olmaktan memnuniyet duyarım.
+
+Toplantı saat 14.30'da başladı. Gündemde üç madde vardı. Birinci madde bütçeydi. İkinci madde yeni personel alımıydı. Üçüncü madde ise ofis taşınmasıydı. Toplantı 16.00'da sona erdi.
+
+Aaa, sen de mi buradaydın? Hiç görmedim seni! Ne zamandır geliyorsun buraya? Ben de her cumartesi uğrarım. Kahveleri çok güzel, değil mi?
+
+Şirketimiz ABC Teknoloji Ltd. Şti., 2015 yılında kurulmuştur. Kuruluşumuzdan bu yana yazılım geliştirme alanında faaliyet göstermekteyiz. Müşterilerimize en iyi hizmeti sunmak için çalışıyoruz. Ekibimiz alanında uzman mühendislerden oluşmaktadır. Daha fazla bilgi için bizimle iletişime geçebilirsiniz.
+
+Peki, bu durumda ne yapmalı? İlk adım sorunu doğru tanımlamaktır. İkinci adım olası çözümleri sıralamaktır. Üçüncü adım ise en uygun çözümü seçmektir. Bu adımları izlerseniz sonuca daha hızlı ulaşırsınız. Unutmayın, her sorunun bir çözümü vardır!
+
+Yağmur yağıyordu. Sokaklar boştu. Bir kedi saçağın altına sığınmıştı. Uzaktan bir otobüs geçti. Sonra yine sessizlik.
+
+Önemli bir not: Bu metinde yer alan bilgiler genel bilgilendirme amaçlıdır. Hukuki tavsiye niteliği taşımaz. Somut durumunuz için bir avukata danışmanız önerilir. Her dava kendine özgü koşullar içerir. Bu nedenle genel bilgiler yanıltıcı olabilir.
+
+Ne güzel bir gün! Güneş parlıyor, kuşlar ötüyor. Parkta çocuklar koşuşturuyor. Bir bankta oturup kitabımı okudum. Keşke her gün böyle olsa...
+
+Anayasa Mahkemesi, başvurucunun adil yargılanma hakkının ihlal edildiğine karar vermiştir. Kararda, yargılamanın makul sürede tamamlanmadığı vurgulanmıştır. Başvurucuya manevi tazminat ödenmesine hükmedilmiştir. Kararın bir örneği ilgili mahkemeye gönderilmiştir. Yeniden yargılama yapılması gerektiği belirtilmiştir.
+
+Size üç önerim var. Birincisi, her gün en az yarım saat yürüyün. İkincisi, bol su için. Üçüncüsü, düzenli uyuyun. Bu basit alışkanlıklar sağlığınızı önemli ölçüde iyileştirebilir. Hepsini birden denemeye ne dersiniz?
+
+Bilmiyorum... Belki gitmeliyim, belki de kalmalıyım. Kafam çok karışık. Annem kalmamı istiyor, babam gitmemi. Sen olsan ne yapardın?
+
+Türk mutfağı, dünyanın en zengin mutfaklarından biri olarak kabul edilir. Orta Asya, Orta Doğu ve Akdeniz etkilerini bir araya getirir. Kebaplar, mezeler ve tatlılar bu mutfağın en bilinen örnekleridir. Bölgeden bölgeye önemli farklılıklar görülür. Ege'de zeytinyağlı yemekler, Karadeniz'de ise balık öne çıkar.
+
+Kesinlikle katılıyorum! Bu konuda sizinle aynı fikirdeyim. Eğitim sistemimizin köklü bir reforma ihtiyacı var. Öğretmenlerin daha iyi desteklenmesi gerekiyor. Öğrencilerin yaratıcılığı teşvik edilmeli. Hep birlikte daha iyi bir gelecek kurabiliriz!
+
+Dosya incelendi. Davacının talebi yerinde görülmedi. Davanın reddine karar verildi. Yargılama giderleri davacı üzerinde bırakıldı. Karar kesin olarak verildi.
+
+Hmm, ilginç bir soru. Aslında bu konuda farklı görüşler var. Bazı uzmanlar olumlu bakarken bazıları ciddi endişeler taşıyor. Benim kişisel görüşüm biraz daha temkinli olmamız gerektiği yönünde. Sen bu konuda ne düşünüyorsun?
+
+Proje kapsamında üç aşama planlanmıştır. İlk aşamada ihtiyaç analizi yapılacaktır. İkinci aşamada prototip geliştirilecektir. Üçüncü aşamada ise saha testleri gerçekleştirilecektir. Her aşamanın sonunda bir değerlendirme raporu hazırlanacaktır. Projenin iki yıl içinde tamamlanması öngörülmektedir.
+
+Vay be! Bu kadarını beklemiyordum doğrusu. Maç son dakikada döndü. Taraftarlar çılgına döndü!!! Herkes birbirine sarıldı. Unutulmaz bir akşamdı.
+
+Değerli müşterimiz, siparişiniz kargoya verilmiştir. Takip numaranız size ayrıca iletilecektir. Teslimat süresi iki ile dört iş günü arasındadır. Herhangi bir sorunla karşılaşırsanız müşteri hizmetlerimizi arayabilirsiniz. Bizi tercih ettiğiniz için teşekkür ederiz.
+
+Gerçekten mi?? Bunu bana neden daha önce söylemedin? Haftalardır bekliyorum! Neyse, artık önemi yok. Yine de bir dahaki sefere haber ver, olur mu?
+
+Osmanlı İmparatorluğu XIII. yüzyılın sonunda Anadolu'da kurulmuştur. Kısa sürede Balkanlar'a ve Orta Doğu'ya yayılmıştır. 1453'te İstanbul'un fethi önemli bir dönüm noktasıdır. İmparatorluk XVI. yüzyılda en geniş sınırlarına ulaşmıştır. I. Dünya Savaşı'nın ardından dağılmıştır.
+
+Tabii ki! İşte adım adım yapmanız gerekenler. Öncelikle hesabınıza giriş yapın. Ardından ayarlar menüsünü açın. Güvenlik sekmesine tıklayın ve şifrenizi değiştirin. Son olarak değişiklikleri kaydedin. Herhangi bir sorun yaşarsanız tekrar yazabilirsiniz, size seve seve yardımcı olurum.
+
+Bu kitabı okuyalı yıllar oldu ama hâlâ etkisindeyim. Yazarın dili sade ama derin. Karakterler sanki yanı başınızda yaşıyor. Özellikle son bölüm beni çok etkiledi. Herkese tavsiye ederim.
+
+Mahkemece yapılan keşif sonucunda taşınmazın sınırları belirlenmiştir. Fen bilirkişisi raporunu dosyaya sunmuştur. Taraflar rapora itiraz etmiştir. İtirazlar yerinde görülmemiştir. Taşınmazın davacı adına tesciline karar verilmiştir.
+
+Off, yine pazartesi! Hafta sonu ne çabuk geçti... Daha kahvemi bile içemedim. İşe geç kalacağım galiba. Neyse, olsun, bir şekilde idare ederiz.
+
+Yazılım geliştirme sürecinde test aşaması kritik bir öneme sahiptir. Birim testler kodun küçük parçalarını doğrular. Entegrasyon testleri bileşenlerin birlikte çalışmasını kontrol eder. Kabul testleri ise kullanıcı gereksinimlerinin karşılanıp karşılanmadığını ölçer. İyi bir test stratejisi hataları erken aşamada yakalar.
+
+Biz bu yolculuğa iki kişi olarak başladık. Şimdi on beş kişilik bir ekibiz. Her birimiz farklı bir şehirden geliyoruz. Ama hepimizin ortak bir hayali var. Bu hayali birlikte gerçekleştireceğiz!
+
+Kararın gerekçesinde, davalı idarenin işleminin hukuka aykırı olduğu belirtilmiştir. İşlemin iptaline karar verilmiştir. Yargılama giderlerinin davalı idareye yükletilmesine hükmedilmiştir. Kararın tebliğinden itibaren otuz gün içinde temyiz yolu açıktır. Oybirliğiyle karar verilmiştir.
+
+Sevgili okurlar, bu hafta sizlerle çok özel bir konuyu paylaşmak istiyorum. Geçen ay küçük bir köye taşındık. Şehir hayatından kaçmak kolay olmadı. Ama şimdi her sabah kuş sesleriyle uyanıyoruz. Sizce de bu bir mucize değil mi?
+
+Doğru mu duydum, toplantı iptal mi edildi? Kimse bize haber vermedi! Bütün hazırlıkları yapmıştık. Sunumlar hazırdı, odalar ayarlanmıştı. Bu nasıl bir organizasyon böyle?!
+
+Evet, haklısınız. Bu konuda daha önce yanlış bilgi vermiş olabilirim. Düzeltmek isterim: Söz konusu yasa 2020 yılında değil, 2021 yılında yürürlüğe girmiştir. Karışıklık için özür dilerim. Başka bir konuda yardımcı olabilirsem lütfen belirtin.
+
+Ankara'da kış çok soğuk geçer. Ocak ayında sıcaklık sıfırın altına düşer. Kar yağışı sık görülür. Yazın ise hava sıcak ve kurudur. İlkbahar ve sonbahar kısa sürer.
+
+Ah şu trafik! Her gün aynı çile... Bir saatlik yol üç saat sürüyor. Toplu taşıma desen o da kalabalık. Bisiklete mi binsem acaba?
+
+Bilirkişi heyeti, dava konusu ürünün ayıplı olduğunu tespit etmiştir. Ayıbın üretimden kaynaklandığı belirtilmiştir. Davalı şirket bu tespite itiraz etmiştir. Ek rapor alınmasına gerek görülmemiştir. Ürün bedelinin iadesine karar verilmiştir.
+
+Herkese merhaba! Ben Zeynep, yirmi beş yaşındayım ve İzmir'de yaşıyorum. Fotoğraf çekmeyi, yürüyüş yapmayı ve yeni yerler keşfetmeyi seviyorum. Bu blogda gezi notlarımı paylaşacağım. Siz de gezmeyi seviyor musunuz? Yorumlarda buluşalım!
+
+Yukarıda belirtilen hususlar çerçevesinde, söz konusu düzenlemenin uygulanmasında azami özen gösterilmesi gerekmektedir. İlgili birimlerin koordinasyon içinde çalışması önem arz etmektedir. Sürecin şeffaf bir şekilde yürütülmesi sağlanmalıdır. Elde edilen sonuçlar düzenli olarak raporlanmalıdır. Bu doğrultuda gerekli tedbirlerin alınması hususunda bilgilerinizi rica ederim.
+
+Kim bilir, belki bir gün yine karşılaşırız. Hayat bu, ne olacağı belli olmaz. Seni hiç unutmayacağım. Kendine iyi bak, olur mu? Hoşça kal...

@@ -67,15 +67,25 @@ def test_sparse_morphological_embedding():
     assert len(indices) == len(values) == len(terms)
     assert len(indices) > 0
 
-    # Ensure terms include base roots / lemmas like 'kitap', 'defter', 'masa', 'bırak'
+    # One lemma per word in context: 'kitap', 'defter', 'masa', and the verb's lemma 'bırakmak'
     terms_set = set(terms)
     assert "kitap" in terms_set
     assert "defter" in terms_set
-    assert "bırak" in terms_set
+    assert "bırakmak" in terms_set
+    assert "bırak" not in terms_set
 
-    # Verify 24-bit bounds
+    # 32-bit term ids, never 0 or 2**32 - 1, ascending
     for idx in indices:
-        assert 0 <= idx < (1 << 24)
+        assert 0 < idx < (1 << 32) - 1
+    assert indices == sorted(indices)
+
+    # One term per word occurrence: "kitap" once, not once per reading of "Kitaplarımı"
+    res = akana.sparse_embed("Kitaplarımı okudum. Kitap güzeldi.")
+    once = akana.sparse_embed("Kitaplarımı okudum.")
+    kitap = dict(zip(res["terms"], res["values"]))["kitap"]
+    kitap_once = dict(zip(once["terms"], once["values"]))["kitap"]
+    # BM25 saturation of tf 2 over tf 1: (2 * 2.2 / 3.2) / 1
+    assert kitap / kitap_once == pytest.approx(1.375, rel=1e-4)
 
     # Verify positive BM25 TF values
     for val in values:
@@ -114,6 +124,14 @@ def test_reciprocal_rank_fusion():
     assert top_id in (101, 102)
     assert fused_dict[102] > fused_dict[103]
     assert fused_dict[102] > fused_dict[104]
+
+    # Equal scores come in one order (best rank, then id), every call (review 2 EMB-12).
+    dense = [(1, 0.9), (2, 0.8), (3, 0.7), (4, 0.6)]
+    sparse = [(2, 4.0), (1, 3.0), (4, 2.0), (3, 1.0)]
+    orders = {tuple(i for i, _ in akana.reciprocal_rank_fusion(dense, sparse)) for _ in range(50)}
+    assert orders == {(1, 2, 3, 4)}
+    with pytest.raises(ValueError):
+        akana.reciprocal_rank_fusion(dense, sparse, k=-1.0)
 
 
 @pytest.mark.skipif(not HAS_USEARCH, reason="usearch or numpy not installed")

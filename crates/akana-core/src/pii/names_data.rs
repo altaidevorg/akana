@@ -16,7 +16,7 @@ pub(crate) const COMMON_GIVEN_NAMES: &[&str] = &[
     "emin", "emine", "emircan", "emirhan", "enes", "ercan", "erdal", "erdinç", "erhan", "erkan",
     "ersin", "ertan", "ertuğrul", "esma", "esra", "eylül", "ezel", "fadime", "fahri", "faruk",
     "fatih", "fatma", "feride", "feyza", "figen", "fikret", "filiz", "furkan", "gamze", "gizem",
-    "gökay", "gökçe", "gökhan", "gönül", "gülay", "gülsüm", "gülşen", "gürkan", "habibe", "hacer",
+    "gökay", "gökçe", "gökçen", "gökhan", "gönül", "gülay", "gülsüm", "gülşen", "gürkan", "habibe", "hacer", "halide",
     "hakan", "halil", "halime", "hamza", "handan", "hande", "harun", "hasan", "hatice", "havva",
     "hayrettin", "hilal", "hira", "hülya", "hüseyin", "ibrahim", "ilayda", "ilhan", "ilkay", "irem",
     "ismail", "işıl", "kadir", "kâmil", "kamil", "kemal", "kenan", "kerem", "kevser", "kübra",
@@ -24,7 +24,7 @@ pub(crate) const COMMON_GIVEN_NAMES: &[&str] = &[
     "mine", "muhammed", "muharrem", "murat", "musa", "mustafa", "naci", "nazlı", "necati", "necla",
     "nermin", "neslihan", "nesrin", "nevin", "nihat", "nilay", "nilüfer", "nisa", "nur", "nuran",
     "nurettin", "nurhan", "nuri", "nurten", "oğuzhan", "okan", "orhan", "osman", "ömer", "özcan",
-    "özge", "özkan", "pelin", "perihan", "rabia", "ramazan", "recep", "remzi", "reşat", "rukiye",
+    "özge", "özgen", "özkan", "pelin", "perihan", "rabia", "ramazan", "recep", "remzi", "reşat", "rukiye",
     "rümeysa", "sabri", "sadık", "safiye", "salih", "sami", "sedat", "sedef", "selahattin",
     "selçuk", "selim", "selin", "sema", "semih", "semra", "serap", "serdar", "serhat", "serkan",
     "sevda", "sevgül", "sevim", "seyfi", "sibel", "sinan", "songül", "suat", "sultan", "süleyman",
@@ -59,6 +59,14 @@ pub(crate) const COMMON_GIVEN_NAMES: &[&str] = &[
     "selahaddin", "onurhan", "sabahat", "azize", "vecihe", "renas", "dıjvar", "serruh", "tugay",
     "gülşah", "yavuzhan", "erkam", "cebrail", "namık", "süreyya", "füsun", "abdulhakim", "mohammed",
     "rüştü", "fatin", "vural", "beyti", "muzaffer",
+    // Given names of official-form names in Constitutional Court headers that no list had
+    // (review 3 PII3-04).
+    "nejdet", "hüsamettin", "heysem", "nahit", "hamdullah", "gülbin", "abdulhalim", "feyzullah",
+    "fehmi", "ziver", "izzettin", "saadettin", "mecit", "veysi", "selami", "utku", "abdulkerim",
+    "cumali", "isa",
+    // Given names of court decisions read as other words (Kâni Vrana: the adjective kani, Hasan
+    // Gürsel: gür, Onurhan Solmaz: solmak; pre-release audit).
+    "kâni", "gürsel", "solmaz",
 ];
 
 /// Common Turkish surnames, in addition to gazetteer.rs's SURNAMES.
@@ -70,7 +78,7 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     "çelik", "çetin", "çiftçi", "çınar", "çolak", "demir", "demirci", "demirel", "dinç", "doğan",
     "doğru", "duman", "durmaz", "duran", "ekinci", "elmas", "erbil", "erdem", "erdoğan", "eren",
     "ergin", "ergün", "erol", "ersoy", "ertekin", "ertuğrul", "eryılmaz", "esen", "gök", "gökçe",
-    "güler", "gültekin", "gümüş", "gündoğdu", "güneş", "güngör", "günay", "güven", "güzel", "işık",
+    "güler", "gültekin", "gümüş", "gündoğdu", "güneş", "güngör", "günay", "güven", "güzel",
     "ışık", "kahraman", "kalkan", "kaplan", "kara", "karaca", "karadağ", "karakaya", "karakuş",
     "karaman", "karataş", "kaya", "kaymaz", "keskin", "kılıç", "kılınç", "kırkpınar", "koç",
     "kocabaş", "kocaman", "korkmaz", "kurt", "kuru", "küçük", "metin", "oral", "ozan", "öz",
@@ -83,6 +91,14 @@ pub(crate) const COMMON_SURNAMES: &[&str] = &[
     "akıncı", "özgüldür", "hakyemez", "akyel", "güleç", "kuz", "özkaya", "fidan", "akçil",
     "kıratlı", "özeren",
     "zorlu", "evren",
+    // Surnames of court decisions read as other words (Serruh KALELİ: kale, Mehmet ERTEN: erte,
+    // Sacit ADALI: ada; pre-release audit).
+    "kaleli", "kömürcü", "erten", "adalı", "özler", "tuğcu", "başarır", "baltalı",
+    // Round 2: applicants and members cited by name (Hikmet Kopar: kopmak, Emine Dilek Onaran:
+    // onarmak, Abdullah Topçu: top, Sünuhi ARSAN: arsa) and Sabancı (saban). Not Bilin and Edin,
+    // which at a sentence's start are mostly bilmek's and etmek's imperatives (Bilin ki ...).
+    "arsan", "mencik", "onaran", "kalyoncu", "kopar", "topçu", "balcı", "gayretli", "balıkçı",
+    "sabancı", "sökmen", "sürmeli", "akün",
 ];
 
 /// Common international first names, leaving out ones that are everyday English words.
@@ -134,6 +150,8 @@ pub(crate) const AMBIGUOUS_NAMES: &[&str] = &[
     "yıldız", "zeki", "ela", "mine", "tuna", "hale", "nil", "bahar", "ada", "sevgi", "yaren",
     "aras", "christian", "austin", "charlotte", "carol", "heather", "harper", "jean",
     "hakkı",
+    // the same court headers' given names that are also everyday words (review 3 PII3-04)
+    "bahadır", "önder", "adil", "aziz", "ulaş", "servet", "halis", "şeref", "salim", "kudret",
 ];
 
 /// Given names that are far more often something else: a celestial body, a direction, a region
@@ -186,6 +204,7 @@ pub(crate) const NAME_TRIGGERS: &[&str] = &[
     "şüpheli", "vekil", "vekili", "vekilim", "katılan", "müdahil", "şikayetçi", "mirasçı", "murisi",
     "kiracı", "kiracısı", "kiraya", "işçi", "işveren", "sürücü", "sürücüsü", "alıcı", "satıcı",
     "kefil", "temsilci", "temsilcisi", "üye", "hâkim", "hakim", "yargıç", "savcı", "noter",
+    "katip", "kâtip",
     "bilirkişi", "arabulucu", "imza", "hazırlayan", "gönderen", "onaylayan",
     // possessive kinship and relations
     "annem", "babam", "eşim", "kızım", "oğlum", "kardeşim", "abim", "ablam", "ağabeyim", "teyzem",
@@ -254,32 +273,56 @@ pub(crate) const NAME_STOPPERS: &[&str] = &[
     "dağı", "dağları", "ovası", "körfezi", "boğazı", "adası", "kuvvetleri", "komutanlığı",
     "bayramı", "günü", "haftası", "ödülü", "kupası", "ligi", "and", "ve", "ile", "the", "of", "inc",
     "llc", "gmbh", "corp", "university", "street",
-    // countries, regions and large cities outside the province list
+    // words of a decision's heading and signature block, which end the official form's name
+    // (Mehmet KAYA KARAR; review 4 DOWN4-09)
+    "karar", "kararı", "tarih", "mühür",
+    // companies; the countries, regions and cities abroad (FOREIGN_PLACES) and the
+    // nationalities (DEMONYMS) end a name too
+    "google", "microsoft", "apple", "amazon", "facebook", "twitter",
+    // legal and institution words capitalised as terms
+    "grand", "prix", "bank", "kanun", "kanunu", "yönetmelik", "tüzük", "genelge", "kararname",
+    "anayasa", "mahkeme", "daire", "kurul", "bakanlık", "kurum", "kurumu", "ticaret", "sanayi",
+    "san.", "tic.", "idaresi", "idaresinde", "müdürlüğünde",
+    // A word's period is trimmed before the list is looked up (LTD. is ltd), and company words
+    // end a name (Hayat Sigorta A.Ş.; review 3 PII3-05, PII3-06).
+    "ltd", "şti", "tic", "sigorta", "sigortası", "sigortaları", "bankası", "inşaat", "holdingi",
+    "diğerleri", "digerleri", "başvurusu", "basvurusu",
+];
+
+/// Countries, regions and large cities outside the province list: places (NER's LOC), and words
+/// that end a name.
+pub(crate) const FOREIGN_PLACES: &[&str] = &[
     "türkiye", "almanya", "fransa", "ingiltere", "amerika", "abd", "rusya", "italya", "ispanya",
     "yunanistan", "irak", "iran", "suriye", "azerbaycan", "japonya", "çin", "hollanda", "belçika",
     "avusturya", "isviçre", "kıbrıs", "bulgaristan", "gürcistan", "ukrayna", "mısır", "israil",
     "filistin", "katar", "arabistan", "kanada", "brezilya", "hindistan", "pakistan", "afganistan",
     "avrupa", "asya", "afrika", "anadolu", "trakya", "londra", "berlin", "moskova", "atina", "roma",
     "viyana", "brüksel", "bakü", "tahran", "bağdat", "şam", "kahire", "tokyo", "pekin", "germany",
-    "france", "england", "america", "russia", "turkey", "europe", "london", "york", "google",
-    "microsoft", "apple", "amazon", "facebook", "twitter",
-    // nationalities and demonyms
+    "france", "england", "america", "russia", "turkey", "europe", "london", "york", "kore",
+    "vietnam", "tayland", "endonezya", "malezya", "singapur", "avustralya", "meksika", "arjantin",
+    "şili", "kolombiya", "venezuela", "küba", "portekiz", "polonya", "çekya", "macaristan",
+    "romanya", "sırbistan", "hırvatistan", "bosna", "makedonya", "karadağ", "arnavutluk",
+    "slovenya", "slovakya", "danimarka", "norveç", "isveç", "finlandiya", "estonya", "letonya",
+    "litvanya", "belarus", "moldova", "kazakistan", "özbekistan", "türkmenistan", "kırgızistan",
+    "tacikistan", "moğolistan", "ürdün", "lübnan", "kuveyt", "bahreyn", "umman", "yemen", "libya",
+    "tunus", "cezayir", "fas", "sudan", "etiyopya", "kenya", "nijerya", "somali", "irlanda",
+    "iskoçya", "galler", "izlanda", "lüksemburg", "monako", "vatikan", "malta", "tayvan",
+    "filipinler", "bangladeş", "nepal", "kosova", "kafkasya", "balkanlar", "ortadoğu", "delhi",
+];
+
+/// Nationalities and demonyms: no person's name (NER), and words that end a name.
+pub(crate) const DEMONYMS: &[&str] = &[
     "türk", "kürt", "alman", "ingiliz", "fransız", "amerikalı", "rus", "arap", "yunan", "ermeni",
     "laz", "çerkez", "gürcü", "boşnak", "arnavut",
-    // more countries and regions, then legal and institution words capitalised as terms
-    "kore", "vietnam", "tayland", "endonezya", "malezya", "singapur", "avustralya", "meksika",
-    "arjantin", "şili", "kolombiya", "venezuela", "küba", "portekiz", "polonya", "çekya",
-    "macaristan", "romanya", "sırbistan", "hırvatistan", "bosna", "makedonya", "karadağ",
-    "arnavutluk", "slovenya", "slovakya", "danimarka", "norveç", "isveç", "finlandiya", "estonya",
-    "letonya", "litvanya", "belarus", "moldova", "kazakistan", "özbekistan", "türkmenistan",
-    "kırgızistan", "tacikistan", "moğolistan", "ürdün", "lübnan", "kuveyt", "bahreyn", "umman",
-    "yemen", "libya", "tunus", "cezayir", "fas", "sudan", "etiyopya", "kenya", "nijerya", "somali",
-    "irlanda", "iskoçya", "galler", "izlanda", "lüksemburg", "monako", "vatikan", "malta", "tayvan",
-    "filipinler", "bangladeş", "nepal", "kosova", "kafkasya", "balkanlar", "ortadoğu", "delhi",
-    "grand", "prix", "bank", "kanun", "kanunu", "yönetmelik", "tüzük", "genelge", "kararname",
-    "anayasa", "mahkeme", "daire", "kurul", "bakanlık", "kurum", "kurumu", "ticaret", "sanayi",
-    "san.", "tic.", "idaresi", "idaresinde", "müdürlüğünde",
-    "diğerleri", "digerleri", "başvurusu", "basvurusu",
+];
+
+/// Words a company's name ends with (Hayat Sigorta, Axa Sigorta A.Ş., Koç Holding): the words
+/// before them name the company (Doğan Holding), unless one is a given name that is only a name
+/// (Ahmet Yılmaz İnşaat is a person's business; review 3 PII3-05). As `Word` reads them: lower case,
+/// without the period (A.Ş. is the initials a, ş).
+pub(crate) const COMPANY_WORDS: &[&str] = &[
+    "sigorta", "sigortası", "sigortaları", "bankası", "bank", "holding", "holdingi", "inşaat",
+    "ltd", "şti", "anonim", "limited", "şirketi", "ticaret", "tic", "sanayi", "san", "kooperatifi",
 ];
 
 /// Well-known public figures (historical, political, literary, artistic, scientific) whose

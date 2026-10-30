@@ -1,7 +1,10 @@
 //! TDK-compliant Turkish Syllabification and Hyphenation Engine.
-//! Follows standard Turkish phonotactic rules (V, CV, VC, CVC, VCC, CVCC).
+//! Follows standard Turkish phonotactic rules (V, CV, VC, CVC, VCC, CVCC). Loanwords split by
+//! them too, as TDK hyphenates them (kont-rol, prog-ram, sant-ral), not before an onset cluster.
+//! Input is NFKC-normalised (ﬁkir has two syllables, a decomposed İ is one letter).
 
 use super::is_turkish_vowel;
+use unicode_normalization::UnicodeNormalization;
 
 pub struct TurkishSyllabifier;
 
@@ -9,6 +12,8 @@ impl TurkishSyllabifier {
     /// Syllabifies a single Turkish word according to standard Turkish phonotactics.
     /// Example: "Türkçe" -> ["Türk", "çe"], "araba" -> ["a", "ra", "ba"], "ilkokul" -> ["il", "ko", "kul"].
     pub fn syllabify(word: &str) -> Vec<String> {
+        let word: String = word.nfkc().collect();
+        let word = word.as_str();
         let chars: Vec<char> = word.chars().collect();
         let len = chars.len();
         if len == 0 {
@@ -86,6 +91,6 @@ impl TurkishSyllabifier {
     /// Counts syllables in a word (equivalent to vowel count in Turkish).
     #[inline]
     pub fn count_syllables(word: &str) -> usize {
-        word.chars().filter(|&c| is_turkish_vowel(c)).count()
+        word.nfkc().filter(|&c| is_turkish_vowel(c)).count()
     }
 }

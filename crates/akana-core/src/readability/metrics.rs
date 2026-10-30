@@ -21,6 +21,10 @@ pub struct TextStatistics {
     pub polysyllabic_word_ratio: f64,
 }
 
+/// The grade of a text with no word ("", punctuation, numbers, emoji), where every formula
+/// would grade the empty statistics as if they were a text (review 2 READ-05).
+pub const NO_TEXT: &str = "Yetersiz metin (sözcük yok)";
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FormulaResult {
     pub score: f64,
