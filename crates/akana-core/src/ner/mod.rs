@@ -1,12 +1,14 @@
 //! Named Entity Recognition (NER) for Turkish text.
-//! Recognizes Person (PER), Location (LOC), Organization (ORG), Date (DATE), Money (MONEY), and Percent (PERCENT).
-//! Accelerated with single-pass zero-copy token stream matching.
+//! Recognizes Person (PER), Location (LOC) and Organization (ORG) with a trained tagger
+//! ([`model`]), and Date (DATE), Money (MONEY) and Percent (PERCENT) with patterns over the token
+//! stream.
 
-use crate::morphology::{rank_units, SecondaryPos, TurkishMorphology, APOSTROPHES};
+use crate::morphology::APOSTROPHES;
 use crate::phonology::to_turkish_lower;
-use crate::pii::{is_person_name, is_place_name};
-use crate::tokenization::{Token, TokenType, TurkishTokenizer};
+use crate::tokenization::{SentenceSegmenter, Token, TokenType, TurkishTokenizer};
 use lazy_static::lazy_static;
+
+mod model;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -19,8 +21,8 @@ pub struct NamedEntity {
 }
 
 lazy_static! {
-    /// The analyzer (its lexicon is shared), to tell a name that is also a common word.
-    static ref MORPHOLOGY: TurkishMorphology = TurkishMorphology::new();
+    // Titles, and the words that end an organisation's or a place's name: lists the tagger's
+    // features read.
     static ref TITLE_TRIGGERS: HashSet<&'static str> = {
         let mut set = HashSet::new();
         for &t in &[
@@ -152,6 +154,21 @@ lazy_static! {
     };
 }
 
+/// The words that end the name of a street, a square or a building, which the tagger leaves out
+/// (Kızılay Meydanı); places of nature and administration it finds itself (Van Gölü, Ağrı Dağı).
+const FACILITY_WORDS: [&str; 10] = [
+    "caddesi",
+    "sokağı",
+    "mahallesi",
+    "meydanı",
+    "bulvarı",
+    "sarayı",
+    "kalesi",
+    "havalimanı",
+    "havaalanı",
+    "köprüsü",
+];
+
 pub struct TurkishNER;
 
 /// A number, date or time token without the suffixes the tokenizer keeps with it after an
@@ -168,125 +185,44 @@ fn without_number_suffix(tok: Token<'_>) -> Token<'_> {
     tok
 }
 
-/// Where the organisation scan from token `i` stops: the first token at or after `i` that is
-/// an ORG suffix (`true`), or that is neither capitalised nor `ve`/`ile` (`false`; also when
-/// the tokens run out, with `tokens.len()`).
-fn org_scan_stop(tokens: &[Token], i: usize) -> (usize, bool) {
-    for (j, tok) in tokens.iter().enumerate().skip(i) {
-        let cur_clean = tok.text.trim_matches(|c: char| !c.is_alphanumeric());
-        if ORG_SUFFIXES.contains(to_turkish_lower(cur_clean).as_str()) {
-            return (j, true);
-        }
-        if !cur_clean.chars().next().is_some_and(|c| c.is_uppercase())
-            && cur_clean != "ve"
-            && cur_clean != "ile"
-        {
-            return (j, false);
-        }
-    }
-    (tokens.len(), false)
-}
-
-/// A token's word without the punctuation around it (an apostrophe kept).
-fn clean(text: &str) -> &str {
-    text.trim_matches(|c: char| !c.is_alphanumeric() && !APOSTROPHES.contains(&c))
-}
-
-/// A word's part before an apostrophe and whether a suffix follows it (Kaya'nın: Kaya, true).
-fn name_part(word: &str) -> (&str, bool) {
-    match word.find(APOSTROPHES) {
-        Some(i) => (&word[..i], true),
-        None => (word, false),
-    }
-}
-
-/// Where a name ends in its token's text: before the apostrophe of its suffix, else after its
-/// last letter.
+/// Where a name ends in its word's text: before the apostrophe of its suffix, else after its
+/// last letter or digit.
 fn name_end(text: &str) -> usize {
     text.find(APOSTROPHES)
         .unwrap_or_else(|| text.trim_end_matches(|c: char| !c.is_alphanumeric()).len())
-}
-
-/// Whether a token can go on a person's name: capitalised, and no place, organisation suffix or
-/// nationality that is no name (Ahmet Yılmaz Ankara'da: the name ends before Ankara).
-fn name_like(text: &str) -> bool {
-    let (word, _) = name_part(clean(text));
-    let lower = to_turkish_lower(word);
-    word.chars().next().is_some_and(char::is_uppercase)
-        && !ORG_SUFFIXES.contains(lower.as_str())
-        && (is_person_name(&lower) || !is_place_name(&lower))
-}
-
-/// Whether a listed name at a sentence's start, with no other evidence, is a person's: one that is
-/// no common word is; one before the head of a compound (Kaya parçaları, Barış antlaşması: P3sg)
-/// is the word; otherwise it is a person's where it is rare as a word (Kerem, Hakan), not where it
-/// is frequent (Güzel, Demir, Tatlı): the corpus prior of its likeliest common reading is under
-/// [`RARE_WORD_LOG_PRIOR`].
-fn person_at_start(base: &str, next: Option<&str>) -> bool {
-    let Some(word) = MORPHOLOGY.spelling_log_prior(base, |p| {
-        !matches!(
-            p.secondary_pos,
-            SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
-        )
-    }) else {
-        return true;
-    };
-    let compound_head = next.is_some_and(|t| {
-        let (w, _) = name_part(clean(t));
-        w.chars().next().is_some_and(char::is_lowercase)
-            && MORPHOLOGY
-                .analyze(w)
-                .first()
-                .is_some_and(|p| p.morpheme_tags.iter().any(|m| m == "P3sg"))
-    });
-    !compound_head && word < RARE_WORD_LOG_PRIOR
-}
-
-/// The corpus log prior under which a common word is rare enough to be a name at a sentence's
-/// start (-14 nats): chosen on the UD Turkish train and dev sentences, from -8 to -16 nats, by
-/// the F1 of persons at a sentence's start (0.889; -8 nats gave 0.720, -11 0.835, -16 0.877).
-const RARE_WORD_LOG_PRIOR: i32 = rank_units(-14.0);
-
-/// Whether token `i` begins a sentence: the text's first word, or the first after a period, an
-/// exclamation or question mark, an ellipsis or a line break, opening quotes and brackets aside.
-fn sentence_start(text: &str, tokens: &[Token], i: usize) -> bool {
-    let mut k = i;
-    while k > 0 {
-        let prev = &tokens[k - 1];
-        if text
-            .get(prev.end..tokens[k].start)
-            .is_some_and(|gap| gap.contains('\n'))
-        {
-            return true;
-        }
-        if prev.text.chars().all(|c| {
-            matches!(
-                c,
-                '"' | '\'' | '(' | '[' | '«' | '“' | '‘' | '-' | '–' | '—'
-            )
-        }) {
-            k -= 1;
-            continue;
-        }
-        return prev.text.ends_with(['.', '!', '?', '…']);
-    }
-    true
 }
 
 impl TurkishNER {
     /// Extracts named entities from a Turkish text string.
     pub fn extract_entities(text: &str) -> Vec<NamedEntity> {
         let mut entities = Vec::new();
+        // Persons, places and organisations come from the trained tagger, sentence by sentence;
+        // a name ends before the suffix after its apostrophe (Kaya'nın: Kaya).
+        let mut names = Vec::new();
+        for sentence in SentenceSegmenter::segment(text) {
+            let offset = sentence.text.as_ptr() as usize - text.as_ptr() as usize;
+            let tokens = TurkishTokenizer::tokenize(sentence.text);
+            let words: Vec<&str> = tokens.iter().map(|t| t.text).collect();
+            for (kind, a, b) in model::spans(&model::MODEL.tag(&words)) {
+                let start = offset + tokens[a].start;
+                let end = offset + tokens[b - 1].start + name_end(words[b - 1]);
+                if end > start {
+                    names.push(NamedEntity {
+                        text: text[start..end].to_string(),
+                        label: kind.to_string(),
+                        start,
+                        end,
+                    });
+                }
+            }
+        }
+        // Amounts, percentages, dates, and streets and buildings from patterns, which a name the
+        // tagger finds over them does not override (Cuma günü, 16 Ağustos 2026, Kızılay Meydanı).
         let tokens: Vec<Token> = TurkishTokenizer::tokenize(text)
             .into_iter()
             .map(without_number_suffix)
             .collect();
         let n = tokens.len();
-        // Last result of `org_scan_stop`: (start, stop token, whether it is an ORG suffix).
-        let mut org_stop: Option<(usize, usize, bool)> = None;
-        // The words of the full names found so far (Mehmet Yılmaz), each of which names the
-        // person alone later (Yılmaz, açıklamasında ...).
-        let mut named: HashSet<String> = HashSet::new();
 
         let mut i = 0;
         while i < n {
@@ -413,128 +349,60 @@ impl TurkishNER {
                 continue;
             }
 
-            // 4. Multi-token Organization Pattern (Capitalized sequence ending with ORG suffix)
-            if clean_tok.chars().next().is_some_and(|c| c.is_uppercase()) {
-                // The scan from `i` stops at the same token for every start before it, so that
-                // token is looked up once per run: walking to the end of the capitalised run
-                // from each of its tokens made 8,000 capitalised words take 2.5 s.
-                let (j, is_suffix) = match org_stop {
-                    Some((from, j, is_suffix)) if from <= i && i <= j => (j, is_suffix),
-                    _ => {
-                        let (j, is_suffix) = org_scan_stop(&tokens, i);
-                        org_stop = Some((i, j, is_suffix));
-                        (j, is_suffix)
-                    }
-                };
-                if is_suffix {
-                    let matched_tokens: Vec<&str> = tokens[i..=j].iter().map(|t| t.text).collect();
-                    entities.push(NamedEntity {
-                        text: matched_tokens.join(" "),
-                        label: "ORG".to_string(),
-                        start: tokens[i].start,
-                        end: tokens[j].end,
-                    });
-                    i = j + 1;
-                    continue;
-                }
-
-                // 5. Multi-token Location Pattern (Capitalized sequence ending with LOC suffix)
-                let mut loc_matched = false;
-                if i + 1 < n {
-                    let next_clean = tokens[i + 1]
-                        .text
-                        .trim_matches(|c: char| !c.is_alphanumeric());
-                    let next_lower = to_turkish_lower(next_clean);
-                    if LOC_SUFFIXES.contains(next_lower.as_str()) {
-                        let matched_tokens: Vec<&str> =
-                            tokens[i..=i + 1].iter().map(|t| t.text).collect();
-                        entities.push(NamedEntity {
-                            text: matched_tokens.join(" "),
-                            label: "LOC".to_string(),
-                            start: tok.start,
-                            end: tokens[i + 1].end,
-                        });
-                        i += 2;
-                        loc_matched = true;
-                    }
-                }
-                if loc_matched {
-                    continue;
-                }
-
-                // 6. Persons and places. A person's name is a given name or surname of the PII
-                // lexicon, a place a province, a district, or a country, region or city abroad;
-                // the lexicon's other proper nouns are neither (Ankara and Almanya were persons).
-                // A name is looked up without the suffix after its apostrophe (Kaya'nın), and its
-                // entity ends there, as a number's does.
-                let (name, suffixed) = name_part(clean_tok);
-                let base = to_turkish_lower(name);
-                let title_beside = |k: Option<usize>| {
-                    k.and_then(|k| tokens.get(k)).is_some_and(|t| {
-                        TITLE_TRIGGERS.contains(
-                            to_turkish_lower(t.text.trim_matches(|c: char| !c.is_alphabetic()))
-                                .as_str(),
-                        )
-                    })
-                };
-                let title = title_beside(i.checked_sub(1)) || title_beside(Some(i + 1));
-                let next_name = !suffixed && tokens.get(i + 1).is_some_and(|t| name_like(t.text));
-                let place = is_place_name(&base);
-                // Inside a sentence the capital says a listed name is one. At a sentence's start
-                // it says nothing: a listed name that may be a common word there is a person with
-                // a suffix after an apostrophe, before another name, beside a title or once the
-                // text has named the person in full, and otherwise only when it is rare as a word
-                // and does not modify the head of a compound ([`person_at_start`]). A place that
-                // is also a name (Aydın, Fatih) is a person only by the same evidence.
-                let strong = title || next_name || named.contains(&base);
-                let is_person = (is_person_name(&base)
-                    && (strong
-                        || (!place
-                            && (suffixed
-                                || !sentence_start(text, &tokens, i)
-                                || person_at_start(&base, tokens.get(i + 1).map(|t| t.text))))))
-                    || title;
-
-                if is_person {
-                    let mut j = i + 1;
-                    let mut last_suffixed = suffixed;
-                    while j < n && !last_suffixed && name_like(tokens[j].text) {
-                        last_suffixed = name_part(clean(tokens[j].text)).1;
-                        j += 1;
-                    }
-                    let last = &tokens[j - 1];
-                    let end = last.start + name_end(last.text);
-                    if j - i > 1 {
-                        named.extend(
-                            tokens[i..j]
-                                .iter()
-                                .map(|t| to_turkish_lower(name_part(clean(t.text)).0)),
-                        );
-                    }
-                    entities.push(NamedEntity {
-                        text: text[tok.start..end].to_string(),
-                        label: "PER".to_string(),
-                        start: tok.start,
-                        end,
-                    });
-                    i = j;
-                    continue;
-                }
-                if place {
+            // 4. Streets, squares and buildings (Kızılay Meydanı, Atatürk Bulvarı, İstanbul
+            // Havalimanı'na), which the tagger leaves out: WikiNER, which trained it, keeps
+            // facilities apart from places, and a tagger trained with them as places lost ORG F1.
+            // The place starts with the name the tagger found right before the word (Atatürk
+            // Bulvarı), or before a title there (Mustafa Kemal Paşa Caddesi, Ahmet Bey Sokağı),
+            // else with the capitalised word before it, and ends before the suffix after its
+            // apostrophe.
+            let head = lower_tok.split(APOSTROPHES).next().unwrap_or_default();
+            if i > 0 && FACILITY_WORDS.contains(&head) {
+                let prev = &tokens[i - 1];
+                let after_patterns = entities.last().map_or(0, |e: &NamedEntity| e.end);
+                if prev.text.starts_with(char::is_uppercase)
+                    && !prev.text.contains(APOSTROPHES)
+                    && prev.start >= after_patterns
+                {
+                    let name_before = |t: &Token| {
+                        let end = t.start + name_end(t.text);
+                        names
+                            .binary_search_by_key(&end, |e| e.end)
+                            .ok()
+                            .map(|k| names[k].start)
+                            .filter(|&s| s >= after_patterns)
+                    };
+                    let title = TITLE_TRIGGERS.contains(to_turkish_lower(prev.text).as_str());
+                    let start = name_before(prev)
+                        .or_else(|| {
+                            (title && i > 1)
+                                .then(|| name_before(&tokens[i - 2]))
+                                .flatten()
+                        })
+                        .unwrap_or(prev.start);
                     let end = tok.start + name_end(tok.text);
                     entities.push(NamedEntity {
-                        text: text[tok.start..end].to_string(),
+                        text: text[start..end].to_string(),
                         label: "LOC".to_string(),
-                        start: tok.start,
+                        start,
                         end,
                     });
-                    i += 1;
-                    continue;
                 }
             }
 
             i += 1;
         }
+
+        // Both lists run in text order without overlaps, so one sweep finds the names that
+        // overlap a pattern's entity.
+        let mut k = 0;
+        names.retain(|a| {
+            while entities.get(k).is_some_and(|b| b.end <= a.start) {
+                k += 1;
+            }
+            !entities.get(k).is_some_and(|b| b.start < a.end)
+        });
+        entities.append(&mut names);
 
         // Deduplicate and sort by starting offset
         entities.sort_by_key(|e| e.start);

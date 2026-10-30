@@ -1256,15 +1256,8 @@ impl TurkishMorphology {
     /// checker, the grammar rules and the deasciifier judge a spelling by, so they pass the word
     /// as it is written.
     pub fn analyze_standard(&self, word: &str) -> Vec<MorphParse> {
-        let lower_case = !word.chars().any(char::is_uppercase);
-        let dotted = word.contains('.');
         let mut parses = self.analyze(word);
-        parses.retain(|p| {
-            !p.nonstandard
-                && !p.not_tdk
-                && !rare_path(p)
-                && !(lower_case && lower_case_name(p, dotted))
-        });
+        parses.retain(standard_reading(word));
         parses
     }
 
@@ -1278,12 +1271,7 @@ impl TurkishMorphology {
         word: &str,
         keep: impl Fn(&MorphParse) -> bool,
     ) -> Option<i32> {
-        let capitalised = prior_capitalised(word);
-        self.analyze_standard(word)
-            .iter()
-            .filter(|p| keep(p))
-            .map(|p| PRIOR.log_p(p, capitalised))
-            .max()
+        readings_log_prior(word, self.analyze_standard(word).iter().filter(|p| keep(p)))
     }
 
     pub(super) fn analyze_unranked(&self, word: &str) -> Vec<MorphParse> {
@@ -2858,6 +2846,25 @@ fn rare_path(p: &MorphParse) -> bool {
             && after("Gen", &|t: &str| t.starts_with("Cop") || second_person(t))
             && tags.iter().any(|t| second_person(t)))
         || (has("FeelLike") && has("P2sg"))
+}
+
+/// Whether a reading of `word` is one [`TurkishMorphology::analyze_standard`] keeps, for a caller
+/// that has the word's [`analyze`](TurkishMorphology::analyze) readings already.
+pub(crate) fn standard_reading(word: &str) -> impl Fn(&MorphParse) -> bool {
+    let lower_case = !word.chars().any(char::is_uppercase);
+    let dotted = word.contains('.');
+    move |p| {
+        !p.nonstandard && !p.not_tdk && !rare_path(p) && !(lower_case && lower_case_name(p, dotted))
+    }
+}
+
+/// [`TurkishMorphology::spelling_log_prior`] of `word` over the standard readings given.
+pub(crate) fn readings_log_prior<'a>(
+    word: &str,
+    readings: impl Iterator<Item = &'a MorphParse>,
+) -> Option<i32> {
+    let capitalised = prior_capitalised(word);
+    readings.map(|p| PRIOR.log_p(p, capitalised)).max()
 }
 
 /// Whether a reading of a word written all in lower case is a name's that the spelling does not

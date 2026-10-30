@@ -189,6 +189,16 @@ an unknown tag or a form the morphotactics cannot build, where 0.8.0 echoed the 
 readability metrics (Kalyoncu word lists and grade), and PII masks (leak fixes) give
 different results.
 
+**Named entities.** `extract_entities` finds persons, places and organisations with a trained
+tagger (see *Changed*), so its `PER`, `LOC` and `ORG` entities differ from 0.8.0's:
+- places are `LOC`, not `PER`;
+- a name ends before the suffix after its apostrophe;
+- organisations no longer need a listed last word.
+
+`DATE`, `MONEY` and `PERCENT` come from the same patterns as before, and so do streets,
+squares and buildings (`LOC`), which now take in the name before their last word
+(`Mustafa Kemal Paşa Caddesi`) and end before its suffix.
+
 **Dependency trees.** `parse_conllu`, `analyze()` and `TurkishDependencyParser` give other
 trees, closer to UD Turkish: on the UD Turkish test splits (`scripts/parser_ud_eval.py`) UAS
 rose from 48.5 to 55.9 and LAS from 34.8 to 41.9.
@@ -226,9 +236,12 @@ them passes it.
 
 - `scripts/ner_eval.py`: the NER's persons, places and organisations against Turkish WikiNER's
   gold types (Turkish NLP Suite, CC BY-SA 4.0, pinned in `scripts/morph_sources.json`; its test
-  split is for evaluation only). 0.9.0 on the test split: PER precision 0.542, recall 0.239, F1
-  0.331; LOC 0.634, 0.380, 0.475; ORG 0.500, 0.044, 0.081 (0.8.0's NER with 0.9.0's analyzer:
-  PER 0.251, 0.445, 0.321; LOC F1 0.009).
+  split is for evaluation only). `LOC` counts WikiNER's GPE, LOC and FAC (facilities: streets,
+  squares, buildings), as akana's `LOC` has them. 0.9.0 on the test split: PER precision 0.728,
+  recall 0.803, F1 0.764; LOC 0.755, 0.675, 0.713; ORG 0.713, 0.428, 0.535 (0.8.0's NER with
+  0.9.0's analyzer: PER 0.251, 0.445, 0.321; LOC F1 0.027; ORG 0.081).
+- `scripts/prepare_wikiner.py`: WikiNER's splits as the NER tagger's trainer reads them (token
+  and BIO tag per line), for retraining the tagger after a change to the lexicon or the prior.
 - `scripts/benchmark_court_known_item.py`: court known-item retrieval, a decision's own summary
   section (an AYM application's subject, a norm review's subject, Danıştay's İstemin Özeti,
   Yargıtay's opening "Dava, ..." sentence) as the query and the rest of the decision as the
@@ -346,29 +359,49 @@ them passes it.
     accusative (`Bu filmi beğendim`). A word written in lower case is a name only where it
     reads as nothing else (`mimarlık`, `güler`, `kadri` read as words, where a corpus name
     ranked first; `ankara` stays Ankara), as `analyze_standard` already judged it.
-- **NER.** Persons and places. A person's name is a given name or surname of the PII lexicon
-  (with `Bay`, `Bayan`, `Lord` among the titles), a place a province, a district, or a country,
-  region or city abroad, now tagged `LOC` (`Ankara`, `Almanya`, `Ankara'ya`); every proper noun
-  of the lexicon was a person's name, places, organisations and nationalities included. A name
-  ends before the suffix after its apostrophe, which no longer hides it (`Kaya'nın`: `Kaya`), and
-  a person's name ends before a place (`Ahmet Yılmaz Ankara'da`). At a sentence's start, where a
-  capital says nothing, a listed name that is also a common word is a person with a suffix after
-  its apostrophe, before another name, beside a title or once the text has named the person in
-  full; before the head of a compound it is the word (`Kaya parçaları`, `Barış antlaşması`);
-  otherwise it is a person when it is rare as a word (`Kerem`, `Hakan`) and not when it is
-  frequent (`Güzel`, `Tatlı`, `Demir`), by the corpus prior of its common reading (-14 nats,
-  chosen on the UD Turkish train and dev sentences). On the held-out UD sentences (the test files
-  and IMST: news, essays, fiction, tourism ...): person entities on words UD does not tag PROPN
-  551 in 0.8.0 to 138, places tagged as persons 217 to 7 (574 places tagged `LOC`); F1 of
-  persons among the listed names 0.741 to 0.884 at a sentence's start and 0.827 to 0.853 inside.
-  Fewer proper nouns are persons (49 % to 28 % of those inside a sentence that are no place):
-  most were organisations, nationalities or other places, some were persons akana does not list
-  (a surname alone: `Kapusuz`). A rare word that is a surname may still be a person at a
-  sentence's start (`Durmaz bir koşu`). On Turkish WikiNER's test split (`scripts/ner_eval.py`,
-  gold types): PER precision 0.251 to 0.542 and recall 0.445 to 0.239 (F1 0.321 to 0.331; the
-  persons of Wikipedia text are often foreign names and surnames akana does not list), LOC F1
-  0.009 to 0.475. A logistic model of the sentence-initial decision, trained on UD and WikiNER,
-  did no better than this rule on either test set and is not used.
+- **NER.** Persons (`PER`), places (`LOC`) and organisations (`ORG`) come from a trained
+  tagger: a structured averaged perceptron over BIO tags with Viterbi decoding
+  (`ner/model.rs`). It was trained on Turkish WikiNER's train split (Turkish NLP Suite, CC BY-SA
+  4.0), with its epoch chosen on the validation split. Its weights, `ner/model.tsv.gz`, are
+  DERIVED FROM CC BY-SA DATA (see THIRD_PARTY_NOTICES). Its features read:
+  - the word, its shape and affixes, and the suffix after its apostrophe;
+  - its place in the sentence and the words around it;
+  - the PII name and place lists, and titles;
+  - the analyzer: a common reading, the likeliest part of speech, a proper-noun reading, and
+    how frequent the word is.
+
+  Dates, amounts and percentages stay patterns, and a name the tagger finds over one is left
+  out. So do streets, squares and buildings, by their last word (`Kızılay Meydanı`, `İstanbul
+  Havalimanı'na`, `Mustafa Kemal Paşa Caddesi`), which the tagger leaves out: WikiNER keeps
+  facilities apart from places. A tagger trained with them as places lost ORG F1 on the
+  validation split and is not used.
+
+  0.8.0 made every proper noun of the lexicon a person, places and organisations included, and
+  a suffix hid a name (`Kaya'nın`). Now:
+  - places are `LOC`, and a name ends before the suffix after its apostrophe (`Ankara'ya`:
+    `Ankara`; `Kaya'nın`: `Kaya`);
+  - an organisation needs no listed last word (`Orta Doğu Teknik Üniversitesi`);
+  - a name that is also a common word is the word at a sentence's start (`Kaya parçaları`,
+    `Erdem insanın en güzel süsüdür`), and a person beside another name, a title or a suffix.
+
+  Measured results:
+  - On WikiNER's test split (`scripts/ner_eval.py`, exact spans, facilities counted as
+    places), F1 changes from 0.8.0's rules with this analyzer: PER 0.321 to 0.764 (precision
+    0.728, recall 0.803), LOC 0.027 to 0.713, ORG 0.081 to 0.535.
+  - On the held-out UD sentences (the test files and IMST: news, essays, fiction, tourism
+    ...), persons on words UD does not tag PROPN go from 551 to 129, and places tagged as
+    persons from 217 to 6.
+  - A rule set first built for this release replaced 0.8.0's rules before the tagger. It used
+    the PII lists, titles and a corpus-prior test for a name at a sentence's start, and reached
+    PER 0.331, LOC 0.466 and ORG 0.081 on the same split.
+  - NER runs at 1.1 to 1.3 MB/s on news text (1 MB of RagTurk, each thread caching the words it
+    has read), where those rules ran at about 10 MB/s. The first call loads the tagger (about
+    40 ms).
+
+  Limits: names of courts with an ordinal are not found (`Yargıtay 3. Hukuk Dairesi`; nor were
+  they before), nor buildings whose last word is not listed (`Çankaya Köşkü`). The tagger reads the analyzer, so a change to the lexicon or the prior calls for
+  retraining it: `scripts/prepare_wikiner.py`, then the ignored test `train_ner_model`, in under
+  two minutes.
 - **Tokenizer.** A number, date or time keeps its suffixes after an apostrophe in one token
   (`1924'te`, `17.00'ye`), as a name does, and an abbreviation in capitals keeps the suffixes
   court decisions write after its period (`TCK.nun`, `HMK.'ya`; not `A.Ş.vekili`). NER

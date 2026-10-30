@@ -5,9 +5,10 @@
 with akana importable, from the repository root, after `python scripts/fetch_morph_sources.py
 --only turkish-wikiNER` (CC BY-SA 4.0; the test split is for evaluation only). WikiNER's tokens
 are joined with spaces into the text; an entity matches when its type and its span of tokens are
-the gold's. PER is WikiNER's PERSON, LOC its GPE and LOC, ORG its ORG; its other types (dates,
-amounts, works ...) are left out, as are akana's DATE, MONEY and PERCENT. An akana entity covers
-the tokens its characters overlap (a name that ends before its suffix covers the whole word).
+the gold's. PER is WikiNER's PERSON, LOC its GPE, LOC and FAC (facilities: streets, squares,
+buildings), ORG its ORG; its other types (dates, amounts, works ...) are left out, as are akana's
+DATE, MONEY and PERCENT. An akana entity covers the tokens its characters overlap (a name that
+ends before its suffix covers the whole word).
 """
 
 import argparse
@@ -18,7 +19,7 @@ from pathlib import Path
 import akana
 
 ROOT = Path(__file__).resolve().parent.parent
-TYPES = {"PERSON": "PER", "GPE": "LOC", "LOC": "LOC", "ORG": "ORG"}
+TYPES = {"PERSON": "PER", "GPE": "LOC", "LOC": "LOC", "FAC": "LOC", "ORG": "ORG"}
 
 
 def gold_spans(tokens: list[str], tags: list[str]) -> set[tuple[str, int, int]]:

@@ -97,7 +97,31 @@ Changes:    no text is shipped. The list holds the 31 verb roots that a bare nou
             train splits (scripts/parser_ud_eval.py --light-verbs).
 
 -------------------------------------------------------------------------------------------------
-3. Sources approved for use, from which nothing ships yet
+3. Turkish WikiNER (Turkish NLP Suite)
+-------------------------------------------------------------------------------------------------
+
+Source:     https://huggingface.co/datasets/turkish-nlp-suite/turkish-wikiNER, revision
+            99df1dd7f5a01d39cd5903e51e361d708cb2a5a6: the train and validation splits (the test
+            split is used for evaluation only). Wikipedia sentences sampled from the Kuzgunlar
+            NER dataset and annotated again by Co-one.
+Authors:    Duygu Altinok (Altinok 2023, "A Diverse Set of Freely Available Linguistic Resources
+            for Turkish", Proceedings of the 61st Annual Meeting of the Association for
+            Computational Linguistics (Volume 1: Long Papers), 13739-13750,
+            https://aclanthology.org/2023.acl-long.768).
+Licence:    Creative Commons Attribution-ShareAlike 4.0 International,
+            https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Shipped as: crates/akana-core/src/ner/model.tsv.gz, compiled into the library.
+            DERIVED FROM CC BY-SA DATA: it is distributed under CC BY-SA 4.0.
+Changes:    no sentence is shipped. The file holds the weights of the named-entity tagger
+            (crates/akana-core/src/ner/model.rs, trained by its ignored test train_ner_model on
+            what scripts/prepare_wikiner.py writes): a weight per tag for each feature seen more
+            than once in training (a word, its first or last letters, its shape, a word next to
+            it, ...). WikiNER's PERSON entities are its PER, GPE and LOC its LOC, ORG its ORG;
+            the other types are left out.
+
+-------------------------------------------------------------------------------------------------
+4. Sources approved for use, from which nothing ships yet
 -------------------------------------------------------------------------------------------------
 
 - Google Research turkish-morphology lexicon (Apache License 2.0), commit 83d4b967.

@@ -90,6 +90,16 @@ pub(crate) fn is_person_name(lower: &str) -> bool {
         && !DEMONYMS.contains(&lower)
 }
 
+/// Whether `lower` (lower-cased, without a suffix) is a surname of the PII lexicon.
+pub(crate) fn is_surname(lower: &str) -> bool {
+    LEXICON.surnames.contains(lower)
+}
+
+/// Whether `lower` (lower-cased, without a suffix) is a nationality or demonym (Türk, Alman).
+pub(crate) fn is_demonym(lower: &str) -> bool {
+    DEMONYMS.contains(&lower)
+}
+
 /// Whether `lower` (lower-cased, without a suffix) is a place: a province, a district, or a
 /// country, region or city abroad.
 pub(crate) fn is_place_name(lower: &str) -> bool {

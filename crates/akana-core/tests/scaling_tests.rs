@@ -210,6 +210,25 @@ fn ner_capitalised_runs() {
             TurkishNER::extract_entities(t);
         },
     );
+    // The tagger's sentence-start feature looked back over every token before a word: a long
+    // sentence of numbers before its first word.
+    assert_linear(
+        "numbers before a word",
+        2_000,
+        |n| format!("{}Zxqy geldi.", "12 ".repeat(n)),
+        |t| {
+            TurkishNER::extract_entities(t);
+        },
+    );
+    // Names beside amounts and streets: each name against each pattern's entity was quadratic.
+    assert_linear(
+        "names beside patterns",
+        500,
+        |n| "Ahmet Yılmaz 5 TL verdi, Zxqy Caddesi'nde. ".repeat(n),
+        |t| {
+            TurkishNER::extract_entities(t);
+        },
+    );
 }
 
 // ------------------------------------------------------------------- morphology

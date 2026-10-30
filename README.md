@@ -105,7 +105,7 @@ runs of the same script on 0.9.0, from Python, on a laptop CPU.
 | **Tokenization (Zero-Allocation)** | ~230 words/sec | **`949,991 tokens/sec`** | **>4,000x faster** (<21 ms for 19.5k tokens) |
 | **Informal Normalization** | N/A | **`36,222 words/sec`** | **High Throughput** (Zero-Regex Suffix Matching) |
 | **AI Writing Style Audit** | N/A | **`54,700 words/sec`** | **StringZilla SIMD** rules + trained AI-text detector (10.2k words in 187 ms with `benchmarks/benchmark_stringzilla_optimizations.py`; the rules alone run at ~120k words/sec in the same script on the same machine) |
-| **Named Entity Recognition (NER)** | N/A | **`1.14 MB/sec`** | **Linear Token Stream** (1,500 entities in 37 ms) |
+| **Named Entity Recognition (NER)** | N/A | **`1.1–1.3 MB/sec`** | trained tagger (averaged perceptron, Viterbi) for persons, places and organisations, patterns for dates, amounts and streets: 1 MB of RagTurk news, words cached per thread (the benchmark script's repeated sentence: ~3.6 MB/s). WikiNER test F1: PER 0.76, LOC 0.71, ORG 0.54 (`scripts/ner_eval.py`) |
 | **Grammar Checking (GED/GEC)** | ~22–55 sent/s (Neural) | **`~7,000 sent/s`** | default rules; the 20,769 GECTurk test sentences in 2.7–3.0 s from Python (`tests/benchmark_real_data.py`, three runs on a laptop CPU). With the experimental agreement rules, which run the disambiguator: ~1,650 sent/s |
 | **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
 | **Sentence Chunking** | N/A | **`1,120,000 words/sec`** | **Zero-Allocation Slicing** (<3 ms / doc) |

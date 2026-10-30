@@ -63,6 +63,10 @@ fn a_name_that_is_also_a_word_is_no_person_at_a_sentences_start_alone() {
         "Ateş düştüğü yeri yakar.",
         "Tatlı yemeyi çok severim.",
         "Yazıcı yine bozuldu. Balıkçı teknesi battı.",
+        // The rules made these persons: names rare enough as words (0.9.0 before the tagger).
+        "Erdem insanın en güzel süsüdür.",
+        "Onaran ekip yolu açtı.",
+        "Esen rüzgâr serinletti.",
     ] {
         assert!(persons(text).is_empty(), "{text}: {:?}", persons(text));
     }
@@ -103,6 +107,51 @@ fn places_are_no_persons_and_a_name_ends_before_its_suffix() {
     // Translated news: Bay Gorbaçov; a nationality is no person (Türk gençleri).
     assert_eq!(ents("Bay Gorbaçov konuştu."), ["Gorbaçov/PER"]);
     assert!(ents("Türk gençleri sahneye çıktı.").is_empty());
+}
+
+#[test]
+fn organisations_and_patterns_beside_names() {
+    let ents = |text: &str| -> Vec<String> {
+        TurkishNER::extract_entities(text)
+            .into_iter()
+            .map(|e| format!("{}/{}", e.text, e.label))
+            .collect()
+    };
+    // Organisations are the tagger's, with names that end in no listed word.
+    assert_eq!(
+        ents("Orta Doğu Teknik Üniversitesi öğrencileri Ankara'da toplandı."),
+        ["Orta Doğu Teknik Üniversitesi/ORG", "Ankara/LOC"]
+    );
+    assert_eq!(
+        ents("Prof. Dr. Ahmet Yılmaz 16 Ağustos 2026 tarihinde İstanbul Üniversitesi bünyesinde 500 TL ödeme yaptı."),
+        [
+            "Ahmet Yılmaz/PER",
+            "16 Ağustos 2026/DATE",
+            "İstanbul Üniversitesi/ORG",
+            "500 TL/MONEY"
+        ]
+    );
+    // Streets, squares and buildings, which the tagger leaves out, are places by their last
+    // word; the place takes in the name before it, and a title there.
+    assert_eq!(
+        ents("Dün Kızılay Meydanı'nda buluştuk."),
+        ["Kızılay Meydanı/LOC"]
+    );
+    assert_eq!(
+        ents("Uçak İstanbul Havalimanı'na indi."),
+        ["İstanbul Havalimanı/LOC"]
+    );
+    assert_eq!(
+        ents("Mustafa Kemal Paşa Caddesi kapandı."),
+        ["Mustafa Kemal Paşa Caddesi/LOC"]
+    );
+    assert_eq!(ents("Ahmet'in köyü uzak."), ["Ahmet/PER"]);
+    // Dates, amounts and percentages are the patterns'; a name the tagger finds over one of
+    // them is left out.
+    assert_eq!(
+        ents("Cuma günü Ahmet geldi."),
+        ["Cuma günü/DATE", "Ahmet/PER"]
+    );
 }
 
 #[test]
