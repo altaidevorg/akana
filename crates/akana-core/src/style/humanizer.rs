@@ -10,6 +10,7 @@ use std::fmt::Write as _;
 
 use super::ai_detector::{
     ai_signals, pct, sections, signal_sentence, AiDetection, AiPattern, AiSignal, PatternKind,
+    MORPH_INPUT_PREFIX,
 };
 use super::detector::{StyleAuditReport, TurkishStyleAuditor};
 
@@ -38,6 +39,13 @@ const NO_ADVICE: &[&str] = &[
     "heaps_exponent",
     "compression_ratio",
 ];
+
+/// Whether an input is no writing advice: [`NO_ADVICE`], and every morphology-profile input
+/// (`m_*`: how often words take a part of speech or a morpheme), which no instruction moves
+/// towards human text without distorting it.
+fn is_no_advice(key: &str) -> bool {
+    NO_ADVICE.contains(&key) || key.starts_with(MORPH_INPUT_PREFIX)
+}
 
 /// Inputs that share one instruction.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -120,7 +128,7 @@ fn detector_instructions(d: &AiDetection) -> Vec<String> {
     let mut instructions = Vec::new();
     let mut groups_done: Vec<AdviceGroup> = Vec::new();
     let signals = ai_signals(d)
-        .filter(|s| !NO_ADVICE.contains(&s.key.as_str()))
+        .filter(|s| !is_no_advice(&s.key))
         .take(MAX_DETECTOR_RULES);
     for s in signals {
         match AdviceGroup::of(&s.key) {
@@ -397,14 +405,35 @@ mod tests {
         let d = detect(AI_TEXT);
         assert!(d.is_ai());
         for line in detector_instructions(&d) {
-            for s in d
-                .signals
-                .iter()
-                .filter(|s| NO_ADVICE.contains(&s.key.as_str()))
-            {
+            for s in d.signals.iter().filter(|s| is_no_advice(&s.key)) {
                 assert!(!line.contains(&format!("**{}**", s.name)), "{line}");
             }
         }
+    }
+
+    #[test]
+    fn morphology_inputs_never_become_instructions() {
+        let mut d = detect(AI_TEXT);
+        assert!(d.is_ai());
+        let strong = |key: &str| AiSignal {
+            key: key.into(),
+            name: "Edilgen fiil (-il-)".into(),
+            value: 6.0,
+            ai_mean: 5.0,
+            human_mean: 1.0,
+            contribution: 3.0,
+        };
+        let mentions = |d: &AiDetection| {
+            detector_instructions(d)
+                .iter()
+                .any(|l| l.contains("**Edilgen fiil (-il-)**"))
+        };
+        // The same signal under an advisable key does become an instruction...
+        d.signals.insert(0, strong("sent_len_mean"));
+        assert!(mentions(&d));
+        // ...but never as a morphology-profile input.
+        d.signals[0] = strong("m_Pass");
+        assert!(!mentions(&d));
     }
 
     #[test]

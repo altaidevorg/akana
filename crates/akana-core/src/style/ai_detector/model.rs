@@ -18,9 +18,10 @@ use std::sync::LazyLock;
 
 use serde::Deserialize;
 
-/// Number of model inputs: 68 content features, 5 pattern features and 2 token-transition
-/// features.
-pub(super) const N_INPUTS: usize = 75;
+/// Inputs every model reads: 68 content features, 5 pattern features and 2 token-transition
+/// features (`model_loads` checks the embedded model has each). A model may read
+/// morphology-profile inputs ([`super::profile`]) besides.
+pub(super) const N_BASE_INPUTS: usize = 75;
 
 /// One model input with its standardisation and the texts shown in reports.
 #[derive(Debug, Deserialize)]
@@ -138,9 +139,9 @@ pub(super) static MODEL: LazyLock<Model> = LazyLock::new(|| {
 impl Model {
     /// Checks the invariants the evaluation code indexes by.
     fn validate(&self) -> Result<(), String> {
-        if self.features.len() != N_INPUTS {
+        if self.features.len() < N_BASE_INPUTS {
             return Err(format!(
-                "{} inputs, expected {N_INPUTS}",
+                "{} inputs, expected at least {N_BASE_INPUTS}",
                 self.features.len()
             ));
         }
@@ -167,7 +168,7 @@ impl Model {
                 && t.internal_value.len() == n
                 && t.leaf_value.len() == n + 1;
             if !shapes_ok
-                || t.split_feature.iter().any(|&f| f >= N_INPUTS)
+                || t.split_feature.iter().any(|&f| f >= self.features.len())
                 || !(0..n).all(|k| ok_child(k, t.left[k]) && ok_child(k, t.right[k]))
                 || !t
                     .threshold
@@ -206,7 +207,7 @@ impl Model {
 
     /// Per-input path contributions (model input order); `bias() + Σ == raw_score()`.
     pub fn contributions(&self, z: &[f64]) -> Vec<f64> {
-        let mut out = vec![0.0; N_INPUTS];
+        let mut out = vec![0.0; self.features.len()];
         for t in &self.trees {
             t.contribute(z, &mut out);
         }

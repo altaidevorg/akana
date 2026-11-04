@@ -165,6 +165,9 @@ pub fn morphotactics_graph() -> &'static Graph {
 
 /// Whether a tag of [`MorphParse::morpheme_tags`] is a derivation (it opens a new
 /// inflectional group: Ness, With, Inf, PastPart, AdvErek, Caus, ...).
+///
+/// The style auditor's AI-text detector counts derivations as a model input: changing this
+/// set shifts its inputs and fails `style::ai_detector::tests::inputs_match_drift_canary`.
 pub fn is_derivational_tag(tag: &str) -> bool {
     DERIVATIONAL_TAGS.contains(&tag)
 }
@@ -1018,6 +1021,11 @@ impl TurkishMorphology {
 
     /// Analyzes a surface word and returns all valid morphological parses, the most likely
     /// first.
+    ///
+    /// The style auditor's AI-text detector reads the best parse's POS and morpheme tags as
+    /// model inputs (its morphology profile): a change to the lexicon, the morphotactics, the
+    /// tag names or the ranking shifts them and fails
+    /// `style::ai_detector::tests::inputs_match_drift_canary`.
     pub fn analyze(&self, word: &str) -> Vec<MorphParse> {
         let mut parses = self.analyze_unranked(word);
         if self.prior && parses.len() > 1 {
