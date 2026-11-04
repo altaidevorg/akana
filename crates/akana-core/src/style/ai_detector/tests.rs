@@ -6,7 +6,30 @@ use crate::embeddings::TOKENIZER;
 
 #[test]
 fn model_loads() {
-    assert_eq!(MODEL.features.len(), N_INPUTS);
+    // The model reads every content, pattern and token-transition input, then the profile's.
+    let keys = model_input_keys();
+    for key in FEATURE_NAMES
+        .iter()
+        .chain(&PATTERN_INPUTS)
+        .chain(&TOKEN_INPUTS)
+    {
+        assert!(keys.contains(key), "{key} is not a model input");
+    }
+    assert_eq!(
+        keys.len() - model::N_BASE_INPUTS,
+        keys.iter()
+            .filter(|k| k.starts_with(profile::INPUT_PREFIX))
+            .count()
+    );
+    assert_eq!(SOURCES.len(), MODEL.features.len());
+    // Every input has a Turkish name and description for the report.
+    for f in &MODEL.features {
+        assert!(
+            f.name != f.key && !f.desc.is_empty(),
+            "{} has no name",
+            f.key
+        );
+    }
     assert!(MODEL.threshold > 0.5 && MODEL.threshold < 1.0);
     assert!(!MODEL.patterns.is_empty());
 }
@@ -163,7 +186,7 @@ fn outputs_match_training_reference() {
     ))
     .expect("valid reference file");
     // Every input is non-zero in at least two rows, so drift in any of them shows up.
-    for k in 0..N_INPUTS {
+    for k in 0..MODEL.features.len() {
         let nonzero = file.rows.iter().filter(|r| r.x[k] != 0.0).count();
         assert!(
             nonzero >= 2,
@@ -424,7 +447,7 @@ fn rewrite_drift_canary() {
     };
     history.push(entry);
     let head = CanaryHead {
-        about: "The AI-text detector's 75 inputs (x, model input order), probability (p) and \
+        about: "The AI-text detector's inputs (x, model input order), probability (p) and \
                 verdict on paragraphs of 15 consecutive sentences of grammar_clean_court.txt \
                 (CC0) and the paragraphs of ai_detector_canary_texts.txt, alone and in fours, \
                 computed by the Rust implementation, and a fingerprint of the lexicon word sets \
@@ -439,4 +462,86 @@ fn rewrite_drift_canary() {
         out += &(serde_json::to_string(row).expect("serialisable") + "\n");
     }
     std::fs::write(CANARY_PATH, out).expect("writable canary");
+}
+
+/// Writes the inputs this build computes for a set of texts, for retraining the model on them:
+/// `AKANA_AI_DETECTOR_DUMP_IN=<texts.jsonl> AKANA_AI_DETECTOR_DUMP_OUT=<inputs.jsonl> cargo test
+/// -p akana-core --release --lib -- --ignored dump_training_inputs`. Each input line is
+/// `{"id", "text"}` with the raw text, as `detect` receives it. The output's first line names
+/// the content features; each further line holds a text's content features (all of
+/// [`FEATURE_NAMES`]), its 5 pattern inputs, its word and distinct-word counts and whether it
+/// reads as a poem (no decision) or as academic text (a warning only), and its morphology
+/// profile counts ([`profile::MorphProfile`], with `words` and `tags`). The two
+/// token-transition inputs depend on the trained token model, so the training code computes them.
+#[test]
+#[ignore = "needs AKANA_AI_DETECTOR_DUMP_IN and AKANA_AI_DETECTOR_DUMP_OUT"]
+fn dump_training_inputs() {
+    #[derive(Deserialize)]
+    struct In {
+        id: String,
+        text: String,
+    }
+    #[derive(Serialize)]
+    struct Out<'a> {
+        id: &'a str,
+        content: Vec<f64>,
+        patterns: [f64; 5],
+        n_words: usize,
+        n_types: usize,
+        poem: bool,
+        academic: bool,
+        /// The morphology profile's counts ([`profile::MorphProfile::counts`]): `pos:<POS>`,
+        /// each morpheme tag after the root's, `deriv`, `unparsed`, `words` and `tags`.
+        morph: std::collections::BTreeMap<String, u32>,
+    }
+    let src = std::env::var("AKANA_AI_DETECTOR_DUMP_IN").expect("set AKANA_AI_DETECTOR_DUMP_IN");
+    let dst = std::env::var("AKANA_AI_DETECTOR_DUMP_OUT").expect("set AKANA_AI_DETECTOR_DUMP_OUT");
+    let rows: Vec<In> = std::fs::read_to_string(src)
+        .expect("readable input")
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| serde_json::from_str(l).expect("valid input line"))
+        .collect();
+    let threads = std::thread::available_parallelism().map_or(1, |n| n.get());
+    let chunk = rows.len().div_ceil(threads).max(1);
+    let lines: Vec<String> = std::thread::scope(|s| {
+        let handles: Vec<_> = rows
+            .chunks(chunk)
+            .map(|part| {
+                s.spawn(move || {
+                    part.iter()
+                        .map(|r| {
+                            let clean = preprocess(&r.text);
+                            let content = content_features(&clean);
+                            let kind = scope::out_of_scope(&r.text).map(|w| w.kind);
+                            let row = Out {
+                                id: &r.id,
+                                content: content.to_array().to_vec(),
+                                patterns: pattern_features(&found_patterns(&r.text)),
+                                n_words: content.n_words,
+                                n_types: content.n_types,
+                                poem: kind == Some(ScopeKind::Poem),
+                                academic: kind == Some(ScopeKind::Academic),
+                                morph: profile::morph_profile(&clean).counts(),
+                            };
+                            serde_json::to_string(&row).expect("serialisable")
+                        })
+                        .collect::<Vec<_>>()
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .flat_map(|h| h.join().expect("worker finished"))
+            .collect()
+    });
+    let mut out = serde_json::to_string(&serde_json::json!({ "names": FEATURE_NAMES }))
+        .expect("serialisable")
+        + "\n";
+    for line in &lines {
+        out += line;
+        out.push('\n');
+    }
+    std::fs::write(dst, out).expect("writable output");
+    println!("wrote inputs of {} texts", lines.len());
 }

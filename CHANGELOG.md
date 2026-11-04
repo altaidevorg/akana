@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.1 (unreleased)
+
+The AI-text detector is retrained and reads a morphology profile from the analyzer; its
+probabilities, verdicts and threshold change. Nothing else changes.
+
+### Changed
+
+**AI-text detector.** The model (`akana_v3`) is retrained on the inputs 0.9.0's lexicon,
+sentence segmenter and analyzer give it, and reads 15 more: a morphology profile from the
+analyzer's best reading of each word (tenses, the copula, cases, voice, participles, person,
+derivations, parts of speech and unparsed words, per 100 words). Its training adds OpenAI news
+texts to the OpenAI and Claude answers. Probabilities and verdicts change, and the threshold is
+0.933 (0.9.0: 0.842): it flags 1% of the human texts of its own calibration set (forums,
+essays, news, legal and short texts it decides on, academic writing left out), where 0.9.0
+flagged about 3.6% of them. On the held-out OpenAI evaluation set, through `audit_ai_style`, it
+flags 2,316 of the 2,417 AI texts it decides on (0.9.0: 2,305) and 1 of the 1,289 human texts
+(0.9.0: 2); on human academic abstracts, 18 of 483 (0.9.0: 58). The embedded data grows by
+15 KB to 3.5 MB. The profile makes `audit_ai_style` about 1.5 times slower on distinct texts
+(1,500 of the evaluation set: 65,000 to 85,000 words a second against 105,000 to 130,000 with
+the previous model); each thread keeps the analyses of up to 20,000 words, so repeated words
+cost less. The detector reads the shared lexicon, the sentence segmenter and the morphological
+analyzer, so a change to one of them moves its inputs. A drift canary records the inputs on 160
+texts (court paragraphs, and questions, exclamations, ellipses, assistant-style answers and
+other shapes court text lacks) and the lexicon word sets, and fails when one moves, so each
+such change is recorded on purpose (`tests/data/ai_detector_canary.jsonl`); a change that moves
+inputs only on texts unlike all of them passes it.
+
 ## 0.9.0 (unreleased)
 
 The morphology engine is rebuilt on Zemberek's design, the sparse and hybrid encoders now have

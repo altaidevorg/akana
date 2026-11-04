@@ -45,7 +45,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
 - **Turkish AI Writing Style Auditor & Humanizer Engine**:
   - Detects LLM writing signatures: punctuation anomalies (excessive em-dashes, semicolons with conjunctions, colons), predicate tense repetition (`-mektedir` ratio), rhythm monotony ($CV = \sigma / \mu$), bureaucratic connectors, translationese calques, tricolon lists, and hypophora questions.
   - Actionable prompt generation across 5 registers (*hukuki-idari, akademik-kurumsal, analitik-gazetecilik, deneme-blog, edebi-yaratıcı*).
-  - Trained AI-text detector in every audit report (`report.ai_detection`, next to the rule-based `ai_score`, which counts style findings): calibrated probability that the text is AI-written, from 500 gradient-boosted trees over 75 signals (content statistics, mined AI phrases such as *"Elbette"*, *"önemli bir rol oynar"*, token-transition scores over Akana's own embedding tokenizer), with a Turkish "why AI" report. On a held-out OpenAI evaluation set it flags about 95 of 100 AI texts long enough to judge (65+ words), at 1% false alarms on separate human texts. Not proof of authorship; poems get no decision, academic text a warning, shorter or highly repetitive texts are not judged.
+  - Trained AI-text detector in every audit report (`report.ai_detection`, next to the rule-based `ai_score`, which counts style findings): calibrated probability that the text is AI-written, from 500 gradient-boosted trees over 90 signals (content statistics, mined AI phrases such as *"Elbette"*, *"önemli bir rol oynar"*, token-transition scores over Akana's own embedding tokenizer, and a morphology profile from Akana's analyzer: parts of speech, cases, tenses, voice, participles), with a Turkish "why AI" report. On a held-out OpenAI evaluation set it flags about 96 of 100 AI texts long enough to judge (65+ words), at 1% false alarms on separate human texts outside academic writing. Not proof of authorship; poems get no decision, academic text a warning, shorter or highly repetitive texts are not judged.
   - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
   - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.9 % of words to the right head (UAS) and 41.9 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.8 against 51.3) none. Trained parsers do much better: use it for rough structure.
@@ -104,7 +104,7 @@ runs of the same script on 0.9.0, from Python, on a laptop CPU.
 | **Morphological Parse (10.5k words)** | `55,349.7 ms` (55.3s) | **`178.7 ms`** | **~310x faster** (`58,760 words/sec`; 42k–63k over three runs) |
 | **Tokenization (Zero-Allocation)** | ~230 words/sec | **`949,991 tokens/sec`** | **>4,000x faster** (<21 ms for 19.5k tokens) |
 | **Informal Normalization** | N/A | **`36,222 words/sec`** | **High Throughput** (Zero-Regex Suffix Matching) |
-| **AI Writing Style Audit** | N/A | **`54,700 words/sec`** | **StringZilla SIMD** rules + trained AI-text detector (10.2k words in 187 ms with `benchmarks/benchmark_stringzilla_optimizations.py`; the rules alone run at ~120k words/sec in the same script on the same machine) |
+| **AI Writing Style Audit** | N/A | **`44,000 words/sec`** | **StringZilla SIMD** rules + trained AI-text detector with its morphology profile (10.2k words of one repeated paragraph in about 230 ms, 39k–46k words/sec over three runs, with `benchmarks/benchmark_stringzilla_optimizations.py`; the rules alone run at ~120k words/sec in the same script on the same machine) |
 | **Named Entity Recognition (NER)** | N/A | **`1.1–1.3 MB/sec`** | trained tagger (averaged perceptron, Viterbi) for persons, places and organisations, patterns for dates, amounts and streets: 1 MB of RagTurk news, words cached per thread (the benchmark script's repeated sentence: ~3.6 MB/s). WikiNER test F1: PER 0.76, LOC 0.71, ORG 0.54 (`scripts/ner_eval.py`) |
 | **Grammar Checking (GED/GEC)** | ~22–55 sent/s (Neural) | **`~7,000 sent/s`** | default rules; the 20,769 GECTurk test sentences in 2.7–3.0 s from Python (`tests/benchmark_real_data.py`, three runs on a laptop CPU). With the experimental agreement rules, which run the disambiguator: ~1,650 sent/s |
 | **Turkish Embeddings** | 79 sent/s (BGE-M3) | **`20,013 sent/s`** | **253x faster** (2.5 MB 2-bit TurboQuant) |
@@ -443,7 +443,7 @@ story = (  # Turkish Wikisource, public domain
     "dediğini yapmış. Neticede iki çuval birden suyun içine düşmüş."
 )
 detection = akana.audit_ai_style(story).ai_detection
-print(detection["verdict"], detection["ai_probability"])  # -> human 0.006… (ai / uncertain / human / too_short / out_of_scope)
+print(detection["verdict"], detection["ai_probability"])  # -> human 0.0029… (ai / uncertain / human / too_short / out_of_scope)
 print(detection["report"])  # Turkish "why AI" report
 
 # 10. High-Level Turkish NLP Suite

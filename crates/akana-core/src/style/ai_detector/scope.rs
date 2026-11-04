@@ -108,7 +108,7 @@ pub(super) fn out_of_scope(text: &str) -> Option<ScopeWarning> {
         return Some(ScopeWarning {
             kind: ScopeKind::Academic,
             message: "Bu metin akademik bir metin gibi görünüyor. Testlerimizde model akademik \
-                      özetlerde daha az güvenilir: insan özetlerinin yaklaşık %13'üne yanlış \
+                      özetlerde daha az güvenilir: insan özetlerinin yaklaşık %4'üne yanlış \
                       alarm verdi. Sonuca dikkatle bakın."
                 .into(),
         });
