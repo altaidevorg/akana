@@ -1,0 +1,132 @@
+{
+  "_doc": "Corrections to the adjudicated gold labels after a person reviewed every change against the teacher passes. Each entry removes values from a unit (matched by its text) or adds them.",
+  "test": [
+    {
+      "match": "olly benim favori fenerbahçe oyuncumdan",
+      "remove": [
+        {
+          "text": "olly",
+          "type": "PERSON"
+        }
+      ],
+      "why": "olly is the MASSIVE voice assistant's wake word, not a person"
+    },
+    {
+      "match": "Atam Sevgimiz kadar özlemle anıyoruz",
+      "remove": [
+        {
+          "text": "Atam",
+          "type": "PERSON"
+        }
+      ],
+      "why": "an epithet for Atatürk, not a written name"
+    },
+    {
+      "match": "(tescil EI-ABI)",
+      "remove": [
+        {
+          "text": "EI-ABI",
+          "type": "ID"
+        }
+      ],
+      "why": "an airline aircraft's registration, not a person's identifier"
+    }
+  ],
+  "dev": [
+    {
+      "match": "olly kiralık konak",
+      "remove": [
+        {
+          "text": "olly",
+          "type": "PERSON"
+        }
+      ],
+      "why": "olly is the MASSIVE voice assistant's wake word, not a person"
+    },
+    {
+      "match": "B. No: 2014/6500, 29/9/2016",
+      "remove": [
+        {
+          "text": "29/9/2016",
+          "type": "DATE"
+        },
+        {
+          "text": "25/1/2018",
+          "type": "DATE"
+        }
+      ],
+      "add": [
+        {
+          "text": "29/9/2016",
+          "type": "DATE",
+          "personal": true
+        },
+        {
+          "text": "25/1/2018",
+          "type": "DATE",
+          "personal": true
+        }
+      ],
+      "why": "the decision date of a named applicant's individual application is personal (guideline: a private person's hearing or application), as in the other citations of this set"
+    },
+    {
+      "match": "Sencer Başat ve diğerleri [GK], B. No: 2013/7800",
+      "remove": [
+        {
+          "text": "18/6/2014",
+          "type": "DATE"
+        }
+      ],
+      "add": [
+        {
+          "text": "18/6/2014",
+          "type": "DATE",
+          "personal": true
+        }
+      ],
+      "why": "as above"
+    }
+  ],
+  "_dev2": "dev2's entries come from reviewing, in the session that built dev2, every unit whose adjudicated list differs from what both teacher passes agreed on, before any model was run on dev2.",
+  "dev2": [
+    {
+      "match": "hıncal uluç",
+      "remove": [
+        {
+          "text": "hıncal uluçtan",
+          "type": "PERSON"
+        }
+      ],
+      "add": [
+        {
+          "text": "hıncal uluç",
+          "type": "PERSON",
+          "public": true
+        }
+      ],
+      "why": "the adjudicator kept the suffix 'tan', which follows a cp1252 apostrophe () the labellers do not see, so it is not part of the name"
+    },
+    {
+      "match": "şüpheli Y.G.nin",
+      "add": [
+        {
+          "text": "Y.G.nin",
+          "type": "PERSON",
+          "public": false
+        }
+      ],
+      "why": "initials with a suffix glued on without an apostrophe: the suffix stays, so the value is the whole word"
+    },
+    {
+      "match": "yabancı uyruklu E.E.A.ya",
+      "add": [
+        {
+          "text": "E.E.A.ya",
+          "type": "PERSON",
+          "public": false
+        }
+      ],
+      "why": "as above; the next paragraph of the same decision already has E.E.A.ya as the value"
+    }
+  ]
+}
