@@ -71,8 +71,9 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - **Selectable rules**: every rule has a stable id (`de-da-after-verb`, `mi-merged`, ...); choose them per checker or per call (`rules=`, `enable=`, `disable=`, `experimental=True` in Python; `RuleSet` in Rust; `--rules/--enable/--disable/--experimental` in the CLI). `akana.grammar_rules()` and `akana grammar --list-rules` list them.
   - **Diagnostics**: Turkish and English explanations, character offsets, the rule id, and the rule's measured precision as `confidence`.
 - **Turkish PII Masking & Bi-Directional Restoration (KVKK-Aligned)**:
-  - **50+ Turkish PII Categories**: Comprehensive recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum; IBAN, TCKN and VKN shapes after their trigger words are masked even when the checksum fails), Credit Card (Luhn check), Turkish and international person names and surnames (curated lists plus 4,592 given names from Zemberek; names that are also words, such as *Deniz* or *Metin*, need a title, a role, a surname or a capital in mid-sentence), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
-  - **Positive Private Date & URL Detection**: Accurately isolates private personal dates (birth dates, appointment schedules, billing due dates) without false positives on calendar holidays or campaign end dates. Recognizes private URLs containing sensitive authentication and session tokens.
+  - **Learned PII Tagger** (Rust and CLI, `pii-tagger` feature): two Turkish token classifiers, ELECTRA-small (fast mode) and BERTurk averaged with it (accurate mode), run on the CPU in pure Rust with [RTen](https://github.com/robertknight/rten). They find persons, usernames, addresses, phones, e-mails, personal URLs, identifiers, secrets and personal dates. The models are downloaded on first use from [`altaidevorg/akana-pii-tagger`](https://huggingface.co/altaidevorg/akana-pii-tagger) (CC BY-SA 4.0), checked and cached. Each mode has a strict operating point, calibrated so that on average at most 4% of a text's personal characters stay in clear. On held-out real Turkish text the accurate mode masks 93% of personal values completely, the rule engine 34% ([benchmark](#turkish-pii-detection-benchmark-held-out-sets)).
+  - **Rule Engine with 50+ Turkish PII Categories** (the default in Python, Rust and the CLI: `pii_mask`, `TurkishPiiEngine`): recognition of personal identity identifiers: TCKN (Turkish Republic ID with Modulo-10/11 algorithmic validation), VKN (Tax ID), IBAN (MOD-97 checksum; IBAN, TCKN and VKN shapes after their trigger words are masked even when the checksum fails), Credit Card (Luhn check), Turkish and international person names and surnames (curated lists plus 4,592 given names from Zemberek; names that are also words, such as *Deniz* or *Metin*, need a title, a role, a surname or a capital in mid-sentence), GSM and landline phones, Addresses, Passports, Driving Licenses, Vehicle Plates, VIN, IMEI, MAC, IP Addresses, Port numbers, Age/Age ranges, Blood types, Health conditions, Passwords, API tokens (OpenAI, Anthropic `sk-ant`, GitLab `glpat-`, GitHub PAT, HuggingFace `hf_`, Groq `gsk_`, npm `npm_`, Stripe, SendGrid, JWT, Bearer, PEM, Webhooks, Database URLs), and OTP codes.
+  - **Private Date & URL Detection**: Tells private dates (birth dates, appointments, billing due dates) from public ones (calendar holidays, campaign end dates) by the phrases around them, and recognizes private URLs that carry authentication or session tokens.
   - **Bi-Directional Restoration with Morphological Vowel Harmony**: Automatically tracks an in-memory or serializable mapping dictionary to restore masked entities losslessly, adapting case and possessive suffixes in downstream text according to Turkish 2-way and 4-way vowel harmony (e.g. `{{AD_1}}'a` $\rightarrow$ `Ahmet Yılmaz'a`, `{{AD_1}}'e` $\rightarrow$ `Mehmet Demir'e`). Supports conversational session continuity via `mask_with_vault` to persist identifiers across multi-turn dialogues.
   - **Multiple Masking Modes**:
     - `placeholder`: Standard structured tokens (`{{AD_1}}`, `{{TCKN_1}}`, `{{IBAN_1}}`) designed for clean downstream processing and 100% reversible restoration.
@@ -111,6 +112,7 @@ runs of the same script on 0.9.0, from Python, on a laptop CPU.
 | **Sentence Chunking** | N/A | **`1,120,000 words/sec`** | **Zero-Allocation Slicing** (<3 ms / doc) |
 | **Semantic Chunking (TurboQuant)** | ~80 words/sec (Neural) | **`62,500 words/sec`** | **~780x faster** (~40 ms for 200 sents) |
 | **Turkish PII Masking & Restoration** | N/A (Standard Regex / Spacy) | **`3,570 docs/sec`** | **Ultra-Fast KVKK Pipeline** (<0.28 ms / doc, 50+ entity types) |
+| **Learned PII Tagger (RTen)** | N/A | **`60–90 ms` per 2 KB** | fast mode (ELECTRA-small) on four laptop CPU threads; the accurate mode (with BERTurk) takes about 0.8 s per 2 KB |
 | **Hardware Acceleration** | Pure Python loops | **StringZilla AVX-512 / AVX2 / NEON** | **Native SIMD Instructions** |
 
 ### Morphological Analysis on Held-Out Treebanks (`scripts/ud_eval.py`)
@@ -274,7 +276,7 @@ An index stores what built it, and checks it when it is opened:
 import akana
 
 info = akana.encoder_info()   # save this dict next to the index when you build it
-# {'akana_version': '0.9.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
+# {'akana_version': '0.10.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
 #  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
 #  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 
@@ -308,11 +310,39 @@ The hybrid metric's alpha (`set_hybrid_metric_alpha`, `get_usearch_metric_pointe
 
 *In Section 6.1 of the RAGTurk paper, the authors explicitly highlight the need to: "(iv) study Turkish morphology-aware retrieval features (e.g., lemma-aware sparse retrieval, morphological analyzers)." Akana directly solves this challenge natively in Rust.*
 
-### Turkish PII Detection & Masking Benchmark (Saturday Labs, Belgin & BTX24 Datasets)
+### Turkish PII Detection Benchmark (Held-Out Sets)
 
-Span recall on three public Turkish PII datasets (a value counts as found when at least half of
-it is masked), measured with `scripts/benchmark_pii_datasets.py` from the local Hugging Face
-cache:
+Both PII detectors, scored with `scripts/pii_eval/run_all.py` on held-out sets that no rule or
+model was written, tuned or chosen on. A value counts as found only when the predicted span is
+the gold span (edge punctuation and an apostrophe suffix aside), and as masked only when every
+character of it is covered. *Rules* is the default engine (`pii_mask`, `TurkishPiiEngine`); the
+tagger's modes are those of `akana pii-tag` (see [CLI Usage](#cli-usage)).
+
+| Held-out set | Measure | Rules | Tagger, fast | Tagger, accurate | Fast, strict | Accurate, strict |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| **Real Turkish text** (1,617 units, 900 personal values) | values fully masked | 33.6% | 91.3% | 93.4% | 96.3% | **96.6%** |
+| | exact F1 | 0.452 | 0.876 | **0.926** | 0.785 | 0.870 |
+| | personal characters left in clear | 62.6% | 7.0% | 5.3% | **2.4%** | 2.6% |
+| | false alarms per 10k characters of PII-free text | 1.97 | 4.27 | **1.31** | 12.02 | 6.63 |
+| **yusuf-said** test part (3,537 synthetic texts) | exact F1 | 0.537 | 0.988 | **0.995** | 0.977 | 0.992 |
+| | PII-free texts flagged (898) | 52.4% | 5.8% | **2.3%** | 13.3% | 5.9% |
+| **Turkish WikiNER** test, person names (654) | fully masked | 26.3% | 93.0% | 94.3% | **97.9%** | 96.8% |
+
+*Real Turkish text*: court decisions, Wikipedia, news, tweets, product reviews, voice-assistant
+requests, chatbot prompts, social-media comments and maths word problems, held out by document,
+1,149 of the units without personal data; its gold labels come from independent labellings by
+Claude models, adjudicated and reviewed (`scripts/pii_data`). *yusuf-said*:
+[`yusuf-said/turkish-privacy-filter-dataset`](https://huggingface.co/datasets/yusuf-said/turkish-privacy-filter-dataset),
+a fixed 70% of its rows. The tagger misses one release gate of the PII audit by one date: its fast
+and accurate modes fully mask 51 of the 57 personal dates in real text (the strict modes 56),
+where 52 are needed. It is weakest on lower-case names in tweets and comments, and on bare numbers
+in counting contexts, which it can read as identifiers (below).
+
+**On the sets the rule engine was developed against.** The rules were written against Saturday
+Labs' rows (19 strings from them appear verbatim in the code and tests) and tuned on BTX24's
+test split and Belgin's training split, so their scores there are not held-out figures. Span
+recall (a value counts as found when at least half of it is masked), measured with
+`scripts/benchmark_pii_datasets.py` from the local Hugging Face cache:
 
 | Dataset | Values | Recall | Over-masked characters | Notes |
 | :--- | ---: | :---: | :---: | :--- |
@@ -323,6 +353,12 @@ cache:
 
 The previous version of this table (94.1% on 200 Saturday Labs samples) had no script behind it;
 on the same three datasets the 0.6.0 engine reaches 85.6%, 50.9% and 58.4%.
+
+The tagger learnt from BTX24's and Belgin's training splits, which share templates with their
+test splits (exact F1 1.000 on both). On Saturday Labs, scored on the values its labels cover, it
+reaches exact F1 0.896 (fast) and 0.929 (accurate) against the rules' 0.936, but flags 37% of the
+200 PII-free rows, where the rules flag 5.5%: bare numbers in counting contexts (a fleet size, a
+password length) read as identifiers.
 
 * 🛡️ **KVKK Compliance**: Algorithmic validation for Turkish IDs (TCKN, VKN, IBAN, Driving License, Plate) prevents false positives while capturing authentic identifiers.
 * 🔄 **100% Reversible Restoration**: Restores anonymized text losslessly with Turkish morphological vowel harmony adjustment on inflected suffixes.
@@ -584,6 +620,9 @@ print("Surrogate:", surrogate["masked_text"])
 engine = akana.TurkishPiiEngine(preserve_public_figures=True)
 print(engine.mask("Nazım Hikmet'i en çok Ahmet Yılmaz okurdu.")["masked_text"])
 # -> "Nazım Hikmet'i en çok {{AD_1}} okurdu."
+
+# E. The learned PII tagger runs in Rust and the CLI (`akana pii-tag`, see CLI Usage);
+#    examples/12_learned_pii_tagger.py drives it from Python and compares it with the rules.
 ```
 
 ### Offsets, threads and errors
@@ -606,6 +645,13 @@ akana pii-mask "Ahmet Yılmaz 10000000146 nolu TCKN ile başvurdu." --mode place
 akana pii-mask "Ali Kaya Kadıköy şubesine geldi." --mode surrogate
 akana pii-mask -f confidential.txt --mode placeholder --json
 akana pii-restore "Ödeme {{AD_1}}'a yapıldı." --mapping mapping.json
+
+# Learned PII tagger (build the CLI with it: cargo install --path crates/akana-cli --features pii-tagger)
+# spans are byte offsets; the models are downloaded on first use (AKANA_CACHE_DIR, AKANA_OFFLINE=1)
+akana pii-tag "Ayşe Yılmaz 12 Mart 2024'te 0532 123 45 67 numaralı telefondan aradı."
+akana pii-tag --accurate --strict -f letter.txt
+akana pii-tag --jsonl texts.jsonl     # {"text": ...} per line in, {"spans": [[start, end, label], ...]} per line out
+akana pii-models --accurate           # download both models now: 57 MB, and 443 MB more for the accurate mode
 
 # Grammar checking (default rules; --experimental, --rules, --enable, --disable to choose)
 akana grammar "Ali de geldi, Veli te geldi."
@@ -657,7 +703,7 @@ akana chunk --strategy sdpm --chunk-size 512 --json -f document.txt
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
-akana-core = { version = "0.5", default-features = true }
+akana-core = { version = "0.10", default-features = true }
 ```
 
 ```rust
@@ -731,6 +777,32 @@ fn main() {
 }
 ```
 
+The learned PII tagger is behind a feature. With `pii-download` it downloads its models on first
+use, checks their SHA-256 and caches them (`AKANA_CACHE_DIR`; `AKANA_OFFLINE=1` turns downloads
+off; `pii-tagger` alone runs model directories you already have, `PiiTagger::load`):
+
+```toml
+akana-core = { version = "0.10", features = ["pii-download"] }
+```
+
+```rust
+use akana_core::pii::tagger::{Mode, PiiTagger, TaggerOptions};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Mode::Accurate averages BERTurk with the small model: better, about five times slower
+    let tagger = PiiTagger::from_hub(Mode::Fast, TaggerOptions::default())?;
+    let text = "Ayşe Yılmaz 12 Mart 2024'te 0532 123 45 67 numaralı telefondan aradı.";
+    for span in tagger.tag(text)? {
+        println!("{} {:?}", span.label, &text[span.start..span.end]); // byte offsets
+    }
+
+    // the strict operating point: more person, username and date tags, fewer values left in clear
+    let strict = PiiTagger::from_hub(Mode::Fast, TaggerOptions::strict(Mode::Fast.strict_bias()))?;
+    println!("{:?}", strict.tag("yarın mehmetle görüşeceğim")?);
+    Ok(())
+}
+```
+
 ---
 
 ## Developer Guide & Publishing
@@ -752,6 +824,8 @@ Akana builds upon decades of pioneering linguistic and natural language processi
 - **Ender Ateşman (1997), Çetinkaya-Uzun (2010), Bezirci-Yılmaz (2010)**: Classical readability research for the Turkish education system.
 - **Ash Vardanian & Unum Cloud**: **StringZilla**, providing hardware-accelerated SIMD vector search and edit distance algorithms.
 - **Bushra Beg (Turkce-Humanizer)**: Research into Turkish AI writing style signatures, calques, and stylistic heuristics.
+- **Stefan Schweter (dbmdz)**: BERTurk and the Turkish ELECTRA models the learned PII tagger is fine-tuned from.
+- **Robert Knight**: **RTen**, the pure-Rust runtime the learned PII tagger runs on.
 
 ---
 
@@ -762,3 +836,8 @@ Licensed under either of:
 - [MIT License](LICENSE-MIT)
 
 at your option.
+
+The learned PII tagger's models are not part of this repository: akana downloads them from
+[`altaidevorg/akana-pii-tagger`](https://huggingface.co/altaidevorg/akana-pii-tagger), where
+they are released under CC BY-SA 4.0, since they learnt from text under that licence; the model
+card lists their training sources.

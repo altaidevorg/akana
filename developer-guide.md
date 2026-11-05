@@ -32,6 +32,11 @@ uv run maturin develop --release
 
 ### C. Run Python Pytest Suite
 ```bash
+# Test-only packages (akana itself has no Python dependencies); tests that need numpy, usearch or
+# torch skip without them, and the PII evaluation tests that read a Hugging Face dataset skip
+# when it is not in the local cache
+uv pip install pytest numpy
+
 # Run all Python API tests (tests/test_golden_vectors.py pins the Python vectors)
 uv run pytest
 ```

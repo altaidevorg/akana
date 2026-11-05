@@ -245,6 +245,152 @@ enum Commands {
         #[arg(short, long)]
         mapping: PathBuf,
     },
+    /// Find personal data with the learned PII tagger (spans as byte offsets). Its models are
+    /// downloaded from the Hugging Face Hub on first use and cached (AKANA_CACHE_DIR; AKANA_OFFLINE=1
+    /// turns downloads off), unless --model names exported ones (scripts/pii_train/export_onnx.py)
+    #[cfg(feature = "pii-tagger")]
+    PiiTag {
+        /// Text to tag
+        text: Option<String>,
+        /// Read text from file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+        /// Tag every line of a JSON-lines file ({"text": ...}), writing one {"spans": ...} line each
+        #[arg(long)]
+        jsonl: Option<PathBuf>,
+        /// The accurate mode: BERTurk averaged with the small model (about five times slower)
+        #[arg(long)]
+        accurate: bool,
+        /// The strict operating point of the mode: more person, username and date tags, so that
+        /// fewer personal values are left in clear
+        #[arg(long, conflicts_with = "bias")]
+        strict: bool,
+        /// A small model's directory (model.onnx and tokenizer.json) instead of the published one
+        #[arg(long, conflicts_with = "accurate")]
+        model: Option<PathBuf>,
+        /// A bigger model to average with --model on every window; repeatable
+        #[arg(long, requires = "model")]
+        big: Vec<PathBuf>,
+        /// Operating point (0 is the trained one); with --labels it raises only those labels
+        #[arg(long)]
+        bias: Option<f32>,
+        /// Labels the bias raises (default: every label, by lowering O)
+        #[arg(long, value_delimiter = ',')]
+        labels: Vec<String>,
+        /// Inference threads (default: the machine's physical cores)
+        #[arg(long)]
+        threads: Option<usize>,
+        /// Also report call-centre and service numbers and role mailboxes
+        #[arg(long)]
+        no_policy: bool,
+    },
+    /// Download the PII tagger's models into the cache if they are not there yet, and print
+    /// their directories
+    #[cfg(feature = "pii-tagger")]
+    PiiModels {
+        /// Also the accurate mode's BERTurk (about 440 MB)
+        #[arg(long)]
+        accurate: bool,
+    },
+}
+
+/// What `pii-tag` runs: the published models of a mode, or model directories given on the command line.
+#[cfg(feature = "pii-tagger")]
+struct TaggerChoice {
+    accurate: bool,
+    strict: bool,
+    model: Option<PathBuf>,
+    big: Vec<PathBuf>,
+    bias: Option<f32>,
+    labels: Vec<String>,
+    threads: Option<usize>,
+    no_policy: bool,
+}
+
+#[cfg(feature = "pii-tagger")]
+fn pii_mode(accurate: bool) -> pii::tagger::Mode {
+    if accurate {
+        pii::tagger::Mode::Accurate
+    } else {
+        pii::tagger::Mode::Fast
+    }
+}
+
+/// The published models' directories, downloading what the cache lacks (reported on stderr).
+#[cfg(feature = "pii-tagger")]
+fn pii_model_dirs(mode: pii::tagger::Mode) -> Result<Vec<PathBuf>, String> {
+    let mut report = |path: &str, size: u64| {
+        eprintln!(
+            "downloading {path} ({:.1} MB) from {}",
+            size as f64 / 1e6,
+            pii::tagger::hub::REPO
+        );
+    };
+    pii::tagger::hub::model_dirs(mode, &mut report).map_err(|e| e.to_string())
+}
+
+#[cfg(feature = "pii-tagger")]
+fn pii_tag(
+    text: Option<String>,
+    file: Option<PathBuf>,
+    jsonl: Option<PathBuf>,
+    choice: TaggerChoice,
+) -> Result<(), String> {
+    use std::io::{BufRead, Write};
+    let mode = pii_mode(choice.accurate || !choice.big.is_empty());
+    let mut options = if choice.strict {
+        pii::tagger::TaggerOptions::strict(mode.strict_bias())
+    } else {
+        pii::tagger::TaggerOptions {
+            bias: choice.bias.unwrap_or(0.0),
+            bias_labels: choice.labels,
+            ..Default::default()
+        }
+    };
+    options.public_policy = !choice.no_policy;
+    options.threads = choice.threads;
+    let dirs: Vec<PathBuf> = match choice.model {
+        Some(model) => std::iter::once(model).chain(choice.big).collect(),
+        None => pii_model_dirs(mode)?,
+    };
+    let tagger = pii::tagger::PiiTagger::load(&dirs, options).map_err(|e| e.to_string())?;
+    let Some(path) = jsonl else {
+        let input = resolve_input_text(text, file)?;
+        let spans = tagger.tag(&input).map_err(|e| e.to_string())?;
+        let out: Vec<_> = spans
+            .iter()
+            .map(|s| {
+                serde_json::json!({"start": s.start, "end": s.end, "label": s.label,
+                                        "text": &input[s.start..s.end]})
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&out).map_err(|e| e.to_string())?
+        );
+        return Ok(());
+    };
+    let reader = std::io::BufReader::new(
+        std::fs::File::open(&path).map_err(|e| format!("{}: {e}", path.display()))?,
+    );
+    let mut out = std::io::BufWriter::new(std::io::stdout().lock());
+    for line in reader.lines() {
+        let line = line.map_err(|e| e.to_string())?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        let row: serde_json::Value = serde_json::from_str(&line).map_err(|e| e.to_string())?;
+        let input = row["text"]
+            .as_str()
+            .ok_or("a line without a \"text\" field")?;
+        let spans = tagger.tag(input).map_err(|e| e.to_string())?;
+        let spans: Vec<_> = spans
+            .iter()
+            .map(|s| serde_json::json!([s.start, s.end, s.label]))
+            .collect();
+        writeln!(out, "{}", serde_json::json!({"spans": spans})).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 fn resolve_input_text(text: Option<String>, file: Option<PathBuf>) -> Result<String, String> {
@@ -667,5 +813,46 @@ fn main() {
             let restored = engine.restore_with_mapping(&input, &map);
             println!("{}", restored);
         }
+        #[cfg(feature = "pii-tagger")]
+        Commands::PiiTag {
+            text,
+            file,
+            jsonl,
+            accurate,
+            strict,
+            model,
+            big,
+            bias,
+            labels,
+            threads,
+            no_policy,
+        } => {
+            let choice = TaggerChoice {
+                accurate,
+                strict,
+                model,
+                big,
+                bias,
+                labels,
+                threads,
+                no_policy,
+            };
+            if let Err(e) = pii_tag(text, file, jsonl, choice) {
+                eprintln!("Error: {e}");
+                std::process::exit(1);
+            }
+        }
+        #[cfg(feature = "pii-tagger")]
+        Commands::PiiModels { accurate } => match pii_model_dirs(pii_mode(accurate)) {
+            Ok(dirs) => {
+                for dir in dirs {
+                    println!("{}", dir.display());
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: {e}");
+                std::process::exit(1);
+            }
+        },
     }
 }

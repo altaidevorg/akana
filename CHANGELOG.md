@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.10.0 (unreleased)
+
+A learned PII tagger joins the rule-based engine, behind optional features: two Turkish token
+classifiers that run on the CPU in pure Rust and download their models on first use. Default
+builds and the Python module are unchanged.
+
+### Added
+
+- **Learned PII tagger** (`akana-core` feature `pii-tagger`). `pii::tagger::PiiTagger` runs the
+  ONNX exports of two token classifiers with RTen 0.27, a pure-Rust CPU runtime: ELECTRA-small
+  in the fast mode, and BERTurk averaged with it on every window in the accurate mode
+  (`Mode::Fast`, `Mode::Accurate`). It returns byte spans labelled PERSON, USERNAME, ADDRESS,
+  PHONE, EMAIL, URL (personal ones only), ID, SECRET or DATE (personal ones only), leaves
+  call-centre and service numbers and role mailboxes unmasked, and decodes as the training
+  harness does: its own WordPiece tokenizer with exact offsets, windows of 254 tokens that share
+  64, a BIO-constrained Viterbi pass and whole-word spans. The strict operating points
+  (`TaggerOptions::strict(mode.strict_bias())`: +5.25 fast, +2.75 accurate) raise person,
+  username and date tags by the bias conformal risk control picks for α = 0.04 on 632 real-text
+  development rows with personal data. On all 4,111 development texts the Rust tagger's spans
+  equal the Python tagger's in both modes, at the default and the strict points
+  (`scripts/pii_eval/rust_parity.py`). On four threads of a laptop CPU it tags 2 KB of text in
+  about 60–90 ms in the fast mode and 0.8 s in the accurate mode.
+- **Model download** (feature `pii-download`, which includes `pii-tagger`).
+  `PiiTagger::from_hub` and `pii::tagger::hub::model_dirs` fetch the models from the Hugging
+  Face Hub repository `altaidevorg/akana-pii-tagger` at a pinned commit, check each file's size
+  and SHA-256, and cache them under `$AKANA_CACHE_DIR` or the platform's cache directory
+  (`pii-tagger/<commit>/`). `AKANA_OFFLINE=1` or `HF_HUB_OFFLINE=1` turns downloads off, and
+  `HF_ENDPOINT` points them at a mirror. The fast mode needs 57 MB, the accurate mode 443 MB
+  more. The models are released under CC BY-SA 4.0, since they learnt from text under that
+  licence (Wikipedia, WikiNER, MusteriYorumlari); the model card lists every training source.
+- **CLI** (`akana-cli` feature `pii-tagger`): `akana pii-tag [--accurate] [--strict]` tags a
+  text, a file (`--file`) or every line of a JSON-lines file (`--jsonl`) and prints the spans as
+  byte offsets with their labels; `akana pii-models [--accurate]` downloads the models and
+  prints their directories.
+- Held-out results, scored once after the models and their operating points were fixed on
+  development data. On real Turkish text (the test split of the real-text gold: 1,617 units
+  from nine sources, 900 personal values) the fast mode fully masks 91.3% of the values (exact
+  F1 0.876) and the accurate mode 93.4% (0.926), with 1.3 false alarms per 10,000 characters of
+  PII-free text; the accurate strict mode fully masks 96.6% at 0.812 precision. The rule engine
+  fully masks 34% of the same values. The tagger misses one release gate of the PII audit by
+  one date: the fast and accurate modes fully mask 51 of the 57 personal dates in real text
+  (the strict modes 56), where 52 are needed.
+- The PII training and evaluation harness: `scripts/pii_data` (real-text gold sets, teacher
+  labels under `annotation_guideline.md`, the publishable data sources), `scripts/pii_train`
+  (training, calibration, ONNX export, publishing) and `scripts/pii_eval` (the strict scorer,
+  the held-out runs, Rust parity). `scripts/pii_eval/contamination.py` keeps evaluation rows out
+  of the PII code and tests.
+
 ## 0.9.1 (unreleased)
 
 The AI-text detector is retrained and reads a morphology profile from the analyzer; its
