@@ -25,6 +25,8 @@ pub mod patterns;
 mod phones;
 pub mod secrets;
 pub mod spelled_numbers;
+#[cfg(feature = "pii-tagger")]
+pub mod tagger;
 pub mod validators;
 pub mod vault;
 

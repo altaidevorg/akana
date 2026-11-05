@@ -130,6 +130,8 @@ def main():
     ap.add_argument("--unlabelled", nargs="*", default=[], help="pools in .cache/pii_data/real for the teacher to label")
     ap.add_argument("--unlabelled-limit", type=int, help="units taken from each unlabelled pool")
     ap.add_argument("--permissive", action="store_true", help="leave out real text from sources of unclear licence")
+    ap.add_argument("--skip-domains", nargs="*", default=[],
+                    help="real-text domains (the id prefix of a label row, e.g. wikipedia reviews word_problems) to leave out")
     # the start check before the data and the GPU context load; lower it only when the page file can
     # grow (Win32_PageFileSetting MaximumSize above the current size)
     ap.add_argument("--start-ram", type=float, default=1.0, help="free RAM (GB) to wait for before loading")
@@ -150,14 +152,16 @@ def main():
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     rng = random.Random(args.seed)
+    skip = tuple(dict.fromkeys(tuple(args.skip_domains) + (data.UNCLEAR_LICENCE if args.permissive else ())))
+    if skip:
+        log(f"leaving out real text from {', '.join(skip)}")
     rows = data.training_mix(seed=args.seed, btx24=args.btx24, scenario=args.scenario, real_runs=tuple(args.real),
                              wikiner=not args.no_wikiner, hard_runs=tuple(args.hard), hard_repeat=args.hard_repeat,
-                             skip_domains=data.UNCLEAR_LICENCE if args.permissive else (), real_repeat=args.real_repeat)
+                             skip_domains=skip, real_repeat=args.real_repeat)
     if args.unlabelled:
         if not args.teacher:
             ap.error("--unlabelled needs --teacher")
-        rows += data.unlabelled(tuple(args.unlabelled), args.unlabelled_limit, args.seed,
-                                data.UNCLEAR_LICENCE if args.permissive else ())
+        rows += data.unlabelled(tuple(args.unlabelled), args.unlabelled_limit, args.seed, skip)
         rng.shuffle(rows)
     dev = data.dev_sets()
     log(f"training rows {len(rows)}; dev sets {', '.join(f'{k} ({len(v)})' for k, v in dev.items())}")

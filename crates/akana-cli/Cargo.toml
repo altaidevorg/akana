@@ -17,3 +17,7 @@ path = "src/main.rs"
 akana-core = { path = "../akana-core", version = "0.9.1" }
 clap = { workspace = true }
 serde_json = { workspace = true }
+
+[features]
+# `akana pii-tag` and `akana pii-models`: the learned PII tagger, its models downloaded on first use
+pii-tagger = ["akana-core/pii-download"]
