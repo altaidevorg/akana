@@ -111,5 +111,6 @@ jobs:
           uv tool install maturin
           uv tool update-shell
           uv run maturin develop
-          uv pip install pytest
+          # test-only packages: akana itself has no Python dependencies
+          uv pip install pytest numpy
           uv run --python ${{ matrix.python-version }} pytest

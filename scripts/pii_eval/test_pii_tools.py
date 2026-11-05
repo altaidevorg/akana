@@ -85,6 +85,17 @@ def test_ignored_values_count_neither_way():
     assert score.total_of(per_row)["neg_rows"] == 0
 
 
+def _cached(repo: str) -> bool:
+    """Whether a pinned evaluation dataset is in the local Hugging Face cache (CI has none)."""
+    try:
+        datasets.snapshot(repo)
+    except SystemExit:
+        return False
+    return True
+
+
+@pytest.mark.skipif(not _cached("cagrigungor/turkish-pii-masking-benchmark"),
+                    reason="Saturday Labs is not in the local Hugging Face cache")
 def test_saturday_in_scheme_keeps_every_value_once():
     for full, scoped in zip(datasets.saturday(), datasets.saturday_in_scheme()):
         assert len(scoped.gold) + len(scoped.ignore) == len(full.gold)
@@ -128,7 +139,7 @@ def test_snap_widens_spans_to_whole_words(text, span, label, snapped):
 
 
 def test_decode_takes_each_token_from_its_most_central_window():
-    import numpy as np
+    np = pytest.importorskip("numpy")
 
     def lp(tags):
         out = np.full((len(tags), len(tagger.TAGS)), np.log(0.01))
@@ -145,7 +156,7 @@ def test_decode_takes_each_token_from_its_most_central_window():
 
 
 def test_an_operating_point_can_raise_some_labels_only():
-    import numpy as np
+    np = pytest.importorskip("numpy")
     # "Ali 12.04.2026": both values just below the O tag, Ali as a person, the date as a date
     offs = [(0, 3), (4, 14)]
     lp = np.full((2, len(tagger.TAGS)), np.log(0.01))
@@ -172,7 +183,7 @@ def test_snap_merges_spans_that_meet():
 
 
 def test_viterbi_obeys_bio():
-    import numpy as np
+    np = pytest.importorskip("numpy")
     rng = np.random.default_rng(0)
     for _ in range(200):
         lp = np.log(rng.dirichlet(np.ones(len(tagger.TAGS)), size=12))
