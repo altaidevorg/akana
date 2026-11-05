@@ -27,11 +27,18 @@ SOURCES = [
 LITERAL = re.compile(r'"((?:[^"\\\n]|\\.){20,})"')
 BACKTICK = re.compile(r"`([^`\n]{20,})`")
 # hits present when this check was written: number of literals per set
-LEGACY = {"btx24-test": 19, "saturday": 19, "belgin-train": 19}
+LEGACY = {"btx24-test": 19, "saturday": 19, "belgin-train": 19,
+          "saturday-in-scheme": 19}  # the texts of "saturday", scored on fewer labels
 # literals that occur in a set without being copied from it
 ALLOWED = {
     "TR330006100519786457841326",  # the usual example IBAN of Turkish documentation
-    "ahmet hamdi tanpınar",  # a public figure of names_data.rs, also in a Wikipedia sentence
+    # public figures of names_data.rs that real-gold texts also name
+    "ahmet hamdi tanpınar",
+    "mustafa kemal atatürk",
+    "recep tayyip erdoğan",
+    # common words of the analyzer snapshot tests/data/downstream/pii_view.tsv
+    "değerlendirilmesinde",
+    "değerlendirildiğinde",
 }
 
 
