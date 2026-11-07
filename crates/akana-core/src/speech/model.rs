@@ -203,7 +203,7 @@ pub(crate) mod build {
         let text = row.get("text")?.as_str()?;
         let tokens = row.get("tokens")?.as_array()?;
         let mut words: Vec<TextWord> = Vec::new();
-        segment(text, &mut words);
+        segment(text, &mut words, false);
         let mut groups: Vec<(Vec<Seg>, Vec<u8>)> = Vec::new();
         for t in tokens {
             if t.get("type")?.as_str()? == "pause" {

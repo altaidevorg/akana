@@ -52,7 +52,7 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
 - **Speech Front End (Phonemiser)**:
   - `akana.phonemize(text)` turns Turkish text into phoneme and prosody tokens for a TTS model: phoneme, stress level, word start, length mark and the clause's punctuation, in microseconds and in process. Every word says where its stress and phonemes came from (`phonemize_detailed`).
   - Profile `espeak-compat` reproduces the tokens eSpeak NG 1.52 gives EchoCraft's student TTS, so the model runs on it without retraining. It was built clean room from eSpeak's outputs only. On held-out sentences the phoneme sequence is exact for 99.7% of them, with per-token stress at 99.8% ([parity report](docs/phonemizer-espeak-compat.md)). A median sentence takes about 10 µs, some 280,000× faster than real time.
-  - Profiles that follow the Turkish phonology literature (lexical stress first) come next.
+  - Profile `tts-v1` is Akana's own front end, with no eSpeak data: word stress from the phonology literature and Akana's morphology (lexical exceptions, Sezer's rule for place names, pre-accenting and stressed suffixes), a prominence hierarchy (nucleus, phrase accents, deaccented heads, function words, post-nuclear words, clitics), pauses where a speaker pauses, and long vowels and geminates. Where it and eSpeak put a word's stress on different syllables, the teacher TTS's pitch peak is on `tts-v1`'s syllable 50% of the time and on eSpeak's 30% ([report](docs/phonemizer-tts-v1.md)). About 125 µs a sentence, 22,000× faster than real time.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).

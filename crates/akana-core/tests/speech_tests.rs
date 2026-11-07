@@ -1,4 +1,5 @@
-//! The `espeak-compat` phonemiser against eSpeak NG's outputs.
+//! The phonemiser: `espeak-compat` against eSpeak NG's outputs, and `tts-v1` against its frozen
+//! golden output.
 //!
 //! - `golden_sentences_match_espeak`: 60 committed CC0 sentences (see
 //!   `tests/data/speech/README.md`).
@@ -177,4 +178,84 @@ fn fixture_parity() {
         let u = p.phonemize(r["text"].as_str().unwrap_or(""));
         assert!(u.tokens.len() >= 2);
     }
+}
+
+// --- profile tts-v1 ---------------------------------------------------------------------------
+
+fn tts_row(t: &EspeakToken) -> Value {
+    serde_json::json!([
+        t.ph.symbol(),
+        t.stress,
+        u8::from(t.word),
+        u8::from(t.lengthen),
+        t.mark.to_string(),
+        t.ph.class().as_str(),
+        t.ipa(),
+    ])
+}
+
+/// The `tts-v1` output for the 60 golden texts, frozen with the profile's version: a change to
+/// any token fails here. After a deliberate change, bump `Profile::TtsV1.version()` and rewrite
+/// the file with `cargo test -p akana-core --test speech_tests write_tts_v1_golden -- --ignored`.
+#[test]
+fn tts_v1_golden_is_frozen() {
+    let p = Phonemizer::new(Profile::TtsV1);
+    let data = include_str!("data/speech/tts_v1_golden.jsonl");
+    let mut n = 0;
+    for line in data.lines() {
+        let row: Value = serde_json::from_str(line).expect("golden row");
+        assert_eq!(
+            row["version"],
+            Profile::TtsV1.version(),
+            "golden file of another version"
+        );
+        let text = row["text"].as_str().expect("text");
+        let got: Vec<Value> = p.phonemize(text).tokens.iter().map(tts_row).collect();
+        assert_eq!(
+            Value::Array(got),
+            row["tokens"],
+            "{}: {text}",
+            row["id"].as_str().unwrap_or("")
+        );
+        n += 1;
+    }
+    assert_eq!(n, 60);
+}
+
+#[test]
+#[ignore = "rewrites tests/data/speech/tts_v1_golden.jsonl"]
+fn write_tts_v1_golden() {
+    let p = Phonemizer::new(Profile::TtsV1);
+    let mut out = String::new();
+    for line in include_str!("data/speech/espeak_compat_golden.jsonl").lines() {
+        let row: Value = serde_json::from_str(line).expect("golden row");
+        let text = row["text"].as_str().expect("text");
+        let tokens: Vec<Value> = p.phonemize(text).tokens.iter().map(tts_row).collect();
+        let o = serde_json::json!({
+            "id": row["id"],
+            "version": Profile::TtsV1.version(),
+            "text": text,
+            "tokens": tokens,
+        });
+        out.push_str(&serde_json::to_string(&o).expect("json"));
+        out.push('\n');
+    }
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/data/speech/tts_v1_golden.jsonl");
+    std::fs::write(path, out).expect("write");
+}
+
+#[test]
+fn tts_v1_is_deterministic_and_separate_from_espeak_compat() {
+    let a = Phonemizer::new(Profile::TtsV1);
+    let b = Phonemizer::new(Profile::TtsV1);
+    let e = Phonemizer::new(Profile::EspeakCompat);
+    let text = "Serkan mı bavulu hazırladı? Ankara'ya gittik, sonra döndük.";
+    let ua = a.phonemize(text);
+    assert_eq!(ua.tokens, b.phonemize(text).tokens);
+    // the profiles differ: no apostrophe pause pair in tts-v1
+    let pauses = |u: &Utterance| u.tokens.iter().filter(|t| t.ph.is_pause()).count();
+    assert!(pauses(&ua) < pauses(&e.phonemize(text)));
+    assert_eq!(Profile::from_name("tts-v1"), Some(Profile::TtsV1));
+    assert_eq!(Profile::TtsV1.name(), "tts-v1");
 }

@@ -12,6 +12,9 @@ pub(crate) struct Seg {
     pub long: bool,
     /// The source letter of a rule-derived segment (`g` for `g`/`J`); `\0` from the lexicon.
     pub letter: char,
+    /// The index of its first letter among the word's letters (apostrophes left out); 0 from the
+    /// lexicon.
+    pub at: u16,
 }
 
 impl Seg {
@@ -20,14 +23,24 @@ impl Seg {
             ph,
             long,
             letter: '\0',
+            at: 0,
         }
     }
 }
 
 #[derive(Clone, Copy)]
 enum Unit {
-    V { v: char, long: bool, circ: bool },
-    C { c: char, long: bool, at: usize },
+    V {
+        v: char,
+        long: bool,
+        circ: bool,
+        at: usize,
+    },
+    C {
+        c: char,
+        long: bool,
+        at: usize,
+    },
 }
 
 fn is_vowel_letter(c: char) -> bool {
@@ -61,6 +74,20 @@ pub(crate) fn letters_to_phonemes(word: &str, out: &mut Vec<Seg>) {
 /// is not a coda (observed: Kemal'i `L`, İsmail'e `l`); the lone letter i is tense (observed:
 /// the i of iPhone).
 pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
+    key_to_phonemes_with(key, out, false)
+}
+
+/// As [`key_to_phonemes`]; with `tts`, the `tts-v1` profile's segments (Zimmer & Orgun 1999,
+/// Göksel & Kerslake 2005, Lewis 2001):
+/// - a circumflex vowel is long, and k before it palatal `c` (kâr, dükkân, mahkûm);
+/// - two equal vowel letters are one long vowel (saat, kanaat, tabii);
+/// - ğ after e or i lengthens the vowel before a consonant or at the end (eğlence, iğne), and is
+///   `j` only between vowels (değil);
+/// - long vowels are tense;
+/// - doubled ç and g are one long consonant, as doubled stops are, and a doubled clear l one
+///   long `l`;
+/// - no eSpeak `-ken` palatal.
+pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
     out.clear();
     let mut w: Vec<char> = Vec::with_capacity(key.len());
     let mut before_apostrophe: Vec<bool> = Vec::with_capacity(key.len());
@@ -82,6 +109,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
             ph: I,
             long: false,
             letter: 'i',
+            at: 0,
         });
         return;
     }
@@ -98,37 +126,96 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                 c => c,
             };
             let circ = matches!(ch, 'â' | 'î' | 'û');
+            if tts && i + 1 < n && w[i + 1] == 'ğ' {
+                // ğ (Göksel & Kerslake 2005; teacher durations): before a consonant or the end it
+                // lengthens the vowel; two equal vowels across it are one long vowel; between back
+                // vowels it is silent and the first vowel stays short (soğuk: 7 frames against 6
+                // for a short o, 10 before a consonant); between front vowels it is a glide j
+                let next = w.get(i + 2).map(|&c| match c {
+                    'â' => 'a',
+                    'î' => 'i',
+                    'û' => 'u',
+                    c => c,
+                });
+                match next {
+                    Some(nb) if is_vowel_letter(nb) => {
+                        if !matches!(base, 'e' | 'i' | 'ö' | 'ü') {
+                            let same = nb == base;
+                            units.push(Unit::V {
+                                v: base,
+                                long: same || circ,
+                                circ,
+                                at: i,
+                            });
+                            i += if same { 3 } else { 2 };
+                            continue;
+                        }
+                        // a front vowel: the vowel, then ğ as j
+                    }
+                    _ => {
+                        units.push(Unit::V {
+                            v: base,
+                            long: true,
+                            circ,
+                            at: i,
+                        });
+                        i += 2;
+                        continue;
+                    }
+                }
+            }
             // VğV with the same vowel: one long vowel (not for e, i, ı: observed ığı = @: @)
-            if i + 2 < n && w[i + 1] == 'ğ' && w[i + 2] == ch && !matches!(ch, 'e' | 'i' | 'ı') {
+            if !tts
+                && i + 2 < n
+                && w[i + 1] == 'ğ'
+                && w[i + 2] == ch
+                && !matches!(ch, 'e' | 'i' | 'ı')
+            {
                 units.push(Unit::V {
                     v: base,
                     long: true,
                     circ,
+                    at: i,
                 });
                 i += 3;
                 continue;
             }
             // ğ after a vowel other than e, i: the vowel's length mark
-            if i + 1 < n && w[i + 1] == 'ğ' && !matches!(base, 'e' | 'i') {
+            if !tts && i + 1 < n && w[i + 1] == 'ğ' && !matches!(base, 'e' | 'i') {
                 units.push(Unit::V {
                     v: base,
                     long: true,
                     circ,
+                    at: i,
                 });
                 i += 2;
                 continue;
             }
+            if tts {
+                // two equal vowel letters: one long vowel
+                if i + 1 < n && w[i + 1] == ch {
+                    units.push(Unit::V {
+                        v: base,
+                        long: true,
+                        circ,
+                        at: i,
+                    });
+                    i += 2;
+                    continue;
+                }
+            }
             units.push(Unit::V {
                 v: base,
-                long: false,
+                long: tts && circ,
                 circ,
+                at: i,
             });
             i += 1;
             continue;
         }
         if ch == 'ğ' {
             let prev = if i > 0 { w[i - 1] } else { '\0' };
-            let c = if prev == 'e' || prev == 'i' {
+            let c = if prev == 'e' || prev == 'i' || (tts && (prev == 'ö' || prev == 'ü')) {
                 'ğ'
             } else {
                 'Q'
@@ -141,11 +228,16 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
             i += 1;
             continue;
         }
-        if i + 1 < n && w[i + 1] == ch && matches!(ch, 'b' | 'c' | 'd' | 'k' | 'p' | 't') {
+        let doubled_long = if tts {
+            matches!(ch, 'b' | 'c' | 'd' | 'k' | 'p' | 't' | 'ç' | 'g')
+        } else {
+            matches!(ch, 'b' | 'c' | 'd' | 'k' | 'p' | 't')
+        };
+        if i + 1 < n && w[i + 1] == ch && doubled_long {
             units.push(Unit::C {
                 c: ch,
                 long: true,
-                at: i + 1,
+                at: if tts { i } else { i + 1 },
             });
             i += 2;
             continue;
@@ -166,15 +258,24 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
     };
     for k in 0..m {
         match units[k] {
-            Unit::V { v, long, .. } => {
+            Unit::V { v, long, at, .. } => {
                 let mut j = k + 1;
                 while j < m && matches!(units[j], Unit::C { .. }) {
                     j += 1;
                 }
-                let ncons = j - k - 1;
+                // in tts-v1 a geminate closes the syllable before it (dik.kat), as two letters do
+                let ncons = j - k - 1
+                    + if tts {
+                        units[k + 1..j]
+                            .iter()
+                            .filter(|u| matches!(u, Unit::C { long: true, .. }))
+                            .count()
+                    } else {
+                        0
+                    };
                 let fin = j == m;
                 let closed = (fin && ncons >= 1) || (!fin && ncons >= 2);
-                let lax = closed || (fin && ncons == 0);
+                let lax = (closed || (fin && ncons == 0)) && !(tts && long);
                 let ph = match v {
                     'a' => A,
                     'ı' => Ih,
@@ -228,6 +329,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                     ph,
                     long,
                     letter: v,
+                    at: at as u16,
                 });
             }
             Unit::C { c, long, at } => {
@@ -267,6 +369,10 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                         Some((nv, circ)) if is_front_letter(nv) || circ => GPalatal,
                         _ => G,
                     },
+                    'k' if tts => match next_v {
+                        Some((_, true)) => KPalatal,
+                        _ => K,
+                    },
                     'k' => {
                         let rest: String = w[(at + 1).min(n)..].iter().collect();
                         if at > 0 && rest.starts_with("en") && KEN_TAILS.contains(&&rest[2..]) {
@@ -281,6 +387,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                             ph: K,
                             long: false,
                             letter: 'x',
+                            at: at as u16,
                         });
                         S
                     }
@@ -308,8 +415,21 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                     ph,
                     long,
                     letter: c,
+                    at: at as u16,
                 });
             }
+        }
+    }
+    if tts {
+        // a doubled clear l: one long l (the aligner has `lː`, not a long dark l)
+        let mut k = 0;
+        while k + 1 < out.len() {
+            if out[k].ph == LCoda && out[k + 1].ph == L && out[k].letter == 'l' {
+                out[k].ph = L;
+                out[k].long = true;
+                out.remove(k + 1);
+            }
+            k += 1;
         }
     }
 }

@@ -25,6 +25,7 @@ mod letters;
 pub(crate) mod model;
 mod phoneme;
 mod text;
+mod tts;
 
 #[cfg(test)]
 mod tests;
@@ -43,6 +44,10 @@ use text::{clause_marks, segment, TextWord};
 pub enum Profile {
     /// eSpeak NG 1.52 Turkish as EchoCraft's student TTS reads it (stage 1, parity).
     EspeakCompat,
+    /// Akana's own TTS front end (stage 2): stress from the literature and morphology, checked
+    /// against the teacher's pitch, a prominence hierarchy, pauses where the teacher pauses, and
+    /// long vowels and geminates; no eSpeak data. See `speech::tts`.
+    TtsV1,
 }
 
 impl Profile {
@@ -50,6 +55,7 @@ impl Profile {
     pub fn name(self) -> &'static str {
         match self {
             Profile::EspeakCompat => "espeak-compat",
+            Profile::TtsV1 => "tts-v1",
         }
     }
 
@@ -57,6 +63,7 @@ impl Profile {
     pub fn from_name(name: &str) -> Option<Profile> {
         match name {
             "espeak-compat" | "espeak_compat" | "EspeakCompat" => Some(Profile::EspeakCompat),
+            "tts-v1" | "tts_v1" | "TtsV1" => Some(Profile::TtsV1),
             _ => None,
         }
     }
@@ -65,6 +72,7 @@ impl Profile {
     pub fn version(self) -> &'static str {
         match self {
             Profile::EspeakCompat => "espeak-compat-1",
+            Profile::TtsV1 => "tts-v1.0",
         }
     }
 }
@@ -106,6 +114,17 @@ pub enum StressSource {
     DefaultFinal,
     /// Spelled letter by letter: each letter secondary, the last primary.
     Spelled,
+    /// `tts-v1`: an entry of the exceptional-stress lexicon (`source` names its class and
+    /// evidence, as in `speech::tts::STRESS_LEXICON`).
+    Lexical { source: &'static str },
+    /// `tts-v1`: a suffix rule on the word's morphological analysis.
+    Morphology { rule: &'static str },
+    /// `tts-v1`: Sezer's rule for a place name.
+    Sezer,
+    /// `tts-v1`: the first part of a compound the lexicon splits.
+    CompoundFirst,
+    /// `tts-v1`: a clitic, unstressed.
+    Clitic,
 }
 
 impl StressSource {
@@ -121,7 +140,12 @@ impl StressSource {
             }
             StressSource::ApostropheFinal => "espeak-compat-rule:apostrophe-final".to_string(),
             StressSource::DefaultFinal => "default-final".to_string(),
-            StressSource::Spelled => "espeak-compat-rule:spelled".to_string(),
+            StressSource::Spelled => "rule:spelled".to_string(),
+            StressSource::Lexical { source } => format!("lexicon:{source}"),
+            StressSource::Morphology { rule } => format!("morphology:{rule}"),
+            StressSource::Sezer => "sezer".to_string(),
+            StressSource::CompoundFirst => "compound:first-part".to_string(),
+            StressSource::Clitic => "clitic".to_string(),
         }
     }
 }
@@ -138,6 +162,11 @@ pub enum SegmentSource {
     RulesStressAdjusted,
     /// Spelled letter by letter (a word without vowels).
     Spelled,
+    /// `tts-v1`: the letter rules with the profile's long vowels and geminates.
+    TtsRules,
+    /// `tts-v1`: the letter rules, with a segment the lexicon's attributes change (the clear l of
+    /// an InverseHarmony loan).
+    LexiconAttribute,
 }
 
 impl SegmentSource {
@@ -146,7 +175,9 @@ impl SegmentSource {
             SegmentSource::Lexicon => "lexicon:espeak-compat",
             SegmentSource::Rules => "espeak-compat-rule:letters",
             SegmentSource::RulesStressAdjusted => "espeak-compat-rule:letters+stress",
-            SegmentSource::Spelled => "espeak-compat-rule:spelled",
+            SegmentSource::Spelled => "rule:spelled",
+            SegmentSource::TtsRules => "tts-v1-rule:letters",
+            SegmentSource::LexiconAttribute => "lexicon:akana(InverseHarmony)",
         }
     }
 }
@@ -184,6 +215,8 @@ pub struct Word {
     pub tonic: bool,
     /// What the word reads when it is not written as letters (`number`: `yirmi` of `20`).
     pub normalized: Option<&'static str>,
+    /// The word's prominence: the level of its stressed syllable (0 for a clitic).
+    pub prominence: u8,
 }
 
 /// A token of eSpeak's plan, the schema EchoCraft's student TTS reads.
@@ -287,7 +320,10 @@ const OPEN_FUNCTION_WORDS: [&str; 12] = [
 impl Phonemizer {
     pub fn new(profile: Profile) -> Self {
         // load the data now rather than in the first call
-        lazy_static::initialize(&MODEL);
+        match profile {
+            Profile::EspeakCompat => lazy_static::initialize(&MODEL),
+            Profile::TtsV1 => lazy_static::initialize(&tts::NLP),
+        }
         Phonemizer { profile }
     }
 
@@ -309,7 +345,10 @@ impl Phonemizer {
 
     /// Phonemises `text` into `out`, reusing its buffers.
     pub fn phonemize_into(&self, text: &str, out: &mut Utterance) -> Result<(), PhonemizeError> {
-        phonemize_with(&MODEL, self.profile, text, out)
+        match self.profile {
+            Profile::EspeakCompat => phonemize_with(&MODEL, self.profile, text, out),
+            Profile::TtsV1 => tts::phonemize_tts(text, out),
+        }
     }
 }
 
@@ -331,7 +370,7 @@ pub(crate) fn phonemize_with(
         });
     }
     let mut tw: Vec<TextWord> = Vec::new();
-    let final_gap = segment(text, &mut tw);
+    let final_gap = segment(text, &mut tw, false);
     let mut states: Vec<WordState> = tw.iter().map(|w| lexical(model, w)).collect();
     prosody(&tw, &mut states);
     // warnings: characters in the gaps that are not spaces or punctuation the profile reads
@@ -442,6 +481,7 @@ pub(crate) fn phonemize_with(
             promoted: st.promoted,
             tonic: st.tonic,
             normalized: if w.number { Some("number") } else { None },
+            prominence: st.levels.iter().copied().max().unwrap_or(0),
         });
     }
     let last_clause = tw.last().map(|w| w.clause).unwrap_or(0);

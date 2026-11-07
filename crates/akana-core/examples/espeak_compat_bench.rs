@@ -1,7 +1,7 @@
-//! Latency of the `espeak-compat` phonemiser per sentence, warm, in-process.
+//! Latency of the phonemiser per sentence, warm, in-process.
 //!
 //! ```text
-//! cargo run --release -p akana-core --example espeak_compat_bench -- [--fixtures DIR] [--reps 20]
+//! cargo run --release -p akana-core --example espeak_compat_bench -- [--fixtures DIR] [--reps 20] [--profile tts-v1]
 //! ```
 //!
 //! Texts: the reference fixtures' corpus rows (`DIR/espeak-plan.jsonl`, default
@@ -26,10 +26,18 @@ fn main() {
     let mut args = std::env::args().skip(1);
     let mut fixtures = std::env::var("AKANA_ESPEAK_FIXTURES").ok();
     let mut reps = 20usize;
+    let mut profile = Profile::EspeakCompat;
     while let Some(a) = args.next() {
         match a.as_str() {
             "--fixtures" => fixtures = args.next(),
             "--reps" => reps = args.next().and_then(|s| s.parse().ok()).unwrap_or(20),
+            "--profile" => {
+                let name = args.next().unwrap_or_default();
+                profile = Profile::from_name(&name).unwrap_or_else(|| {
+                    eprintln!("unknown profile {name:?}");
+                    std::process::exit(2)
+                });
+            }
             _ => {
                 eprintln!("unknown argument {a}");
                 std::process::exit(2);
@@ -58,7 +66,7 @@ fn main() {
             .collect(),
     };
     let t0 = Instant::now();
-    let p = Phonemizer::new(Profile::EspeakCompat);
+    let p = Phonemizer::new(profile);
     let load_ms = t0.elapsed().as_secs_f64() * 1e3;
     let mut u = Utterance::default();
     // warm-up
@@ -92,7 +100,8 @@ fn main() {
     let speech_s = words_per_text * 60.0 / 175.0;
     let median_mid_s = pct(&mid, 0.5) / 1e6;
     println!(
-        "texts {} (50-70 chars: {}), reps {reps}, data load {load_ms:.1} ms",
+        "profile {}, texts {} (50-70 chars: {}), reps {reps}, data load {load_ms:.1} ms",
+        profile.name(),
         texts.len(),
         mid_texts
     );

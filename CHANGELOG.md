@@ -23,6 +23,26 @@ A Turkish phonemiser for TTS front ends joins the library, in Rust and Python.
   - **More:** findings, divergence catalogue and the next step (stage 2a, lexical stress) are in
     `docs/phonemizer-espeak-compat.md`. Golden tests use 60 CC0 sentences; the fixture tests skip
     without `AKANA_ESPEAK_FIXTURES`.
+- **Turkish phonemiser, profile `tts-v1`** (`Profile::TtsV1`; Python `phonemize(text, profile="tts-v1")`).
+  - **What it gives:** the same token schema, from Akana's own rules and morphology, with no eSpeak
+    data. Word stress follows the literature: final by default, 87 lexical exceptions, Sezer's rule
+    for place names, compounds on their first part, pre-accenting and stressed suffixes read off the
+    morphological analysis.
+  - **Prominence:** `stress` ranks prominence: 7 the clause's nucleus, 6 phrase accents, 4 deaccented
+    heads, 3 function words, 2 post-nuclear words, 1 unstressed syllables, 0 clitics. Each word
+    reports its `prominence` and the source of its stress.
+  - **Pauses:** one `_:` at a clause boundary, `_!` at quotes and brackets, before conjunctions and
+    after adverbial clauses; no apostrophe pauses, no joined words.
+  - **Segments:** long circumflex vowels, equal-vowel coalescence and `ğ` lengthening, hiatus and
+    glides at `ğ`, geminate stops and `lː`; every `ipa` is one entry of EchoCraft's aligner
+    vocabulary.
+  - **Evidence:** where `tts-v1` and eSpeak disagree on a word's stressed syllable, the teacher's F0
+    peak is on `tts-v1`'s syllable 50.2% of the time and on eSpeak's 30.5% (6,000 words; 54.9%
+    against 28.8% on a check split). Of 266 places where the teacher paused and eSpeak planned no
+    pause, `tts-v1` plans 132.
+  - **Speed:** median 126 µs per 60-character sentence, about 22,000× faster than real time.
+  - **More:** `docs/phonemizer-tts-v1.md`.
+- `phonemize_detailed` words carry `prominence`.
 
 ## 0.10.0 (unreleased)
 

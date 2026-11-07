@@ -13,6 +13,13 @@ const CLAUSE_PUNCT: [char; 7] = [',', '.', ';', ':', '!', '?', '…'];
 const QUOTES: [char; 7] = ['"', '“', '”', '«', '»', '(', ')'];
 /// Words that take the short pause `_!` before them unless they end their clause.
 const SHORT_PAUSE_WORDS: [&str; 7] = ["ve", "veya", "yoksa", "veda", "ama", "ki", "kime"];
+/// Words before which `tts-v1` plans an optional short pause `_!` (coordinating and adversative
+/// conjunctions; the teacher pauses before `ve`, `ki`, `ama` in about 30% of cases), unless they
+/// end their clause.
+const TTS_SHORT_PAUSE_WORDS: [&str; 13] = [
+    "ve", "veya", "yahut", "yoksa", "ama", "fakat", "ancak", "lakin", "çünkü", "ki", "oysa",
+    "halbuki", "hatta",
+];
 /// Word pairs eSpeak reads as one word (observed in the fixtures).
 const JOINS: [(&str, &str); 3] = [("ister", "misin"), ("ister", "misiniz"), ("ne", "yaptın")];
 /// Words with an apostrophe after which eSpeak makes no pause (observed: `Allah'a`, a word it
@@ -233,7 +240,11 @@ fn read_digits(run: &str, words: &mut Vec<String>) {
 }
 
 /// The words of `text`, with their gaps, boundaries and pauses, and the gap after the last word.
-pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
+/// With `tts`, the `tts-v1` profile's choices instead of eSpeak's: no joined pairs, one `_:` at a
+/// clause boundary (the `_` eSpeak adds after it is always empty in the teacher's audio), one
+/// `_!` at a quote or bracket, no pause after a word with an apostrophe (the teacher pauses there
+/// in under 5% of cases), and `_!` before more conjunctions.
+pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, tts: bool) -> Range<usize> {
     words.clear();
     // (span, key, number word, apostrophe)
     let mut spans: Vec<(Range<usize>, String, bool, bool)> = Vec::new();
@@ -287,7 +298,8 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
     let mut merged: Vec<(Range<usize>, String, bool, bool)> = Vec::with_capacity(spans.len());
     for (s, key, number, apostrophe) in spans {
         if let Some((prev_span, prev_key, prev_number, _)) = merged.last_mut() {
-            if !number
+            if !tts
+                && !number
                 && !*prev_number
                 && &text[prev_span.end..s.start] == " "
                 && JOINS.iter().any(|(a, b)| a == prev_key && *b == key)
@@ -334,22 +346,37 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
         }
         let quote = gap.chars().any(|c| QUOTES.contains(&c));
         let prev = &words[k - 1];
-        let apostrophe_pause =
-            prev.apostrophe && !boundary && !NO_APOSTROPHE_PAUSE.contains(&prev.key.as_str());
+        let apostrophe_pause = !tts
+            && prev.apostrophe
+            && !boundary
+            && !NO_APOSTROPHE_PAUSE.contains(&prev.key.as_str());
         let mut pauses = SmallVec::new();
-        if boundary {
-            pauses.push(Pause::ClauseEnd);
-            pauses.push(Pause::Edge);
-        }
-        if quote || apostrophe_pause {
-            pauses.push(Pause::ClauseEnd);
-            pauses.push(Pause::ClauseEnd);
+        if tts {
+            if boundary {
+                pauses.push(Pause::ClauseEnd);
+            } else if quote {
+                pauses.push(Pause::Short);
+            }
+        } else {
+            if boundary {
+                pauses.push(Pause::ClauseEnd);
+                pauses.push(Pause::Edge);
+            }
+            if quote || apostrophe_pause {
+                pauses.push(Pause::ClauseEnd);
+                pauses.push(Pause::ClauseEnd);
+            }
         }
         words[k].boundary = boundary;
         words[k].pauses = pauses;
     }
     for k in 1..words.len() {
-        if !SHORT_PAUSE_WORDS.contains(&words[k].key.as_str()) {
+        let list: &[&str] = if tts {
+            &TTS_SHORT_PAUSE_WORDS
+        } else {
+            &SHORT_PAUSE_WORDS
+        };
+        if !list.contains(&words[k].key.as_str()) || (tts && !words[k].pauses.is_empty()) {
             continue;
         }
         let ends_clause = k + 1 == words.len() || words[k + 1].boundary;
@@ -393,7 +420,7 @@ mod tests {
 
     fn keys(text: &str) -> Vec<String> {
         let mut w = Vec::new();
-        segment(text, &mut w);
+        segment(text, &mut w, false);
         w.into_iter().map(|w| w.key).collect()
     }
 
@@ -412,6 +439,7 @@ mod tests {
         segment(
             "Ali'nin kitabı İstanbul'a, Kemal'e ve Ankara'dan geldi.",
             &mut w,
+            false,
         );
         let p: Vec<usize> = w.iter().map(|w| w.pauses.len()).collect();
         // kitabı after an apostrophe word: `_: _:`; Kemal'e after a comma: `_: _`; ve after
@@ -424,7 +452,7 @@ mod tests {
     #[test]
     fn short_pause_unless_the_conjunction_ends_its_clause() {
         let mut w = Vec::new();
-        segment("Yaptı ama kancıklık. İyi ama, neydi o", &mut w);
+        segment("Yaptı ama kancıklık. İyi ama, neydi o", &mut w, false);
         assert_eq!(w[1].pauses.as_slice(), [Pause::Short]);
         assert!(w[4].pauses.is_empty());
     }
@@ -439,7 +467,7 @@ mod tests {
         );
         assert_eq!(keys("%25"), ["yüzde", "yirmi", "beş"]);
         let mut w = Vec::new();
-        segment("1923'te kuruldu", &mut w);
+        segment("1923'te kuruldu", &mut w, false);
         // the suffix word is followed by the apostrophe's pause pair
         assert_eq!(w.last().map(|w| w.pauses.len()), Some(2));
     }

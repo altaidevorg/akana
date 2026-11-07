@@ -593,24 +593,20 @@ fn analyze_readability_json(py: Python<'_>, text: &str) -> PyResult<String> {
 fn speech_profile(name: &str) -> PyResult<akana_core::speech::Profile> {
     akana_core::speech::Profile::from_name(name).ok_or_else(|| {
         PyValueError::new_err(format!(
-            "unknown phonemiser profile {name:?} (known: \"espeak-compat\")"
+            "unknown phonemiser profile {name:?} (known: \"espeak-compat\", \"tts-v1\")"
         ))
     })
 }
-
-static PHONEMIZER: LazyLock<akana_core::speech::Phonemizer> = LazyLock::new(|| {
-    akana_core::speech::Phonemizer::new(akana_core::speech::Profile::EspeakCompat)
-});
 
 /// The text's phoneme and pause tokens as JSON, in the schema of EchoCraft's eSpeak fixtures
 /// (`ph`, `stress`, `word`, `lengthen`, `mark`, `type`, `ipa`); `phonemize` reads it.
 #[pyfunction]
 #[pyo3(signature = (text, profile="espeak-compat"))]
 fn phonemize_json(py: Python<'_>, text: &str, profile: &str) -> PyResult<String> {
-    speech_profile(profile)?;
+    let profile = speech_profile(profile)?;
     release(py, || -> Result<String, PyErr> {
         let mut u = akana_core::speech::Utterance::default();
-        PHONEMIZER
+        akana_core::speech::Phonemizer::new(profile)
             .phonemize_into(text, &mut u)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         serde_json::to_string(&u.tokens).map_err(json_error)
@@ -626,7 +622,7 @@ fn phonemize_detailed_json(py: Python<'_>, text: &str, profile: &str) -> PyResul
     let profile = speech_profile(profile)?;
     release(py, || -> Result<String, PyErr> {
         let mut u = akana_core::speech::Utterance::default();
-        PHONEMIZER
+        akana_core::speech::Phonemizer::new(profile)
             .phonemize_into(text, &mut u)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         let mut bytes: Vec<usize> = Vec::new();
@@ -663,6 +659,7 @@ fn phonemize_detailed_json(py: Python<'_>, text: &str, profile: &str) -> PyResul
                     "promoted": w.promoted,
                     "tonic": w.tonic,
                     "normalized": w.normalized,
+                    "prominence": w.prominence,
                 })
             })
             .collect();

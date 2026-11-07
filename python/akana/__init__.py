@@ -397,7 +397,16 @@ def phonemize(text: str, profile: str = "espeak-compat") -> list[dict[str, Any]]
     clause), ``type`` (eSpeak's phoneme class) and ``ipa`` (``None`` for pauses). One ``_`` pause
     stands at each edge. Digits are read as Turkish numbers (``20:00`` yirmi sıfır sıfır);
     other symbols are not read in this profile (``phonemize_detailed`` lists them as
-    warnings). An unknown profile raises ``ValueError``.
+    warnings).
+
+    Profile ``"tts-v1"`` is Akana's own front end, in the same schema: word stress from the
+    phonology literature and Akana's morphology, and ``stress`` as a prominence rank (7 the
+    clause's nucleus, 6 a phrase accent, 4 a deaccented head, 3 a function word, 2 after the
+    nucleus, 1 unstressed, 0 a clitic); pauses ``_`` at the edges, ``_:`` at clause boundaries,
+    ``_!`` at quotes, brackets, before conjunctions and after adverbial clauses; long vowels
+    and geminates with ``lengthen`` 1. See ``docs/phonemizer-tts-v1.md``.
+
+    An unknown profile raises ``ValueError``.
     """
     return json.loads(phonemize_json(text, profile))
 
@@ -410,7 +419,9 @@ def phonemize_detailed(text: str, profile: str = "espeak-compat") -> dict[str, A
     (character offsets), ``text``, ``reading`` (the lexicon key), ``pauses_before``,
     ``phones`` (``ph``, ``ipa``, ``stress``, ``lengthen``), ``clause``, ``stress_source`` and
     ``segment_source`` (``lexicon:espeak-compat``, ``espeak-compat-rule:...``,
-    ``default-final``), ``promoted`` (stress added at a clause's end), ``tonic`` and
+    ``default-final``; in ``tts-v1`` also ``lexicon:{class}:{sources}``, ``morphology:{rule}``,
+    ``sezer``, ``compound:first-part``, ``clitic``), ``promoted`` (stress added at a clause's
+    end), ``tonic``, ``prominence`` (the level of the word's stressed syllable) and
     ``normalized`` (``"number"`` for the words of a number, else ``None``).
     """
     return json.loads(phonemize_detailed_json(text, profile))
