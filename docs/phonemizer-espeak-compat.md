@@ -63,8 +63,9 @@ akana.phonemize_detailed("...")                                     # words, pro
    comma counts; with an ellipsis in the last two clauses the last clause keeps the previous number).
    Digits are read as Turkish numbers (`20:00` yirmi sıfır sıfır, `07.30` sıfır yedi nokta otuz,
    `%25` yüzde yirmi beş, `1923'te` … te `_: _:`).
-2. **Words → phonemes** (`speech/letters.rs`, `speech/model.rs`). The lexicon (33,501 words) has eSpeak's
-   stress for every word it saw and eSpeak's phonemes for the 269 where the letter rules differ. The
+2. **Words → phonemes** (`speech/letters.rs`, `speech/model.rs`). A small lexicon (269 words) holds the
+   words the rules and the suffix model below read otherwise than eSpeak, with eSpeak's stress and, where
+   needed, phonemes. The
    letter rules: lax vowels in closed and word-final syllables, `&` before a tautosyllabic m n l, `*`
    between vowels, clear/dark l by the following vowel (by the preceding one in a coda and before an
    apostrophe), `J` before front vowels, `c` in `-ken`, ğ as length after back vowels and `j` after
@@ -84,11 +85,14 @@ akana.phonemize_detailed("...")                                     # words, pro
    pauses take the level of the next vowel in their clause; a word-final l before a vowel-initial word
    loses its coda mark.
 
-**Data** (`speech/espeak_compat.tsv.gz`, 132 KB, built by the ignored test `build_espeak_compat_data`):
-the train split's words (14,828 sentences) and 15,817 more words of the Common Voice sentence
-collector, from sentences in none of the fixture splits, run through the same eSpeak build as a word list
-(`scripts/speech/espeak_compat_wordlist.json`, made by `scripts/speech/make_espeak_compat_wordlist.py`;
-88 s of eSpeak). The texts are CC0; only words ship, with eSpeak's outputs for them.
+**Data** (`speech/espeak_compat.tsv.gz`, 7 KB, built by the ignored test `build_espeak_compat_data`):
+derived from 33,501 words as eSpeak read them. They are the train split's words (14,828 sentences) and
+15,817 more words of the Common Voice sentence collector, from sentences in none of the fixture splits,
+run through the same eSpeak build as a word list (`scripts/speech/espeak_compat_wordlist.json`, made by
+`scripts/speech/make_espeak_compat_wordlist.py`; 88 s of eSpeak). The builder ships only what the output
+needs: the 1,508-ending table, which already predicts the stress of all but 269 of those words, and those
+269 words. A first build shipped all 33,501 words (132 KB); the compact file gives byte-identical tokens
+for all 15,775 fixture and word-list texts.
 
 **Clean room.** Built only from eSpeak NG's observed outputs (the fixtures, the word-list run), the
 brief's behavioural description and the phonology literature it cites. No eSpeak NG source, rule or
@@ -197,9 +201,9 @@ EchoCraft session notes folder (`akana-phonemiser-wordlist-v1/`).
 
 ## For the owner
 
-- **Shipped data:** the profile ships a table of 33,501 CC0 words with eSpeak's stress and phonemes,
-  derived from eSpeak's outputs only (THIRD_PARTY_NOTICES §4). The brief allowed a word-level table;
-  please confirm you are happy to ship it in the library.
+- **Shipped data:** the profile ships 1,508 word endings and 269 CC0 words with eSpeak's stress and
+  phonemes, derived from eSpeak's outputs only (THIRD_PARTY_NOTICES §4). The full 33,501-word table is not
+  needed: without it the output is byte-identical.
 - **Golden tests:** 60 CC0 sentences with eSpeak's tokens are committed as golden tests
   (`tests/data/speech/`).
 - **EchoCraft integration:** the `--frontend akana` switch, set-R CER (the budget is 0.3 points over

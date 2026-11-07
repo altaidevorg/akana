@@ -2,8 +2,11 @@
 //! reference fixtures and a CC0 word list run through the same eSpeak build; see
 //! `espeak_compat.tsv.gz`'s header and `build_espeak_compat_data`).
 //!
-//! - **Lexicon:** every word seen in those outputs, with its stress (per syllable: primary,
-//!   unstressed or secondary) and, when the letter rules give other phonemes, eSpeak's phonemes.
+//! - **Lexicon:** the words of those outputs that the suffix model and the letter rules read
+//!   otherwise than eSpeak (269 of 33,501), with their stress (per syllable: primary, unstressed
+//!   or secondary) and, when the letter rules give other phonemes, eSpeak's phonemes. The builder
+//!   drops every word the tables already read as eSpeak does, so the output is the same as with
+//!   all of them.
 //! - **Suffix model:** for a word outside the lexicon, the stress position (syllables from the
 //!   end; 0 = unstressed) predicted from the longest ending it shares with lexicon words. The
 //!   table stores, for each ending, the position a word with that ending and an unseen letter
@@ -473,9 +476,67 @@ pub(crate) mod build {
                 }
             }
         }
-        let apostrophe = apo
+        let apostrophe: BTreeMap<String, u8> = apo
             .into_iter()
             .filter_map(|(t, c)| most_common(&c).filter(|&p| p != 1).map(|p| (t, p)))
+            .collect();
+        // Keep only the words the tables and the letter rules would get wrong: the rules' phonemes
+        // (with the stress-dependent choices made under the word's own stress) must equal
+        // eSpeak's, and the suffix model's stress the word's. The others answer the same without
+        // an entry, so the output does not change.
+        let rules_only = super::Model {
+            lexicon: HashMap::new(),
+            suffixes: suffixes.iter().map(|(s, p)| (s.clone(), *p)).collect(),
+            apostrophe: apostrophe.iter().map(|(s, p)| (s.clone(), *p)).collect(),
+            header: Vec::new(),
+        };
+        let lexicon = lexicon
+            .into_iter()
+            .filter_map(|(key, (marks, phonemes))| {
+                let observed = match &phonemes {
+                    Some(p) => super::parse_phonemes(p).unwrap_or_default(),
+                    None => {
+                        let mut s = Vec::new();
+                        key_to_phonemes(&key, &mut s);
+                        s
+                    }
+                };
+                let mut rule = Vec::new();
+                key_to_phonemes(&key, &mut rule);
+                let levels: Vec<u8> = marks
+                    .chars()
+                    .map(|c| match c {
+                        'P' => 6,
+                        '3' => 3,
+                        _ => 1,
+                    })
+                    .collect();
+                super::super::letters::stress_dependent_segments(&mut rule, &levels);
+                let same_segments = rule.len() == observed.len()
+                    && rule
+                        .iter()
+                        .zip(&observed)
+                        .all(|(a, b)| a.ph == b.ph && a.long == b.long);
+                let nsyl = observed.iter().filter(|s| s.ph.is_vowel()).count();
+                let (predicted, _) = super::super::predict_marks(&rules_only, &key, nsyl);
+                let predicted: String = predicted
+                    .iter()
+                    .map(|m| match m {
+                        super::Mark::Primary => 'P',
+                        super::Mark::Secondary => '3',
+                        super::Mark::Unstressed => 'U',
+                    })
+                    .collect();
+                if same_segments && predicted == marks {
+                    return None;
+                }
+                let phonemes = if same_segments {
+                    phonemes
+                } else {
+                    Some(format_phonemes(&observed))
+                };
+                Some((key, (marks, phonemes)))
+            })
             .collect();
         Built {
             lexicon,

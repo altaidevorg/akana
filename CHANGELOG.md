@@ -11,9 +11,10 @@ A Turkish phonemiser for TTS front ends joins the library, in Rust and Python.
   - **What it gives:** text to the token stream eSpeak NG 1.52 gives EchoCraft's student TTS: `ph`,
     `stress` 0–7, `word`, `lengthen`, `mark`, plus `type` and `ipa`. Each word carries the provenance
     of its stress and segments, and digits are read as Turkish numbers.
-  - **How it was built:** clean room, from eSpeak's outputs only. The data are a 33,501-word lexicon of
-    CC0 Common Voice words with eSpeak's stress, and a suffix model for other words
-    (`src/speech/espeak_compat.tsv.gz`, built by an ignored test from the fixtures).
+  - **How it was built:** clean room, from eSpeak's outputs only. The data (`src/speech/espeak_compat.tsv.gz`,
+    7 KB, built by an ignored test from the fixtures) are a table of 1,508 word endings that predicts stress
+    and 269 exception words. They were derived from 33,501 CC0 Common Voice words as eSpeak read them;
+    the words themselves are not shipped.
   - **Parity on the held-out test split (300 sentences, scored once):** phoneme sequence exact for
     99.67% of sentences; per token `ph` 99.993%, `stress` 99.83%, `word` 99.987%, `lengthen` and
     `mark` 99.993%. Five-fold cross-validation on train words never seen: stress 99.64% per token.

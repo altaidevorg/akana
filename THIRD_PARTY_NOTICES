@@ -131,10 +131,12 @@ Licence:    CC0 1.0 Universal, public domain dedication (sentence text under ser
             repository's README.md).
 
 Shipped as: crates/akana-core/src/speech/espeak_compat.tsv.gz, compiled into the library.
-Changes:    no sentence is shipped. The file holds 33,501 words of those sentences with the
-            phonemes and stress eSpeak NG 1.52.0 gave them (EchoCraft's reference fixtures, and a
-            list of the words run through the same eSpeak build), and a table of word endings
-            derived from those words, for the espeak-compat phonemiser. Only eSpeak NG's outputs
+Changes:    no sentence is shipped. The file holds a table of 1,508 word endings with the stress
+            position they predict, and 269 words the endings and the letter rules read otherwise
+            than eSpeak NG 1.52.0, with eSpeak's phonemes and stress, for the espeak-compat
+            phonemiser. Both were derived from 33,501 words of those sentences as eSpeak read them
+            (EchoCraft's reference fixtures, and a list of the words run through the same eSpeak
+            build); the words themselves are not shipped. Only eSpeak NG's outputs
             were used; no eSpeak NG source, rule or data file (GPL-3.0-or-later) was read,
             copied or translated.
 Tests only: crates/akana-core/tests/data/speech/espeak_compat_golden.jsonl, 60 of the sentences
