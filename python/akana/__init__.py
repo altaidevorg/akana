@@ -73,6 +73,8 @@ try:
         normalize_informal,
         number_to_words,
         ordinal_to_words,
+        phonemize_detailed_json,
+        phonemize_json,
         remove_stopwords,
         similarity,
         similarity_vectors,
@@ -385,6 +387,35 @@ def grammar_rules() -> list[dict[str, Any]]:
     return json.loads(grammar_rules_json())
 
 
+def phonemize(text: str, profile: str = "espeak-compat") -> list[dict[str, Any]]:
+    """The text's phoneme and pause tokens for a TTS front end.
+
+    Profile ``"espeak-compat"`` gives the token stream eSpeak NG 1.52 gives EchoCraft's
+    student TTS: one dict per phoneme or pause with ``ph`` (eSpeak's mnemonic), ``stress``
+    (0 diminished, 1 unstressed, 3 secondary, 6 a word's primary, 7 the clause's tonic),
+    ``word`` (1 on a word's first phoneme), ``lengthen``, ``mark`` (the punctuation ending the
+    clause), ``type`` (eSpeak's phoneme class) and ``ipa`` (``None`` for pauses). One ``_`` pause
+    stands at each edge. Digits are read as Turkish numbers (``20:00`` yirmi sıfır sıfır);
+    other symbols are not read in this profile (``phonemize_detailed`` lists them as
+    warnings). An unknown profile raises ``ValueError``.
+    """
+    return json.loads(phonemize_json(text, profile))
+
+
+def phonemize_detailed(text: str, profile: str = "espeak-compat") -> dict[str, Any]:
+    """The text's words as read, with the provenance of each decision.
+
+    Returns ``profile``, ``version``, ``tokens`` (as ``phonemize``), ``warnings`` (characters
+    not read: ``start``, ``end``, ``message``) and ``words``: each with ``start``/``end``
+    (character offsets), ``text``, ``reading`` (the lexicon key), ``pauses_before``,
+    ``phones`` (``ph``, ``ipa``, ``stress``, ``lengthen``), ``clause``, ``stress_source`` and
+    ``segment_source`` (``lexicon:espeak-compat``, ``espeak-compat-rule:...``,
+    ``default-final``), ``promoted`` (stress added at a clause's end), ``tonic`` and
+    ``normalized`` (``"number"`` for the words of a number, else ``None``).
+    """
+    return json.loads(phonemize_detailed_json(text, profile))
+
+
 def encoder_info() -> dict[str, Any]:
     """What this library's encoders are, for an index to store when it is built:
     ``akana_version``, ``unicode_version``, ``sparse_spec`` (major.minor), ``hybrid_layout``,
@@ -521,6 +552,8 @@ __all__ = [
     "normalize_informal",
     "number_to_words",
     "ordinal_to_words",
+    "phonemize",
+    "phonemize_detailed",
     "pii_mask",
     "pii_restore",
     "remove_stopwords",

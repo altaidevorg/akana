@@ -49,6 +49,10 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
   - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.9 % of words to the right head (UAS) and 41.9 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.8 against 51.3) none. Trained parsers do much better: use it for rough structure.
+- **Speech Front End (Phonemiser)**:
+  - `akana.phonemize(text)` turns Turkish text into phoneme and prosody tokens for a TTS model: phoneme, stress level, word start, length mark and the clause's punctuation, in microseconds and in process. Every word says where its stress and phonemes came from (`phonemize_detailed`).
+  - Profile `espeak-compat` reproduces the tokens eSpeak NG 1.52 gives EchoCraft's student TTS, so the model runs on it without retraining. It was built clean room from eSpeak's outputs only. On held-out sentences the phoneme sequence is exact for 99.7% of them, with per-token stress at 99.8% ([parity report](docs/phonemizer-espeak-compat.md)). A median sentence takes about 10 µs, some 280,000× faster than real time.
+  - Profiles that follow the Turkish phonology literature (lexical stress first) come next.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).

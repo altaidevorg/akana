@@ -8,6 +8,7 @@ crates/akana-core/tests/data/ai_detector_reference.json linguist-generated
 scripts/lexicon/** -text
 crates/akana-core/src/morphology/zemberek_lexicon.txt -text
 crates/akana-core/src/morphology/prior.tsv.gz binary
+crates/akana-core/src/speech/espeak_compat.tsv.gz binary
 crates/akana-core/src/embeddings/function_lemmas.tsv -text
 crates/akana-core/src/embeddings/stop_lemmas.txt -text
 crates/akana-core/src/embeddings/lemma_weights.tsv -text

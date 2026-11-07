@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+A Turkish phonemiser for TTS front ends joins the library, in Rust and Python.
+
+### Added
+
+- **Turkish phonemiser, profile `espeak-compat`** (`akana_core::speech`; Python `phonemize`,
+  `phonemize_detailed`).
+  - **What it gives:** text to the token stream eSpeak NG 1.52 gives EchoCraft's student TTS: `ph`,
+    `stress` 0–7, `word`, `lengthen`, `mark`, plus `type` and `ipa`. Each word carries the provenance
+    of its stress and segments, and digits are read as Turkish numbers.
+  - **How it was built:** clean room, from eSpeak's outputs only. The data are a 33,501-word lexicon of
+    CC0 Common Voice words with eSpeak's stress, and a suffix model for other words
+    (`src/speech/espeak_compat.tsv.gz`, built by an ignored test from the fixtures).
+  - **Parity on the held-out test split (300 sentences, scored once):** phoneme sequence exact for
+    99.67% of sentences; per token `ph` 99.993%, `stress` 99.83%, `word` 99.987%, `lengthen` and
+    `mark` 99.993%. Five-fold cross-validation on train words never seen: stress 99.64% per token.
+  - **Speed:** median 7–10 µs per 60-character sentence in a release build, about 280,000× faster than
+    real time.
+  - **More:** findings, divergence catalogue and the next step (stage 2a, lexical stress) are in
+    `docs/phonemizer-espeak-compat.md`. Golden tests use 60 CC0 sentences; the fixture tests skip
+    without `AKANA_ESPEAK_FIXTURES`.
+
 ## 0.10.0 (unreleased)
 
 A learned PII tagger joins the rule-based engine, behind optional features: two Turkish token
