@@ -65,3 +65,17 @@ Every finding was re-run by hand and reproduced. Each fix is asserted in
 - **`tts-v1`:** unchanged (0 differences on the fixtures, the word list and 3,000 random letter
   texts); every new path is gated on `tts-v2`.
 - **Doc counts:** exact.
+
+## PR review comment (checked against `1f947cd`)
+
+A review comment on the pull request listed five findings. Several cited the code of the first
+stage (`model.rs`, the `espeak-compat` profile), which later commits removed. Each was checked
+against the branch head.
+
+| # | finding | verdict at `1f947cd` | evidence or fix |
+|---|---|---|---|
+| 1 | `model.rs`'s `gunzip` discards I/O errors, so a corrupt `espeak_compat.tsv.gz` gives an empty model | not applicable | `model.rs` and `espeak_compat.tsv.gz` were removed with the `espeak-compat` profile in `ecacaba`; `speech/` loads no data file (`git ls-tree HEAD crates/akana-core/src/speech/`) |
+| 2 | the Python bindings ignore `profile` and use a global `PHONEMIZER` fixed to `EspeakCompat`; the detailed JSON names the wrong profile | not applicable | the global was removed in `0c9d167`. `phonemize_json` and `phonemize_detailed_json` build `Phonemizer::new(profile)` on every call, and the detailed JSON writes `profile.name()` and `profile.version()` (`crates/akana-py/src/lib.rs`). `test_default_profile_is_tts_v1` and the `tts-v2` tests (IPA `ph`) show the profile is honoured |
+| 3 | an unchecked `out.tokens[k]` in the consonant-stress copy loop could panic | not applicable | that loop was part of the `espeak-compat` prosody pass removed in `ecacaba`; no `tokens[` index remains in `speech/`. The token contract was fuzzed in both profiles (6,000 texts and adversarial input) without a panic |
+| 4 | `read_digits` overflows `i64` for 16–18 digits and reads them as 0 | disputed | the guard sends every run of more than 15 digits to the digit-by-digit reading, so `i64::parse` sees at most 15 digits (below 9.2 × 10¹⁸), and `scan_number` collects ASCII digits only. Regression test `long_digit_runs_never_overflow`: 16, 18, 19 and 25 digits are read digit by digit, and 15 nines as a number |
+| 5 | `Phonemizer::phonemize` drops the over-limit error, giving an empty utterance | confirmed, fixed | an over-limit text now gives its two edge pauses (the token contract) and one warning over the whole text, with the error's message; `phonemize_into` still returns the error and Python raises `ValueError`. Regression test `oversized_text_is_reported` |

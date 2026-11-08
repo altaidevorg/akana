@@ -171,3 +171,59 @@ fn every_tts_v2_symbol_follows_the_contract() {
         }
     }
 }
+
+/// PR review, finding 5: an oversized text is reported, not returned as an empty utterance.
+#[test]
+fn oversized_text_is_reported() {
+    let text = "a".repeat(akana_core::speech::MAX_TEXT_BYTES + 1);
+    for profile in [Profile::TtsV1, Profile::TtsV2] {
+        let p = Phonemizer::new(profile);
+        let u = p.phonemize(&text);
+        assert_eq!(u.tokens.len(), 2);
+        assert!(u
+            .tokens
+            .iter()
+            .all(|t| t.ph.is_pause() && t.ph_symbol() == "_"));
+        assert!(u.words.is_empty());
+        assert_eq!(u.warnings.len(), 1);
+        assert_eq!(u.warnings[0].span, 0..text.len());
+        assert!(u.warnings[0].message.contains("limit"));
+        let mut v = akana_core::speech::Utterance::default();
+        assert!(p.phonemize_into(&text, &mut v).is_err());
+    }
+    // empty text: two edge pauses and no warning
+    let u = Phonemizer::new(Profile::TtsV1).phonemize("");
+    assert_eq!(u.tokens.len(), 2);
+    assert!(u.warnings.is_empty());
+}
+
+/// PR review, finding 4: a run of digits the verbaliser leaves (after letters) is read digit by
+/// digit from 16 digits on, so it never overflows; 15 digits are read as a number.
+#[test]
+fn long_digit_runs_never_overflow() {
+    for profile in [Profile::TtsV1, Profile::TtsV2] {
+        let p = Phonemizer::new(profile);
+        for n in [16, 18, 19, 25] {
+            let text = format!("abc{} x", "9".repeat(n));
+            let readings: Vec<String> = p
+                .phonemize(&text)
+                .words
+                .iter()
+                .map(|w| w.reading.clone())
+                .collect();
+            assert_eq!(
+                readings.iter().filter(|r| r.as_str() == "dokuz").count(),
+                n,
+                "{n} digits"
+            );
+        }
+        let text = format!("abc{} x", "9".repeat(15));
+        let readings: Vec<String> = p
+            .phonemize(&text)
+            .words
+            .iter()
+            .map(|w| w.reading.clone())
+            .collect();
+        assert!(readings.iter().any(|r| r == "trilyon"), "{readings:?}");
+    }
+}

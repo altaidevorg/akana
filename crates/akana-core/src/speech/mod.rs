@@ -312,10 +312,29 @@ impl Phonemizer {
         self.profile
     }
 
-    /// Phonemises `text` (texts over [`MAX_TEXT_BYTES`] give an empty utterance).
+    /// Phonemises `text`. A text over [`MAX_TEXT_BYTES`] is not read: the utterance has only
+    /// its two edge pauses and a warning over the whole text that says why
+    /// ([`Phonemizer::phonemize_into`] returns the error instead).
     pub fn phonemize(&self, text: &str) -> Utterance {
         let mut out = Utterance::default();
-        let _ = self.phonemize_into(text, &mut out);
+        if let Err(e) = self.phonemize_into(text, &mut out) {
+            out.words.clear();
+            out.tokens.clear();
+            let edge = Token {
+                ph: Phoneme::Pause,
+                stress: 0,
+                word: false,
+                lengthen: false,
+                mark: '.',
+                profile: self.profile,
+            };
+            out.tokens.push(edge);
+            out.tokens.push(edge);
+            out.warnings = vec![Warning {
+                span: 0..text.len(),
+                message: e.to_string(),
+            }];
+        }
         out
     }
 
