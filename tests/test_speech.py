@@ -206,3 +206,27 @@ def test_tts_v2_stress_rules_tts_v1_lacked():
     assert stressed("Seninki geldi.", "tts-v2") == 1
     assert stressed("Yapıver.", "tts-v2") == 1
     assert stressed("Hindistan'a gitti.", "tts-v2") == 2
+
+
+# --- review of 2026-11-08 ---------------------------------------------------------------------
+
+
+def test_review_regressions():
+    import unicodedata
+
+    # non-ASCII digits: no panic, edge pauses kept
+    for text in ["1١11", "1２３４", "12.03.٢٠٢٤", "Tarih: 1.1.٢٠"]:
+        for profile in ["tts-v1", "tts-v2"]:
+            tokens = akana.phonemize(text, profile=profile)
+            assert tokens[0]["ph"] == "_" and tokens[-1]["ph"] == "_"
+    # tts-v1 reads text of letters and punctuation as written
+    for text in ["TBMM bugün", "II. Dünya Savaşı", "M. Kemal", "www.ornek.com", "vb. online"]:
+        assert akana.verbalize(text, words=False)["segments"] == [], text
+    # tts-v2 reads decomposed text as composed text
+    nfc = "Çiçek güzel, İstanbul'a gitti."
+    nfd = unicodedata.normalize("NFD", nfc)
+    words = akana.phonemize_detailed(nfd, profile="tts-v2")["words"]
+    assert [w["reading"] for w in words] == ["çiçek", "güzel", "istanbul'a", "gitti"]
+    assert akana.phonemize(nfd, profile="tts-v2") == akana.phonemize(nfc, profile="tts-v2")
+    for w in words:
+        assert unicodedata.normalize("NFC", nfd[w["start"]:w["end"]]) == unicodedata.normalize("NFC", w["text"])

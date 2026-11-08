@@ -90,9 +90,11 @@ which the row above covers. The teacher shows no shift on the locative *-ki*.
 
 ## Verbaliser
 
-`tts-v2` uses every rule of `speech::verbalize` (Python `akana.verbalize`). `tts-v1` uses all but
-the word rules: abbreviations, foreign words and foreign letters, and lowercase letters spelled
-with hyphens. Each reading keeps the byte span of the text it reads, and the phonemiser's words
+`tts-v2` uses every rule of `speech::verbalize` (Python `akana.verbalize`). `tts-v1` verbalises
+only stretches with a digit or a symbol: numbers, money, units, telephone numbers, e-mail,
+symbols, `A4`, `C++`, and `No:`/`s.` before a number. Abbreviations, initialisms, Roman numerals,
+foreign words, spelled letters and URLs written in letters alone are kept as written, so its
+output on text of letters and punctuation is unchanged. Each reading keeps the byte span of the text it reads, and the phonemiser's words
 point back at it.
 
 | written | spoken | rule |
@@ -129,8 +131,10 @@ Sources and checks:
 ## Freeze and tests
 
 - **`tts-v1`:** identical to commit `0c9d167` on all 15,328 fixture clips and the 15,817-word
-  list. Only 14 probe rows with digits, symbols or initialisms read differently, because they are
-  now verbalised.
+  list, and on 3,000 random texts of letters and punctuation (the review's differential test).
+  Only 10 probe rows with digits or symbols read differently, because they are now verbalised.
+- **Review:** an independent review of the whole branch, its findings and their fixes:
+  [phonemizer-review-2026-11-08.md](phonemizer-review-2026-11-08.md).
 - **Golden files** (Akana's own output):
   - `tts_v1_golden.jsonl`: 60 CC0 sentences, never rewritten;
   - `tts_v2_golden.jsonl`: the 60 sentences plus the 40 verbaliser sentences of

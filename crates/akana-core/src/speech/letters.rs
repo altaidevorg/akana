@@ -15,7 +15,7 @@ pub(crate) struct Seg {
     pub letter: char,
     /// The index of its first letter among the word's letters (apostrophes left out); 0 from the
     /// lexicon.
-    pub at: u16,
+    pub at: u32,
 }
 
 impl Seg {
@@ -211,6 +211,11 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
             _ => None,
         }
     };
+    // the nearest vowel before each unit (linear in a long word)
+    let mut vowel_before: Vec<Option<(char, bool)>> = vec![None; m];
+    for k in 1..m {
+        vowel_before[k] = vowel_at(k - 1).or(vowel_before[k - 1]);
+    }
     for k in 0..m {
         match units[k] {
             Unit::V { v, long, at, .. } => {
@@ -280,7 +285,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                     ph,
                     long,
                     letter: v,
-                    at: at as u16,
+                    at: at as u32,
                 });
             }
             Unit::C { c, long, at } => {
@@ -295,7 +300,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                         }
                     }
                     'l' if before_apostrophe[at] && next_v.is_some() => {
-                        let pv = (0..k).rev().find_map(vowel_at);
+                        let pv = vowel_before[k];
                         match pv {
                             Some((v, circ)) if is_front_letter(v) || circ => L,
                             _ => LDark,
@@ -309,7 +314,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                                 LDark
                             }
                         } else {
-                            let pv = (0..k).rev().find_map(vowel_at);
+                            let pv = vowel_before[k];
                             match pv {
                                 Some((v, circ)) if is_front_letter(v) || circ => LCoda,
                                 _ => LDarkCoda,
@@ -330,7 +335,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                             ph: K,
                             long: false,
                             letter: 'x',
-                            at: at as u16,
+                            at: at as u32,
                         });
                         S
                     }
@@ -358,7 +363,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
                     ph,
                     long,
                     letter: c,
-                    at: at as u16,
+                    at: at as u32,
                 });
             }
         }
@@ -405,6 +410,23 @@ pub(crate) fn tts_v2_segments(segs: &mut [Seg], letters: &[char]) {
             || matches!(letters.get(s.at as usize), Some('î'))
     };
     let circumflex = |s: &Seg| matches!(letters.get(s.at as usize), Some('â' | 'î' | 'û'));
+    // the nearest vowel before and after each segment (linear in a long word)
+    let mut prev_vowel: Vec<Option<usize>> = vec![None; n];
+    let mut last = None;
+    for k in 0..n {
+        prev_vowel[k] = last;
+        if segs[k].ph.is_vowel() {
+            last = Some(k);
+        }
+    }
+    let mut next_vowel: Vec<Option<usize>> = vec![None; n];
+    let mut last = None;
+    for k in (0..n).rev() {
+        next_vowel[k] = last;
+        if segs[k].ph.is_vowel() {
+            last = Some(k);
+        }
+    }
     for k in 0..n {
         let s = segs[k];
         if s.ph.is_vowel() {
@@ -441,10 +463,12 @@ pub(crate) fn tts_v2_segments(segs: &mut [Seg], letters: &[char]) {
                 };
             }
             'k' | 'g' => {
-                // the next vowel when one follows directly, else the vowel before
-                let next = segs.get(k + 1).filter(|x| x.ph.is_vowel());
-                let near = next.or_else(|| segs[..k].iter().rev().find(|x| x.ph.is_vowel()));
-                let near = near.or_else(|| segs[k + 1..].iter().find(|x| x.ph.is_vowel()));
+                // the next vowel when one follows directly, else the vowel before, else after
+                let near = segs
+                    .get(k + 1)
+                    .filter(|x| x.ph.is_vowel())
+                    .or_else(|| prev_vowel[k].map(|v| &segs[v]))
+                    .or_else(|| next_vowel[k].map(|v| &segs[v]));
                 let palatal = near.is_some_and(|v| front_vowel(v) || circumflex(v));
                 segs[k].ph = match (s.letter, palatal) {
                     ('k', true) => KPalatal,

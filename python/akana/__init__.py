@@ -432,7 +432,7 @@ def phonemize_detailed(text: str, profile: str = "tts-v1") -> dict[str, Any]:
 
 
 def verbalize(text: str, words: bool = True) -> dict[str, Any]:
-    """The text as it is read aloud, for a TTS front end (what profile ``"tts-v1"`` reads).
+    """The text as it is read aloud, for a TTS front end (what profile ``"tts-v2"`` reads).
 
     Numbers (with the suffix written after them re-harmonised: ``3'te`` üçte, ``₺850'ye``
     sekiz yüz elli liraya), ordinals, Roman numerals, decimals, fractions, ranges, dates, times,
@@ -442,9 +442,10 @@ def verbalize(text: str, words: bool = True) -> dict[str, Any]:
     ``start``/``end`` (character offsets in the input), ``start_byte``/``end_byte``, ``source``,
     ``spoken`` and ``kind`` (``cardinal``, ``ordinal``, ``date``, ``time``, ``money``, ...).
 
-    With ``words=False``, words written in letters are kept as written (abbreviations such as
-    ``vb.``, foreign words such as ``online``, foreign letters): what profile ``"tts-v1"`` reads,
-    whose output on text of letters and punctuation alone is frozen.
+    With ``words=False`` (what profile ``"tts-v1"`` reads), only stretches with a digit or a
+    symbol are verbalised; abbreviations, initialisms, Roman numerals, foreign words and URLs
+    written in letters alone are kept as written, so text of letters and punctuation comes back
+    unchanged.
     """
     return json.loads(verbalize_json(text, words))
 

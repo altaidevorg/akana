@@ -1,12 +1,12 @@
-//! Written Turkish to its spoken form, for the `tts-v1` profile: everything a screen reader
-//! meets. Numbers (with the suffix written after them re-harmonised to the word they now end
+//! Written Turkish to its spoken form for a TTS front end: everything a screen reader meets. Numbers (with the suffix written after them re-harmonised to the word they now end
 //! in), ordinals, Roman numerals, decimals, fractions, ranges, dates, times, money, percentages,
 //! units, telephone numbers, abbreviations and initialisms, URLs and e-mail addresses, symbols,
 //! letters spelled with hyphens, and foreign words, brands and letters read Turkish-style.
 //!
 //! Each verbalisation keeps the byte span of the text it reads ([`Verbalized::segments`]); the
-//! text between them is kept as written, so text without anything to verbalise comes back
-//! unchanged and is phonemised exactly as before.
+//! text between them is kept as written. Without the word rules ([`verbalize_with`] with
+//! `words` false, as `tts-v1` reads), only stretches with a digit or a symbol are verbalised:
+//! text of letters and punctuation comes back unchanged.
 //!
 //! The rules are Akana's own, written from Turkish usage (TDK's spelling guide for ordinals,
 //! dates, times and abbreviations; Göksel & Kerslake 2005 for suffix harmony). Initialisms are
@@ -57,10 +57,18 @@ impl Verbalized {
         r: Range<usize>,
         src_len: usize,
     ) -> (Range<usize>, Option<&'static str>) {
+        let segs = &self.segments;
         let map = |pos: usize, is_end: bool| -> (usize, Option<&'static str>) {
-            // the segment containing pos (for an end, the one containing pos - 1)
-            let mut delta: isize = 0;
-            for s in &self.segments {
+            // the last segment starting before pos (for an end, at or before pos - 1)
+            let k = segs.partition_point(|s| {
+                if is_end {
+                    s.spoken_span.start < pos
+                } else {
+                    s.spoken_span.start <= pos
+                }
+            });
+            if k > 0 {
+                let s = &segs[k - 1];
                 let inside = if is_end {
                     pos > s.spoken_span.start && pos <= s.spoken_span.end
                 } else {
@@ -69,12 +77,13 @@ impl Verbalized {
                 if inside {
                     return (if is_end { s.span.end } else { s.span.start }, Some(s.kind));
                 }
-                if s.spoken_span.end <= pos {
-                    delta = s.span.end as isize - s.resume as isize;
-                } else {
-                    break;
-                }
             }
+            // kept text: shifted as after the last segment that ends at or before pos
+            let done = segs.partition_point(|s| s.spoken_span.end <= pos);
+            let delta: isize = match done.checked_sub(1).map(|d| &segs[d]) {
+                Some(s) => s.span.end as isize - s.resume as isize,
+                None => 0,
+            };
             let p = (pos as isize + delta).clamp(0, src_len as isize) as usize;
             (p, None)
         };
@@ -82,10 +91,6 @@ impl Verbalized {
         let (end, k2) = map(r.end, true);
         (start..end.max(start), k1.or(k2))
     }
-}
-
-fn is_upper(c: char) -> bool {
-    c.is_uppercase()
 }
 
 const VOWELS: &str = "aeıioöuüâîûAEIİOÖUÜÂÎÛ";
@@ -292,10 +297,11 @@ fn attach_with(words: &str, suffix: &str, rebuffer: bool) -> String {
         None => ("", words),
     };
     let suffix = harmonize(last, suffix, rebuffer);
-    let stem = if last == "dört" && suffix.starts_with(is_vowel) {
-        "dörd"
-    } else {
-        last
+    // dört and çeyrek voice before a vowel (dördü, çeyreği)
+    let stem = match last {
+        "dört" if suffix.starts_with(is_vowel) => "dörd",
+        "çeyrek" if suffix.starts_with(is_vowel) => "çeyreğ",
+        _ => last,
     };
     format!("{head}{stem}{suffix}")
 }
@@ -313,12 +319,18 @@ struct Abbrev {
 /// Where an abbreviation is read as one: some are also words (`Av.` av, `Bul.` bul).
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Place {
-    /// Anywhere (`vb.`, `bkz.`); its full stop also ends a sentence before a capital.
+    /// Anywhere (`bkz.`, `T.C.`); a capital after it is a name, not a new sentence.
     Any,
+    /// Anywhere, at the end of a phrase (`vb.`, `vs.`); its full stop also ends a sentence
+    /// before a capital.
+    End,
+    /// After a capitalised name (`Koç Holding A.Ş.`); its full stop also ends a sentence before a
+    /// capital.
+    Company,
     /// Before a capitalised name or another title (`Dr. Ayşe`, `Prof. Dr.`); its full stop never
     /// ends a sentence.
     Title,
-    /// After a capitalised name (`Atatürk Bul.`, `Yıldız San.`).
+    /// After a capitalised name or a numbered street (`Atatürk Bul.`, `5. Sok.`).
     Address,
 }
 
@@ -327,6 +339,8 @@ macro_rules! abbrevs {
         &[$( Abbrev { written: $w, spoken: $s, place: abbrevs!(@t $($t)?) } ),*]
     };
     (@t title) => { Place::Title };
+    (@t end) => { Place::End };
+    (@t company) => { Place::Company };
     (@t address) => { Place::Address };
     (@t) => { Place::Any };
 }
@@ -367,21 +381,21 @@ const ABBREVIATIONS: &[Abbrev] = abbrevs! {
     "Asb." => "astsubay", title;
     "Mr." => "mister", title;
     "Mrs." => "misiz", title;
-    "vb." => "ve benzeri";
-    "vs." => "vesaire";
-    "vd." => "ve diğerleri";
+    "vb." => "ve benzeri", end;
+    "vs." => "vesaire", end;
+    "vd." => "ve diğerleri", end;
     "bkz." => "bakınız";
     "Bkz." => "bakınız";
     "örn." => "örneğin";
     "Örn." => "örneğin";
-    "yy." => "yüzyıl";
+    "yy." => "yüzyıl", end;
     "M.Ö." => "milattan önce";
     "M.S." => "milattan sonra";
     "T.C." => "te ce";
-    "A.Ş." => "anonim şirketi", address;
-    "Ltd. Şti." => "limited şirketi", address;
-    "Şti." => "şirketi", address;
-    "Ltd." => "limited", address;
+    "A.Ş." => "anonim şirketi", company;
+    "Ltd. Şti." => "limited şirketi", company;
+    "Şti." => "şirketi", company;
+    "Ltd." => "limited", company;
     "Tic." => "ticaret", address;
     "San." => "sanayi", address;
     "Cad." => "caddesi", address;
@@ -396,7 +410,7 @@ const ABBREVIATIONS: &[Abbrev] = abbrevs! {
     "ort." => "ortalama";
     "maks." => "maksimum";
     "min." => "minimum";
-    "a.g.e." => "adı geçen eser";
+    "a.g.e." => "adı geçen eser", end;
 };
 
 /// Abbreviations read only before a number (`No: 5`, `s. 12`).
@@ -661,21 +675,20 @@ lazy_static! {
         Regex::new(r"^[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
             .expect("email regex");
     static ref URL: Regex = Regex::new(
-        r"^(?:(?:https?://)(?:www\.)?|www\.)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*(?:/[A-Za-z0-9._~%/?#=&+-]*)?|^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|edu|gov|io|info|biz|app|dev|ai)(?:\.tr)?(?:/[A-Za-z0-9._~%/?#=&+-]*)?|^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|edu|gov|gen|bel|k12|av|web|tv|info|biz)\.tr(?:/[A-Za-z0-9._~%/?#=&+-]*)?"
+        r"^(?:(?:https?://)(?:www\.)?|www\.)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*(?:/[A-Za-z0-9._~%/?#=&+-]*)?|^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|org|edu|gov|io|info|biz|app)(?:\.tr)?(?:/[A-Za-z0-9._~%/?#=&+-]*)?|^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.(?:com|net|org|edu|gov|gen|bel|k12|av|web|tv|info|biz)\.tr(?:/[A-Za-z0-9._~%/?#=&+-]*)?"
     )
     .expect("url regex");
     static ref PHONE: Regex = Regex::new(
-        r"^(?:\+90[ -]?|0 ?)?(?:\(\d{3,4}\)|\d{3,4})[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}"
+        r"^(?:\+90[ -]?|0 ?)?(?:\([0-9]{3,4}\)|[0-9]{3,4})[ -]?[0-9]{3}[ -]?[0-9]{2}[ -]?[0-9]{2}"
     )
     .expect("phone regex");
     static ref DATE: Regex =
-        Regex::new(r"^(\d{1,2})([./-])(\d{1,2})([./-])(\d{4}|\d{2})").expect("date regex");
-    static ref ISO_DATE: Regex = Regex::new(r"^(\d{4})-(\d{2})-(\d{2})").expect("iso regex");
+        Regex::new(r"^([0-9]{1,2})([./-])([0-9]{1,2})([./-])([0-9]{4}|[0-9]{2})").expect("date regex");
+    static ref ISO_DATE: Regex = Regex::new(r"^([0-9]{4})-([0-9]{2})-([0-9]{2})").expect("iso regex");
     static ref TIME: Regex =
-        Regex::new(r"^(\d{1,2})([:.])(\d{2})(?::(\d{2}))?").expect("time regex");
+        Regex::new(r"^([0-9]{1,2})([:.])([0-9]{2})(?::([0-9]{2}))?").expect("time regex");
     static ref AMOUNT: Regex =
-        Regex::new(r"^(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d+))?").expect("amount regex");
-    static ref ROMAN: Regex = Regex::new(r"^[IVXLCDM]+").expect("roman regex");
+        Regex::new(r"^([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]+)(?:,([0-9]+))?").expect("amount regex");
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -874,13 +887,19 @@ fn turkish_letters(word: &str) -> Option<String> {
     changed.then_some(out)
 }
 
-/// The end of the letters at `i`, with the hyphens and apostrophes between them.
+/// A combining diacritic (U+0300–U+036F).
+fn is_mark(c: char) -> bool {
+    ('\u{0300}'..='\u{036F}').contains(&c)
+}
+
+/// The end of the letters at `i`, with the hyphens and apostrophes between them. Combining marks
+/// belong to the letter before them.
 fn word_end(s: &str, i: usize) -> usize {
     let mut j = i;
     while let Some(c) = next_char(s, j) {
         let inner = matches!(c, '-' | '\'' | '’')
             && next_char(s, j + c.len_utf8()).is_some_and(char::is_alphabetic);
-        if c.is_alphabetic() || c == '\u{0302}' || inner {
+        if c.is_alphabetic() || is_mark(c) || inner {
             j += c.len_utf8();
         } else {
             break;
@@ -894,10 +913,11 @@ pub fn verbalize(text: &str) -> Verbalized {
     verbalize_with(text, true)
 }
 
-/// Verbalises `text`; without `words`, words written in letters are kept as written (the
-/// abbreviations, foreign words, foreign letters and small-letter spellings are not expanded),
-/// so text of letters and punctuation alone comes back unchanged. Profile `tts-v1` reads text so,
-/// which keeps its output on such text as it was frozen in stage 2.
+/// Verbalises `text`. Without `words`, only stretches with a digit or a symbol are verbalised
+/// (numbers, money, units, telephone numbers, e-mail, symbols, `A4`, `C++`); abbreviations,
+/// initialisms, Roman numerals, foreign words and letters, spelled letters and URLs written in
+/// letters alone are kept as written, so text of letters and punctuation comes back unchanged.
+/// Profile `tts-v1` reads text so, which keeps its output on such text as frozen in stage 2.
 pub fn verbalize_with(text: &str, words: bool) -> Verbalized {
     let mut sc = Scan {
         src: text,
@@ -910,7 +930,8 @@ pub fn verbalize_with(text: &str, words: bool) -> Verbalized {
     while i < s.len() {
         let Some(c) = next_char(s, i) else { break };
         let prev = prev_char(s, i);
-        let at_start = !prev.is_some_and(|p| p.is_alphanumeric());
+        // a combining mark continues its word (decomposed text)
+        let at_start = !prev.is_some_and(|p| p.is_alphanumeric() || is_mark(p));
         if let Some(end) = if at_start { try_at(&mut sc, i) } else { None } {
             i = end;
             continue;
@@ -935,7 +956,7 @@ fn try_at(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     let s = sc.src;
     let c = next_char(s, i)?;
     if c.is_ascii_digit()
-        || (matches!(c, '+' | '-' | '−')
+        || (matches!(c, '+' | '-' | '−' | '(')
             && next_char(s, i + c.len_utf8()).is_some_and(|d| d.is_ascii_digit()))
     {
         return number_rules(sc, i);
@@ -975,7 +996,10 @@ fn try_at(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         }
         if let Some(m) = URL.find(&s[i..]) {
             let end = trim_trailing(s, i, i + m.end());
-            if s[i..end].contains('.') {
+            // an address of letters and dots alone is plain text to tts-v1
+            let has_symbol =
+                s[i..end].contains(|c: char| c.is_ascii_digit() || "/:?=&#%~+_".contains(c));
+            if s[i..end].contains('.') && (sc.words || has_symbol) {
                 let spoken = electronic(&s[i..end]);
                 let (spoken, end) = with_suffix(s, spoken, end, true);
                 sc.emit(i, end, &spoken, "electronic");
@@ -1096,6 +1120,33 @@ fn electronic(t: &str) -> String {
     words.join(" ")
 }
 
+/// A telephone number at `i` (a `+`, a `(` or a digit): its reading and end. Turkish numbers
+/// only: 11 digits from 0, 10 digits from 2–5 written in groups, or `+90` and 10 digits.
+fn phone_at(s: &str, i: usize) -> Option<(String, usize)> {
+    let rest = &s[i..];
+    let m = PHONE.find(rest)?;
+    let end = i + m.end();
+    // not when more digits follow (a longer number or a decimal)
+    if next_char(s, end).is_some_and(|d| {
+        d.is_ascii_digit()
+            || (d == ',' && next_char(s, end + 1).is_some_and(|e| e.is_ascii_digit()))
+    }) {
+        return None;
+    }
+    let written = &rest[..m.end()];
+    let digits: String = written.chars().filter(char::is_ascii_digit).collect();
+    let separated = written.contains([' ', '-', '(']);
+    let ok = if written.starts_with('+') {
+        digits.len() == 12 && digits.starts_with("90")
+    } else {
+        (digits.len() == 11 && digits.starts_with('0'))
+            || (digits.len() == 10
+                && separated
+                && matches!(digits.chars().next(), Some('5' | '2' | '3' | '4')))
+    };
+    ok.then(|| (telephone(written), end))
+}
+
 /// The rules for a token starting with a digit or a sign.
 fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     let s = sc.src;
@@ -1104,19 +1155,16 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     if matches!(c, '+' | '-' | '−') {
         // +90 telephone numbers
         if c == '+' {
-            if let Some(m) = PHONE.find(&s[i..]) {
-                let end = i + m.end();
-                if !next_char(s, end).is_some_and(|d| d.is_ascii_digit()) {
-                    let spoken = telephone(&s[i..end]);
-                    let (spoken, end) = with_suffix(s, spoken, end, false);
-                    sc.emit(i, end, &spoken, "telephone");
-                    return Some(end);
-                }
+            if let Some((spoken, end)) = phone_at(s, i) {
+                let (spoken, end) = with_suffix(s, spoken, end, false);
+                sc.emit(i, end, &spoken, "telephone");
+                return Some(end);
             }
         }
-        // a minus only stands for a sign at the start or after a space
+        // a sign at the start, after a space, a bracket or an operator (x=-5); a hyphen after a
+        // letter or a digit is not one
         let p = prev_char(s, i);
-        if p.is_some_and(|p| !p.is_whitespace() && p != '(') {
+        if p.is_some_and(|p| !p.is_whitespace() && !"(=[<>:;/".contains(p)) {
             return None;
         }
         let j = i + c.len_utf8();
@@ -1133,25 +1181,17 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         return Some(end);
     }
     let rest = &s[i..];
-    // telephone numbers: 10 or 11 digits in groups, from 0 or 5
-    if let Some(m) = PHONE.find(rest) {
-        let end = i + m.end();
-        let digits = rest[..m.end()].chars().filter(char::is_ascii_digit).count();
-        let first = rest.chars().find(char::is_ascii_digit);
-        if !next_char(s, end).is_some_and(|d| {
-            d.is_ascii_digit()
-                || d == ',' && next_char(s, end + 1).is_some_and(|e| e.is_ascii_digit())
-        }) && ((digits == 11 && first == Some('0'))
-            || (digits == 10 && matches!(first, Some('5' | '2' | '3' | '4')))
-                && rest[..m.end()].contains([' ', '-', '(']))
-        {
-            let spoken = telephone(&rest[..m.end()]);
-            let (spoken, end) = with_suffix(s, spoken, end, false);
-            sc.emit(i, end, &spoken, "telephone");
-            return Some(end);
-        }
+    // telephone numbers: (0532) 123 45 67, 0532 123 45 67, 05321234567
+    if let Some((spoken, end)) = phone_at(s, i) {
+        let (spoken, end) = with_suffix(s, spoken, end, false);
+        sc.emit(i, end, &spoken, "telephone");
+        return Some(end);
     }
-    // dates: 12.03.2024, 12/03/2024, 2024-03-12
+    if c == '(' {
+        return None;
+    }
+    // dates: 12.03.2024, 12/03/2024, 2024-03-12; a two-digit year only after a two-digit day
+    // and month (12.03.24), not in a version (1.2.24)
     if let Some(cap) = ISO_DATE.captures(rest) {
         let (y, m, d) = (&cap[1], &cap[2], &cap[3]);
         let end = i + cap.get(0)?.end();
@@ -1165,7 +1205,8 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     }
     if let Some(cap) = DATE.captures(rest) {
         let end = i + cap.get(0)?.end();
-        if cap[2] == cap[4] && !next_char(s, end).is_some_and(|c| c.is_ascii_digit()) {
+        let full_year = cap[5].len() == 4 || (cap[1].len() == 2 && cap[3].len() == 2);
+        if cap[2] == cap[4] && full_year && !next_char(s, end).is_some_and(|c| c.is_ascii_digit()) {
             if let Some(spoken) = date(&cap[1], &cap[3], &cap[5]) {
                 let (spoken, end) = with_suffix(s, spoken, end, false);
                 sc.emit(i, end, &spoken, "date");
@@ -1173,7 +1214,7 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
             }
         }
     }
-    // times: 14:30, 09.45, 14:30:15
+    // times: 14:30, 09.45, 14:30:15, 24:00
     if let Some(cap) = TIME.captures(rest) {
         let end = i + cap.get(0)?.end();
         let h: u32 = cap[1].parse().ok()?;
@@ -1184,10 +1225,21 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         let after_ok = !next.is_some_and(|c| c.is_ascii_digit())
             && !(next == Some('.') && next_char(s, end + 1).is_some_and(|c| c.is_ascii_digit()))
             && !(next == Some(',') && next_char(s, end + 1).is_some_and(|c| c.is_ascii_digit()));
-        // a dot time is not an amount with its currency or unit (3.50 TL)
-        let dot_ok =
-            colon || (sec.is_none() && currency_at(s, end).is_none() && unit_at(s, end).is_none());
-        if h <= 23 && m <= 59 && sec.is_none_or(|x| x <= 59) && after_ok && dot_ok {
+        // a time with a dot needs a two-digit hour (09.45), `saat` before it or a suffix after it
+        // (9.00'da); 3.14 and 3.12 are decimals, 3.50 TL an amount
+        let after_saat = s[..i]
+            .trim_end()
+            .rsplit(|c: char| !c.is_alphabetic())
+            .next()
+            .is_some_and(|w| to_turkish_lower(w) == "saat");
+        let suffixed = matches!(next, Some('\'' | '’'));
+        let dot_ok = colon
+            || (sec.is_none()
+                && currency_at(s, end).is_none()
+                && unit_at(s, end).is_none()
+                && (cap[1].len() == 2 || after_saat || suffixed));
+        let valid = (h <= 23 && m <= 59) || (h == 24 && m == 0);
+        if valid && sec.is_none_or(|x| x <= 59) && after_ok && dot_ok {
             let mut spoken = time(h, m, sec);
             let mut end = end;
             // a range of times: 14:00-16:00
@@ -1196,7 +1248,8 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
                     let h2: u32 = c2[1].parse().unwrap_or(99);
                     let m2: u32 = c2[3].parse().unwrap_or(99);
                     let e2 = end + d.len_utf8() + c2.get(0).map_or(0, |x| x.end());
-                    if h2 <= 23 && m2 <= 59 && !next_char(s, e2).is_some_and(|c| c.is_ascii_digit())
+                    if ((h2 <= 23 && m2 <= 59) || (h2 == 24 && m2 == 0))
+                        && !next_char(s, e2).is_some_and(|c| c.is_ascii_digit())
                     {
                         spoken = format!("{spoken} ila {}", time(h2, m2, None));
                         end = e2;
@@ -1209,16 +1262,15 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         }
     }
     let (int, dec, end) = amount_at(s, i)?;
-    // a number glued to more digits after a dot or comma it did not take (1.2.3, 3.14)
     let next = next_char(s, end);
-    // an amount with a decimal point and its currency: 3.50 TL
+    // an amount with a decimal point and its currency: 3.50 TL, 3.5 TL
     if next == Some('.') && dec.is_none() {
         let d0 = end + 1;
         let mut d1 = d0;
         while next_char(s, d1).is_some_and(|c| c.is_ascii_digit()) {
             d1 += 1;
         }
-        if d1 - d0 == 2 && next_char(s, d1) != Some('.') {
+        if (1..=2).contains(&(d1 - d0)) && next_char(s, d1) != Some('.') {
             if let Some((u, sub, e)) = currency_at(s, d1) {
                 let spoken = money(&int, Some(&s[d0..d1]), u, sub);
                 let (spoken, e) = with_suffix(s, spoken, e, true);
@@ -1231,7 +1283,7 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         && dec.is_none()
         && next_char(s, end + 1).is_some_and(|c| c.is_ascii_digit())
     {
-        // a dotted decimal or a version: 3.14, 2.0.1
+        // a dotted decimal or a version (3.14, 2.0.1), with its unit (2.5 kg)
         let mut e = end;
         let mut words = vec![cardinal(&int)];
         while next_char(s, e) == Some('.')
@@ -1246,23 +1298,33 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
             words.push(decimals(&s[start..k]));
             e = k;
         }
-        let (spoken, e) = with_suffix(s, words.join(" "), e, false);
-        sc.emit(i, e, &spoken, "decimal");
+        let mut kind = "decimal";
+        if let Some((u, ue)) = unit_at(s, e) {
+            words.push(u.to_string());
+            e = ue;
+            kind = "unit";
+        }
+        let (spoken, e) = with_suffix(s, words.join(" "), e, kind == "unit");
+        sc.emit(i, e, &spoken, kind);
         return Some(e);
     }
     // an ordinal: 2. sınıf, 5'inci
     if dec.is_none() && !int.contains('.') && next == Some('.') {
         let after = skip_space(s, end + 1, 3);
-        // before a small letter (2. sınıf); before a capital only at the start of a sentence
-        // (1. Lig'de, 2. Abdülhamid), where the full stop cannot end one
-        let sentence_start = s[..i]
-            .trim_end()
+        // before a small letter (2. sınıf); before a capital only at the start of the text or
+        // of a line or list item (1. Lig'de, 2. Abdülhamid), not after a full stop (Kaç? 3. Ben)
+        let item_start = s[..i]
+            .trim_end_matches([' ', '\t'])
             .chars()
             .next_back()
-            .is_none_or(|c| matches!(c, '.' | '!' | '?' | ':' | '"' | '“' | '(' | '\n'));
+            .is_none_or(|c| matches!(c, ':' | '"' | '“' | '(' | '\n' | '\r'));
+        // a street number before its address word: 5. Sok.
+        let street = ABBREVIATIONS
+            .iter()
+            .any(|a| a.place == Place::Address && s[after..].starts_with(a.written));
         if after > end + 1
             && next_char(s, after)
-                .is_some_and(|c| c.is_lowercase() || (sentence_start && c.is_uppercase()))
+                .is_some_and(|c| c.is_lowercase() || ((item_start || street) && c.is_uppercase()))
         {
             let spoken = ordinal(&cardinal(&int));
             sc.emit(i, end + 1, &spoken, "ordinal");
@@ -1283,16 +1345,18 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
             }
         }
     }
-    // a range: 10-15, 3-1 (a score)
     if dec.is_none() {
+        // a range: 10-15, 1990-95; a score when the second is smaller: 3-1
         if let Some(d) = next.filter(|&d| d == '-' || d == '–') {
             if let Some((int2, dec2, end2)) = amount_at(s, end + d.len_utf8()) {
                 if !next_char(s, end2).is_some_and(|c| c.is_ascii_digit() || c.is_alphabetic()) {
                     let a: u128 = int.parse().unwrap_or(0);
                     let b: u128 = int2.parse().unwrap_or(0);
+                    // a year range with the century left out: 1990-95
+                    let short_year = int.len() == 4 && int2.len() == 2 && b > a % 100;
                     let first = cardinal(&int);
                     let (second, kind, end2) = quantity(s, &int2, dec2.as_deref(), end2);
-                    let join = if b > a { " ila " } else { " " };
+                    let join = if b > a || short_year { " ila " } else { " " };
                     let kind = if kind == "cardinal" { "range" } else { kind };
                     let (spoken, end2) = with_suffix(
                         s,
@@ -1305,15 +1369,17 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
                 }
             }
         }
-        // a fraction: 2/3 üçte iki; 24/7 yirmi dört bölü yedi
+        // a fraction (2/3 üçte iki, up to hundredths); a file or case number or 24/7 otherwise
+        // (2012/3121 iki bin on iki bölü üç bin yüz yirmi bir)
         if next == Some('/') {
             if let Some((int2, None, end2)) = amount_at(s, end + 1) {
                 if !next_char(s, end2).is_some_and(|c| c.is_ascii_digit() || c == '/') {
                     let a: u128 = int.parse().unwrap_or(0);
                     let b: u128 = int2.parse().unwrap_or(0);
+                    let fraction = a < b && b <= 100;
                     let spoken = if a == 24 && b == 7 {
                         "yirmi dört yedi".to_string()
-                    } else if a < b && b > 0 {
+                    } else if fraction {
                         let den = cardinal(&int2);
                         format!("{} {}", attach(&den, "de"), cardinal(&int))
                     } else {
@@ -1322,13 +1388,16 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
                     let (spoken, end2) = match suffix_at(s, end2) {
                         // üçte ikisi: a vowel suffix is the possessive
                         Some((suf, e))
-                            if suf.chars().count() == 1 && spoken.ends_with(is_vowel) =>
+                            if fraction
+                                && suf.chars().count() == 1
+                                && spoken.ends_with(is_vowel) =>
                         {
                             (format!("{spoken}s{}", harmonize(&spoken, &suf, false)), e)
                         }
-                        _ => with_suffix(s, spoken, end2, false),
+                        _ => with_suffix(s, spoken, end2, true),
                     };
-                    sc.emit(i, end2, &spoken, "fraction");
+                    let kind = if fraction { "fraction" } else { "cardinal" };
+                    sc.emit(i, end2, &spoken, kind);
                     return Some(end2);
                 }
             }
@@ -1347,8 +1416,9 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
                 }
             }
         }
-        // a code (ten digits or more, or a leading zero): read in groups of three
-        if (int.len() >= 10 || (int.len() >= 4 && int.starts_with('0'))) && !s[i..end].contains('.')
+        // a code (ten digits or more, or seven or more from a zero): read in groups of three;
+        // a shorter number from a zero is read whole (0850 sıfır sekiz yüz elli)
+        if (int.len() >= 10 || (int.len() >= 7 && int.starts_with('0'))) && !s[i..end].contains('.')
         {
             let digits = &s[i..end];
             let mut groups = Vec::new();
@@ -1365,7 +1435,7 @@ fn number_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     }
     // a number and what follows it: a percent sign, a currency, a unit, letters
     let (spoken, kind, end) = quantity(s, &int, dec.as_deref(), end);
-    // letters glued to the number: 3D, 4K (capitals are letters), 1990lar (a suffix)
+    // letters glued to the number: 3D, 4K (capitals are letters), 1990lar (a suffix), 2x
     let (spoken, end) = if let Some(l) = next_char(s, end).filter(|c| c.is_alphabetic()) {
         let we = word_end(s, end);
         let letters = &s[end..we];
@@ -1487,6 +1557,8 @@ fn time(h: u32, m: u32, sec: Option<u32>) -> String {
         out.push(' ');
         out.push_str(&if sec == 0 {
             "sıfır sıfır".to_string()
+        } else if sec < 10 {
+            format!("sıfır {}", cardinal(&sec.to_string()))
         } else {
             cardinal(&sec.to_string())
         });
@@ -1494,48 +1566,35 @@ fn time(h: u32, m: u32, sec: Option<u32>) -> String {
     out
 }
 
-/// A telephone number read in its written groups, a leading zero as `sıfır`, `+90` as `artı
-/// doksan`.
+/// A telephone number read in its groups: as written, a group of ten or eleven digits split as
+/// 3-3-2-2 or 4-3-2-2 (`+90` and ten digits as 2-3-3-2-2); a leading zero as `sıfır`, `+` as
+/// `artı`.
 fn telephone(t: &str) -> String {
-    let mut words = Vec::new();
-    let mut digits: Vec<String> = Vec::new();
-    let mut cur = String::new();
-    let mut plus = false;
-    for c in t.chars() {
-        if c.is_ascii_digit() {
-            cur.push(c);
-        } else {
-            if c == '+' {
-                plus = true;
-            }
-            if !cur.is_empty() {
-                digits.push(std::mem::take(&mut cur));
-            }
-        }
-    }
-    if !cur.is_empty() {
-        digits.push(cur);
-    }
-    // an unspaced number: 0532 123 45 67
-    if digits.len() == 1 {
-        let d = digits.remove(0);
-        let sizes: &[usize] = if d.len() == 11 {
-            &[4, 3, 2, 2]
-        } else {
-            &[3, 3, 2, 2]
-        };
-        let mut k = 0;
-        for &n in sizes {
-            let e = (k + n).min(d.len());
-            digits.push(d[k..e].to_string());
-            k = e;
-        }
-    }
+    let plus = t.starts_with('+');
+    let groups: Vec<&str> = t
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|g| !g.is_empty())
+        .collect();
+    let mut words: Vec<String> = Vec::new();
     if plus {
         words.push("artı".to_string());
     }
-    for g in digits {
-        words.push(cardinal(&g));
+    for (k, g) in groups.iter().enumerate() {
+        let sizes: Vec<usize> = match g.len() {
+            12 if plus && k == 0 && g.starts_with("90") => vec![2, 3, 3, 2, 2],
+            11 if g.starts_with('0') => vec![4, 3, 2, 2],
+            10 => vec![3, 3, 2, 2],
+            n if n > 4 => vec![3; n.div_ceil(3)],
+            n => vec![n],
+        };
+        let mut at = 0;
+        for n in sizes {
+            let e = (at + n).min(g.len());
+            if e > at {
+                words.push(cardinal(&g[at..e]));
+            }
+            at = e;
+        }
     }
     words.join(" ")
 }
@@ -1544,41 +1603,48 @@ fn telephone(t: &str) -> String {
 fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     let s = sc.src;
     let words = sc.words;
-    // abbreviations with a full stop, longest first
-    let mut best: Option<&Abbrev> = None;
-    for a in ABBREVIATIONS {
-        if s[i..].starts_with(a.written)
-            && !next_char(s, i + a.written.len()).is_some_and(char::is_alphanumeric)
-            && best.is_none_or(|b| a.written.len() > b.written.len())
-        {
-            best = Some(a);
-        }
-    }
-    let fits = |a: &Abbrev| -> bool {
-        let end = i + a.written.len();
-        match a.place {
-            Place::Any => true,
-            Place::Title => {
-                let k = skip_space(s, end, 2);
-                k > end && next_char(s, k).is_some_and(char::is_uppercase)
-            }
-            Place::Address => roman_context_before(s, i),
-        }
-    };
-    if let Some(a) = best.filter(|a| words && fits(a)) {
-        let end = i + a.written.len();
-        let mut spoken = a.spoken.to_string();
-        // a post-positioned abbreviation's full stop also ends a sentence before a capital
-        if a.place == Place::Any && a.written.ends_with('.') {
-            let k = skip_space(s, end, 3);
-            if k == s.len() || (k > end && next_char(s, k).is_some_and(char::is_uppercase)) {
-                spoken.push('.');
+    // abbreviations with a full stop, longest first (word rules: not in tts-v1)
+    if words {
+        let mut best: Option<&Abbrev> = None;
+        for a in ABBREVIATIONS {
+            if s[i..].starts_with(a.written)
+                && !next_char(s, i + a.written.len()).is_some_and(char::is_alphanumeric)
+                && best.is_none_or(|b| a.written.len() > b.written.len())
+            {
+                best = Some(a);
             }
         }
-        let (spoken, end) = with_suffix(s, spoken, end, true);
-        sc.emit(i, end, &spoken, "abbreviation");
-        return Some(end);
+        let fits = |a: &Abbrev| -> bool {
+            let end = i + a.written.len();
+            match a.place {
+                Place::Any | Place::End => true,
+                Place::Title => {
+                    let k = skip_space(s, end, 2);
+                    k > end && next_char(s, k).is_some_and(char::is_uppercase)
+                }
+                Place::Address | Place::Company => after_name_or_number(s, i),
+            }
+        };
+        if let Some(a) = best.filter(|a| fits(a)) {
+            let end = i + a.written.len();
+            let mut spoken = a.spoken.to_string();
+            // the full stop ends the text's last sentence, and the sentence of a post-positioned
+            // abbreviation or a company suffix before a capital (vb. Sonra, A.Ş. Bugün); not of
+            // a title (Dr. Ali), an address word (Cad. No: 5) or T.C. and bkz. (T.C. Kimlik)
+            if a.written.ends_with('.') {
+                let k = skip_space(s, end, 3);
+                let at_end = s[end..].trim().is_empty();
+                let before_capital = k > end && next_char(s, k).is_some_and(char::is_uppercase);
+                if at_end || (before_capital && matches!(a.place, Place::End | Place::Company)) {
+                    spoken.push('.');
+                }
+            }
+            let (spoken, end) = with_suffix(s, spoken, end, true);
+            sc.emit(i, end, &spoken, "abbreviation");
+            return Some(end);
+        }
     }
+    // abbreviations before a number: No: 5, s. 45 (both profiles: the text has digits)
     for &(w, r) in NUMBER_ABBREVIATIONS {
         if s[i..].starts_with(w) {
             let k = skip_space(s, i + w.len(), 2);
@@ -1592,15 +1658,18 @@ fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     }
     let we = word_end(s, i);
     let c = next_char(s, i)?;
-    // tech names with symbols: C++, C#, .NET
+    // tech names with symbols: C++, C# (both profiles), .NET (letters and a dot: word rules)
     for (w, r) in FOREIGN.iter().filter(|(w, _)| w.contains(['+', '#', '.'])) {
+        if !words && !w.contains(['+', '#']) {
+            continue;
+        }
         let n = w.len();
         if s.len() >= i + n
             && s.is_char_boundary(i + n)
             && to_turkish_lower(&s[i..i + n]) == *w
             && !next_char(s, i + n).is_some_and(char::is_alphanumeric)
         {
-            let (spoken, end) = with_suffix(s, r.to_string(), i + n, false);
+            let (spoken, end) = with_suffix(s, r.to_string(), i + n, true);
             sc.emit(i, end, &spoken, "foreign");
             return Some(end);
         }
@@ -1617,24 +1686,7 @@ fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         ),
         None => (word, None),
     };
-    // letters spelled with hyphens: Ç-A-Y
-    if base.contains('-') && (words || base.chars().all(|c| c == '-' || c.is_uppercase())) {
-        let parts: Vec<&str> = base.split('-').collect();
-        if parts.len() >= 2 && parts.iter().all(|p| p.chars().count() == 1) {
-            let spoken: Vec<String> = parts
-                .iter()
-                .map(|p| letter_pronunciation(&to_turkish_lower(p)))
-                .collect();
-            let spoken = spoken.join(" ");
-            let spoken = match suffix {
-                Some(suf) => attach(&spoken, suf),
-                None => spoken,
-            };
-            sc.emit(i, we, &spoken, "letters");
-            return Some(we);
-        }
-    }
-    // letters followed by digits: A4, MP3, COVID-19
+    // letters followed by digits: A4, MP3, COVID-19 (both profiles: the text has digits)
     let digit_end = {
         let mut k = we;
         if next_char(s, k) == Some('-') && next_char(s, k + 1).is_some_and(|c| c.is_ascii_digit()) {
@@ -1647,7 +1699,7 @@ fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         (k > start && !next_char(s, k).is_some_and(char::is_alphabetic)).then_some((start, k))
     };
     if let Some((ds, de)) = digit_end {
-        if suffix.is_none() && base.chars().all(is_upper) && base.chars().count() <= 5 {
+        if suffix.is_none() && base.chars().all(latin_capital) && base.chars().count() <= 5 {
             let letters = if base.chars().count() == 1 {
                 letter_pronunciation(&to_turkish_lower(base))
             } else {
@@ -1659,46 +1711,80 @@ fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
             return Some(end);
         }
     }
+    // the rest reads words written in letters alone: not in tts-v1, whose output on such text
+    // is frozen
+    if !words {
+        return None;
+    }
+    // letters spelled with hyphens: Ç-A-Y
+    if base.contains('-') {
+        let parts: Vec<&str> = base.split('-').collect();
+        if parts.len() >= 2 && parts.iter().all(|p| p.chars().count() == 1) {
+            let spoken: Vec<String> = parts
+                .iter()
+                .map(|p| letter_pronunciation(&to_turkish_lower(p)))
+                .collect();
+            let spoken = spoken.join(" ");
+            let spoken = match suffix {
+                Some(suf) => attach_with(&spoken, suf, true),
+                None => spoken,
+            };
+            sc.emit(i, we, &spoken, "letters");
+            return Some(we);
+        }
+    }
     let lower = to_turkish_lower(base);
-    // foreign words and brands (a whole word with its apostrophe, or the word and a suffix)
+    // foreign words and brands (a whole word with its apostrophe, or the word and a suffix,
+    // re-buffered to the reading: Wi-Fi'ye vayfaya)
     let key = to_turkish_lower(word);
-    if let Some(&(_, r)) = FOREIGN.iter().find(|(w, _)| words && *w == key) {
+    if let Some(&(_, r)) = FOREIGN.iter().find(|(w, _)| *w == key) {
         sc.emit(i, we, r, "foreign");
         return Some(we);
     }
     let ascii_lower = base.to_lowercase();
     if let Some(&(_, r)) = FOREIGN
         .iter()
-        .find(|(w, _)| words && (*w == lower || *w == ascii_lower))
+        .find(|(w, _)| *w == lower || *w == ascii_lower)
     {
         let spoken = match suffix {
-            Some(suf) => attach(r, suf),
+            Some(suf) => attach_with(r, suf, true),
             None => r.to_string(),
         };
         sc.emit(i, we, &spoken, "foreign");
         return Some(we);
     }
     let n = base.chars().count();
-    // Roman numerals: XIV. Louis, II. Dünya Savaşı, Mehmet II
-    if let Some(v) = roman_value(base).filter(|_| suffix.is_none()) {
-        // a single letter with a full stop is an initial after a name (Ahmet V. Yılmaz)
-        let after_name = roman_context_before(s, i);
-        if next_char(s, we) == Some('.') && (n >= 2 || !after_name) {
+    // Roman numerals
+    if let Some(v) = roman_value(base).filter(|_| !NOT_ROMAN.contains(&base)) {
+        let spoken = ordinal(&cardinal(&v.to_string()));
+        // with a full stop before a word: XIV. Louis, II. Dünya Savaşı, I. Dünya Savaşı. A single
+        // letter is an initial (M. Kemal, C. Ronaldo, Ahmet V. Yılmaz) unless it is I or X not
+        // after a name, or V before a small letter (V. yüzyıl)
+        if suffix.is_none() && next_char(s, we) == Some('.') {
             let k = skip_space(s, we + 1, 2);
-            if k > we + 1 && next_char(s, k).is_some_and(char::is_alphabetic) {
-                let spoken = ordinal(&cardinal(&v.to_string()));
+            let next_word = next_char(s, k);
+            let single_ok = match base {
+                "I" | "X" => !roman_context_before(s, i),
+                "V" => next_word.is_some_and(char::is_lowercase),
+                _ => false,
+            };
+            if k > we + 1 && next_word.is_some_and(char::is_alphabetic) && (n >= 2 || single_ok) {
                 sc.emit(i, we + 1, &spoken, "roman");
                 return Some(we + 1);
             }
         }
-        if n >= 2 && roman_context(s, i, we) {
-            let spoken = ordinal(&cardinal(&v.to_string()));
+        // after a name, of I, V and X only: Mehmet II, Louis XIV'ün (not CV, CD, MD)
+        if n >= 2 && base.chars().all(|c| matches!(c, 'I' | 'V' | 'X')) && roman_context(s, i, we) {
+            let spoken = match suffix {
+                Some(suf) => attach_with(&spoken, suf, true),
+                None => spoken,
+            };
             sc.emit(i, we, &spoken, "roman");
             return Some(we);
         }
     }
-    // initialisms: two or more capitals
-    if n >= 2 && base.chars().all(is_upper) {
+    // initialisms: two or more Latin capitals
+    if n >= 2 && base.chars().all(latin_capital) {
         // a word in capitals (a heading, shouting) is read as the word
         let known = super::tts::is_known_word(&lower);
         if !(n >= 4 && known) && !shouted(s, i, we, known) {
@@ -1722,9 +1808,9 @@ fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
         }
     }
     // foreign letters (a single letter is spelled by the letter rules: x iks)
-    if let Some(t) = turkish_letters(base).filter(|_| words && n >= 2) {
+    if let Some(t) = turkish_letters(base).filter(|_| n >= 2) {
         let spoken = match suffix {
-            Some(suf) => attach(&t, suf),
+            Some(suf) => attach_with(&t, suf, true),
             None => t,
         };
         sc.emit(i, we, &spoken, "foreign");
@@ -1733,7 +1819,32 @@ fn word_rules(sc: &mut Scan<'_>, i: usize) -> Option<usize> {
     None
 }
 
-/// A Roman numeral after a capitalised name (`Mehmet II`, `Louis XIV`).
+/// A capital of the Latin alphabet, Turkish ones included (initialisms are read in it).
+fn latin_capital(c: char) -> bool {
+    c.is_ascii_uppercase() || matches!(c, 'Ç' | 'Ğ' | 'İ' | 'Ö' | 'Ş' | 'Ü' | 'Â' | 'Î' | 'Û')
+}
+
+/// Capitals that spell a Roman numeral but are read as initialisms.
+const NOT_ROMAN: &[&str] = &[
+    "CD", "CV", "DC", "MC", "MD", "DM", "CC", "CM", "MM", "DIL", "MIX",
+];
+
+/// After a capitalised name or a number with a full stop (Atatürk Cad., 5. Sok.).
+fn after_name_or_number(s: &str, i: usize) -> bool {
+    if roman_context_before(s, i) {
+        return true;
+    }
+    let before = s[..i].trim_end();
+    before.len() < s[..i].len()
+        && before.ends_with('.')
+        && before[..before.len() - 1]
+            .chars()
+            .next_back()
+            .is_some_and(|c| c.is_ascii_digit())
+}
+
+/// A Roman numeral after a capitalised name (`Mehmet II`, `Louis XIV`), not followed by more
+/// letters or digits.
 fn roman_context(s: &str, i: usize, we: usize) -> bool {
     roman_context_before(s, i) && !next_char(s, we).is_some_and(char::is_alphanumeric)
 }
@@ -1780,7 +1891,8 @@ fn symbol_at(sc: &mut Scan<'_>, i: usize, c: char) -> Option<usize> {
             return None;
         }
     }
-    sc.emit(i, end, r, "symbol");
+    let (spoken, end) = with_suffix(s, r.to_string(), end, true);
+    sc.emit(i, end, &spoken, "symbol");
     Some(end)
 }
 
@@ -1925,6 +2037,102 @@ mod tests {
         assert_eq!(v("Toplam 1000000 kişi"), "Toplam bir milyon kişi");
         assert_eq!(v("BU ÇOK ÖNEMLİ"), "BU ÇOK ÖNEMLİ");
         assert_eq!(v("x"), "x");
+    }
+
+    /// The findings of the review of 2026-11-08, one assertion each.
+    #[test]
+    fn review_regressions() {
+        // non-ASCII digits never panic and are not read as ASCII numbers
+        for t in [
+            "1١11",
+            "0١١١",
+            "1２３４",
+            "0２",
+            "12.03.٢٠٢٤",
+            "Tarih: 1.1.٢٠",
+            "12٣4 kişi",
+            "1١",
+        ] {
+            let _ = verbalize(t);
+            let _ = verbalize_with(t, false);
+        }
+        // tts-v1 (no word rules) reads text of letters and punctuation as written
+        for t in [
+            "TBMM bugün",
+            "ABD'ye",
+            "II. Dünya Savaşı",
+            "Mehmet II",
+            "A-B planı",
+            "Bu...net bir cevap.",
+            "gittim.dev",
+            "www.ornek.com",
+            "M. Kemal",
+            "Ders CD ile",
+            "BU ÇOK",
+            "vb. online Shakespeare'i",
+        ] {
+            assert!(verbalize_with(t, false).segments.is_empty(), "{t}");
+        }
+        // initials and initialisms are not Roman numerals
+        assert_eq!(v("M. Kemal Atatürk geldi."), "M. Kemal Atatürk geldi.");
+        assert_eq!(v("C. Ronaldo"), "C. Ronaldo");
+        assert!(!v("Ahmet CV gönderdi").contains("yüz"));
+        assert!(!v("Ders CD ile").contains("yüz"));
+        assert_eq!(v("Louis XIV'ün"), "Louis on dördüncünün");
+        // telephone numbers in their groups
+        assert_eq!(
+            v("+905321234567"),
+            "artı doksan beş yüz otuz iki yüz yirmi üç kırk beş altmış yedi"
+        );
+        assert_eq!(
+            v("(0532) 123 45 67"),
+            "sıfır beş yüz otuz iki yüz yirmi üç kırk beş altmış yedi"
+        );
+        assert_eq!(
+            v("0850 222 0 600"),
+            "sıfır sekiz yüz elli iki yüz yirmi iki sıfır altı yüz"
+        );
+        // case numbers, dotted decimals and their units
+        assert_eq!(v("2012/3121"), "iki bin on iki bölü üç bin yüz yirmi bir");
+        assert_eq!(v("3.14"), "üç nokta on dört");
+        assert_eq!(v("Python 3.12"), "Python üç nokta on iki");
+        assert_eq!(v("2.5 kg"), "iki nokta beş kilogram");
+        assert_eq!(v("3.5 TL"), "üç lira elli kuruş");
+        // sentence boundaries around abbreviations
+        assert_eq!(v("T.C. Kimlik Numarası"), "te ce Kimlik Numarası");
+        assert_eq!(v("bkz. Ek 2"), "bakınız Ek iki");
+        assert_eq!(
+            v("Koç Holding A.Ş. Bugün açıkladı."),
+            "Koç Holding anonim şirketi. Bugün açıkladı."
+        );
+        // suffixes after foreign words and symbols, re-buffered
+        assert_eq!(v("Wi-Fi'ye"), "vayfaya");
+        assert_eq!(v("Nike'ı"), "naykiyi");
+        assert_eq!(v("1/2'si"), "ikide biri");
+        assert_eq!(v("¼'ü"), "çeyreği");
+        // smaller readings
+        assert_eq!(v("1990-95"), "bin dokuz yüz doksan ila doksan beş");
+        assert_eq!(v("24:00"), "yirmi dört");
+        assert_eq!(v("x=-5"), "x eşittir eksi beş");
+        assert_eq!(v("09:05:07"), "dokuz sıfır beş sıfır yedi");
+        assert_eq!(v("Kaç? 3. Ben de."), "Kaç? üç. Ben de.");
+        assert_eq!(v("1.2.24 sürümü"), "bir nokta iki nokta yirmi dört sürümü");
+        assert_eq!(v("gittim.dev"), "gittim.dev");
+        assert_eq!(v("Yıldız Mah. 5. Sok."), "Yıldız mahallesi beşinci sokağı.");
+    }
+
+    #[test]
+    fn long_input_maps_spans_in_linear_time() {
+        // 40,000 verbalised numbers: the span map is a binary search, not a scan
+        let text = "x 5 ".repeat(40_000);
+        let r = verbalize(&text);
+        assert_eq!(r.segments.len(), 40_000);
+        let last = r
+            .segments
+            .last()
+            .map(|s| s.spoken_span.clone())
+            .unwrap_or(0..0);
+        assert_eq!(r.source(last, text.len()).0, text.len() - 2..text.len() - 1);
     }
 
     #[test]

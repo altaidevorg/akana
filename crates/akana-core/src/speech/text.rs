@@ -67,6 +67,16 @@ pub(crate) fn is_word_letter(c: char) -> bool {
         )
 }
 
+/// A combining diacritic (U+0300–U+036F): part of a letter in text written decomposed (NFD).
+fn is_combining(c: char) -> bool {
+    ('\u{0300}'..='\u{036F}').contains(&c)
+}
+
+/// A letter of a word: with `marks`, a combining diacritic too.
+fn is_letter_in(c: char, marks: bool) -> bool {
+    is_word_letter(c) || (marks && is_combining(c))
+}
+
 fn is_apostrophe(c: char) -> bool {
     c == '\'' || c == '’'
 }
@@ -83,13 +93,13 @@ pub(crate) fn word_key(text: &str) -> String {
 
 /// Scans one word from `start` (a letter): letters, then groups of an apostrophe and letters,
 /// then an optional izafet `-i` not followed by a letter. Returns the end.
-fn scan_word(text: &str, start: usize) -> usize {
+fn scan_word(text: &str, start: usize, marks: bool) -> usize {
     let bytes_end = text.len();
     let mut end = start;
     let mut chars = text[start..].char_indices().peekable();
     // letters
     while let Some(&(off, c)) = chars.peek() {
-        if is_word_letter(c) {
+        if is_letter_in(c, marks) {
             end = start + off + c.len_utf8();
             chars.next();
         } else {
@@ -105,7 +115,7 @@ fn scan_word(text: &str, start: usize) -> usize {
                 let after = end + a.len_utf8();
                 let letters: usize = text[after..]
                     .chars()
-                    .take_while(|&c| is_word_letter(c))
+                    .take_while(|&c| is_letter_in(c, marks))
                     .map(char::len_utf8)
                     .sum();
                 if letters == 0 {
@@ -226,10 +236,13 @@ fn read_digits(run: &str, words: &mut Vec<String>) {
     }
 }
 
-/// The words of `text`, with their gaps, boundaries and pauses, and the gap after the last word:
+/// The words of `text`, with their gaps, boundaries and pauses, and the gap after the last word.
+/// With `marks` (`tts-v2`), combining diacritics stay inside their word, so text written
+/// decomposed (NFD) reads as composed text; the key is composed and drops the dot of `i̇`.
+/// Pauses:
 /// one `_:` at a clause boundary, one `_!` at a quote or bracket, no pause after a word with an
 /// apostrophe (the teacher pauses there in under 5% of cases), and `_!` before a conjunction.
-pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
+pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, marks: bool) -> Range<usize> {
     words.clear();
     // (span, key, number word)
     let mut spans: Vec<(Range<usize>, String, bool)> = Vec::new();
@@ -247,11 +260,19 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
                 .next()
                 .is_some_and(|d| d.is_ascii_digit());
         if is_word_letter(c) && c != '\u{0302}' {
-            let end = scan_word(text, i);
+            let end = scan_word(text, i, marks);
             parts.clear();
             split_case(text, i..end, &mut parts);
             for s in parts.drain(..) {
-                let key = word_key(&text[s.clone()]);
+                // decomposed text is composed before it is lower-cased (I + dot above is İ, i)
+                let mut key = if marks {
+                    word_key(&text[s.clone()].nfc().collect::<String>())
+                } else {
+                    word_key(&text[s.clone()])
+                };
+                if marks {
+                    key.retain(|c| c != '\u{0307}');
+                }
                 spans.push((s, key, false));
             }
             i = end;
@@ -267,7 +288,7 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
             if let (Some(a), Some(l)) = (it.next(), it.next()) {
                 if is_apostrophe(a) && is_word_letter(l) && l != '\u{0302}' {
                     let s = i + a.len_utf8();
-                    let e = scan_word(text, s);
+                    let e = scan_word(text, s, marks);
                     let key = format!("'{}", word_key(&text[s..e]));
                     spans.push((s..e, key, true));
                     i = e;
@@ -342,7 +363,7 @@ mod tests {
 
     fn keys(text: &str) -> Vec<String> {
         let mut w = Vec::new();
-        segment(text, &mut w);
+        segment(text, &mut w, false);
         w.into_iter().map(|w| w.key).collect()
     }
 
@@ -360,6 +381,7 @@ mod tests {
         segment(
             "Ali'nin kitabı İstanbul'a, Kemal'e \"ve\" Ankara'dan geldi.",
             &mut w,
+            false,
         );
         let p: Vec<&[Pause]> = w.iter().map(|w| w.pauses.as_slice()).collect();
         // no pause after an apostrophe; one `_:` at a comma; `_!` at a quote
@@ -372,9 +394,21 @@ mod tests {
     #[test]
     fn short_pause_unless_the_conjunction_ends_its_clause() {
         let mut w = Vec::new();
-        segment("Yaptı ama kancıklık. İyi ama, neydi o", &mut w);
+        segment("Yaptı ama kancıklık. İyi ama, neydi o", &mut w, false);
         assert_eq!(w[1].pauses.as_slice(), [Pause::Short]);
         assert!(w[4].pauses.is_empty());
+    }
+
+    #[test]
+    fn decomposed_text_keeps_its_words_with_marks() {
+        let nfd = "C\u{0327}ic\u{0327}ek gu\u{0308}zel i\u{0307}stanbul I\u{0307}zmir";
+        let mut w = Vec::new();
+        segment(nfd, &mut w, true);
+        let keys: Vec<&str> = w.iter().map(|w| w.key.as_str()).collect();
+        assert_eq!(keys, ["çiçek", "güzel", "istanbul", "izmir"]);
+        assert_eq!(&nfd[w[0].span.clone()], "C\u{0327}ic\u{0327}ek");
+        segment(nfd, &mut w, false);
+        assert!(w.len() > 4);
     }
 
     #[test]

@@ -8,8 +8,9 @@ stage 2 and the token contract of 2026-11-07.
 **Frozen.** EchoCraft's shipped voice (student 0.3) was trained on this profile's tokens, so its
 output on text of letters and punctuation never changes: the 0.11.0 build gives the same tokens as
 the stage-2 freeze (commit `0c9d167`) on all 15,328 fixture clips and the 15,817-word list. Since
-0.11.0 it verbalises digits, symbols, initialisms, Roman numerals, URLs and addresses first
-(`verbalize_with(text, false)`); words written in letters stay as written. Every improvement goes
+0.11.0 it verbalises stretches with a digit or a symbol first (`verbalize_with(text, false)`):
+numbers, money, units, telephone numbers, e-mail, symbols. Words, initialisms, Roman numerals and
+URLs written in letters alone stay as written. Every improvement goes
 to [`tts-v2`](phonemizer-tts-v2.md).
 
 ## Summary
@@ -35,8 +36,8 @@ to [`tts-v2`](phonemizer-tts-v2.md).
   against the teacher's durations); geminate stops and affricates and a doubled clear l are one
   long segment. Every `ipa` is one entry of the
   aligner's vocabulary (437,136 tokens on 15,379 fixture texts, none outside it).
-- **Latency:** median 126 µs per sentence of 50–70 characters, 99th percentile 216 µs (budget: 2 ms
-  and 10 ms); about **22,000× faster than real time**.
+- **Latency:** median 84 µs per sentence of 50–70 characters, 99th percentile 179 µs (budget: 2 ms
+  and 10 ms; the 0.11.0 build, verbaliser included); about **33,000× faster than real time**.
 
 ## Interface
 

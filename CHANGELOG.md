@@ -45,8 +45,9 @@ with no eSpeak NG code or data.
   - **Segments:** long vowels and geminates. The `ph` symbols are the stage-1 mnemonics.
   - **Evidence:** where `tts-v1` and eSpeak NG disagree on a word's stressed syllable, the teacher
     TTS's F0 peak is on `tts-v1`'s syllable 50.2% of the time and on eSpeak's 30.5% (6,000 words).
-  - The verbaliser runs first, keeping words written in letters as written: digits, symbols,
-    initialisms and addresses are read out, plain words are not.
+  - The verbaliser runs first without its word rules: only stretches with a digit or a symbol
+    are read out (numbers, money, units, telephone numbers, e-mail, symbols); words,
+    initialisms, Roman numerals and URLs written in letters alone stay as written.
   - Report: `docs/phonemizer-tts-v1.md`.
 - **Profile `tts-v2`** (`tts-v2.0`, for the next model). It is `tts-v1` plus:
   - **Vowels and consonants:** vowels are lowered only phrase-finally; no lax o; e is æ before a
@@ -64,6 +65,10 @@ with no eSpeak NG code or data.
 - **Tests:** frozen golden files from Akana's own output. `tts_v1_golden.jsonl` and
   `tts_v2_golden.jsonl` hold 60 CC0 Common Voice sentences, plus 40 verbaliser sentences in
   `tts-v2`'s. `verbalize_golden.jsonl` holds the verbaliser's readings and spans.
+- **Review:** an independent review of the branch found 13 problems: a panic on digits that are
+  not ASCII, a leak of the `tts-v1` freeze on capitals, several wrong readings, quadratic span
+  mapping, and decomposed text. All are fixed, with regression tests
+  (`docs/phonemizer-review-2026-11-08.md`).
 
 ### Removed
 

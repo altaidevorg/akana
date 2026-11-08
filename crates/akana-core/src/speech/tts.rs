@@ -48,6 +48,7 @@ use crate::morphology::pos::{PrimaryPos, SecondaryPos};
 use crate::morphology::{MorphParse, MorphologicalDisambiguator, TurkishMorphology};
 use lazy_static::lazy_static;
 use std::ops::Range;
+use unicode_normalization::UnicodeNormalization;
 
 pub(crate) struct Nlp {
     morphology: TurkishMorphology,
@@ -598,7 +599,7 @@ fn lexical_segments(segs: &mut [Seg], parse: Option<&MorphParse>) -> bool {
     if !inverse {
         return false;
     }
-    let root_len = p.root.chars().count() as u16;
+    let root_len = p.root.chars().count() as u32;
     let mut changed = false;
     for s in segs.iter_mut() {
         if s.at < root_len {
@@ -726,13 +727,29 @@ fn phonemize_spoken(
 ) -> Result<(), PhonemizeError> {
     let v2 = profile == Profile::TtsV2;
     let mut tw: Vec<TextWord> = Vec::new();
-    let final_gap = segment(text, &mut tw);
+    let final_gap = segment(text, &mut tw, v2);
     // analyses of the sentence's words, disambiguated in context
+    // tts-v2 analyses the composed form of a decomposed word (NFD), without the dot of i̇
+    let composed: Vec<String> = if v2 {
+        tw.iter()
+            .map(|w| {
+                text[w.span.clone()]
+                    .nfc()
+                    .filter(|&c| c != '\u{0307}')
+                    .collect()
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     let surfaces: Vec<&str> = tw
         .iter()
-        .map(|w| {
+        .enumerate()
+        .map(|(k, w)| {
             if w.number {
                 w.key.trim_start_matches('\'')
+            } else if v2 {
+                composed[k].as_str()
             } else {
                 &text[w.span.clone()]
             }
@@ -809,7 +826,7 @@ fn phonemize_spoken(
         };
         let (stressed_letter, class, stress_source) = word_stress(&w.key, &letters, parse, v2);
         // the stressed letter's vowel segment (a merged long vowel starts at its first letter)
-        let vowel_segs: Vec<u16> = segs
+        let vowel_segs: Vec<u32> = segs
             .iter()
             .filter(|s| s.ph.is_vowel())
             .map(|s| s.at)
@@ -1101,11 +1118,13 @@ fn syllable_levels(info: &WordInfo) -> Vec<u8> {
         return out;
     }
     for (pi, s) in segs.iter().enumerate() {
+        // `vowels` is sorted: binary searches keep a long word linear-logarithmic
         let syl = if s.ph.is_vowel() {
-            vowels.iter().position(|&v| v == pi).unwrap_or(0)
+            vowels.binary_search(&pi).unwrap_or(0)
         } else {
             // the vowel after it, when it is that vowel's single onset
-            let next = vowels.iter().position(|&v| v > pi);
+            let k = vowels.partition_point(|&v| v <= pi);
+            let next = (k < nv).then_some(k);
             match next {
                 Some(k) if vowels[k] == pi + 1 => k,
                 Some(0) => 0,
