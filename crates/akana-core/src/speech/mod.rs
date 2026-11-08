@@ -26,11 +26,13 @@ pub(crate) mod model;
 mod phoneme;
 mod text;
 mod tts;
+mod verbalize;
 
 #[cfg(test)]
 mod tests;
 
 pub use phoneme::{Phoneme, PhonemeClass, ALL_PHONEMES};
+pub use verbalize::{verbalize, verbalize_with, VerbalSegment, Verbalized};
 
 use letters::{has_vowel, key_to_phonemes, spell, stress_dependent_segments, Seg};
 use model::{Mark, Model, MODEL};

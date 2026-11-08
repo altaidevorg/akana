@@ -612,7 +612,27 @@ fn possessed(p: &MorphParse) -> bool {
     p.pos == PrimaryPos::Noun && p.morpheme_tags.iter().any(|t| t == "P3sg" || t == "P3pl")
 }
 
-/// Phonemises `text` with the `tts-v1` profile.
+/// The lexicon's pronunciation of an abbreviation (`tbmm` -> `tebememe`), for the verbaliser.
+pub(crate) fn abbreviation_pronunciation(lower: &str) -> Option<String> {
+    NLP.morphology
+        .lexicon()
+        .get_items(lower)?
+        .iter()
+        .find(|it| it.secondary_pos == SecondaryPos::Abbreviation && it.homograph == 0)
+        .and_then(|it| it.pronunciation.clone())
+}
+
+/// Whether Akana's morphology reads `lower` as a word other than an abbreviation (`bugün`,
+/// `ankara`), for words written in capitals.
+pub(crate) fn is_known_word(lower: &str) -> bool {
+    NLP.morphology
+        .analyze(lower)
+        .iter()
+        .any(|p| p.secondary_pos != SecondaryPos::Abbreviation)
+}
+
+/// Phonemises `text` with the `tts-v1` profile: verbalises it, phonemises the spoken text and
+/// maps every word and warning back to the span of the text it reads.
 pub(crate) fn phonemize_tts(text: &str, out: &mut Utterance) -> Result<(), PhonemizeError> {
     out.words.clear();
     out.tokens.clear();
@@ -623,6 +643,27 @@ pub(crate) fn phonemize_tts(text: &str, out: &mut Utterance) -> Result<(), Phone
             max: MAX_TEXT_BYTES,
         });
     }
+    // words written in letters stay as written: tts-v1's output on such text is frozen
+    let spoken = super::verbalize::verbalize_with(text, false);
+    if spoken.segments.is_empty() {
+        return phonemize_spoken(text, out);
+    }
+    phonemize_spoken(&spoken.text, out)?;
+    for w in &mut out.words {
+        let (span, kind) = spoken.source(w.span.clone(), text.len());
+        w.span = span;
+        if kind.is_some() {
+            w.normalized = kind;
+        }
+    }
+    for w in &mut out.warnings {
+        w.span = spoken.source(w.span.clone(), text.len()).0;
+    }
+    Ok(())
+}
+
+/// Phonemises text already verbalised.
+fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeError> {
     let profile = Profile::TtsV1;
     let mut tw: Vec<TextWord> = Vec::new();
     let final_gap = segment(text, &mut tw, true);

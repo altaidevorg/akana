@@ -75,6 +75,7 @@ try:
         ordinal_to_words,
         phonemize_detailed_json,
         phonemize_json,
+        verbalize_json,
         remove_stopwords,
         similarity,
         similarity_vectors,
@@ -427,6 +428,24 @@ def phonemize_detailed(text: str, profile: str = "espeak-compat") -> dict[str, A
     return json.loads(phonemize_detailed_json(text, profile))
 
 
+def verbalize(text: str, words: bool = True) -> dict[str, Any]:
+    """The text as it is read aloud, for a TTS front end (what profile ``"tts-v1"`` reads).
+
+    Numbers (with the suffix written after them re-harmonised: ``3'te`` üçte, ``₺850'ye``
+    sekiz yüz elli liraya), ordinals, Roman numerals, decimals, fractions, ranges, dates, times,
+    money, percentages, units, telephone numbers, abbreviations, initialisms, URLs, e-mail
+    addresses, symbols, hyphen-spelled letters and foreign words are written out; everything
+    else is kept as written. Returns ``text`` (the spoken text) and ``segments``: each with
+    ``start``/``end`` (character offsets in the input), ``start_byte``/``end_byte``, ``source``,
+    ``spoken`` and ``kind`` (``cardinal``, ``ordinal``, ``date``, ``time``, ``money``, ...).
+
+    With ``words=False``, words written in letters are kept as written (abbreviations such as
+    ``vb.``, foreign words such as ``online``, foreign letters): what profile ``"tts-v1"`` reads,
+    whose output on text of letters and punctuation alone is frozen.
+    """
+    return json.loads(verbalize_json(text, words))
+
+
 def encoder_info() -> dict[str, Any]:
     """What this library's encoders are, for an index to store when it is built:
     ``akana_version``, ``unicode_version``, ``sparse_spec`` (major.minor), ``hybrid_layout``,
@@ -565,6 +584,7 @@ __all__ = [
     "ordinal_to_words",
     "phonemize",
     "phonemize_detailed",
+    "verbalize",
     "pii_mask",
     "pii_restore",
     "remove_stopwords",

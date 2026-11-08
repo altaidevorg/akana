@@ -590,6 +590,41 @@ fn analyze_readability_json(py: Python<'_>, text: &str) -> PyResult<String> {
     .map_err(json_error)
 }
 
+/// The text's spoken form as JSON: `text` and `segments` (`start`, `end` as character offsets,
+/// `start_byte`, `end_byte`, `source`, `spoken`, `kind`); `verbalize` reads it.
+#[pyfunction]
+#[pyo3(signature = (text, words=true))]
+fn verbalize_json(py: Python<'_>, text: &str, words: bool) -> PyResult<String> {
+    release(py, || {
+        let v = akana_core::speech::verbalize_with(text, words);
+        let mut bytes: Vec<usize> = Vec::new();
+        for s in &v.segments {
+            bytes.push(s.span.start);
+            bytes.push(s.span.end);
+        }
+        let chars = char_offsets(text, &bytes);
+        let mut c = chars.chunks(2);
+        let segments: Vec<serde_json::Value> = v
+            .segments
+            .iter()
+            .map(|s| {
+                let span = c.next().unwrap_or(&[0, 0]);
+                serde_json::json!({
+                    "start": span[0],
+                    "end": span[1],
+                    "start_byte": s.span.start,
+                    "end_byte": s.span.end,
+                    "source": &text[s.span.clone()],
+                    "spoken": s.spoken,
+                    "kind": s.kind,
+                })
+            })
+            .collect();
+        serde_json::to_string(&serde_json::json!({"text": v.text, "segments": segments}))
+    })?
+    .map_err(json_error)
+}
+
 fn speech_profile(name: &str) -> PyResult<akana_core::speech::Profile> {
     akana_core::speech::Profile::from_name(name).ok_or_else(|| {
         PyValueError::new_err(format!(
@@ -2322,6 +2357,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(analyze_readability_json, m)?)?;
     m.add_function(wrap_pyfunction!(phonemize_json, m)?)?;
     m.add_function(wrap_pyfunction!(phonemize_detailed_json, m)?)?;
+    m.add_function(wrap_pyfunction!(verbalize_json, m)?)?;
     m.add_function(wrap_pyfunction!(syllabify, m)?)?;
     m.add_function(wrap_pyfunction!(hyphenate, m)?)?;
     m.add_function(wrap_pyfunction!(count_syllables, m)?)?;

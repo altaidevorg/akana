@@ -174,3 +174,45 @@ def test_tts_v1_golden_is_frozen():
         assert row["version"] == version
         got = [[t[f] for f in TTS_FIELDS] for t in akana.phonemize(row["text"], profile="tts-v1")]
         assert got == row["tokens"], row["text"]
+
+
+# --- verbaliser -------------------------------------------------------------------------------
+
+
+def test_verbalize_reads_what_a_screen_reader_meets():
+    cases = {
+        "Toplantı 3'te başlıyor.": "Toplantı üçte başlıyor.",
+        "Fiyat ₺850'ye düştü.": "Fiyat sekiz yüz elli liraya düştü.",
+        "Saat 14:30'da": "Saat on dört otuzda",
+        "12.03.2024 tarihinde": "on iki mart iki bin yirmi dört tarihinde",
+        "%25'lik artış": "yüzde yirmi beşlik artış",
+        "hız 90 km/sa": "hız saatte doksan kilometre",
+        "II. Dünya Savaşı": "ikinci Dünya Savaşı",
+        "TBMM'de": "tebememede",
+        "2/3'ü": "üçte ikisi",
+        "Dr. Ahmet Bey, vb. şeyler": "doktor Ahmet Bey, ve benzeri şeyler",
+    }
+    for text, spoken in cases.items():
+        assert akana.verbalize(text)["text"] == spoken, text
+
+
+def test_verbalize_keeps_spans():
+    text = "Fiyat ₺850'ye düştü."
+    v = akana.verbalize(text)
+    (seg,) = v["segments"]
+    assert text[seg["start"]:seg["end"]] == "₺850'ye" == seg["source"]
+    assert text.encode()[seg["start_byte"]:seg["end_byte"]].decode() == "₺850'ye"
+    assert seg["spoken"] == "sekiz yüz elli liraya" and seg["kind"] == "money"
+    # every word the phonemiser reads from the amount points back at it
+    d = akana.phonemize_detailed(text, profile="tts-v1")
+    amount = [w for w in d["words"] if w["normalized"] == "money"]
+    assert [w["reading"] for w in amount] == ["sekiz", "yüz", "elli", "liraya"]
+    assert all(text[w["start"]:w["end"]] == "₺850'ye" for w in amount)
+
+
+def test_tts_v1_keeps_words_written_in_letters():
+    # tts-v1's output on plain text is frozen: abbreviations and foreign words stay as written
+    assert akana.verbalize("vb. online", words=False)["segments"] == []
+    assert akana.verbalize("vb. online")["text"] == "ve benzeri onlayn"
+    plain = "Sınıfsal, etnik, dinsel, politik, vb. farklılıklar bir kenara itilir."
+    assert akana.phonemize_detailed(plain, profile="tts-v1")["words"][4]["normalized"] is None
