@@ -628,15 +628,15 @@ fn verbalize_json(py: Python<'_>, text: &str, words: bool) -> PyResult<String> {
 fn speech_profile(name: &str) -> PyResult<akana_core::speech::Profile> {
     akana_core::speech::Profile::from_name(name).ok_or_else(|| {
         PyValueError::new_err(format!(
-            "unknown phonemiser profile {name:?} (known: \"espeak-compat\", \"tts-v1\")"
+            "unknown phonemiser profile {name:?} (known: \"tts-v1\", \"tts-v2\")"
         ))
     })
 }
 
-/// The text's phoneme and pause tokens as JSON, in the schema of EchoCraft's eSpeak fixtures
+/// The text's phoneme and pause tokens as JSON, in the token schema EchoCraft's TTS reads
 /// (`ph`, `stress`, `word`, `lengthen`, `mark`, `type`, `ipa`); `phonemize` reads it.
 #[pyfunction]
-#[pyo3(signature = (text, profile="espeak-compat"))]
+#[pyo3(signature = (text, profile="tts-v1"))]
 fn phonemize_json(py: Python<'_>, text: &str, profile: &str) -> PyResult<String> {
     let profile = speech_profile(profile)?;
     release(py, || -> Result<String, PyErr> {
@@ -652,7 +652,7 @@ fn phonemize_json(py: Python<'_>, text: &str, profile: &str) -> PyResult<String>
 /// decision, the tokens, and warnings for what was not read, as JSON; `phonemize_detailed`
 /// reads it. Spans are character offsets.
 #[pyfunction]
-#[pyo3(signature = (text, profile="espeak-compat"))]
+#[pyo3(signature = (text, profile="tts-v1"))]
 fn phonemize_detailed_json(py: Python<'_>, text: &str, profile: &str) -> PyResult<String> {
     let profile = speech_profile(profile)?;
     release(py, || -> Result<String, PyErr> {
@@ -683,7 +683,7 @@ fn phonemize_detailed_json(py: Python<'_>, text: &str, profile: &str) -> PyResul
                     "reading": w.reading,
                     "pauses_before": w.pauses_before.iter().map(|p| p.phoneme().symbol()).collect::<Vec<_>>(),
                     "phones": w.phones.iter().map(|p| serde_json::json!({
-                        "ph": p.phoneme.symbol(),
+                        "ph": profile.symbol(p.phoneme),
                         "ipa": if p.lengthen { p.phoneme.ipa_long() } else { p.phoneme.ipa() },
                         "stress": p.stress,
                         "lengthen": p.lengthen,

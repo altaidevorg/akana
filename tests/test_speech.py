@@ -1,78 +1,28 @@
-"""The phonemiser's Python API: `phonemize` and `phonemize_detailed` (profile `espeak-compat`).
+"""The phonemiser's Python API: `phonemize`, `phonemize_detailed` and `verbalize`.
 
-The fixture test reads EchoCraft's eSpeak reference fixtures from the directory in
-``AKANA_ESPEAK_FIXTURES`` and skips without it.
+`tts-v1` is checked against its frozen golden file (EchoCraft's shipped voice was trained on it),
+`tts-v2` against its own.
 """
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 
 import akana
 
-GOLDEN = Path(__file__).resolve().parents[1] / "crates/akana-core/tests/data/speech/espeak_compat_golden.jsonl"
-FIELDS = ("ph", "stress", "word", "lengthen", "mark")
+DATA = Path(__file__).resolve().parents[1] / "crates/akana-core/tests/data/speech"
 
 
-def test_token_schema():
-    tokens = akana.phonemize("Dağ.")
-    assert tokens[0] == {"ph": "_", "stress": 0, "word": 0, "lengthen": 0, "mark": ".", "type": "pause", "ipa": None}
-    assert tokens[-1]["ph"] == "_"
-    vowel = [t for t in tokens if t["type"] == "vowel"][0]
-    assert vowel == {"ph": "a", "stress": 7, "word": 0, "lengthen": 1, "mark": ".", "type": "vowel", "ipa": "aː"}
-
-
-def test_golden_sentences():
-    rows = [json.loads(line) for line in GOLDEN.read_text(encoding="utf-8").splitlines()]
-    assert len(rows) == 60
-    for row in rows:
-        got = [[t[f] for f in FIELDS] for t in akana.phonemize(row["text"])]
-        assert got == row["tokens"], row["text"]
-
-
-def test_detailed_has_provenance_and_character_spans():
-    text = "Çay ister misiniz? # 3 bardak"
-    d = akana.phonemize_detailed(text)
-    assert d["profile"] == "espeak-compat"
-    assert d["version"].startswith("espeak-compat-")
-    words = d["words"]
-    # the joined pair is one word, spanning both
-    assert words[1]["text"] == "ister misiniz"
-    assert text[words[1]["start"]:words[1]["end"]] == "ister misiniz"
-    for w in words:
-        assert w["stress_source"] and w["segment_source"]
-        assert all(p["ph"] for p in w["phones"])
-    # the symbol is not read in this profile, and says so; the digit is read as a number
-    assert [text[w["start"]:w["end"]] for w in d["warnings"]] == ["#"]
-    assert words[2]["reading"] == "üç" and words[2]["normalized"] == "number"
-    assert words[0]["normalized"] is None
-    assert d["tokens"] == akana.phonemize(text)
+def test_default_profile_is_tts_v1():
+    assert akana.phonemize("Dağ.") == akana.phonemize("Dağ.", profile="tts-v1")
+    assert akana.phonemize_detailed("Dağ.")["profile"] == "tts-v1"
 
 
 def test_unknown_profile_raises():
-    with pytest.raises(ValueError):
-        akana.phonemize("merhaba", profile="literature-v9")
-
-
-def test_odd_input_never_raises():
-    for text in ["", "...", "̂", "â", "-i", "’", "😀 merhaba", "x" * 1000]:
-        tokens = akana.phonemize(text)
-        assert tokens[0]["ph"] == "_" and tokens[-1]["ph"] == "_"
-
-
-@pytest.mark.skipif("AKANA_ESPEAK_FIXTURES" not in os.environ, reason="AKANA_ESPEAK_FIXTURES is not set")
-def test_fixture_validation_parity():
-    plan = Path(os.environ["AKANA_ESPEAK_FIXTURES"]) / "espeak-plan.jsonl"
-    rows = [json.loads(line) for line in plan.read_text(encoding="utf-8").splitlines()]
-    val = [r for r in rows if r["split"] == "validation"]
-    exact = 0
-    for r in val:
-        got = [[t[f] for f in FIELDS] for t in akana.phonemize(r["text"])]
-        want = [[t[f] for f in FIELDS] for t in r["tokens"]]
-        exact += got == want
-    assert exact / len(val) >= 0.97
+    for name in ["literature-v9", "espeak-compat"]:
+        with pytest.raises(ValueError):
+            akana.phonemize("merhaba", profile=name)
 
 
 # --- profile tts-v1 ---------------------------------------------------------------------------
@@ -162,7 +112,7 @@ def test_tts_v1_odd_input_never_raises():
         assert akana.phonemize(text, profile="tts-v1") == tokens
 
 
-TTS_GOLDEN = GOLDEN.with_name("tts_v1_golden.jsonl")
+TTS_GOLDEN = DATA / "tts_v1_golden.jsonl"
 TTS_FIELDS = ("ph", "stress", "word", "lengthen", "mark", "type", "ipa")
 
 
@@ -216,3 +166,43 @@ def test_tts_v1_keeps_words_written_in_letters():
     assert akana.verbalize("vb. online")["text"] == "ve benzeri onlayn"
     plain = "Sınıfsal, etnik, dinsel, politik, vb. farklılıklar bir kenara itilir."
     assert akana.phonemize_detailed(plain, profile="tts-v1")["words"][4]["normalized"] is None
+
+
+# --- profile tts-v2 ---------------------------------------------------------------------------
+
+
+def test_tts_v2_golden_is_frozen():
+    rows = [json.loads(line) for line in (DATA / "tts_v2_golden.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 100
+    version = akana.phonemize_detailed("a", profile="tts-v2")["version"]
+    for row in rows:
+        assert row["version"] == version
+        got = [[t[f] for f in TTS_FIELDS] for t in akana.phonemize(row["text"], profile="tts-v2")]
+        assert got == row["tokens"], row["text"]
+
+
+def test_tts_v2_writes_ipa_and_the_literature_segments():
+    tokens = akana.phonemize("Kardeşim erken bir ekmek aldı.", profile="tts-v2")
+    for t in tokens:
+        assert t["ph"].startswith("_") == (t["type"] == "pause")
+        if t["ipa"] is not None:
+            assert t["ipa"].startswith(t["ph"]) or t["ipa"] == "ɯɯ"
+    ph = " ".join(t["ph"] for t in tokens)
+    # fricated r before a voiced consonant, devoiced before a voiceless one and finally;
+    # palatal k next to a front vowel; e as æ before a coda r; a final ı is not lowered
+    assert ph.startswith("_ k a r̝ d e ʃ i m")
+    assert "æ r̝̊ c æ n" in ph and "b i r̝̊" in ph and "e c m e c" in ph
+    assert ph.endswith("a ɫ d ɯ _")
+
+
+def test_tts_v2_stress_rules_tts_v1_lacked():
+    def stressed(text, profile):
+        w = akana.phonemize_detailed(text, profile=profile)["words"][0]
+        vowels = [p for p in w["phones"] if p["ph"] in "aeiouyɛæɪʊɯœøɔEIOUYW@&"]
+        return max(range(len(vowels)), key=lambda k: (vowels[k]["stress"], -k))
+
+    # nerede (Dursunoğlu 2006), seninki (Kabak & Vogel 2001), yapıver (-Iver), Hindistan (-istan)
+    assert stressed("Nerede?", "tts-v1") == 2 and stressed("Nerede?", "tts-v2") == 0
+    assert stressed("Seninki geldi.", "tts-v2") == 1
+    assert stressed("Yapıver.", "tts-v2") == 1
+    assert stressed("Hindistan'a gitti.", "tts-v2") == 2

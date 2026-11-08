@@ -1,5 +1,6 @@
-//! Text to words, clause boundaries and pauses, as the reference fixtures show eSpeak NG doing
-//! it for Turkish. Every rule here was inferred from the fixtures' outputs.
+//! Text to words, clause boundaries and pauses: one `_:` at a clause boundary, `_!` at quotes
+//! and brackets and before conjunctions, words split at spaces, punctuation and case changes,
+//! and digits the verbaliser left read as numbers.
 
 use super::Pause;
 use crate::phonology::to_turkish_lower;
@@ -7,12 +8,10 @@ use smallvec::SmallVec;
 use std::ops::Range;
 use unicode_normalization::UnicodeNormalization;
 
-/// Punctuation that ends a clause: `_:` then `_` (and a new clause for the tonic).
+/// Punctuation that ends a clause: `_:` (and a new clause for the nucleus).
 const CLAUSE_PUNCT: [char; 7] = [',', '.', ';', ':', '!', '?', '…'];
-/// Quotation marks and brackets: a pause pair `_: _:` where they stand (observed for `"`, `(`, `)`).
+/// Quotation marks and brackets: a short pause `_!` where they stand.
 const QUOTES: [char; 7] = ['"', '“', '”', '«', '»', '(', ')'];
-/// Words that take the short pause `_!` before them unless they end their clause.
-const SHORT_PAUSE_WORDS: [&str; 7] = ["ve", "veya", "yoksa", "veda", "ama", "ki", "kime"];
 /// Words before which `tts-v1` plans an optional short pause `_!` (coordinating and adversative
 /// conjunctions; the teacher pauses before `ve`, `ki`, `ama` in about 30% of cases), unless they
 /// end their clause.
@@ -20,11 +19,6 @@ const TTS_SHORT_PAUSE_WORDS: [&str; 13] = [
     "ve", "veya", "yahut", "yoksa", "ama", "fakat", "ancak", "lakin", "çünkü", "ki", "oysa",
     "halbuki", "hatta",
 ];
-/// Word pairs eSpeak reads as one word (observed in the fixtures).
-const JOINS: [(&str, &str); 3] = [("ister", "misin"), ("ister", "misiniz"), ("ne", "yaptın")];
-/// Words with an apostrophe after which eSpeak makes no pause (observed: `Allah'a`, a word it
-/// pronounces as a whole, with clear l).
-const NO_APOSTROPHE_PAUSE: [&str; 1] = ["allah'a"];
 
 /// A word as the text gives it, before phonemisation.
 #[derive(Clone, Debug)]
@@ -34,17 +28,13 @@ pub(crate) struct TextWord {
     /// The lexicon key: Turkish lower case, NFC, `’` as `'`, without a hyphen (`kuvve-i` →
     /// `kuvvei`; a joined pair without its space, `istermisin`).
     pub key: String,
-    /// An izafet compound written with a hyphen (`kuvve-i`).
-    pub izafet: bool,
-    /// The word has an apostrophe between letters (`Ali'nin`).
-    pub apostrophe: bool,
     /// Byte span of the text between the previous word (or the start) and this word.
     pub gap: Range<usize>,
     /// A clause boundary falls before this word.
     pub boundary: bool,
     /// The pauses before this word.
     pub pauses: SmallVec<[Pause; 4]>,
-    /// The clause's number for marks (eSpeak's clause count).
+    /// The clause's number (for its mark).
     pub clause: usize,
     /// The word reads a number (`yirmi` of `20`).
     pub number: bool,
@@ -162,12 +152,9 @@ const DIGIT_WORDS: [&str; 10] = [
 ];
 
 /// A number in the text: digit groups joined by `.` `,` `:` `/` `-`, with an optional `%`
-/// before it. Pushes its words and returns its end. Read as eSpeak reads them where the probes
-/// show it: each leading zero as `sıfır` (`07` sıfır yedi, `00` sıfır sıfır), a decimal comma
-/// as `virgül`, a dot between groups as `nokta` unless the groups are thousands (`1.250`), `:`
-/// `/` `-` silent, `%` as `yüzde` before the number. eSpeak joins tens and units (`yirmibeş`)
-/// and hundreds (`dokuzyüz`) into one word; this reads them as separate words (a recorded
-/// divergence).
+/// before it, that the verbaliser did not read. Pushes its words and returns its end: each
+/// leading zero as `sıfır` (`07` sıfır yedi), a decimal comma as `virgül`, a dot between groups
+/// as `nokta` unless the groups are thousands (`1.250`), `:` `/` `-` silent, `%` as `yüzde`.
 fn scan_number(text: &str, start: usize, words: &mut Vec<String>) -> usize {
     let b = text.as_bytes();
     let mut i = start;
@@ -239,15 +226,13 @@ fn read_digits(run: &str, words: &mut Vec<String>) {
     }
 }
 
-/// The words of `text`, with their gaps, boundaries and pauses, and the gap after the last word.
-/// With `tts`, the `tts-v1` profile's choices instead of eSpeak's: no joined pairs, one `_:` at a
-/// clause boundary (the `_` eSpeak adds after it is always empty in the teacher's audio), one
-/// `_!` at a quote or bracket, no pause after a word with an apostrophe (the teacher pauses there
-/// in under 5% of cases), and `_!` before more conjunctions.
-pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, tts: bool) -> Range<usize> {
+/// The words of `text`, with their gaps, boundaries and pauses, and the gap after the last word:
+/// one `_:` at a clause boundary, one `_!` at a quote or bracket, no pause after a word with an
+/// apostrophe (the teacher pauses there in under 5% of cases), and `_!` before a conjunction.
+pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>) -> Range<usize> {
     words.clear();
-    // (span, key, number word, apostrophe)
-    let mut spans: Vec<(Range<usize>, String, bool, bool)> = Vec::new();
+    // (span, key, number word)
+    let mut spans: Vec<(Range<usize>, String, bool)> = Vec::new();
     let mut parts: Vec<Range<usize>> = Vec::new();
     let mut number_words: Vec<String> = Vec::new();
     let mut i = 0;
@@ -267,26 +252,24 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, tts: bool) -> Range
             split_case(text, i..end, &mut parts);
             for s in parts.drain(..) {
                 let key = word_key(&text[s.clone()]);
-                let apostrophe = text[s.clone()].chars().any(is_apostrophe);
-                spans.push((s, key, false, apostrophe));
+                spans.push((s, key, false));
             }
             i = end;
         } else if c.is_ascii_digit() || percent_number {
             number_words.clear();
             let end = scan_number(text, i, &mut number_words);
             for w in number_words.drain(..) {
-                spans.push((i..end, w, true, false));
+                spans.push((i..end, w, true));
             }
             i = end;
-            // an apostrophe suffix after a number is read as its own word, then a pause pair
-            // (observed: `1923'te` ... t6 E6 _: _:)
+            // an apostrophe suffix after a number is read as its own word (`1923'te` ... `'te`)
             let mut it = text[i..].chars();
             if let (Some(a), Some(l)) = (it.next(), it.next()) {
                 if is_apostrophe(a) && is_word_letter(l) && l != '\u{0302}' {
                     let s = i + a.len_utf8();
                     let e = scan_word(text, s);
                     let key = format!("'{}", word_key(&text[s..e]));
-                    spans.push((s..e, key, true, true));
+                    spans.push((s..e, key, true));
                     i = e;
                 }
             }
@@ -294,34 +277,14 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, tts: bool) -> Range
             i += c.len_utf8();
         }
     }
-    // joins
-    let mut merged: Vec<(Range<usize>, String, bool, bool)> = Vec::with_capacity(spans.len());
-    for (s, key, number, apostrophe) in spans {
-        if let Some((prev_span, prev_key, prev_number, _)) = merged.last_mut() {
-            if !tts
-                && !number
-                && !*prev_number
-                && &text[prev_span.end..s.start] == " "
-                && JOINS.iter().any(|(a, b)| a == prev_key && *b == key)
-            {
-                prev_key.push_str(&key);
-                prev_span.end = s.end;
-                continue;
-            }
-        }
-        merged.push((s, key, number, apostrophe));
-    }
     let mut prev_end = 0;
-    for (span, key, number, apostrophe) in merged {
-        let izafet = !number && text[span.clone()].contains('-');
+    for (span, key, number) in spans {
         // the words of one number share its span: only the first has the gap before it
         let gap = prev_end.min(span.start)..span.start;
         words.push(TextWord {
             gap,
             span: span.clone(),
             key,
-            izafet,
-            apostrophe,
             boundary: false,
             pauses: SmallVec::new(),
             clause: 0,
@@ -345,45 +308,21 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, tts: bool) -> Range
             boundary = false;
         }
         let quote = gap.chars().any(|c| QUOTES.contains(&c));
-        let prev = &words[k - 1];
-        let apostrophe_pause = !tts
-            && prev.apostrophe
-            && !boundary
-            && !NO_APOSTROPHE_PAUSE.contains(&prev.key.as_str());
         let mut pauses = SmallVec::new();
-        if tts {
-            if boundary {
-                pauses.push(Pause::ClauseEnd);
-            } else if quote {
-                pauses.push(Pause::Short);
-            }
-        } else {
-            if boundary {
-                pauses.push(Pause::ClauseEnd);
-                pauses.push(Pause::Edge);
-            }
-            if quote || apostrophe_pause {
-                pauses.push(Pause::ClauseEnd);
-                pauses.push(Pause::ClauseEnd);
-            }
+        if boundary {
+            pauses.push(Pause::ClauseEnd);
+        } else if quote {
+            pauses.push(Pause::Short);
         }
         words[k].boundary = boundary;
         words[k].pauses = pauses;
     }
     for k in 1..words.len() {
-        let list: &[&str] = if tts {
-            &TTS_SHORT_PAUSE_WORDS
-        } else {
-            &SHORT_PAUSE_WORDS
-        };
-        if !list.contains(&words[k].key.as_str()) || (tts && !words[k].pauses.is_empty()) {
+        if !TTS_SHORT_PAUSE_WORDS.contains(&words[k].key.as_str()) || !words[k].pauses.is_empty() {
             continue;
         }
         let ends_clause = k + 1 == words.len() || words[k + 1].boundary;
-        let has_pair = words[k].pauses.len() >= 2
-            && words[k].pauses[words[k].pauses.len() - 1] == Pause::ClauseEnd
-            && words[k].pauses[words[k].pauses.len() - 2] == Pause::ClauseEnd;
-        if !ends_clause && !has_pair {
+        if !ends_clause {
             words[k].pauses.push(Pause::Short);
         }
     }
@@ -397,39 +336,21 @@ pub(crate) fn segment(text: &str, words: &mut Vec<TextWord>, tts: bool) -> Range
     final_gap
 }
 
-/// The marks of the text's clauses: the last character of each run of `[,.;:!?]` (EchoCraft's
-/// `clause_marks`), indexed by eSpeak's clause number; `.` past the end.
-pub(crate) fn clause_marks(text: &str, marks: &mut Vec<char>) {
-    marks.clear();
-    let mut run_last: Option<char> = None;
-    for c in text.chars() {
-        if matches!(c, ',' | '.' | ';' | ':' | '!' | '?') {
-            run_last = Some(c);
-        } else if let Some(m) = run_last.take() {
-            marks.push(m);
-        }
-    }
-    if let Some(m) = run_last {
-        marks.push(m);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn keys(text: &str) -> Vec<String> {
         let mut w = Vec::new();
-        segment(text, &mut w, false);
+        segment(text, &mut w);
         w.into_iter().map(|w| w.key).collect()
     }
 
     #[test]
-    fn words_split_join_and_keep_apostrophes() {
+    fn words_split_and_keep_apostrophes() {
         assert_eq!(keys("Durumu nasıI?"), ["durumu", "nası", "ı"]);
         assert_eq!(keys("iPhone ayarları"), ["i", "phone", "ayarları"]);
-        assert_eq!(keys("Okumak ister misin?"), ["okumak", "istermisin"]);
-        assert_eq!(keys("Ne yaptın sen?"), ["neyaptın", "sen"]);
+        assert_eq!(keys("Okumak ister misin?"), ["okumak", "ister", "misin"]);
         assert_eq!(keys("Ali’nin kuvve-i"), ["ali'nin", "kuvvei"]);
     }
 
@@ -437,22 +358,21 @@ mod tests {
     fn pauses_follow_the_gaps() {
         let mut w = Vec::new();
         segment(
-            "Ali'nin kitabı İstanbul'a, Kemal'e ve Ankara'dan geldi.",
+            "Ali'nin kitabı İstanbul'a, Kemal'e \"ve\" Ankara'dan geldi.",
             &mut w,
-            false,
         );
-        let p: Vec<usize> = w.iter().map(|w| w.pauses.len()).collect();
-        // kitabı after an apostrophe word: `_: _:`; Kemal'e after a comma: `_: _`; ve after
-        // an apostrophe word: `_: _:` and no `_!`
-        assert_eq!(p, [0, 2, 0, 2, 2, 0, 2]);
+        let p: Vec<&[Pause]> = w.iter().map(|w| w.pauses.as_slice()).collect();
+        // no pause after an apostrophe; one `_:` at a comma; `_!` at a quote
+        assert_eq!(p[1], []);
+        assert_eq!(p[3], [Pause::ClauseEnd]);
+        assert_eq!(p[4], [Pause::Short]);
         assert!(w[3].boundary && !w[1].boundary);
-        assert_eq!(w[4].pauses.as_slice(), [Pause::ClauseEnd, Pause::ClauseEnd]);
     }
 
     #[test]
     fn short_pause_unless_the_conjunction_ends_its_clause() {
         let mut w = Vec::new();
-        segment("Yaptı ama kancıklık. İyi ama, neydi o", &mut w, false);
+        segment("Yaptı ama kancıklık. İyi ama, neydi o", &mut w);
         assert_eq!(w[1].pauses.as_slice(), [Pause::Short]);
         assert!(w[4].pauses.is_empty());
     }
@@ -461,21 +381,6 @@ mod tests {
     fn numbers_are_read_as_words() {
         assert_eq!(keys("20:00'de"), ["yirmi", "sıfır", "sıfır", "'de"]);
         assert_eq!(keys("07.30"), ["sıfır", "yedi", "nokta", "otuz"]);
-        assert_eq!(
-            keys("1.250,75 TL"),
-            ["bin", "iki", "yüz", "elli", "virgül", "yetmiş", "beş", "tl"]
-        );
         assert_eq!(keys("%25"), ["yüzde", "yirmi", "beş"]);
-        let mut w = Vec::new();
-        segment("1923'te kuruldu", &mut w, false);
-        // the suffix word is followed by the apostrophe's pause pair
-        assert_eq!(w.last().map(|w| w.pauses.len()), Some(2));
-    }
-
-    #[test]
-    fn marks_are_runs_of_punctuation() {
-        let mut m = Vec::new();
-        clause_marks("Evet, dedi... Ne?! Peki", &mut m);
-        assert_eq!(m, [',', '.', '!']);
     }
 }

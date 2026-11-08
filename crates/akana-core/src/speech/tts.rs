@@ -37,11 +37,11 @@
 //!
 //! **Pauses**, **segments** and the teacher evidence for each rule: `docs/phonemizer-tts-v1.md`.
 
-use super::letters::{has_vowel, key_to_phonemes_with, spell, Seg};
+use super::letters::{has_vowel, key_to_phonemes, spell, tts_v2_segments, Seg};
 use super::text::{segment, TextWord};
 use super::{
-    EspeakToken, Pause, Phone, Phoneme, PhonemizeError, Profile, SegmentSource, StressSource,
-    Utterance, Warning, Word, MAX_TEXT_BYTES,
+    Pause, Phone, Phoneme, PhonemizeError, Profile, SegmentSource, StressSource, Token, Utterance,
+    Warning, Word, MAX_TEXT_BYTES,
 };
 use crate::morphology::pos::{PrimaryPos, SecondaryPos};
 use crate::morphology::{MorphParse, MorphologicalDisambiguator, TurkishMorphology};
@@ -259,10 +259,32 @@ fn is_vowel_letter(c: char) -> bool {
     )
 }
 
-fn lexicon_stress(key: &str) -> Option<(u8, &'static str)> {
-    STRESS_LEXICON
-        .iter()
-        .find(|(w, _, _)| *w == key)
+/// `tts-v2`'s additions to [`STRESS_LEXICON`]. Sources: D = Dursunoğlu 2006: 272 (nerede,
+/// nereye initial), GK = Göksel & Kerslake (unstressable -rA: néreye, órada), KV = Kabak &
+/// Vogel 2001: 328 (-ki pre-accenting: benimki), Ö = Özçelik 2014: 251 (-leyin pre-accenting).
+pub(crate) const STRESS_LEXICON_V2: &[(&str, u8, &str)] = &[
+    ("nerede", 0, "pronoun:D,GK"),
+    ("nereden", 0, "pronoun:D,GK"),
+    ("neresi", 0, "pronoun:D,GK"),
+    ("benimki", 1, "pronoun:KV(-ki)"),
+    ("bizimki", 1, "pronoun:KV(-ki)"),
+    ("sabahleyin", 1, "adverb:Ö(-leyin)"),
+    ("akşamleyin", 1, "adverb:Ö(-leyin)"),
+    ("geceleyin", 1, "adverb:Ö(-leyin)"),
+];
+
+/// Place-name endings with final stress against Sezer's rule (Hindistán; Inkelas & Orgun 2003:
+/// 142–152, Dursunoğlu 2006: 272): `tts-v2`.
+const PLACE_FINAL: &[&str] = &["istan", "stan", "hane", "lar", "ler", "mez", "maz"];
+
+fn lexicon_stress(key: &str, v2: bool) -> Option<(u8, &'static str)> {
+    let v2_entry = if v2 {
+        STRESS_LEXICON_V2.iter().find(|(w, _, _)| *w == key)
+    } else {
+        None
+    };
+    v2_entry
+        .or_else(|| STRESS_LEXICON.iter().find(|(w, _, _)| *w == key))
         .map(|(_, s, src)| (*s, *src))
 }
 
@@ -339,6 +361,7 @@ fn word_stress(
     key: &str,
     letters: &[char],
     parse: Option<&MorphParse>,
+    v2: bool,
 ) -> (Option<usize>, Class, StressSource) {
     let vowels: Vec<usize> = (0..letters.len())
         .filter(|&i| is_vowel_letter(letters[i]))
@@ -369,7 +392,7 @@ fn word_stress(
         _ => Class::Content,
     };
     let nth = |k: u8| vowels.get(k as usize).copied();
-    if let Some((k, src)) = lexicon_stress(key) {
+    if let Some((k, src)) = lexicon_stress(key, v2) {
         if let Some(v) = nth(k) {
             return (Some(v), class, StressSource::Lexical { source: src });
         }
@@ -397,9 +420,12 @@ fn word_stress(
         }
         let person = PERSON.contains(&m.id)
             && (m.after_copula || k >= 1 && Z_PARADIGM_HOSTS.contains(&ms[k - 1].id));
+        // tts-v2: the pronominal -ki after a genitive (seNİNki; Kabak & Vogel 2001: 328)
+        let rel_gen = v2 && m.id == "Rel" && k >= 1 && ms[k - 1].id == "Gen";
         let pre = (PRE_ACCENTING.contains(&m.id)
             || (m.after_copula && COPULAR.contains(&m.id))
-            || person)
+            || person
+            || rel_gen)
             // the aorist negative -mAz is stressed (gelmez)
             && !(m.id == "Neg"
                 && ms
@@ -414,7 +440,13 @@ fn word_stress(
             } else {
                 offsets[k]
             };
-            pre_id = if person { "Person" } else { m.id };
+            pre_id = if person {
+                "Person"
+            } else if rel_gen {
+                "RelGen"
+            } else {
+                m.id
+            };
             break;
         }
     }
@@ -428,9 +460,25 @@ fn word_stress(
         .collect();
     let mut lexical: Option<(usize, StressSource)> = None;
     let lemma_key = p.lemma.as_str();
-    if let Some((k, src)) = lexicon_stress(&root_key).or_else(|| lexicon_stress(lemma_key)) {
+    if let Some((k, src)) = lexicon_stress(&root_key, v2).or_else(|| lexicon_stress(lemma_key, v2))
+    {
         if let Some(&v) = root_vowels.get(k as usize) {
             lexical = Some((v, StressSource::Lexical { source: src }));
+        }
+    }
+    if v2
+        && lexical.is_none()
+        && p.secondary_pos == SecondaryPos::ProperNoun
+        && PLACE_FINAL.iter().any(|e| root_key.ends_with(e))
+        && crate::pii::is_place_name(lemma_key)
+    {
+        if let Some(&v) = root_vowels.last() {
+            lexical = Some((
+                v,
+                StressSource::Morphology {
+                    rule: "final(place name in -istan, -hane, -lAr, -mAz)",
+                },
+            ));
         }
     }
     if lexical.is_none()
@@ -478,7 +526,8 @@ fn word_stress(
     }
     // a stressed suffix before the domain's end
     for (k, m) in ms.iter().enumerate().rev() {
-        if STRESSED_SUFFIXES.contains(&m.id) && offsets[k] < domain_end {
+        let stressed = STRESSED_SUFFIXES.contains(&m.id) || (v2 && m.id == "Hastily");
+        if stressed && offsets[k] < domain_end {
             let first = vowels.iter().copied().find(|&v| v >= offsets[k]);
             if let Some(v) = first.filter(|&v| v < domain_end) {
                 return (
@@ -517,6 +566,7 @@ fn pre_rule(id: &str) -> &'static str {
         "Narr" => "pre-accenting(copula -(y)mIş)",
         "WithoutHavingDoneSo" => "pre-accenting(-mAdAn)",
         "Person" => "pre-accenting(z-paradigm person)",
+        "RelGen" => "pre-accenting(-ki after a genitive)",
         _ => "pre-accenting",
     }
 }
@@ -527,6 +577,7 @@ fn stressed_rule(id: &str) -> &'static str {
         "ByDoingSo" => "stressed-suffix(-ArAk)",
         "When" => "stressed-suffix(-IncA)",
         "Unable" => "stressed-suffix(-(y)AmA)",
+        "Hastily" => "stressed-suffix(-(y)Iver)",
         _ => "stressed-suffix",
     }
 }
@@ -631,9 +682,13 @@ pub(crate) fn is_known_word(lower: &str) -> bool {
         .any(|p| p.secondary_pos != SecondaryPos::Abbreviation)
 }
 
-/// Phonemises `text` with the `tts-v1` profile: verbalises it, phonemises the spoken text and
-/// maps every word and warning back to the span of the text it reads.
-pub(crate) fn phonemize_tts(text: &str, out: &mut Utterance) -> Result<(), PhonemizeError> {
+/// Phonemises `text` with a profile: verbalises it, phonemises the spoken text and maps every
+/// word and warning back to the span of the text it reads.
+pub(crate) fn phonemize_tts(
+    text: &str,
+    out: &mut Utterance,
+    profile: Profile,
+) -> Result<(), PhonemizeError> {
     out.words.clear();
     out.tokens.clear();
     out.warnings.clear();
@@ -643,12 +698,12 @@ pub(crate) fn phonemize_tts(text: &str, out: &mut Utterance) -> Result<(), Phone
             max: MAX_TEXT_BYTES,
         });
     }
-    // words written in letters stay as written: tts-v1's output on such text is frozen
-    let spoken = super::verbalize::verbalize_with(text, false);
+    // tts-v1 keeps words written in letters as written: its output on such text is frozen
+    let spoken = super::verbalize::verbalize_with(text, profile == Profile::TtsV2);
     if spoken.segments.is_empty() {
-        return phonemize_spoken(text, out);
+        return phonemize_spoken(text, out, profile);
     }
-    phonemize_spoken(&spoken.text, out)?;
+    phonemize_spoken(&spoken.text, out, profile)?;
     for w in &mut out.words {
         let (span, kind) = spoken.source(w.span.clone(), text.len());
         w.span = span;
@@ -663,10 +718,14 @@ pub(crate) fn phonemize_tts(text: &str, out: &mut Utterance) -> Result<(), Phone
 }
 
 /// Phonemises text already verbalised.
-fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeError> {
-    let profile = Profile::TtsV1;
+fn phonemize_spoken(
+    text: &str,
+    out: &mut Utterance,
+    profile: Profile,
+) -> Result<(), PhonemizeError> {
+    let v2 = profile == Profile::TtsV2;
     let mut tw: Vec<TextWord> = Vec::new();
-    let final_gap = segment(text, &mut tw, true);
+    let final_gap = segment(text, &mut tw);
     // analyses of the sentence's words, disambiguated in context
     let surfaces: Vec<&str> = tw
         .iter()
@@ -735,13 +794,19 @@ fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeErro
             });
             continue;
         }
-        key_to_phonemes_with(&w.key, &mut segs, true);
-        let segment_source = if lexical_segments(&mut segs, parse) {
+        key_to_phonemes(&w.key, &mut segs);
+        let attribute = lexical_segments(&mut segs, parse);
+        if v2 {
+            tts_v2_segments(&mut segs, &letters);
+        }
+        let segment_source = if attribute {
             SegmentSource::LexiconAttribute
+        } else if v2 {
+            SegmentSource::TtsV2Rules
         } else {
             SegmentSource::TtsRules
         };
-        let (stressed_letter, class, stress_source) = word_stress(&w.key, &letters, parse);
+        let (stressed_letter, class, stress_source) = word_stress(&w.key, &letters, parse, v2);
         // the stressed letter's vowel segment (a merged long vowel starts at its first letter)
         let vowel_segs: Vec<u16> = segs
             .iter()
@@ -804,7 +869,8 @@ fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeErro
     // tokens
     let mut clause = 0usize;
     let mark = |c: usize| clause_marks.get(c).copied().unwrap_or('.');
-    out.tokens.push(EspeakToken {
+    out.tokens.push(Token {
+        profile,
         ph: Phoneme::Pause,
         stress: 0,
         word: false,
@@ -814,7 +880,8 @@ fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeErro
     for (wi, (w, info)) in tw.iter().zip(&infos).enumerate() {
         for p in &w.pauses {
             // a clause-ending pause belongs to the clause it ends
-            out.tokens.push(EspeakToken {
+            out.tokens.push(Token {
+                profile,
                 ph: p.phoneme(),
                 stress: 0,
                 word: false,
@@ -831,9 +898,20 @@ fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeErro
                 .and_then(|n| n.segs.first())
                 .is_some_and(|s| s.ph.is_vowel());
         let levels = syllable_levels(info);
+        // tts-v2: /i u e/ lowered in the open final syllable of a phrase (Zimmer & Orgun 1999:
+        // 155); /y/ stays [y], the aligner having no [ʏ]
+        let phrase_final = v2 && tw.get(wi + 1).is_none_or(|n| !n.pauses.is_empty());
         let mut phones = Vec::with_capacity(info.segs.len());
         for (pi, s) in info.segs.iter().enumerate() {
             let mut ph = s.ph;
+            if phrase_final && pi + 1 == info.segs.len() && !s.long {
+                ph = match ph {
+                    Phoneme::I => Phoneme::ILax,
+                    Phoneme::U => Phoneme::ULax,
+                    Phoneme::E => Phoneme::ELax,
+                    p => p,
+                };
+            }
             if pi + 1 == info.segs.len() && link {
                 ph = match ph {
                     Phoneme::LCoda => Phoneme::L,
@@ -842,7 +920,8 @@ fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeErro
                 };
             }
             let stress = levels[pi];
-            out.tokens.push(EspeakToken {
+            out.tokens.push(Token {
+                profile,
                 ph,
                 stress,
                 word: pi == 0,
@@ -869,7 +948,8 @@ fn phonemize_spoken(text: &str, out: &mut Utterance) -> Result<(), PhonemizeErro
             prominence: info.level,
         });
     }
-    out.tokens.push(EspeakToken {
+    out.tokens.push(Token {
+        profile,
         ph: Phoneme::Pause,
         stress: 0,
         word: false,
@@ -1168,7 +1248,7 @@ mod tests {
     #[test]
     fn every_ipa_is_one_aligner_entry() {
         let mut u = Utterance::default();
-        let data = include_str!("../../tests/data/speech/espeak_compat_golden.jsonl");
+        let data = include_str!("../../tests/data/speech/tts_v1_golden.jsonl");
         let mut texts: Vec<String> = data
             .lines()
             .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())

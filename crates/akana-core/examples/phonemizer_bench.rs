@@ -1,14 +1,13 @@
 //! Latency of the phonemiser per sentence, warm, in-process.
 //!
 //! ```text
-//! cargo run --release -p akana-core --example espeak_compat_bench -- [--fixtures DIR] [--reps 20] [--profile tts-v1]
+//! cargo run --release -p akana-core --example phonemizer_bench -- [--texts FILE.jsonl] [--reps 20] [--profile tts-v2]
 //! ```
 //!
-//! Texts: the reference fixtures' corpus rows (`DIR/espeak-plan.jsonl`, default
-//! `AKANA_ESPEAK_FIXTURES`), or else the committed golden sentences. It times every call
-//! separately after a warm-up pass and reports the median, 90th and 99th percentiles for
-//! sentences of 50 to 70 characters (the brief's "about 60") and for all texts, and the
-//! real-time factor against speech at eSpeak's rate setting of 175 words per minute.
+//! Texts: the `text` fields of a JSONL file (rows whose `split` is `probe` are left out), or else
+//! the committed golden sentences. It times every call separately after a warm-up pass and
+//! reports the median, 90th and 99th percentiles for sentences of 50 to 70 characters and for all
+//! texts, and the real-time factor against speech at 175 words per minute.
 
 use akana_core::speech::{Phonemizer, Profile, Utterance};
 use std::io::BufRead;
@@ -24,12 +23,12 @@ fn pct(sorted: &[f64], q: f64) -> f64 {
 
 fn main() {
     let mut args = std::env::args().skip(1);
-    let mut fixtures = std::env::var("AKANA_ESPEAK_FIXTURES").ok();
+    let mut texts_file: Option<String> = None;
     let mut reps = 20usize;
-    let mut profile = Profile::EspeakCompat;
+    let mut profile = Profile::TtsV1;
     while let Some(a) = args.next() {
         match a.as_str() {
-            "--fixtures" => fixtures = args.next(),
+            "--texts" => texts_file = args.next(),
             "--reps" => reps = args.next().and_then(|s| s.parse().ok()).unwrap_or(20),
             "--profile" => {
                 let name = args.next().unwrap_or_default();
@@ -44,9 +43,9 @@ fn main() {
             }
         }
     }
-    let texts: Vec<String> = match fixtures {
-        Some(dir) => {
-            let plan = std::path::Path::new(&dir).join("espeak-plan.jsonl");
+    let texts: Vec<String> = match texts_file {
+        Some(file) => {
+            let plan = std::path::PathBuf::from(file);
             let file = std::fs::File::open(&plan).unwrap_or_else(|e| {
                 eprintln!("{}: {e}", plan.display());
                 std::process::exit(2)
@@ -59,7 +58,7 @@ fn main() {
                 .filter_map(|v| v["text"].as_str().map(str::to_string))
                 .collect()
         }
-        None => include_str!("../tests/data/speech/espeak_compat_golden.jsonl")
+        None => include_str!("../tests/data/speech/tts_v1_golden.jsonl")
             .lines()
             .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
             .filter_map(|v| v["text"].as_str().map(str::to_string))

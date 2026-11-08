@@ -388,42 +388,45 @@ def grammar_rules() -> list[dict[str, Any]]:
     return json.loads(grammar_rules_json())
 
 
-def phonemize(text: str, profile: str = "espeak-compat") -> list[dict[str, Any]]:
+def phonemize(text: str, profile: str = "tts-v1") -> list[dict[str, Any]]:
     """The text's phoneme and pause tokens for a TTS front end.
 
-    Profile ``"espeak-compat"`` gives the token stream eSpeak NG 1.52 gives EchoCraft's
-    student TTS: one dict per phoneme or pause with ``ph`` (eSpeak's mnemonic), ``stress``
-    (0 diminished, 1 unstressed, 3 secondary, 6 a word's primary, 7 the clause's tonic),
-    ``word`` (1 on a word's first phoneme), ``lengthen``, ``mark`` (the punctuation ending the
-    clause), ``type`` (eSpeak's phoneme class) and ``ipa`` (``None`` for pauses). One ``_`` pause
-    stands at each edge. Digits are read as Turkish numbers (``20:00`` yirmi sıfır sıfır);
-    other symbols are not read in this profile (``phonemize_detailed`` lists them as
-    warnings).
-
-    Profile ``"tts-v1"`` is Akana's own front end, in the same schema: word stress from the
-    phonology literature and Akana's morphology, and ``stress`` as a prominence rank (7 the
+    One dict per phoneme or pause: ``ph``, ``stress`` (the prominence of its syllable: 7 the
     clause's nucleus, 6 a phrase accent, 4 a deaccented head, 3 a function word, 2 after the
-    nucleus, 1 unstressed, 0 a clitic); pauses ``_`` at the edges, ``_:`` at clause boundaries,
-    ``_!`` at quotes, brackets, before conjunctions and after adverbial clauses; long vowels
-    and geminates with ``lengthen`` 1. See ``docs/phonemizer-tts-v1.md``.
+    nucleus, 1 unstressed, 0 a clitic or pause), ``word`` (1 on a word's first phoneme),
+    ``lengthen`` (1 for a long vowel or a geminate), ``mark`` (the punctuation ending the
+    clause), ``type`` (``vowel``, ``stop``, ``vstop``, ``fricative``, ``vfricative``,
+    ``nasal``, ``liquid``, ``pause``) and ``ipa`` (one entry of EchoCraft's aligner vocabulary,
+    ``None`` for pauses). Pauses: ``_`` at both edges, ``_:`` at a clause boundary, ``_!`` at
+    quotes, brackets, before conjunctions and after adverbial clauses. The text is verbalised
+    first (see ``verbalize``).
+
+    Profiles:
+
+    - ``"tts-v1"`` (the default): stress from the phonology literature and Akana's morphology,
+      ``ph`` as the stage-1 mnemonics (``a``, ``E``, ``dZ``, ``L/``). Its output on text of
+      letters and punctuation is frozen. See ``docs/phonemizer-tts-v1.md``.
+    - ``"tts-v2"``: the literature's segments, more stress rules, every verbaliser rule, and
+      ``ph`` as the IPA symbol. See ``docs/phonemizer-tts-v2.md``.
 
     An unknown profile raises ``ValueError``.
     """
     return json.loads(phonemize_json(text, profile))
 
 
-def phonemize_detailed(text: str, profile: str = "espeak-compat") -> dict[str, Any]:
+def phonemize_detailed(text: str, profile: str = "tts-v1") -> dict[str, Any]:
     """The text's words as read, with the provenance of each decision.
 
     Returns ``profile``, ``version``, ``tokens`` (as ``phonemize``), ``warnings`` (characters
     not read: ``start``, ``end``, ``message``) and ``words``: each with ``start``/``end``
-    (character offsets), ``text``, ``reading`` (the lexicon key), ``pauses_before``,
-    ``phones`` (``ph``, ``ipa``, ``stress``, ``lengthen``), ``clause``, ``stress_source`` and
-    ``segment_source`` (``lexicon:espeak-compat``, ``espeak-compat-rule:...``,
-    ``default-final``; in ``tts-v1`` also ``lexicon:{class}:{sources}``, ``morphology:{rule}``,
-    ``sezer``, ``compound:first-part``, ``clitic``), ``promoted`` (stress added at a clause's
-    end), ``tonic``, ``prominence`` (the level of the word's stressed syllable) and
-    ``normalized`` (``"number"`` for the words of a number, else ``None``).
+    (character offsets of the text it reads; the words read from a number share its span),
+    ``text``, ``reading`` (the lexicon key), ``pauses_before``, ``phones`` (``ph``, ``ipa``,
+    ``stress``, ``lengthen``), ``clause``, ``stress_source`` (``default-final``,
+    ``lexicon:{class}:{sources}``, ``morphology:{rule}``, ``sezer``, ``compound:first-part``,
+    ``clitic``, ``rule:spelled``), ``segment_source``, ``promoted`` (always ``False``),
+    ``tonic`` (the clause's nucleus), ``prominence`` (the level of the word's stressed
+    syllable) and ``normalized`` (the verbaliser's kind for a word read from a number, symbol,
+    abbreviation or initialism, else ``None``).
     """
     return json.loads(phonemize_detailed_json(text, profile))
 

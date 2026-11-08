@@ -1,7 +1,8 @@
-//! Letters to phonemes for words outside the lexicon, as inferred from the reference fixtures:
-//! vowel laxing in closed and word-final syllables, `&` before a tautosyllabic m n l, the tap
-//! between vowels, clear and dark l by the neighbouring vowel, `J` before a front vowel, `c` in
-//! `-ken`, ğ as length or `j`, and doubled stops as one long stop.
+//! Letters to phonemes. [`key_to_phonemes`] gives `tts-v1`'s segments (frozen: vowel laxing in
+//! closed and word-final syllables, `&` before a tautosyllabic m n l, the tap between vowels and
+//! the trill elsewhere, clear and dark l by the neighbouring vowel, `J` before a front vowel,
+//! long vowels and geminates); [`tts_v2_segments`] turns them into `tts-v2`'s, the allophones of
+//! the phonology literature.
 
 use super::Phoneme::{self, *};
 
@@ -59,26 +60,13 @@ pub(crate) fn has_vowel(letters: &str) -> bool {
     letters.chars().any(is_vowel_letter)
 }
 
-/// Endings after `-ken` with which k is palatal `c` (observed: erken, gereken(i), yelkenler,
-/// erkenden, işkence; not kenin, kenlere, kensiz, kenir).
-const KEN_TAILS: [&str; 6] = ["", "i", "e", "ler", "den", "ce"];
-
-/// The phonemes of a lower-case word (letters only, circumflex vowels kept).
-#[cfg(test)]
-pub(crate) fn letters_to_phonemes(word: &str, out: &mut Vec<Seg>) {
-    key_to_phonemes(word, out)
-}
-
-/// The phonemes of a lexicon key: lower-case letters, circumflex vowels kept, apostrophes where
+/// `tts-v1`'s phonemes of a lexicon key: lower-case letters, circumflex vowels kept, apostrophes where
 /// the text had them. An l before an apostrophe takes its quality from the vowel before it and
 /// is not a coda (observed: Kemal'i `L`, İsmail'e `l`); the lone letter i is tense (observed:
 /// the i of iPhone).
-pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
-    key_to_phonemes_with(key, out, false)
-}
-
-/// As [`key_to_phonemes`]; with `tts`, the `tts-v1` profile's segments (Zimmer & Orgun 1999,
-/// Göksel & Kerslake 2005, Lewis 2001):
+///
+/// The profile's long vowels and geminates (Zimmer & Orgun 1999, Göksel & Kerslake 2005, Lewis
+/// 2001):
 /// - a circumflex vowel is long, and k before it palatal `c` (kâr, dükkân, mahkûm);
 /// - two equal vowel letters are one long vowel (saat, kanaat, tabii);
 /// - ğ after e or i lengthens the vowel before a consonant or at the end (eğlence, iğne), and is
@@ -87,7 +75,7 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
 /// - doubled ç and g are one long consonant, as doubled stops are, and a doubled clear l one
 ///   long `l`;
 /// - no eSpeak `-ken` palatal.
-pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
+pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
     out.clear();
     let mut w: Vec<char> = Vec::with_capacity(key.len());
     let mut before_apostrophe: Vec<bool> = Vec::with_capacity(key.len());
@@ -126,7 +114,7 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
                 c => c,
             };
             let circ = matches!(ch, 'â' | 'î' | 'û');
-            if tts && i + 1 < n && w[i + 1] == 'ğ' {
+            if i + 1 < n && w[i + 1] == 'ğ' {
                 // ğ (Göksel & Kerslake 2005; teacher durations): before a consonant or the end it
                 // lengthens the vowel; two equal vowels across it are one long vowel; between back
                 // vowels it is silent and the first vowel stays short (soğuk: 7 frames against 6
@@ -164,24 +152,8 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
                     }
                 }
             }
-            // VğV with the same vowel: one long vowel (not for e, i, ı: observed ığı = @: @)
-            if !tts
-                && i + 2 < n
-                && w[i + 1] == 'ğ'
-                && w[i + 2] == ch
-                && !matches!(ch, 'e' | 'i' | 'ı')
-            {
-                units.push(Unit::V {
-                    v: base,
-                    long: true,
-                    circ,
-                    at: i,
-                });
-                i += 3;
-                continue;
-            }
-            // ğ after a vowel other than e, i: the vowel's length mark
-            if !tts && i + 1 < n && w[i + 1] == 'ğ' && !matches!(base, 'e' | 'i') {
+            // two equal vowel letters: one long vowel
+            if i + 1 < n && w[i + 1] == ch {
                 units.push(Unit::V {
                     v: base,
                     long: true,
@@ -191,22 +163,9 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
                 i += 2;
                 continue;
             }
-            if tts {
-                // two equal vowel letters: one long vowel
-                if i + 1 < n && w[i + 1] == ch {
-                    units.push(Unit::V {
-                        v: base,
-                        long: true,
-                        circ,
-                        at: i,
-                    });
-                    i += 2;
-                    continue;
-                }
-            }
             units.push(Unit::V {
                 v: base,
-                long: tts && circ,
+                long: circ,
                 circ,
                 at: i,
             });
@@ -215,7 +174,7 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
         }
         if ch == 'ğ' {
             let prev = if i > 0 { w[i - 1] } else { '\0' };
-            let c = if prev == 'e' || prev == 'i' || (tts && (prev == 'ö' || prev == 'ü')) {
+            let c = if matches!(prev, 'e' | 'i' | 'ö' | 'ü') {
                 'ğ'
             } else {
                 'Q'
@@ -228,16 +187,12 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
             i += 1;
             continue;
         }
-        let doubled_long = if tts {
-            matches!(ch, 'b' | 'c' | 'd' | 'k' | 'p' | 't' | 'ç' | 'g')
-        } else {
-            matches!(ch, 'b' | 'c' | 'd' | 'k' | 'p' | 't')
-        };
+        let doubled_long = matches!(ch, 'b' | 'c' | 'd' | 'k' | 'p' | 't' | 'ç' | 'g');
         if i + 1 < n && w[i + 1] == ch && doubled_long {
             units.push(Unit::C {
                 c: ch,
                 long: true,
-                at: if tts { i } else { i + 1 },
+                at: i,
             });
             i += 2;
             continue;
@@ -263,19 +218,15 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
                 while j < m && matches!(units[j], Unit::C { .. }) {
                     j += 1;
                 }
-                // in tts-v1 a geminate closes the syllable before it (dik.kat), as two letters do
+                // a geminate closes the syllable before it (dik.kat), as two letters do
                 let ncons = j - k - 1
-                    + if tts {
-                        units[k + 1..j]
-                            .iter()
-                            .filter(|u| matches!(u, Unit::C { long: true, .. }))
-                            .count()
-                    } else {
-                        0
-                    };
+                    + units[k + 1..j]
+                        .iter()
+                        .filter(|u| matches!(u, Unit::C { long: true, .. }))
+                        .count();
                 let fin = j == m;
                 let closed = (fin && ncons >= 1) || (!fin && ncons >= 2);
-                let lax = (closed || (fin && ncons == 0)) && !(tts && long);
+                let lax = (closed || (fin && ncons == 0)) && !long;
                 let ph = match v {
                     'a' => A,
                     'ı' => Ih,
@@ -369,18 +320,10 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
                         Some((nv, circ)) if is_front_letter(nv) || circ => GPalatal,
                         _ => G,
                     },
-                    'k' if tts => match next_v {
+                    'k' => match next_v {
                         Some((_, true)) => KPalatal,
                         _ => K,
                     },
-                    'k' => {
-                        let rest: String = w[(at + 1).min(n)..].iter().collect();
-                        if at > 0 && rest.starts_with("en") && KEN_TAILS.contains(&&rest[2..]) {
-                            KPalatal
-                        } else {
-                            K
-                        }
-                    }
                     'Q' => Gh,
                     'x' => {
                         out.push(Seg {
@@ -420,85 +363,107 @@ pub(crate) fn key_to_phonemes_with(key: &str, out: &mut Vec<Seg>, tts: bool) {
             }
         }
     }
-    if tts {
-        // a doubled clear l: one long l (the aligner has `lː`, not a long dark l)
-        let mut k = 0;
-        while k + 1 < out.len() {
-            if out[k].ph == LCoda && out[k + 1].ph == L && out[k].letter == 'l' {
-                out[k].ph = L;
-                out[k].long = true;
-                out.remove(k + 1);
+    // a doubled clear l: one long l (the aligner has `lː`, not a long dark l)
+    let mut k = 0;
+    while k + 1 < out.len() {
+        if out[k].ph == LCoda && out[k + 1].ph == L && out[k].letter == 'l' {
+            out[k].ph = L;
+            out[k].long = true;
+            out.remove(k + 1);
+        }
+        k += 1;
+    }
+}
+
+/// `tts-v2`'s segments, from `tts-v1`'s (`letters`: the word's letters, as [`Seg::at`] counts
+/// them):
+/// - vowels are tense inside the word: Zimmer & Orgun (1999: 155) lower /i y u e/ only in the
+///   open final syllable of a phrase (the caller does that), and /o/ never (no `ɔ`);
+/// - /e/ is [æ] before a coda m, n, l or r (Göksel & Kerslake 2005: 10; lowering "before coda
+///   /m n l r/");
+/// - /ɾ/ is a tap between vowels, a fricated [r̝] word-initially, after a consonant and before a
+///   voiced one, and a devoiced fricated [r̝̊] word-finally and before a voiceless consonant
+///   (Zimmer & Orgun 1999: 155; Yavuz & Balcı 2011: 25); no trill;
+/// - /k g/ are palatal [c ɟ] next to a front vowel (Zimmer & Orgun 1999: 154–155; Göksel &
+///   Kerslake 2005: 7–9) and before a circumflex vowel (Lewis 2001: 3–4);
+/// - a circumflex vowel is long only in an open syllable (the teacher's durations: 10–12 frames
+///   in open syllables, 6–8 in closed ones, against 6–7 for a short vowel).
+pub(crate) fn tts_v2_segments(segs: &mut [Seg], letters: &[char]) {
+    let n = segs.len();
+    for s in segs.iter_mut() {
+        s.ph = match s.ph {
+            ILax => I,
+            ULax => U,
+            UeLax => Ue,
+            OLax => O,
+            ELax | Ae => E,
+            p => p,
+        };
+    }
+    let front_vowel = |s: &Seg| -> bool {
+        matches!(s.ph, E | ELax | Ae | I | ILax | Ue | UeLax | Oe)
+            || matches!(letters.get(s.at as usize), Some('î'))
+    };
+    let circumflex = |s: &Seg| matches!(letters.get(s.at as usize), Some('â' | 'î' | 'û'));
+    for k in 0..n {
+        let s = segs[k];
+        if s.ph.is_vowel() {
+            // the consonants before the next vowel (a geminate counts twice)
+            let mut j = k + 1;
+            while j < n && !segs[j].ph.is_vowel() {
+                j += 1;
             }
-            k += 1;
+            let ncons: usize = segs[k + 1..j].iter().map(|c| 1 + usize::from(c.long)).sum();
+            let closed = if j == n { ncons >= 1 } else { ncons >= 2 };
+            if circumflex(&s) && closed {
+                segs[k].long = false;
+            }
+            if s.ph == E
+                && !segs[k].long
+                && closed
+                && segs
+                    .get(k + 1)
+                    .is_some_and(|c| matches!(c.letter, 'm' | 'n' | 'l' | 'r'))
+            {
+                segs[k].ph = Ae;
+            }
+            continue;
+        }
+        match s.letter {
+            'r' => {
+                let prev_v = k > 0 && segs[k - 1].ph.is_vowel();
+                let next = segs.get(k + 1);
+                segs[k].ph = match next {
+                    Some(nx) if nx.ph.is_vowel() && prev_v => Tap,
+                    None => RFricVoiceless,
+                    Some(nx) if voiceless(nx.ph) => RFricVoiceless,
+                    _ => RFric,
+                };
+            }
+            'k' | 'g' => {
+                // the next vowel when one follows directly, else the vowel before
+                let next = segs.get(k + 1).filter(|x| x.ph.is_vowel());
+                let near = next.or_else(|| segs[..k].iter().rev().find(|x| x.ph.is_vowel()));
+                let near = near.or_else(|| segs[k + 1..].iter().find(|x| x.ph.is_vowel()));
+                let palatal = near.is_some_and(|v| front_vowel(v) || circumflex(v));
+                segs[k].ph = match (s.letter, palatal) {
+                    ('k', true) => KPalatal,
+                    ('k', false) => K,
+                    (_, true) => GPalatal,
+                    _ => G,
+                };
+            }
+            _ => {}
         }
     }
 }
 
-/// Segment choices that depend on stress, for rule-derived words (observed): a non-initial g
-/// before a front vowel stays `g` in a stressed final syllable (bugün, hangi, zengin) and is `J`
-/// elsewhere; tense e after c or ç is lax `E` before an unstressed final syllable with a lax
-/// vowel after d, y, l or n (bahçede, düşünceli), but not before the j of ğ (geleceğim; train:
-/// 122 tense, 10 lax). `levels` are the word's vowel stress levels.
-/// Returns whether a segment changed.
-pub(crate) fn stress_dependent_segments(segs: &mut [Seg], levels: &[u8]) -> bool {
-    let mut vix: Vec<isize> = Vec::with_capacity(segs.len());
-    let mut v: isize = -1;
-    for s in segs.iter() {
-        if s.ph.is_vowel() {
-            v += 1;
-        }
-        vix.push(v);
-    }
-    let nv = v + 1;
-    let level = |syl: isize| -> u8 {
-        if syl >= 0 {
-            levels.get(syl as usize).copied().unwrap_or(0)
-        } else {
-            0
-        }
-    };
-    let front = |p: Phoneme| matches!(p, E | ELax | Ae | I | ILax | Ue | UeLax | Oe);
-    let lax = |p: Phoneme| matches!(p, ELax | ILax | Ih | ULax | UeLax | OLax | Ae | A | Oe);
-    let mut changed = false;
-    for k in 0..segs.len() {
-        let s = segs[k];
-        if !s.ph.is_vowel()
-            && s.letter == 'g'
-            && k > 0
-            && k + 1 < segs.len()
-            && segs[k + 1].ph.is_vowel()
-            && front(segs[k + 1].ph)
-        {
-            let syl = vix[k] + 1;
-            let stressed = level(syl) >= 4;
-            let closed2 =
-                k + 3 < segs.len() && !segs[k + 2].ph.is_vowel() && !segs[k + 3].ph.is_vowel();
-            let ph = if stressed && syl == nv - 1 && segs[k + 1].ph != Ae && !closed2 {
-                G
-            } else {
-                GPalatal
-            };
-            if ph != s.ph {
-                segs[k].ph = ph;
-                changed = true;
-            }
-        }
-        if s.ph == E && k > 0 && matches!(segs[k - 1].ph, Dzh | Tsh) {
-            let syl = vix[k];
-            if syl == nv - 2
-                && k + 2 < segs.len()
-                && matches!(segs[k + 1].ph, D | J | L | N)
-                && segs[k + 1].letter != 'ğ'
-                && segs[k + 2].ph.is_vowel()
-                && lax(segs[k + 2].ph)
-                && level(syl + 1) < 4
-            {
-                segs[k].ph = ELax;
-                changed = true;
-            }
-        }
-    }
-    changed
+/// A voiceless consonant.
+fn voiceless(p: Phoneme) -> bool {
+    matches!(
+        p,
+        P | T | K | KPalatal | Tsh | F | S | Sh | H | RFricVoiceless
+    )
 }
 
 /// Letter names for spelling a word without vowels (observed: `hmm` h E m E m E, `sms`, `vb`).
@@ -559,9 +524,13 @@ pub(crate) fn spell(letters: &str, out: &mut Vec<Seg>) {
 mod tests {
     use super::*;
 
-    fn g2p(w: &str) -> String {
+    fn g2p(w: &str, v2: bool) -> String {
         let mut out = Vec::new();
-        letters_to_phonemes(w, &mut out);
+        key_to_phonemes(w, &mut out);
+        if v2 {
+            let letters: Vec<char> = w.chars().filter(|&c| c != '\'').collect();
+            tts_v2_segments(&mut out, &letters);
+        }
         out.iter()
             .map(|s| format!("{}{}", s.ph.symbol(), if s.long { ":" } else { "" }))
             .collect::<Vec<_>>()
@@ -569,28 +538,47 @@ mod tests {
     }
 
     #[test]
-    fn observed_segment_rules() {
+    fn tts_v1_segments() {
         // laxing in closed and final syllables, & before m n l, the tap, dark l
-        assert_eq!(g2p("kadehten"), "k a d E h t & n");
-        assert_eq!(g2p("burası"), "b u * a s @");
-        assert_eq!(g2p("fazla"), "f a z L a");
-        assert_eq!(g2p("gül"), "J Y l/");
-        // ğ: length after back vowels, j after e/i, one long vowel for VğV
-        assert_eq!(g2p("ağaçta"), "a: tS t a");
-        assert_eq!(g2p("değil"), "d e j I l/");
-        assert_eq!(g2p("olduğu"), "O L/ d U:");
+        assert_eq!(g2p("kadehten", false), "k a d E h t & n");
+        assert_eq!(g2p("burası", false), "b u * a s @");
+        assert_eq!(g2p("fazla", false), "f a z L a");
+        assert_eq!(g2p("gül", false), "J Y l/");
+        // ğ: one long vowel for VğV, j after e/i
+        assert_eq!(g2p("ağaçta", false), "a: tS t a");
+        assert_eq!(g2p("değil", false), "d e j I l/");
         // doubled stops are one long stop; other doubled consonants stay double
-        assert_eq!(g2p("attı"), "a t: @");
-        assert_eq!(g2p("anne"), "a n n E");
-        // c in -ken; circumflex: clear l and J before â
-        assert_eq!(g2p("erken"), "E R c & n");
-        assert_eq!(g2p("kendi"), "k & n d I");
-        assert_eq!(g2p("hâlâ"), "h a l a");
-        assert_eq!(g2p("rüzgâr"), "R Y z J a R");
+        assert_eq!(g2p("attı", false), "a t: @");
+        assert_eq!(g2p("anne", false), "a n n E");
+        // no -ken palatal; circumflex: long, clear l and J before â
+        assert_eq!(g2p("erken", false), "E R k & n");
+        assert_eq!(g2p("hâlâ", false), "h a: l a:");
+        assert_eq!(g2p("rüzgâr", false), "R Y z J a: R");
         // before an apostrophe, l follows the vowel before it
-        assert_eq!(g2p("kemal'i"), "k e m a L I");
-        assert_eq!(g2p("ismail'e"), "I s m a i l E");
-        assert_eq!(g2p("i"), "i");
+        assert_eq!(g2p("kemal'i", false), "k e m a L I");
+        assert_eq!(g2p("i", false), "i");
+    }
+
+    #[test]
+    fn tts_v2_segments_follow_the_literature() {
+        // tense vowels inside the word; æ before a coda m n l r
+        assert_eq!(g2p("kadehten", true), "k a d e h t & n");
+        assert_eq!(g2p("gül", true), "J y l/");
+        assert_eq!(g2p("söyle", true), "s W j l e");
+        // /ɾ/: tap between vowels, fricated initially and before a voiced consonant, devoiced
+        // finally and before a voiceless one
+        assert_eq!(g2p("burası", true), "b u * a s @");
+        assert_eq!(g2p("kardeş", true), "k a r^ d e S");
+        assert_eq!(g2p("bir", true), "b i r^0");
+        assert_eq!(g2p("erken", true), "& r^0 c & n");
+        // k and g palatal next to a front vowel
+        assert_eq!(g2p("ekmek", true), "e c m e c");
+        assert_eq!(g2p("kitap", true), "c i t a p");
+        assert_eq!(g2p("türk", true), "t y r^0 c");
+        // a circumflex vowel is long only in an open syllable
+        assert_eq!(g2p("hâlâ", true), "h a: l a:");
+        assert_eq!(g2p("rüzgâr", true), "r^ y z J a r^0");
+        assert_eq!(g2p("imkânsız", true), "i m c a n s @ z");
     }
 
     #[test]
@@ -599,19 +587,5 @@ mod tests {
         spell("dr", &mut out);
         let s: Vec<&str> = out.iter().map(|s| s.ph.symbol()).collect();
         assert_eq!(s, ["d", "E", "*", "E"]);
-    }
-
-    #[test]
-    fn stress_moves_g_and_e() {
-        let mut segs = Vec::new();
-        letters_to_phonemes("bugün", &mut segs);
-        stress_dependent_segments(&mut segs, &[1, 6]);
-        assert_eq!(segs[2].ph, G);
-        letters_to_phonemes("bugünkü", &mut segs);
-        stress_dependent_segments(&mut segs, &[1, 0, 6]);
-        assert_eq!(segs[2].ph, GPalatal);
-        letters_to_phonemes("bahçede", &mut segs);
-        stress_dependent_segments(&mut segs, &[6, 1, 1]);
-        assert_eq!(segs[4].ph, ELax);
     }
 }
