@@ -49,6 +49,15 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
   - For texts the detector judges AI, `humanize_prompt` starts with the signals that made the text look AI.
 - **Syntax & Universal Dependencies**:
   - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.9 % of words to the right head (UAS) and 41.9 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.8 against 51.3) none. Trained parsers do much better: use it for rough structure.
+- **Speech Front End (Phonemiser)**:
+  - `akana.phonemize(text)` turns Turkish text into phoneme and prosody tokens for a TTS model: phoneme, stress level, word start, length mark and the clause's punctuation, in microseconds and in process. Every word says where its stress and phonemes came from (`phonemize_detailed`). No eSpeak NG code or data.
+  - `akana.verbalize(text)` writes out what a screen reader meets, keeping the span of each stretch it reads: numbers with their written suffixes re-harmonised (`₺850'ye` sekiz yüz elli liraya), ordinals, Roman numerals, dates, times, money, percentages, units, telephone numbers, abbreviations, initialisms, URLs, e-mail, symbols and foreign words.
+  - Profile `tts-v1` (the default) gives word stress from the phonology literature and Akana's morphology, a prominence hierarchy (nucleus, phrase accents, deaccented heads, function words, post-nuclear words, clitics), pauses where a speaker pauses, and long vowels and geminates. Where it and eSpeak put a word's stress on different syllables, the teacher TTS's pitch peak is on `tts-v1`'s syllable 50% of the time and on eSpeak's 30% ([report](docs/phonemizer-tts-v1.md)). Its output on plain text is frozen.
+  - Profile `tts-v2` follows the consensus of the Turkish phonology literature, with every rule's sources cited ([report](docs/phonemizer-tts-v2.md)):
+    - **Segments** (acoustic multi-speaker studies and grammars): tense vowels; [æ] before coda sonorants; /ɾ/ as a tap, devoiced before a pause; palatal k and g.
+    - **Stress:** Sezer's rule for place names, pre-stressing *-en* adverbs and *-CA*, first-element compounds and intensives.
+    - **Also:** every verbaliser rule, and IPA symbols.
+  - About 85 µs a sentence, some 33,000× faster than real time.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).
@@ -276,7 +285,7 @@ An index stores what built it, and checks it when it is opened:
 import akana
 
 info = akana.encoder_info()   # save this dict next to the index when you build it
-# {'akana_version': '0.10.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
+# {'akana_version': '0.11.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
 #  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
 #  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 

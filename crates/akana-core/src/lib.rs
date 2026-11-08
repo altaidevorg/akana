@@ -12,6 +12,7 @@ pub mod parser;
 pub mod phonology;
 pub mod pii;
 pub mod readability;
+pub mod speech;
 pub mod style;
 pub mod syntactic_morphology;
 pub mod tokenization;

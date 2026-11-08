@@ -590,6 +590,133 @@ fn analyze_readability_json(py: Python<'_>, text: &str) -> PyResult<String> {
     .map_err(json_error)
 }
 
+/// The text's spoken form as JSON: `text` and `segments` (`start`, `end` as character offsets,
+/// `start_byte`, `end_byte`, `source`, `spoken`, `kind`); `verbalize` reads it.
+#[pyfunction]
+#[pyo3(signature = (text, words=true))]
+fn verbalize_json(py: Python<'_>, text: &str, words: bool) -> PyResult<String> {
+    release(py, || {
+        let v = akana_core::speech::verbalize_with(text, words);
+        let mut bytes: Vec<usize> = Vec::new();
+        for s in &v.segments {
+            bytes.push(s.span.start);
+            bytes.push(s.span.end);
+        }
+        let chars = char_offsets(text, &bytes);
+        let mut c = chars.chunks(2);
+        let segments: Vec<serde_json::Value> = v
+            .segments
+            .iter()
+            .map(|s| {
+                let span = c.next().unwrap_or(&[0, 0]);
+                serde_json::json!({
+                    "start": span[0],
+                    "end": span[1],
+                    "start_byte": s.span.start,
+                    "end_byte": s.span.end,
+                    "source": &text[s.span.clone()],
+                    "spoken": s.spoken,
+                    "kind": s.kind,
+                })
+            })
+            .collect();
+        serde_json::to_string(&serde_json::json!({"text": v.text, "segments": segments}))
+    })?
+    .map_err(json_error)
+}
+
+fn speech_profile(name: &str) -> PyResult<akana_core::speech::Profile> {
+    akana_core::speech::Profile::from_name(name).ok_or_else(|| {
+        PyValueError::new_err(format!(
+            "unknown phonemiser profile {name:?} (known: \"tts-v1\", \"tts-v2\")"
+        ))
+    })
+}
+
+/// The text's phoneme and pause tokens as JSON, in the token schema EchoCraft's TTS reads
+/// (`ph`, `stress`, `word`, `lengthen`, `mark`, `type`, `ipa`); `phonemize` reads it.
+#[pyfunction]
+#[pyo3(signature = (text, profile="tts-v1"))]
+fn phonemize_json(py: Python<'_>, text: &str, profile: &str) -> PyResult<String> {
+    let profile = speech_profile(profile)?;
+    release(py, || -> Result<String, PyErr> {
+        let mut u = akana_core::speech::Utterance::default();
+        akana_core::speech::Phonemizer::new(profile)
+            .phonemize_into(text, &mut u)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        serde_json::to_string(&u.tokens).map_err(json_error)
+    })?
+}
+
+/// The text's words with their phonemes, stress levels, pauses and the provenance of each
+/// decision, the tokens, and warnings for what was not read, as JSON; `phonemize_detailed`
+/// reads it. Spans are character offsets.
+#[pyfunction]
+#[pyo3(signature = (text, profile="tts-v1"))]
+fn phonemize_detailed_json(py: Python<'_>, text: &str, profile: &str) -> PyResult<String> {
+    let profile = speech_profile(profile)?;
+    release(py, || -> Result<String, PyErr> {
+        let mut u = akana_core::speech::Utterance::default();
+        akana_core::speech::Phonemizer::new(profile)
+            .phonemize_into(text, &mut u)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let mut bytes: Vec<usize> = Vec::new();
+        for w in &u.words {
+            bytes.push(w.span.start);
+            bytes.push(w.span.end);
+        }
+        for w in &u.warnings {
+            bytes.push(w.span.start);
+            bytes.push(w.span.end);
+        }
+        let chars = char_offsets(text, &bytes);
+        let mut c = chars.chunks(2);
+        let words: Vec<serde_json::Value> = u
+            .words
+            .iter()
+            .map(|w| {
+                let span = c.next().unwrap_or(&[0, 0]);
+                serde_json::json!({
+                    "start": span[0],
+                    "end": span[1],
+                    "text": &text[w.span.clone()],
+                    "reading": w.reading,
+                    "pauses_before": w.pauses_before.iter().map(|p| p.phoneme().symbol()).collect::<Vec<_>>(),
+                    "phones": w.phones.iter().map(|p| serde_json::json!({
+                        "ph": profile.symbol(p.phoneme),
+                        "ipa": if p.lengthen { p.phoneme.ipa_long() } else { p.phoneme.ipa() },
+                        "stress": p.stress,
+                        "lengthen": p.lengthen,
+                    })).collect::<Vec<_>>(),
+                    "clause": w.clause,
+                    "stress_source": w.stress_source.label(),
+                    "segment_source": w.segment_source.label(),
+                    "promoted": w.promoted,
+                    "tonic": w.tonic,
+                    "normalized": w.normalized,
+                    "prominence": w.prominence,
+                })
+            })
+            .collect();
+        let warnings: Vec<serde_json::Value> = u
+            .warnings
+            .iter()
+            .map(|w| {
+                let span = c.next().unwrap_or(&[0, 0]);
+                serde_json::json!({"start": span[0], "end": span[1], "message": w.message})
+            })
+            .collect();
+        serde_json::to_string(&serde_json::json!({
+            "profile": profile.name(),
+            "version": profile.version(),
+            "words": words,
+            "tokens": u.tokens,
+            "warnings": warnings,
+        }))
+        .map_err(json_error)
+    })?
+}
+
 /// The word's syllables (`kitaplık` → `["ki", "tap", "lık"]`).
 #[pyfunction]
 fn syllabify(word: &str) -> PyResult<Vec<String>> {
@@ -2228,6 +2355,9 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(tokenize_words, m)?)?;
     m.add_function(wrap_pyfunction!(analyze_document_json, m)?)?;
     m.add_function(wrap_pyfunction!(analyze_readability_json, m)?)?;
+    m.add_function(wrap_pyfunction!(phonemize_json, m)?)?;
+    m.add_function(wrap_pyfunction!(phonemize_detailed_json, m)?)?;
+    m.add_function(wrap_pyfunction!(verbalize_json, m)?)?;
     m.add_function(wrap_pyfunction!(syllabify, m)?)?;
     m.add_function(wrap_pyfunction!(hyphenate, m)?)?;
     m.add_function(wrap_pyfunction!(count_syllables, m)?)?;

@@ -73,6 +73,9 @@ try:
         normalize_informal,
         number_to_words,
         ordinal_to_words,
+        phonemize_detailed_json,
+        phonemize_json,
+        verbalize_json,
         remove_stopwords,
         similarity,
         similarity_vectors,
@@ -385,6 +388,68 @@ def grammar_rules() -> list[dict[str, Any]]:
     return json.loads(grammar_rules_json())
 
 
+def phonemize(text: str, profile: str = "tts-v1") -> list[dict[str, Any]]:
+    """The text's phoneme and pause tokens for a TTS front end.
+
+    One dict per phoneme or pause: ``ph``, ``stress`` (the prominence of its syllable: 7 the
+    clause's nucleus, 6 a phrase accent, 4 a deaccented head, 3 a function word, 2 after the
+    nucleus, 1 unstressed, 0 a clitic or pause), ``word`` (1 on a word's first phoneme),
+    ``lengthen`` (1 for a long vowel or a geminate), ``mark`` (the punctuation ending the
+    clause), ``type`` (``vowel``, ``stop``, ``vstop``, ``fricative``, ``vfricative``,
+    ``nasal``, ``liquid``, ``pause``) and ``ipa`` (one entry of EchoCraft's aligner vocabulary,
+    ``None`` for pauses). Pauses: ``_`` at both edges, ``_:`` at a clause boundary, ``_!`` at
+    quotes, brackets, before conjunctions and after adverbial clauses. The text is verbalised
+    first (see ``verbalize``).
+
+    Profiles:
+
+    - ``"tts-v1"`` (the default): stress from the phonology literature and Akana's morphology,
+      ``ph`` as the stage-1 mnemonics (``a``, ``E``, ``dZ``, ``L/``). Its output on text of
+      letters and punctuation is frozen. See ``docs/phonemizer-tts-v1.md``.
+    - ``"tts-v2"``: the literature's segments, more stress rules, every verbaliser rule, and
+      ``ph`` as the IPA symbol. See ``docs/phonemizer-tts-v2.md``.
+
+    An unknown profile raises ``ValueError``.
+    """
+    return json.loads(phonemize_json(text, profile))
+
+
+def phonemize_detailed(text: str, profile: str = "tts-v1") -> dict[str, Any]:
+    """The text's words as read, with the provenance of each decision.
+
+    Returns ``profile``, ``version``, ``tokens`` (as ``phonemize``), ``warnings`` (characters
+    not read: ``start``, ``end``, ``message``) and ``words``: each with ``start``/``end``
+    (character offsets of the text it reads; the words read from a number share its span),
+    ``text``, ``reading`` (the lexicon key), ``pauses_before``, ``phones`` (``ph``, ``ipa``,
+    ``stress``, ``lengthen``), ``clause``, ``stress_source`` (``default-final``,
+    ``lexicon:{class}:{sources}``, ``morphology:{rule}``, ``sezer``, ``compound:first-part``,
+    ``clitic``, ``rule:spelled``), ``segment_source``, ``promoted`` (always ``False``),
+    ``tonic`` (the clause's nucleus), ``prominence`` (the level of the word's stressed
+    syllable) and ``normalized`` (the verbaliser's kind for a word read from a number, symbol,
+    abbreviation or initialism, else ``None``).
+    """
+    return json.loads(phonemize_detailed_json(text, profile))
+
+
+def verbalize(text: str, words: bool = True) -> dict[str, Any]:
+    """The text as it is read aloud, for a TTS front end (what profile ``"tts-v2"`` reads).
+
+    Numbers (with the suffix written after them re-harmonised: ``3'te`` üçte, ``₺850'ye``
+    sekiz yüz elli liraya), ordinals, Roman numerals, decimals, fractions, ranges, dates, times,
+    money, percentages, units, telephone numbers, abbreviations, initialisms, URLs, e-mail
+    addresses, symbols, hyphen-spelled letters and foreign words are written out; everything
+    else is kept as written. Returns ``text`` (the spoken text) and ``segments``: each with
+    ``start``/``end`` (character offsets in the input), ``start_byte``/``end_byte``, ``source``,
+    ``spoken`` and ``kind`` (``cardinal``, ``ordinal``, ``date``, ``time``, ``money``, ...).
+
+    With ``words=False`` (what profile ``"tts-v1"`` reads), only stretches with a digit or a
+    symbol are verbalised; abbreviations, initialisms, Roman numerals, foreign words and URLs
+    written in letters alone are kept as written, so text of letters and punctuation comes back
+    unchanged.
+    """
+    return json.loads(verbalize_json(text, words))
+
+
 def encoder_info() -> dict[str, Any]:
     """What this library's encoders are, for an index to store when it is built:
     ``akana_version``, ``unicode_version``, ``sparse_spec`` (major.minor), ``hybrid_layout``,
@@ -521,6 +586,9 @@ __all__ = [
     "normalize_informal",
     "number_to_words",
     "ordinal_to_words",
+    "phonemize",
+    "phonemize_detailed",
+    "verbalize",
     "pii_mask",
     "pii_restore",
     "remove_stopwords",

@@ -121,7 +121,20 @@ Changes:    no sentence is shipped. The file holds the weights of the named-enti
             the other types are left out.
 
 -------------------------------------------------------------------------------------------------
-4. Sources approved for use, from which nothing ships yet
+4. Common Voice Turkish sentences
+-------------------------------------------------------------------------------------------------
+
+Source:     https://github.com/common-voice/common-voice, commit
+            b12cde653757295103c5948c1cd601b166e1b905, server/data/tr/sentence-collector.txt
+            (the Turkish sentence collector).
+Licence:    CC0 1.0 Universal, public domain dedication (sentence text under server/data, per the
+            repository's README.md).
+
+Tests only: crates/akana-core/tests/data/speech/tts_v1_golden.jsonl and tts_v2_golden.jsonl,
+            60 of the sentences with Akana's own phonemiser output. Nothing is shipped.
+
+-------------------------------------------------------------------------------------------------
+5. Sources approved for use, from which nothing ships yet
 -------------------------------------------------------------------------------------------------
 
 - Google Research turkish-morphology lexicon (Apache License 2.0), commit 83d4b967.
