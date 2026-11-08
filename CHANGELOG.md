@@ -49,16 +49,22 @@ with no eSpeak NG code or data.
     are read out (numbers, money, units, telephone numbers, e-mail, symbols); words,
     initialisms, Roman numerals and URLs written in letters alone stay as written.
   - Report: `docs/phonemizer-tts-v1.md`.
-- **Profile `tts-v2`** (`tts-v2.0`, for the next model). It is `tts-v1` plus:
-  - **Vowels and consonants:** vowels are lowered only phrase-finally; no lax o; e is æ before a
-    coda m, n, l or r; /ɾ/ is a tap, fricated r̝ or devoiced r̝̊; k and g are palatal next to a
-    front vowel. Sources: Zimmer & Orgun 1999, Göksel & Kerslake 2005, Yavuz & Balcı 2011.
-  - **Circumflex:** circumflex vowels are long only in open syllables (the teacher's durations).
-  - **Stress:** *nerede*, *-ki* after a genitive, *-(y)Iver*, *-leyin*, and place names in
-    *-istan*.
+- **Profile `tts-v2`** (`tts-v2.0`, for the next model): the consensus of the Turkish phonology
+  literature. Every rule cites its sources; teacher measurements are context only.
+  - **Vowels:** tense inside the word (no closed-syllable laxing); a word-final open /e/ is [ɛ];
+    /i u/ are lowered phrase-finally. /e/ is [æ] before a tautosyllabic coda sonorant, and in
+    *-mAz* and *pekmez*; *hem*, *elbise* and *Belçika* keep [e].
+  - **Consonants:** /ɾ/ is a tap, devoiced [r̝̊] only before a pause; k and g are palatal when
+    tautosyllabic with a front vowel. Circumflex vowels are long only in open syllables.
+    Sources: Dadan, Erken & Canalis 2024; Gopal & Nichols 2022; Sanıyar & Tunçer 2022; Göksel
+    & Kerslake 2005; Clements & Sezer 1982; van der Hulst & van de Weijer 1991.
+  - **Stress** (Göksel & Kerslake 2025; Tekin 1991):
+    - question words and *-rA* forms are initial (*nerede*);
+    - pre-stressing: Arabic adverbs in *-en*, *-CA*, *-leyin*, *-iye* in names;
+    - stressed: *-(y)Iver*;
+    - place names follow Sezer's rule; *-istan* is final;
+    - first-element stress in compounds (*bugün*, *başbakan*) and in intensives (*kapkara*).
   - **Verbaliser and symbols:** every verbaliser rule, and IPA symbols as `ph`.
-  - **Evidence:** on the 66 *nerede* tokens, the teacher's F0 peak is on `tts-v2`'s syllable 76%
-    of the time and on `tts-v1`'s 3%.
   - Report: `docs/phonemizer-tts-v2.md`.
 - **Speed:** a median sentence of 50–70 characters takes about 85 µs in either profile (p99 180
   µs), some 33,000× faster than real time (`examples/phonemizer_bench.rs`).

@@ -261,9 +261,11 @@ fn is_vowel_letter(c: char) -> bool {
     )
 }
 
-/// `tts-v2`'s additions to [`STRESS_LEXICON`]. Sources: D = Dursunoğlu 2006: 272 (nerede,
-/// nereye initial), GK = Göksel & Kerslake (unstressable -rA: néreye, órada), KV = Kabak &
-/// Vogel 2001: 328 (-ki pre-accenting: benimki), Ö = Özçelik 2014: 251 (-leyin pre-accenting).
+/// `tts-v2`'s additions to [`STRESS_LEXICON`], the literature consensus of
+/// `docs/phonemizer-tts-v2.md` (its source ids L1–L23): D = Dursunoğlu 2006 (*nerede*); GK =
+/// Göksel & Kerslake 2025 (L2: unstressable *-rA*, pre-stressing *-en* and *-CA*, compounds); T =
+/// Tekin 1991 (L17, quoting Banguoğlu and Gencan); KV = Kabak & Vogel 2001: 328 (*benimki*, a
+/// single source); Ö = Özçelik 2014: 251 (L18, *-leyin*).
 pub(crate) const STRESS_LEXICON_V2: &[(&str, u8, &str)] = &[
     ("nerede", 0, "pronoun:D,GK"),
     ("nereden", 0, "pronoun:D,GK"),
@@ -273,11 +275,29 @@ pub(crate) const STRESS_LEXICON_V2: &[(&str, u8, &str)] = &[
     ("sabahleyin", 1, "adverb:Ö(-leyin)"),
     ("akşamleyin", 1, "adverb:Ö(-leyin)"),
     ("geceleyin", 1, "adverb:Ö(-leyin)"),
+    // adverbs in Arabic -en/-an are pre-stressing (kísmen, tamámen; L2, L17); only words whose
+    // long vowel, if any, falls on the same syllable (not hakikaten)
+    ("kısmen", 0, "adverb:GK,T(-en)"),
+    ("şahsen", 0, "adverb:GK,T(-en)"),
+    ("aslen", 0, "adverb:GK,T(-en)"),
+    ("resmen", 0, "adverb:GK,T(-en)"),
+    ("nispeten", 1, "adverb:GK,T(-en)"),
+    ("fiilen", 0, "adverb:GK,T(-en)"),
+    ("aynen", 0, "adverb:GK,T(-en)"),
+    ("esasen", 1, "adverb:GK,T(-en)"),
+    ("mecburen", 1, "adverb:GK,T(-en)"),
+    ("takriben", 1, "adverb:GK,T(-en)"),
+    ("tahminen", 1, "adverb:GK,T(-en)"),
+    // equative and adverbial -CA is pre-stressing; the morphology has these as one word
+    ("çocukça", 1, "adverb:GK,T(-CA)"),
+    ("ayrıca", 1, "adverb:GK,T(-CA)"),
+    // closed compounds take the first element's stress (L2; Kabak & Vogel 2001)
+    ("bugün", 0, "compound:GK"),
+    ("başbakan", 0, "compound:GK,KV"),
+    ("başkent", 0, "compound:KV"),
+    // a place name the morphology has as a common noun (Hárbiye; L17)
+    ("harbiye", 0, "place:T(-iye)"),
 ];
-
-/// Place-name endings with final stress against Sezer's rule (Hindistán; Inkelas & Orgun 2003:
-/// 142–152, Dursunoğlu 2006: 272): `tts-v2`.
-const PLACE_FINAL: &[&str] = &["istan", "stan", "hane", "lar", "ler", "mez", "maz"];
 
 fn lexicon_stress(key: &str, v2: bool) -> Option<(u8, &'static str)> {
     let v2_entry = if v2 {
@@ -288,6 +308,193 @@ fn lexicon_stress(key: &str, v2: bool) -> Option<(u8, &'static str)> {
     v2_entry
         .or_else(|| STRESS_LEXICON.iter().find(|(w, _, _)| *w == key))
         .map(|(_, s, src)| (*s, *src))
+}
+
+/// Intensive reduplication: the first (C)V of the base, then p, m, r or s (or `pa`), then the
+/// base (kap-kara, bem-beyaz, ter-temiz, ap-açık, yapa-yalnız; L2, L17). Returns the prefix's
+/// length and the index of its vowel. The base must be a word Akana knows (not *mermer*).
+pub(crate) fn intensive(letters: &[char]) -> Option<(usize, usize)> {
+    let fv = letters.iter().position(|&c| is_vowel_letter(c))?;
+    if fv > 1 {
+        return None;
+    }
+    let x = &letters[..=fv];
+    let k = fv + 1;
+    let c = *letters.get(k)?;
+    if !matches!(c, 'p' | 'm' | 'r' | 's') {
+        return None;
+    }
+    let known = |base: &[char]| -> bool {
+        base.len() >= 3 && base.starts_with(x) && is_known_word(&base.iter().collect::<String>())
+    };
+    if known(&letters[k + 1..]) {
+        return Some((k + 1, fv));
+    }
+    if c == 'p' && letters.get(k + 1) == Some(&'a') && known(&letters[(k + 2).min(letters.len())..])
+    {
+        return Some((k + 2, fv));
+    }
+    None
+}
+
+/// `tts-v2`'s stress for intensives and names (a vowel letter's index and the source):
+/// - an intensive's prefix (kápkara; L2, L17);
+/// - a place name (in the gazetteer, or a province written with a capital) by Sezer's rule
+///   (Denízli, Ánkara; L20), but final in *-istan* (Hindistán; L2, L17);
+/// - a name in *-iye* on the syllable before it (Hárbiye, Süleymániye, Türkiye; L17);
+/// - a name in *-CIlAr* by Sezer's rule (Doğáncılar; L17, L20).
+///
+/// A name is a proper noun, or a word with a capital not at the start of a sentence or with an
+/// apostrophe; only its letters before the apostrophe count.
+fn v2_word_stress(
+    key: &str,
+    letters: &[char],
+    parse: Option<&MorphParse>,
+    capital: bool,
+    initial: bool,
+) -> Option<(usize, StressSource)> {
+    if let Some((_, fv)) = intensive(letters) {
+        return Some((
+            fv,
+            StressSource::Morphology {
+                rule: "intensive prefix",
+            },
+        ));
+    }
+    let n = key
+        .split('\'')
+        .next()
+        .map_or(0, |w| w.chars().filter(|&c| c != '\u{0302}').count())
+        .min(letters.len());
+    let name = &letters[..n];
+    let vowels: Vec<usize> = (0..n).filter(|&i| is_vowel_letter(name[i])).collect();
+    if vowels.len() < 2 {
+        return None;
+    }
+    let name_str: String = name.iter().collect();
+    let proper = parse.is_some_and(|p| p.secondary_pos == SecondaryPos::ProperNoun);
+    let named = proper || (capital && (!initial || key.contains('\'')));
+    // a province with a capital, unless it starts a sentence and the lexicon also has it as a
+    // common word (Ordu "army"; Denizli has no common entry)
+    let common = NLP
+        .morphology
+        .lexicon()
+        .get_items(&name_str)
+        .is_some_and(|items| {
+            items.iter().any(|it| {
+                !matches!(
+                    it.secondary_pos,
+                    SecondaryPos::ProperNoun | SecondaryPos::Abbreviation
+                )
+            })
+        });
+    let province =
+        capital && crate::pii::gazetteer::PROVINCES.contains(&name_str) && (named || !common);
+    let place = province || (named && crate::pii::is_place_name(&name_str));
+    if !named && !place {
+        return None;
+    }
+    if place && name_str.ends_with("stan") {
+        return Some((
+            *vowels.last()?,
+            StressSource::Morphology {
+                rule: "final(place name in -istan)",
+            },
+        ));
+    }
+    if name_str.ends_with("iye") && n >= 5 {
+        if let Some(&v) = vowels.iter().rev().find(|&&v| v < n - 3) {
+            return Some((
+                v,
+                StressSource::Morphology {
+                    rule: "pre-accenting(-iye, place name)",
+                },
+            ));
+        }
+    }
+    let cilar = n >= 6
+        && matches!(name[n - 5], 'c' | 'ç')
+        && matches!(name[n - 4], 'ı' | 'i' | 'u' | 'ü')
+        && name[n - 3] == 'l'
+        && matches!(name[n - 2], 'a' | 'e')
+        && name[n - 1] == 'r';
+    if place || (named && cilar) {
+        return Some((vowels[sezer(name)], StressSource::Sezer));
+    }
+    None
+}
+
+/// Roots whose /e/ is not lowered before a coda sonorant in the modern standard (*hem*,
+/// *elbise*, *Belçika*; L6, L1). *kendi* and *bel* vary and are left to the rule.
+const NON_LOWERING: &[&str] = &["hem", "elbise", "belçika"];
+
+/// `tts-v2`'s segment rules that need the word's analysis:
+/// - the /e/ of the negative aorist *-mAz* and of *pekmez* is [æ] before the coda z (all nine
+///   speakers of L6; L7); *merkez* varies and is left;
+/// - [`NON_LOWERING`] roots keep [e];
+/// - an intensive's prefix copies the base's first vowel (bem-beyaz [bem], pes-pembe [pæs]; L8,
+///   L6).
+fn v2_word_segments(segs: &mut [Seg], letters: &[char], parse: Option<&MorphParse>) {
+    let e_at = |segs: &mut [Seg], at: usize, ph: Phoneme| {
+        for s in segs.iter_mut() {
+            if s.at as usize == at && !s.long && matches!(s.ph, Phoneme::E | Phoneme::Ae) {
+                s.ph = ph;
+            }
+        }
+    };
+    // the z closes its syllable: no vowel follows it
+    let coda = |i: usize| !letters.get(i + 1).is_some_and(|&c| is_vowel_letter(c));
+    if let Some(p) = parse {
+        let ms = morphemes(&p.analysis);
+        let mut offsets = Vec::with_capacity(ms.len());
+        let mut acc = 0usize;
+        for m in &ms {
+            offsets.push(acc);
+            acc += m.surface.chars().count();
+        }
+        if acc == letters.len() {
+            for k in 1..ms.len().saturating_sub(1) {
+                if ms[k].id == "Neg" && ms[k + 1].id == "Aor" && ms[k + 1].surface.starts_with('z')
+                {
+                    let e = offsets[k] + 1;
+                    if letters.get(e) == Some(&'e') && coda(offsets[k + 1]) {
+                        e_at(segs, e, Phoneme::Ae);
+                    }
+                }
+            }
+        }
+    }
+    let root: String = match parse {
+        Some(p)
+            if letters
+                .iter()
+                .collect::<String>()
+                .starts_with(p.root.as_str()) =>
+        {
+            p.root.clone()
+        }
+        _ => letters.iter().collect(),
+    };
+    let root_len = root.chars().count();
+    if root == "pekmez" && coda(5) {
+        e_at(segs, 4, Phoneme::Ae);
+    }
+    if NON_LOWERING.contains(&root.as_str()) {
+        for s in segs.iter_mut() {
+            if (s.at as usize) < root_len && s.ph == Phoneme::Ae {
+                s.ph = Phoneme::E;
+            }
+        }
+    }
+    if let Some((plen, fv)) = intensive(letters) {
+        let base = segs
+            .iter()
+            .find(|s| s.at as usize == plen + fv && s.ph.is_vowel())
+            .map(|s| s.ph);
+        if let Some(b @ (Phoneme::E | Phoneme::Ae)) = base {
+            e_at(segs, fv, b);
+        }
+    }
 }
 
 /// One morpheme of an analysis: its surface, its id, and whether it follows a copular
@@ -364,6 +571,8 @@ fn word_stress(
     letters: &[char],
     parse: Option<&MorphParse>,
     v2: bool,
+    capital: bool,
+    initial: bool,
 ) -> (Option<usize>, Class, StressSource) {
     let vowels: Vec<usize> = (0..letters.len())
         .filter(|&i| is_vowel_letter(letters[i]))
@@ -397,6 +606,11 @@ fn word_stress(
     if let Some((k, src)) = lexicon_stress(key, v2) {
         if let Some(v) = nth(k) {
             return (Some(v), class, StressSource::Lexical { source: src });
+        }
+    }
+    if v2 {
+        if let Some((v, src)) = v2_word_stress(key, letters, parse, capital, initial) {
+            return (Some(v), class, src);
         }
     }
     let Some(p) = parse else {
@@ -466,21 +680,6 @@ fn word_stress(
     {
         if let Some(&v) = root_vowels.get(k as usize) {
             lexical = Some((v, StressSource::Lexical { source: src }));
-        }
-    }
-    if v2
-        && lexical.is_none()
-        && p.secondary_pos == SecondaryPos::ProperNoun
-        && PLACE_FINAL.iter().any(|e| root_key.ends_with(e))
-        && crate::pii::is_place_name(lemma_key)
-    {
-        if let Some(&v) = root_vowels.last() {
-            lexical = Some((
-                v,
-                StressSource::Morphology {
-                    rule: "final(place name in -istan, -hane, -lAr, -mAz)",
-                },
-            ));
         }
     }
     if lexical.is_none()
@@ -816,6 +1015,7 @@ fn phonemize_spoken(
         let attribute = lexical_segments(&mut segs, parse);
         if v2 {
             tts_v2_segments(&mut segs, &letters);
+            v2_word_segments(&mut segs, &letters, parse);
         }
         let segment_source = if attribute {
             SegmentSource::LexiconAttribute
@@ -824,7 +1024,14 @@ fn phonemize_spoken(
         } else {
             SegmentSource::TtsRules
         };
-        let (stressed_letter, class, stress_source) = word_stress(&w.key, &letters, parse, v2);
+        // a capital, and the start of a sentence (for tts-v2's name rules)
+        let capital = text[w.span.clone()]
+            .chars()
+            .next()
+            .is_some_and(char::is_uppercase);
+        let initial = i == 0 || text[w.gap.clone()].contains(['.', '!', '?', '…']);
+        let (stressed_letter, class, stress_source) =
+            word_stress(&w.key, &letters, parse, v2, capital, initial);
         // the stressed letter's vowel segment (a merged long vowel starts at its first letter)
         let vowel_segs: Vec<u32> = segs
             .iter()
@@ -916,17 +1123,19 @@ fn phonemize_spoken(
                 .and_then(|n| n.segs.first())
                 .is_some_and(|s| s.ph.is_vowel());
         let levels = syllable_levels(info);
-        // tts-v2: /i u e/ lowered in the open final syllable of a phrase (Zimmer & Orgun 1999:
-        // 155); /y/ stays [y], the aligner having no [ʏ]
+        // tts-v2, at the word's end: an open /e/ is [ɛ] in every word (Göksel & Kerslake, L1);
+        // /i u/ are lowered only phrase-finally (Zimmer & Orgun 1999, L3; /y/ stays [y], the
+        // aligner having no [ʏ]); /ɾ/ is devoiced and fricated before a pause (L13)
         let phrase_final = v2 && tw.get(wi + 1).is_none_or(|n| !n.pauses.is_empty());
         let mut phones = Vec::with_capacity(info.segs.len());
         for (pi, s) in info.segs.iter().enumerate() {
             let mut ph = s.ph;
-            if phrase_final && pi + 1 == info.segs.len() && !s.long {
+            if v2 && pi + 1 == info.segs.len() && !s.long {
                 ph = match ph {
-                    Phoneme::I => Phoneme::ILax,
-                    Phoneme::U => Phoneme::ULax,
                     Phoneme::E => Phoneme::ELax,
+                    Phoneme::I if phrase_final => Phoneme::ILax,
+                    Phoneme::U if phrase_final => Phoneme::ULax,
+                    Phoneme::Tap if phrase_final && s.letter == 'r' => Phoneme::RFricVoiceless,
                     p => p,
                 };
             }
@@ -1223,6 +1432,107 @@ mod tests {
         assert_eq!(syms("Eve gelince yedi ve uyudu."), ["_", "_!", "_!", "_"]);
         // a quote
         assert_eq!(syms("O \"evet\" dedi."), ["_", "_!", "_!", "_"]);
+    }
+
+    /// `tts-v2` as EchoCraft's probe prints it: IPA, words separated by spaces, `ˈ` before the
+    /// utterance's most prominent vowel; pauses left out.
+    fn v2(text: &str) -> String {
+        let u = Phonemizer::new(Profile::TtsV2).phonemize(text);
+        let toks: Vec<_> = u.tokens.iter().filter(|t| !t.ph.is_pause()).collect();
+        let top = toks
+            .iter()
+            .filter(|t| t.ph.is_vowel())
+            .map(|t| t.stress)
+            .max()
+            .unwrap_or(0);
+        let mut out = String::new();
+        let mut marked = false;
+        for t in toks {
+            if t.word && !out.is_empty() {
+                out.push(' ');
+            }
+            if t.ph.is_vowel() && t.stress == top && !marked {
+                out.push('ˈ');
+                marked = true;
+            }
+            out.push_str(t.ipa().unwrap_or("?"));
+        }
+        out
+    }
+
+    /// The literature-consensus update of 2026-11-08 (EchoCraft's brief, items S1–S5, T1–T5),
+    /// one assertion per expected output.
+    #[test]
+    fn tts_v2_follows_the_literature_consensus() {
+        // S1: /ɾ/ a tap, devoiced only before a pause
+        assert_eq!(v2("gelir."), "ɟelˈir̝̊");
+        assert_eq!(v2("kar."), "kˈar̝̊");
+        assert_eq!(v2("bir de"), "bˈiɾ dɛ");
+        assert!(v2("bir gün geldi").starts_with("biɾ ɟˈyn"));
+        assert!(v2("kar yağdı").starts_with("kˈaɾ "));
+        assert_eq!(v2("var mı?"), "vˈaɾ mɯ");
+        assert_eq!(v2("bir elma"), "biɾ ælmˈa");
+        assert_eq!(v2("her şey"), "hæɾ ʃˈej");
+        assert!(v2("kar topu").starts_with("kˈaɾ "));
+        assert_eq!(v2("ruh"), "ɾˈuh");
+        assert_eq!(v2("sonra"), "sˈonɾa");
+        assert_eq!(v2("evlerde"), "evlæɾdˈɛ");
+        // S2: -mAz and pekmez lowered before the coda z; not before a vowel
+        assert_eq!(v2("gelmez"), "ɟælmˈæz");
+        assert_eq!(v2("gelmezler"), "ɟælmæzlˈær̝̊");
+        assert_eq!(v2("gelmez misin?"), "ɟælmˈæz misin");
+        assert_eq!(v2("pekmez"), "pecmˈæz");
+        assert_eq!(v2("gelmeziz"), "ɟælmezˈiz");
+        // S3: hem, elbise, Belçika not lowered; kendi left to the rule
+        assert_eq!(v2("hem"), "hˈem");
+        assert_eq!(v2("elbise"), "elbisˈɛ");
+        assert_eq!(v2("Belçika"), "bˈeltʃika");
+        assert_eq!(v2("kendi"), "cændˈɪ");
+        // S4: a word-final open /e/ is [ɛ] in every word; /i/ only phrase-finally
+        assert_eq!(v2("dede geldi"), "dedˈɛ ɟældɪ");
+        assert!(v2("bende kalsın").starts_with("bændˈɛ "));
+        // S5: k palatal when tautosyllabic with a front vowel, velar before a back vowel
+        assert_eq!(v2("ekonomi"), "ekonomˈɪ");
+        assert_eq!(v2("dekan"), "dekˈan");
+        assert_eq!(v2("teklif"), "teclˈif");
+        assert_eq!(v2("ekmek"), "ecmˈec");
+        assert_eq!(v2("gök"), "ɟˈœc");
+        // T1: Arabic -en adverbs pre-stressing
+        assert_eq!(v2("kısmen"), "kˈɯsmæn");
+        assert_eq!(v2("şahsen"), "ʃˈahsæn");
+        assert_eq!(v2("aslen"), "ˈaslæn");
+        assert_eq!(v2("resmen"), "ɾˈesmæn");
+        assert_eq!(v2("nispeten"), "nispˈetæn");
+        assert_eq!(v2("fiilen"), "fˈiːlæn");
+        assert_eq!(v2("tamamen"), "tamˈamæn");
+        // T2: -CA pre-stressing
+        assert_eq!(v2("çocukça"), "tʃodʒˈuktʃa");
+        assert_eq!(v2("ayrıca"), "ajɾˈɯdʒa");
+        assert_eq!(v2("kadınca"), "kadˈɯndʒa");
+        // T3: place names by Sezer's rule, -iye pre-stressing, -istan final, -lAr not final
+        assert_eq!(v2("Denizli"), "denˈizlɪ");
+        assert!(v2("Biz Doğancılar'a gittik.").contains("doˈandʒɯɫaɾa"));
+        assert_eq!(v2("Harbiye"), "hˈaɾbijɛ");
+        assert_eq!(v2("Süleymaniye"), "sylejmˈanijɛ");
+        assert_eq!(v2("Hindistan"), "hindistˈan");
+        // a common word at the start of a sentence is not a name
+        assert!(v2("Satıcılar indirim yaptı.").starts_with("satɯdʒɯɫaɾ"));
+        // T4: compounds stressed on the first element; listed exceptions final
+        assert_eq!(v2("bugün"), "bˈuɟyn");
+        assert_eq!(v2("başbakan"), "bˈaʃbakan");
+        assert_eq!(v2("bilgisayar"), "bilɟisajˈar̝̊");
+        // T5: intensives stress the prefix, whose vowel copies the base's (L8)
+        assert_eq!(v2("kapkara"), "kˈapkaɾa");
+        assert_eq!(v2("bembeyaz"), "bˈembejaz");
+        assert_eq!(v2("sapsarı"), "sˈapsaɾɯ");
+        assert_eq!(v2("tertemiz"), "tˈeɾtemiz");
+        assert_eq!(v2("masmavi"), "mˈasmavɪ");
+        assert_eq!(v2("yapayalnız"), "jˈapajaɫnɯz");
+        assert_eq!(v2("pespembe"), "pˈæspæmbɛ");
+        assert_eq!(v2("mermer"), "mæɾmˈær̝̊");
+        // T6: unchanged single-source items
+        assert_eq!(v2("yeniden"), "jenˈidæn");
+        assert_eq!(v2("benimki"), "benˈimcɪ");
     }
 
     #[test]

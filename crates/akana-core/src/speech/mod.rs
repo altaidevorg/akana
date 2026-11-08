@@ -46,11 +46,14 @@ pub enum Profile {
     /// (`a`, `E`, `dZ`, `L/`, `*`). See `speech::tts`.
     #[default]
     TtsV1,
-    /// `tts-v1` with the literature's segments (vowel lowering only phrase-finally, no lax
-    /// `o`, the allophones of /ɾ/, palatal k and g next to front vowels, circumflex vowels long
-    /// only in open syllables), the stress rules `tts-v1` lacked (`nerede`, `-ki` after a
-    /// genitive, `-(y)Iver`, `-leyin`, place names in `-istan`), every verbaliser rule, and the
-    /// phoneme's IPA as `ph`.
+    /// The consensus of the Turkish phonology literature (`docs/phonemizer-tts-v2.md`):
+    /// - segments: tense vowels inside the word; a word-final open /e/ as [ɛ]; [æ] before a
+    ///   tautosyllabic coda sonorant and in *-mAz*; /ɾ/ a tap, devoiced only before a pause;
+    ///   palatal k and g when tautosyllabic with a front vowel; circumflex vowels long only in
+    ///   open syllables;
+    /// - stress: pre-stressing *-en* adverbs, *-CA*, *-iye*; place names by Sezer's rule;
+    ///   compounds and intensives on their first element;
+    /// - every verbaliser rule, and the phoneme's IPA as `ph`.
     TtsV2,
 }
 

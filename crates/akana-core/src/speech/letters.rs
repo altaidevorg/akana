@@ -381,18 +381,18 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
 }
 
 /// `tts-v2`'s segments, from `tts-v1`'s (`letters`: the word's letters, as [`Seg::at`] counts
-/// them):
-/// - vowels are tense inside the word: Zimmer & Orgun (1999: 155) lower /i y u e/ only in the
-///   open final syllable of a phrase (the caller does that), and /o/ never (no `ɔ`);
-/// - /e/ is [æ] before a coda m, n, l or r (Göksel & Kerslake 2005: 10; lowering "before coda
-///   /m n l r/");
-/// - /ɾ/ is a tap between vowels, a fricated [r̝] word-initially, after a consonant and before a
-///   voiced one, and a devoiced fricated [r̝̊] word-finally and before a voiceless consonant
-///   (Zimmer & Orgun 1999: 155; Yavuz & Balcı 2011: 25); no trill;
-/// - /k g/ are palatal [c ɟ] next to a front vowel (Zimmer & Orgun 1999: 154–155; Göksel &
-///   Kerslake 2005: 7–9) and before a circumflex vowel (Lewis 2001: 3–4);
-/// - a circumflex vowel is long only in an open syllable (the teacher's durations: 10–12 frames
-///   in open syllables, 6–8 in closed ones, against 6–7 for a short vowel).
+/// them). Source ids refer to `docs/phonemizer-tts-v2.md`:
+/// - vowels are tense inside the word: no closed-syllable laxing, which is receding (Gopal &
+///   Nichols 2022, L7), and no lax o; the caller lowers a word-final open /e/ and phrase-final
+///   /i u/ (Göksel & Kerslake, L1; Zimmer & Orgun 1999, L3);
+/// - /e/ is [æ] before a tautosyllabic coda m, n, l or r, syllabified within the word (Dadan,
+///   Erken & Canalis 2024, L6; Gopal & Nichols, L7; İleri 2025, L8);
+/// - /ɾ/ is a tap; the caller devoices it before a pause (Sanıyar & Tunçer 2022, L13);
+/// - /k g/ are palatal [c ɟ] when tautosyllabic with a front vowel: before a front vowel in the
+///   onset, after one in the coda (Clements & Sezer 1982, via van der Hulst & van de Weijer
+///   1991, L15), and before a circumflex vowel (lexical palatals of loans: *kâr*, *rüzgâr*);
+/// - a circumflex vowel is long only in an open syllable: underlying long vowels of loans
+///   shorten in closed syllables (van der Hulst & van de Weijer 1991, after Underhill, L15).
 pub(crate) fn tts_v2_segments(segs: &mut [Seg], letters: &[char]) {
     let n = segs.len();
     for s in segs.iter_mut() {
@@ -452,16 +452,7 @@ pub(crate) fn tts_v2_segments(segs: &mut [Seg], letters: &[char]) {
             continue;
         }
         match s.letter {
-            'r' => {
-                let prev_v = k > 0 && segs[k - 1].ph.is_vowel();
-                let next = segs.get(k + 1);
-                segs[k].ph = match next {
-                    Some(nx) if nx.ph.is_vowel() && prev_v => Tap,
-                    None => RFricVoiceless,
-                    Some(nx) if voiceless(nx.ph) => RFricVoiceless,
-                    _ => RFric,
-                };
-            }
+            'r' => segs[k].ph = Tap,
             'k' | 'g' => {
                 // the next vowel when one follows directly, else the vowel before, else after
                 let near = segs
@@ -480,14 +471,6 @@ pub(crate) fn tts_v2_segments(segs: &mut [Seg], letters: &[char]) {
             _ => {}
         }
     }
-}
-
-/// A voiceless consonant.
-fn voiceless(p: Phoneme) -> bool {
-    matches!(
-        p,
-        P | T | K | KPalatal | Tsh | F | S | Sh | H | RFricVoiceless
-    )
 }
 
 /// Letter names for spelling a word without vowels (observed: `hmm` h E m E m E, `sms`, `vb`).
@@ -589,19 +572,18 @@ mod tests {
         assert_eq!(g2p("kadehten", true), "k a d e h t & n");
         assert_eq!(g2p("gül", true), "J y l/");
         assert_eq!(g2p("söyle", true), "s W j l e");
-        // /ɾ/: tap between vowels, fricated initially and before a voiced consonant, devoiced
-        // finally and before a voiceless one
+        // /ɾ/ is a tap in the word (the phonemiser devoices it before a pause)
         assert_eq!(g2p("burası", true), "b u * a s @");
-        assert_eq!(g2p("kardeş", true), "k a r^ d e S");
-        assert_eq!(g2p("bir", true), "b i r^0");
-        assert_eq!(g2p("erken", true), "& r^0 c & n");
+        assert_eq!(g2p("kardeş", true), "k a * d e S");
+        assert_eq!(g2p("bir", true), "b i *");
+        assert_eq!(g2p("erken", true), "& * c & n");
         // k and g palatal next to a front vowel
         assert_eq!(g2p("ekmek", true), "e c m e c");
         assert_eq!(g2p("kitap", true), "c i t a p");
-        assert_eq!(g2p("türk", true), "t y r^0 c");
+        assert_eq!(g2p("türk", true), "t y * c");
         // a circumflex vowel is long only in an open syllable
         assert_eq!(g2p("hâlâ", true), "h a: l a:");
-        assert_eq!(g2p("rüzgâr", true), "r^ y z J a r^0");
+        assert_eq!(g2p("rüzgâr", true), "* y z J a *");
         assert_eq!(g2p("imkânsız", true), "i m c a n s @ z");
     }
 

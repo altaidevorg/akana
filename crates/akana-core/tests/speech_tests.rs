@@ -152,7 +152,7 @@ fn profiles_are_deterministic_and_distinct() {
             .join(" ")
     };
     assert!(ph(&v1).starts_with("_ s E R k a n"));
-    assert!(ph(&v2).starts_with("_ s æ r̝̊ k a n"));
+    assert!(ph(&v2).starts_with("_ s æ ɾ k a n"));
     assert_eq!(Profile::default(), Profile::TtsV1);
 }
 

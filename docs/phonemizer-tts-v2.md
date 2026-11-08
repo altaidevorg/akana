@@ -1,92 +1,135 @@
-# Turkish phonemiser and verbaliser, stage 3: `tts-v2` (2026-11-08)
+# Turkish phonemiser and verbaliser: `tts-v2`, the literature consensus (2026-11-08)
 
-`tts-v2` is Akana's TTS front end for the next model. It is [`tts-v1`](phonemizer-tts-v1.md), which
-stays frozen for EchoCraft's shipped voice, with three groups of changes:
+`tts-v2` is Akana's TTS front end for the next model: the consensus of the Turkish phonology
+literature. [`tts-v1`](phonemizer-tts-v1.md) stays frozen for EchoCraft's shipped voice and is
+largely eSpeak-compatible.
 
-- the segments of the Turkish phonology literature instead of eSpeak NG's allophones;
-- the stress rules `tts-v1` lacked;
+`tts-v2` adds three things:
+
+- the segments the literature describes instead of eSpeak NG's allophones;
+- its stress rules;
 - every rule of the verbaliser.
 
-Its `ph` symbols are the phonemes' IPA. Brief: EchoCraft
-`experiments/2026-11-07-akana-phonemiser-brief.md`, stage 3, the owner's decisions of 2026-11-07
-and 2026-11-08, and EchoCraft's review of `tts-v1`.
+Its `ph` symbols are the phonemes' IPA.
+
+**Briefs:** EchoCraft `experiments/2026-11-07-akana-phonemiser-brief.md` (stage 3), and
+`experiments/2026-11-08-tts-v2-consensus-update-brief.md` (the consensus update).
+
+**Owner's decisions (2026-11-08):**
+
+- `tts-v2` is updated in place, because it never shipped.
+- Rules follow the literature consensus. Modern pronunciation is adopted where the consensus
+  clearly backs it.
+- The teacher TTS's measurements are context, never the reason for a rule.
+
+**Sources:** the ids L1–L23 refer to the source table at the end, taken from EchoCraft's
+`experiments/2026-11-08-turkish-phonology-consensus.md`.
 
 ## Summary
 
-- **Interface:** `akana.phonemize(text, profile="tts-v2")` gives the same token schema as
-  `tts-v1` (`ph`, `stress`, `word`, `lengthen`, `mark`, `type`, `ipa`). The default profile is
-  still `tts-v1`; Rust uses `Profile::TtsV2`. The version string is `tts-v2.0`.
+- **Interface:**
+  - Python: `akana.phonemize(text, profile="tts-v2")`; Rust: `Profile::TtsV2`; version string
+    `tts-v2.0`.
+  - The token schema is `tts-v1`'s: `ph`, `stress`, `word`, `lengthen`, `mark`, `type`, `ipa`.
+  - The default profile is still `tts-v1`.
 - **Contract:**
-  - `ph` is the IPA without a length mark; pauses are `_`, `_:` and `_!`, and every pause `ph`
-    and no other starts with `_`.
-  - `ipa` is exactly one entry of the aligner vocabulary: all 436,958 tokens of the 15,379
-    fixture texts are, with none outside.
+  - `ph` is the IPA without a length mark.
+  - Pauses are `_`, `_:` and `_!`. Every pause `ph`, and no other, starts with `_`.
+  - Every `ipa` is exactly one entry of the aligner vocabulary: true for all 436,958 tokens of
+    the 15,379 fixture texts.
   - `stress` keeps `tts-v1`'s prominence levels (7 the nucleus down to 0 a clitic), and so do
     the pauses and marks.
-- **Differences from `tts-v1` on the fixture texts:** 17.9% of tokens change their `ipa` and
-  0.14% their stress; 3 of the 15,328 corpus clips read other words.
-- **Stress changes against the teacher's F0** (tuning split `st`; `sr` not read): on the 110
-  words where `tts-v2` moves the stress, the teacher's peak is on `tts-v2`'s syllable 54% of the
-  time and on `tts-v1`'s 11%. *nerede* (66 words) carries almost all of it: 76% against 3%.
-- **Latency:** median 86 µs per 50–70-character sentence, p99 177 µs. That is about 33,000×
-  faster than real time.
+- **Differences from `tts-v1` on the fixture texts:** 16.4% of tokens change their `ipa` and
+  0.64% their stress; 3 of the 15,328 corpus clips read other words (`vb.`, `online`,
+  `Shakespeare'i`).
+- **Latency:** median about 85 µs per 50–70-character sentence, about 33,000× faster than real
+  time.
 
 ## Segments
 
-`tts-v1`'s letter rules, then these changes (`speech::letters::tts_v2_segments`).
+`tts-v2` starts from `tts-v1`'s letter rules. `speech::letters::tts_v2_segments` changes them, and
+`speech::tts` applies the rules that need the word's analysis or its place in the phrase.
 
-| rule | source | `tts-v1` → `tts-v2` (tokens on the fixtures) |
+| rule | sources (strength) | `tts-v1` → `tts-v2` on the fixtures |
 |---|---|---|
-| vowels are tense inside the word; /i u e/ are lowered only in the open final syllable of a phrase (before a pause or the end) | Zimmer & Orgun 1999: 155 (phrase-final; Göksel & Kerslake 2005: 10–11 say word-final) | ɪ → i 19,867; ɛ → e 12,658; ʊ → u 8,227 |
-| no lax o | Zimmer & Orgun 1999: 155 (/o/ is not lowered) | ɔ → o 6,309 |
-| ü is [y]; its lowered [ʏ] is not in the aligner's vocabulary | Zimmer & Orgun 1999: 155 | ø → y 4,138 |
-| /e/ is [æ] before a coda m, n, l or r | Göksel & Kerslake 2005: 10 (*kendi*, *hem*); lowering "before coda /m n l r/" in most speakers | ɛ → æ 3,028 |
-| /ɾ/ is a tap only between vowels; fricated [r̝] word-initially, after a consonant and before a voiced one; devoiced [r̝̊] word-finally and before a voiceless consonant; no trill | Zimmer & Orgun 1999: 155; Yavuz & Balcı 2011: 25 | r → r̝̊ 10,662; r → r̝ 6,786 |
-| /k g/ are palatal [c ɟ] next to a front vowel | Zimmer & Orgun 1999: 154–155; Göksel & Kerslake 2005: 7–9 | k → c 6,347; kː → cː 67; ɡ → ɟ 10 |
-| a circumflex vowel is long only in an open syllable | the teacher (below); Lewis 2001: 3–4 has the circumflex mark palatal k g l and, in some words, length | aː → a 49; uː → u 11 |
+| vowels are tense inside the word: no closed-syllable laxing, which is the older system and receding; no lax o | L7, L6 (medium) | ɪ → i 19,854; ʊ → u 8,226; ɔ → o 6,296; ɛ → e 5,903 |
+| a word-final open /e/ is [ɛ] in every word; high /i u/ are lowered only in the open final syllable of a phrase | L1 word-final (Göksel & Kerslake 2005, 2025), L6; L3 phrase-final (medium) | *dede geldi* [dedɛ ɟældɪ] |
+| ü is [y]; its lowered [ʏ] is not in the aligner's vocabulary | L3 | ø → y 4,135 |
+| /e/ is [æ] before a tautosyllabic coda m, n, l or r, syllabified within the word (*gel* [ɟæl], *gel-ir* [ɟeliɾ]); not before /j/ | L6 (9 speakers), L7, L8, L4 (strong) | ɛ → æ 3,154 |
+| the negative aorist *-mAz* and *pekmez* also take [æ] before their coda z: *gelmez* [ɟælmæz]; *merkez* varies and is left | L6 (all 9 speakers), L7 (strong) | |
+| *hem*, *elbise* and *Belçika* keep [e] in the modern standard; *kendi* and *bel* vary and follow the rule | L6, L1 (medium) | æ → e 57 |
+| /ɾ/ is a tap everywhere: word-initially, after and before consonants, and word-finally before the next word. It is devoiced and fricated [r̝̊] only before a pause | L13 (10 speakers: utterance-final devoicing 0.63–0.82, word-final before a voiced sound 0.01, before a voiceless consonant about 0.24 and optional), Nichols 2016 via L13, L3, L7 (strong) | r → ɾ 14,704; r → r̝̊ 2,739 |
+| no fricated [r̝]: no acoustic source supports it | L13; Yavuz & Balcı 2011 (via L23) is unsupported | |
+| /k g/ are palatal [c ɟ] when tautosyllabic with a front vowel: before one in the onset, after one in the coda (*ekmek* [ecmec], *teklif* [teclif], *gök* [ɟœc]); velar before a back vowel (*ekonomi*, *dekor*, *ekol*, *dekan*). Lexical palatals in loans: *kâr*, *rüzgâr* (and clear l in *hal*, *rol*, *kalp*) | Clements & Sezer 1982 via L15 (medium) | k → c 6,341; kː → cː 67; ɡ → ɟ 10 |
+| a circumflex vowel (an underlying long vowel of a loan) is long only in an open syllable: long vowels shorten in closed syllables | L15 (van der Hulst & van de Weijer 1991, after Underhill) (medium) | aː → a 49; uː → u 11 |
+| ğ lengthens the vowel before it; between equal vowels one long vowel; silent between back vowels; [j] between front vowels | L16, L1 (medium) | as `tts-v1` |
 
-The tap is `type` `liquid` in `tts-v2`; `tts-v1` keeps `vstop`. The fricated r is `vfricative`,
-the devoiced one `fricative`.
+**Types:** the tap is `type` `liquid` in `tts-v2` (`tts-v1` keeps `vstop`); the devoiced r̝̊ is
+`fricative`.
 
-**Teacher durations for the circumflex** (eSpeak tokens aligned to the teacher's audio, 80 fps, splits `st` and `sv`):
+**Documented, not marked:**
 
-| context | median frames | short vowel |
-|---|---|---|
-| open syllable, after k g l (`hâlâ`, `pekâlâ`, `şikâyet`) | 10–12 (n = 94) | 6 |
-| open syllable, elsewhere (`hâkim`, `âciz`, `mâni`) | 11 (n = 54) | 6 |
-| closed syllable (`imkân`, `rüzgâr`, `mahkûm`) | 6–8 (n = 48) | 6–7 |
+- High-vowel devoicing between voiceless consonants is real and gradient (L10: 13.8% of high
+  vowels in read words; L11; L12). It is phonetic and predictable from context, so no token or
+  field marks it.
+- /ø/ is lowered before a coda sonorant (*göl*; L4, L7). `tts-v2` writes every ö as `œ`, the
+  aligner's Turkish symbol, so the split cannot be shown.
+- Final /h/ as [x ç] and /v/ as [β] next to rounded vowels vary by speaker (L3, L1).
 
 **Not changed, and why:**
-- /e o ø/ are mid [e̞ o̞ ø̞] (Zimmer & Orgun 1999: 155), but `tts-v2` writes the broad `e`, `o`,
-  `œ` that the aligner learned for Turkish.
-- ı stays `ɯ`; Zimmer & Orgun describe it as [ɨ].
-- Final /h/ as [x ç] and /v/ as [β] next to rounded vowels vary by speaker (Zimmer & Orgun
-  1999: 155; Göksel & Kerslake 2005: 6), so they are left out.
+
+- /e o ø/ are phonetically mid [e̞ o̞ ø̞] (L3), but `tts-v2` writes the broad `e`, `o`, `œ` that
+  the aligner learned for Turkish.
+- ı stays `ɯ`, though L3 describes it as [ɨ].
 - The aligner has no voiceless [l̥], so final and preconsonantal /l/ stays voiced.
 
-These segments have no acoustic check yet. The F0 index measures pitch, not vowel quality or
-frication. EchoCraft's CTC alignment score on `tts-v2` tokens, set against `tts-v1`'s on the
-same clips, is the check to run before training on them.
+**Context, not evidence:** EchoCraft measured two synthetic voices (yazgi-tts-1 and Trendyol-TTS)
+on these rules. They agree with the literature on /ɾ/. They keep the older closed-syllable
+laxing, which the literature finds receding (L7), so `tts-v2` does not follow them there. Run
+EchoCraft's CTC alignment score on `tts-v2` tokens against `tts-v1` before training on them.
 
 ## Stress
 
-`tts-v2` keeps `tts-v1`'s rules and adds these.
+`tts-v2` keeps `tts-v1`'s rules: final by default, lexical exceptions, pre-accenting and stressed
+suffixes, clitics, and the prominence hierarchy. It adds the rules below; the stressed syllable is
+in capitals.
 
-| rule | source | teacher (`st`): peak on `tts-v2`'s syllable / `tts-v1`'s |
+| rule | examples | sources (strength) |
 |---|---|---|
-| *nerede*, *nereden*, *neresi* initial (`tts-v1` read *nerede* finally, missing its lexicon stem) | Dursunoğlu 2006: 272; Göksel & Kerslake (*-rA* unstressable: *néreye*, *órada*) | 76% / 3% (n = 66) |
-| *-(y)Iver* stressed on its first syllable (*yaPIver*) | Inkelas & Orgun 2003: 142; Özçelik 2014: 232 | 18% / 9% (n = 22); `sv` 1 / 0 (n = 1) |
-| place names in *-istan*, *-hane*, *-lAr*, *-mAz* final (*Hindistán*) | Inkelas & Orgun 2003: 142–152; Dursunoğlu 2006: 272 | 1 / 0 (n = 1) |
-| *-ki* after a genitive pre-accenting (*seNİNki*, *beNİMki*) | Kabak & Vogel 2001: 328 | 11% / 22% (n = 9) and 40% / 40% (n = 5): **the teacher leans final** |
-| *-leyin* pre-accenting (*saBAHleyin*) | Özçelik 2014: 251 | 17% / 67% (n = 6): **the teacher reads it finally** |
+| question words and *-rA* forms are initial | NErede, NEreden, NEresi (`tts-v1` read *nerede* finally) | Dursunoğlu 2006 via L23; L2 (strong) |
+| adverbs in Arabic *-en/-an* are pre-stressing | KISmen, ŞAHsen, ASlen, RESmen, nisPEten, FIIlen, taMAmen, AYnen, eSAsen, mecBUren, takRIben, tahMInen. Not *hakikaten*: no source gives its stress, and the rule and its long vowel point to different syllables | L2 (Göksel & Kerslake 2025: *tamámen*), Banguoğlu via L17 (medium) |
+| equative and adverbial *-CA* are pre-stressing (diminutive *-CA* is stressed) | çoCUKça, ayRIca, kaDINca, TÜRKçe | L2; Gencan via L17 (medium) |
+| *-(y)Iver* is stressed on its first syllable | yaPIver | L2, L17, L18 (strong) |
+| *-leyin* is pre-stressing | saBAHleyin, geCEleyin | L18, L17 (medium) |
+| place names follow Sezer's rule: the antepenult if it is heavy and the penult light, else the penult | ANkara, iSTANbul, eDIRne, deNIZli, ERzurum, BELçika | L20, L17, L2 (medium) |
+| *-iye* names are pre-stressing; *-istan* is final | HARbiye, süleyMAniye, TÜRkiye; hindisTAN | L17, L2 (medium) |
+| names in *-CIlAr* follow Sezer's rule; final *-lAr* is dropped | doĞANcılar, deMIRciler | L17 (Tekin), L20 (medium) |
+| closed compounds are stressed on the first element; listed final exceptions | BUgün, BAŞbakan, BAŞkent; final: bilgisaYAR, alışveRİŞ, kabakuLAK | L2; Kabak & Vogel 2001 via L23 (medium) |
+| intensive reduplication stresses the prefix, whose vowel copies the base's first vowel | KAPkara, BEMbeyaz [bem], SAPsarı, TERtemiz [teɾ], MASmavi, YApayalnız, Apaçık, PESpembe [pæs] | stress: L2, L17 (strong); vowel copy: L8, L6 (one or two sources) |
+| relativiser *-ki* stressable; clitic *ki* pre-stressing | evdeKİ; gördÜM ki | L2, L18 (medium) |
+| pronominal *-ki* after a genitive is pre-accenting | seNİNki, beNİMki | Kabak & Vogel 2001 only (single source, weak) |
+| *yeniden* is penultimate | yeNİden | Banguoğlu via L17 only (single source) |
 
-Where the literature and the teacher disagree (*-ki* after a genitive, *-leyin*), `tts-v2` follows
-the literature, as the owner decided, and records the disagreement here. Both rest on few words.
+**When a word counts as a name.** It is a name when:
 
-**-ki elsewhere** (`evdeki`, `yarınki`): stressable, final, as in `tts-v1`. Göksel & Kerslake
-(2nd ed. 2025, as summarised by halbuki.org) count the nominal *-ki* among stressable suffixes
-(*kitaplarımdakí*). Kabak & Vogel's (2001: 328) pre-accenting example is the pronominal *benimki*,
-which the row above covers. The teacher shows no shift on the locative *-ki*.
+- the morphology reads it as a proper noun; or
+- it is written with a capital, not at the start of a sentence; or
+- it carries an apostrophe.
+
+Only its letters before the apostrophe count. A province with a capital also counts at the start
+of a sentence (*Denizli*), unless the lexicon also has it as a common word.
+
+A capitalised common word at the start of a sentence is not a name. *Satıcılar indirim yaptı*
+keeps final stress, and so does a bare *Doğancılar* there. *Doğancılar'a* and a mid-sentence
+*Doğancılar* get Sezer's rule.
+
+**Departure from the brief:** it expected *tertemiz* as [tˈæɾtemiz]. Under the vowel-copy rule it
+cites (L8), and its own *bembeyaz* [bem] and *pespembe* [pæs], the prefix copies the base's [e]:
+[tˈeɾtemiz].
+
+**Context, not evidence:** the teacher's F0 peaks fall on `tts-v2`'s syllable of *nerede* in 76%
+of 66 words. They lean final on *-ki* after a genitive and on *-leyin*, where the literature
+decides.
 
 ## Verbaliser
 
@@ -149,27 +192,40 @@ Sources and checks:
 ## Open points
 
 - **Acoustic checks of the segments:** EchoCraft's alignment score on `tts-v2` against `tts-v1`.
-- **Stress of adverbs in *-en/-an*** (*kısmen*, *şahsen*): penultimate in descriptions of Turkish
-  stress, but without a citation found yet, so they stay final.
+- **Diminutive *-CA*** (*büyükçe*) should be stressed, but the morphology analyses it as the
+  pre-stressing *-CA*.
+- **Variable lowering:** the words the literature calls variable (*kendi*, *bel*, *merkez*)
+  follow the rule. A screen reader's neutral register could keep them at [e]; that is a style
+  choice.
 - **Foreign words:** a table and letter rules, not a full loanword reader.
 
-## References
+## Sources
 
-The page numbers are those the secondary sources give. The rules were read in the Wikipedia
-article *Turkish phonology* (consulted 2026-11-08, sections on vowels, consonants and stress) and
-in halbuki.org's summary of Göksel & Kerslake (2nd ed.), not in the originals. Check the originals
-before citing them further.
+How they were read is EchoCraft's: "full text", "summary", or "via" another source. Page
+numbers are those the sources give. Check the originals before citing their claims further.
 
-- Dursunoğlu, H. (2006): 272. Initial stress of *nerede*, *nereye*, *nasıl*, *yarın*; final
-  stress of place names in *-istan*.
-- Göksel, A. & Kerslake, C. (2005). *Turkish: A Comprehensive Grammar*. Routledge (2nd ed. 2025):
-  5–11 (segments), unstressable *-rA*, stressable nominal *-ki*.
-- Inkelas, S. & Orgun, C. O. (2003). Turkish stress: a review. *Phonology* 20: 142–152 (place
-  names, stressed suffixes).
-- Kabak, B. & Vogel, I. (2001). The phonological word and stress assignment in Turkish.
-  *Phonology* 18: 328 (pre-accenting *-ki*, *benimki*).
-- Lewis, G. (2001). *Turkish Grammar*, 2nd ed. Oxford University Press: 3–4 (the circumflex).
-- Özçelik, Ö. (2014). *Phonology* 31: 232 (stressed *-iver*), 251 (pre-accenting *-leyin*).
-- Yavuz, H. & Balcı, A. (2011): 25. Allophones of /ɾ/.
-- Zimmer, K. & Orgun, O. (1999). Turkish. In *Handbook of the International Phonetic
-  Association*. Cambridge University Press: 154–158.
+| id | source | read | used for |
+|---|---|---|---|
+| L1 | Göksel & Kerslake 2005, *Turkish: A Comprehensive Grammar*, Routledge | via L6, L7, L10 | /e/ allophones, word-final lowering, [β] |
+| L2 | Göksel & Kerslake 2025, 2nd ed., summarised at halbuki.org/turkish-word-stress | full summary page | stress classes, pre-stressing and stressed suffixes, adverbs, compounds, place names, intensives |
+| L3 | Zimmer & Orgun 1999, Turkish, *Handbook of the IPA*: 154–158 | via L23 | phrase-final lowering, the tap, final [x ç] |
+| L4 | Kornfilt 1997, *Turkish*: 512 | via L7 | /e ø/ lowered before coda sonorants |
+| L6 | Dadan, Erken & Canalis 2024, /e/ lowering in Turkish, *Proc. TU+9*: 121–134 | full text | [æ] before coda sonorants, *-mAz*, *pekmez*, *hem*, *elbise*, *Belçika* |
+| L7 | Gopal & Nichols 2022, apparent-time change in Turkish front mid vowels (LAGB slides) | full text | receding closed-syllable laxing, /ø/, *bir* [biɾ̥] |
+| L8 | İleri 2025, ICTL 22 and CLS 62 slides | full text | the [æ] rule, vowel identity in intensive prefixes |
+| L10 | Sarmış & Canalis 2021, high vowel shortening, *Proc. TU+6* | full text | devoicing of high vowels |
+| L11 | Jannedy 1995, *OSU WPL* 45: 56–84 | summary | gradient devoicing |
+| L12 | Ay & Bekâr 2015, *Ankara Papers in Turkish and Turkic Linguistics* | full text | devoicing of ı |
+| L13 | Sanıyar & Tunçer 2022, continuant devoicing in Turkish, *Proc. TU+7* | full text | /ɾ/ devoicing by context; Nichols 2016 |
+| L15 | van der Hulst & van de Weijer 1991, Topics in Turkish phonology | full text (sections) | Clements & Sezer 1982 on palatals; long vowels shortened in closed syllables |
+| L16 | Ünal-Logacev, Żygis & Fuchs 2019, soft g in Turkish, *JIPA* | summary | ğ as lengthening |
+| L17 | Tekin 1991, Türkçede kelime vurgusu kuralları, *Dilbilim Araştırmaları* | full text | adverbs, place names, *-iye*, *-CIlAr*, compounds, intensives; quotes Gencan, Banguoğlu, Ergin |
+| L18 | Özçelik 2014, Prosodic faithfulness to foot edges, *Phonology* 31: 229–269 | full text (sections) | stressed and pre-stressing suffixes, *-leyin* |
+| L20 | Sezer 1981/1983, as stated in secondary sources | summary | place-name stress |
+| L23 | Wikipedia, *Turkish phonology*, accessed 2026-11-08 | full text | a map to sources (Dursunoğlu 2006, Kabak & Vogel 2001, Yavuz & Balcı 2011) |
+
+**Single-source items:**
+
+- pronominal *-ki* (Kabak & Vogel 2001);
+- *yeniden* (Banguoğlu);
+- the vowel copy in intensive prefixes (L8, with L6).

@@ -76,11 +76,7 @@ pub enum Phoneme {
     Tap,
     /// `r/` [r], rare word-final variant
     RCoda,
-    /// `r^` [r̝], a fricated r: `tts-v2`'s /ɾ/ word-initially, after a consonant and before a
-    /// voiced one (Yavuz & Balcı 2011: 25)
-    RFric,
-    /// `r^0` [r̝̊], a devoiced fricated r: `tts-v2`'s /ɾ/ word-finally and before a voiceless
-    /// consonant (Zimmer & Orgun 1999: 155; Yavuz & Balcı 2011: 25)
+    /// `r^0` [r̝̊], a devoiced fricated r: `tts-v2`'s /ɾ/ before a pause (Sanıyar & Tunçer 2022)
     RFricVoiceless,
     /// `s`
     S,
@@ -142,7 +138,7 @@ impl PhonemeClass {
 use Phoneme::*;
 
 /// Every symbol, for tables and parsing.
-pub const ALL_PHONEMES: [Phoneme; 49] = [
+pub const ALL_PHONEMES: [Phoneme; 48] = [
     A,
     E,
     ELax,
@@ -177,7 +173,6 @@ pub const ALL_PHONEMES: [Phoneme; 49] = [
     R,
     Tap,
     RCoda,
-    RFric,
     RFricVoiceless,
     S,
     Sh,
@@ -232,7 +227,6 @@ impl Phoneme {
             R => "R",
             Tap => "*",
             RCoda => "r/",
-            RFric => "r^",
             RFricVoiceless => "r^0",
             S => "s",
             Sh => "S",
@@ -289,7 +283,6 @@ impl Phoneme {
             P => "p",
             R | RCoda => "r",
             Tap => "ɾ",
-            RFric => "r̝",
             RFricVoiceless => "r̝̊",
             S => "s",
             Sh => "ʃ",
@@ -338,7 +331,6 @@ impl Phoneme {
             P => "pː",
             R | RCoda => "rː",
             Tap => "ɾː",
-            RFric => "r̝ː",
             RFricVoiceless => "r̝̊ː",
             S => "sː",
             Sh => "ʃː",
@@ -362,7 +354,7 @@ impl Phoneme {
             KPalatal | K | P | T | Tsh => PhonemeClass::Stop,
             B | D | Dzh | G | GPalatal | Tap => PhonemeClass::VoicedStop,
             F | H | S | Sh | RFricVoiceless => PhonemeClass::Fricative,
-            Zh | V | Z | Gh | RFric => PhonemeClass::VoicedFricative,
+            Zh | V | Z | Gh => PhonemeClass::VoicedFricative,
             M | N => PhonemeClass::Nasal,
             L | LCoda | LDark | LDarkCoda | R | RCoda | J | W => PhonemeClass::Liquid,
             Pause | PauseClause | PauseShort | PauseBar => PhonemeClass::Pause,

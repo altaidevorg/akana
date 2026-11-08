@@ -188,10 +188,10 @@ def test_tts_v2_writes_ipa_and_the_literature_segments():
         if t["ipa"] is not None:
             assert t["ipa"].startswith(t["ph"]) or t["ipa"] == "ɯɯ"
     ph = " ".join(t["ph"] for t in tokens)
-    # fricated r before a voiced consonant, devoiced before a voiceless one and finally;
-    # palatal k next to a front vowel; e as æ before a coda r; a final ı is not lowered
-    assert ph.startswith("_ k a r̝ d e ʃ i m")
-    assert "æ r̝̊ c æ n" in ph and "b i r̝̊" in ph and "e c m e c" in ph
+    # /ɾ/ a tap except before a pause; palatal k next to a front vowel; e as æ before a coda r;
+    # a final ı is not lowered
+    assert ph.startswith("_ k a ɾ d e ʃ i m")
+    assert "æ ɾ c æ n" in ph and "b i ɾ" in ph and "e c m e c" in ph
     assert ph.endswith("a ɫ d ɯ _")
 
 
@@ -230,3 +230,57 @@ def test_review_regressions():
     assert akana.phonemize(nfd, profile="tts-v2") == akana.phonemize(nfc, profile="tts-v2")
     for w in words:
         assert unicodedata.normalize("NFC", nfd[w["start"]:w["end"]]) == unicodedata.normalize("NFC", w["text"])
+
+
+# --- tts-v2: the literature consensus of 2026-11-08 ---------------------------------------------
+
+
+def _v2(text):
+    """tts-v2 as EchoCraft's probe prints it: IPA, `ˈ` before the most prominent vowel."""
+    toks = [t for t in akana.phonemize(text, profile="tts-v2") if t["type"] != "pause"]
+    top = max((t["stress"] for t in toks if t["type"] == "vowel"), default=0)
+    out, marked = [], False
+    for t in toks:
+        if t["word"] and out:
+            out.append(" ")
+        if t["type"] == "vowel" and t["stress"] == top and not marked:
+            out.append("ˈ")
+            marked = True
+        out.append(t["ipa"])
+    return "".join(out)
+
+
+def test_tts_v2_literature_consensus():
+    cases = {
+        # S1 /ɾ/: a tap, devoiced only before a pause
+        "gelir.": "ɟelˈir̝̊",
+        "bir de": "bˈiɾ dɛ",
+        "var mı?": "vˈaɾ mɯ",
+        "her şey": "hæɾ ʃˈej",
+        "sonra": "sˈonɾa",
+        # S2 -mAz, pekmez; S3 hem, elbise, Belçika; S4 word-final /e/
+        "gelmez": "ɟælmˈæz",
+        "pekmez": "pecmˈæz",
+        "hem": "hˈem",
+        "elbise": "elbisˈɛ",
+        "Belçika": "bˈeltʃika",
+        "dede geldi": "dedˈɛ ɟældɪ",
+        # T1 -en adverbs, T2 -CA, T3 place names, T4 compounds, T5 intensives
+        "kısmen": "kˈɯsmæn",
+        "nispeten": "nispˈetæn",
+        "çocukça": "tʃodʒˈuktʃa",
+        "ayrıca": "ajɾˈɯdʒa",
+        "Denizli": "denˈizlɪ",
+        "Harbiye": "hˈaɾbijɛ",
+        "Süleymaniye": "sylejmˈanijɛ",
+        "bugün": "bˈuɟyn",
+        "başbakan": "bˈaʃbakan",
+        "kapkara": "kˈapkaɾa",
+        "bembeyaz": "bˈembejaz",
+        "yapayalnız": "jˈapajaɫnɯz",
+    }
+    for text, want in cases.items():
+        assert _v2(text) == want, text
+    assert "doˈandʒɯɫaɾa" in _v2("Biz Doğancılar'a gittik.")
+    # no fricated r anywhere: the aligner symbol r̝ is gone
+    assert all(t["ipa"] != "r̝" for t in akana.phonemize("Ruh, sonra kardeş ekran.", profile="tts-v2"))
