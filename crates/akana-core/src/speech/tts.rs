@@ -490,8 +490,8 @@ const NON_LOWERING: &[&str] = &["hem", "elbise", "belçika"];
 /// - the /e/ of the negative aorist *-mAz* and of *pekmez* is [æ] before the coda z (all nine
 ///   speakers of L6; L7); *merkez* varies and is left;
 /// - [`NON_LOWERING`] roots keep [e];
-/// - an intensive's prefix copies the base's first vowel (bem-beyaz [bem], pes-pembe [pæs]; L8,
-///   L6).
+/// - an intensive's prefix takes the ordinary lowering (ter-temiz [tæɾ]), except the two words
+///   İleri's data show with the base's vowel instead: bem-beyaz [bem], pes-pembe [pæs] (L8).
 fn v2_word_segments(segs: &mut [Seg], letters: &[char], parse: Option<&MorphParse>) {
     let e_at = |segs: &mut [Seg], at: usize, ph: Phoneme| {
         for s in segs.iter_mut() {
@@ -545,16 +545,22 @@ fn v2_word_segments(segs: &mut [Seg], letters: &[char], parse: Option<&MorphPars
             }
         }
     }
-    if let Some((plen, fv)) = intensive(letters) {
-        let base = segs
+    if let Some((_, fv)) = intensive(letters) {
+        let word: String = letters.iter().collect();
+        if let Some(&(_, ph)) = INTENSIVE_PREFIX_VOWELS
             .iter()
-            .find(|s| s.at as usize == plen + fv && s.ph.is_vowel())
-            .map(|s| s.ph);
-        if let Some(b @ (Phoneme::E | Phoneme::Ae)) = base {
-            e_at(segs, fv, b);
+            .find(|(w, _)| word.starts_with(*w))
+        {
+            e_at(segs, fv, ph);
         }
     }
 }
+
+/// Intensives whose prefix vowel is not the ordinary lowering's (İleri 2025, ICTL 22 slide 2,
+/// L8): *bembeyaz* [bem] before the coda m, *pespembe* [pæs] before the coda s. Elsewhere the
+/// prefix follows the rule (*tertemiz* [tæɾ]).
+const INTENSIVE_PREFIX_VOWELS: &[(&str, Phoneme)] =
+    &[("bembeyaz", Phoneme::E), ("pespembe", Phoneme::Ae)];
 
 /// One morpheme of an analysis: its surface, its id, and whether it follows a copular
 /// derivation.
@@ -1589,11 +1595,12 @@ mod tests {
         assert_eq!(v2("bugün"), "bˈuɟyn");
         assert_eq!(v2("başbakan"), "bˈaʃbakan");
         assert_eq!(v2("bilgisayar"), "bilɟisajˈar̝̊");
-        // T5: intensives stress the prefix, whose vowel copies the base's (L8)
+        // T5: intensives stress the prefix; its vowel follows the rule, but for İleri's bembeyaz
+        // and pespembe (L8)
         assert_eq!(v2("kapkara"), "kˈapkaɾa");
         assert_eq!(v2("bembeyaz"), "bˈembejaz");
         assert_eq!(v2("sapsarı"), "sˈapsaɾɯ");
-        assert_eq!(v2("tertemiz"), "tˈeɾtemiz");
+        assert_eq!(v2("tertemiz"), "tˈæɾtemiz");
         assert_eq!(v2("masmavi"), "mˈasmavɪ");
         assert_eq!(v2("yapayalnız"), "jˈapajaɫnɯz");
         assert_eq!(v2("pespembe"), "pˈæspæmbɛ");

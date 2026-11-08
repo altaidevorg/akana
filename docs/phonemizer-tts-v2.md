@@ -105,7 +105,7 @@ in capitals.
 | *-iye* names are pre-stressing; *-istan* is final | HARbiye, süleyMAniye, TÜRkiye; hindisTAN | L17, L2 (medium) |
 | names in *-CIlAr* follow Sezer's rule; final *-lAr* is dropped | doĞANcılar, deMIRciler | L17 (Tekin), L20 (medium) |
 | closed compounds are stressed on the first element; listed final exceptions | BUgün, BAŞbakan, BAŞkent; final: bilgisaYAR, alışveRİŞ, kabakuLAK | L2; Kabak & Vogel 2001 via L23 (medium) |
-| intensive reduplication stresses the prefix, whose vowel copies the base's first vowel; a closed list of the standard intensives (52) and the words built on them (*kapkaranlık*), since the pattern alone also matches ordinary words (*araba*, *durdurdu*, *serseri*) | KAPkara, BEMbeyaz [bem], SAPsarı, TERtemiz [teɾ], MASmavi, YApayalnız, Apaçık, PESpembe [pæs] | stress: L2, L17 (strong); vowel copy: L8, L6 (one or two sources) |
+| intensive reduplication stresses the prefix; a closed list of the standard intensives (52) and the words built on them (*kapkaranlık*), since the pattern alone also matches ordinary words (*araba*, *durdurdu*, *serseri*). The prefix vowel follows the ordinary lowering (TERtemiz [tæɾ]), except where the prefix and base vowels match in İleri's data: BEMbeyaz [bem], PESpembe [pæs] | KAPkara, BEMbeyaz, SAPsarı, TERtemiz, MASmavi, YApayalnız, Apaçık, PESpembe | stress: L2, L17 (strong); prefix vowels: L8 (İleri 2025, slide 2: *bem-be.jaz*, *pæs-pæm.be*, *tær-te.miz*; a single source) |
 | relativiser *-ki* stressable; clitic *ki* pre-stressing | evdeKİ; gördÜM ki | L2, L18 (medium) |
 | pronominal *-ki* after a genitive is pre-accenting | seNİNki, beNİMki | Kabak & Vogel 2001 only (single source, weak) |
 | *yeniden* is penultimate | yeNİden | Banguoğlu via L17 only (single source) |
@@ -129,10 +129,8 @@ These words are therefore not names:
   *Bu Belediye*;
 - a bare *Doğancılar*. *Doğancılar'a* gets Sezer's rule.
 
-**Departures from the brief:**
+**Departure from the brief:**
 
-- ***tertemiz*:** the brief expected [tˈæɾtemiz]. Under the vowel-copy rule it cites (L8), and
-  its own *bembeyaz* [bem] and *pespembe* [pæs], the prefix copies the base's [e]: [tˈeɾtemiz].
 - **A bare *Doğancılar*:** the brief expected [doˈandʒɯɫaɾ]. The morphology reads it as the
   common noun *doğancı-lar* ("falconers"). At the start of a text it cannot be told from
   *Satıcılar indirim yaptı*, so it keeps final stress. With an apostrophe (*Doğancılar'a*) it
@@ -241,4 +239,4 @@ numbers are those the sources give. Check the originals before citing their clai
 
 - pronominal *-ki* (Kabak & Vogel 2001);
 - *yeniden* (Banguoğlu);
-- the vowel copy in intensive prefixes (L8, with L6).
+- the prefix vowels of *bembeyaz* and *pespembe* (L8).
