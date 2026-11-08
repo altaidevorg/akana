@@ -2,13 +2,19 @@
 
 `tts-v1` is Akana's own TTS front end for Turkish: phonemes, a prominence hierarchy and pauses,
 from the phonology literature and Akana's morphology, checked against the teacher TTS's pitch. It
-uses no eSpeak-derived data; `espeak-compat` stays as the fallback
-([stage 1 report](phonemizer-espeak-compat.md)). Brief: EchoCraft
-`experiments/2026-11-07-akana-phonemiser-brief.md`, stage 2 and the token contract of 2026-11-07.
+uses no eSpeak-derived data. Brief: EchoCraft `experiments/2026-11-07-akana-phonemiser-brief.md`,
+stage 2 and the token contract of 2026-11-07.
+
+**Frozen.** EchoCraft's shipped voice (student 0.3) was trained on this profile's tokens, so its
+output on text of letters and punctuation never changes: the 0.11.0 build gives the same tokens as
+the stage-2 freeze (commit `0c9d167`) on all 15,328 fixture clips and the 15,817-word list. Since
+0.11.0 it verbalises digits, symbols, initialisms, Roman numerals, URLs and addresses first
+(`verbalize_with(text, false)`); words written in letters stay as written. Every improvement goes
+to [`tts-v2`](phonemizer-tts-v2.md).
 
 ## Summary
 
-- **Same schema as `espeak-compat`:** one token per phoneme or pause with `ph`, `stress`, `word`,
+- **Token schema:** one token per phoneme or pause with `ph`, `stress`, `word`,
   `lengthen`, `mark`, `type` and `ipa`, a `_` at each edge. Each word carries the provenance of its
   stress and its segments, and its `prominence`.
 - **Stress from the literature:** default final stress; 87 lexical exceptions (adverbs,
@@ -45,7 +51,7 @@ use akana_core::speech::{Phonemizer, Profile, Utterance};
 let p = Phonemizer::new(Profile::TtsV1);   // loads Akana's morphology once per process
 let mut u = Utterance::default();
 p.phonemize_into("Serkan mı bavulu hazırladı?", &mut u)?;
-for t in u.espeak_tokens() { /* t.ph.symbol(), t.stress, t.word, t.lengthen, t.mark, t.ipa() */ }
+for t in &u.tokens { /* t.ph_symbol(), t.stress, t.word, t.lengthen, t.mark, t.ipa() */ }
 for w in &u.words { /* w.prominence, w.stress_source.label(), w.segment_source.label() */ }
 ```
 
@@ -54,7 +60,7 @@ deterministic: the same text gives the same tokens on every call and in every pr
 
 ## Symbol inventory
 
-`ph` keeps eSpeak's mnemonics so that tokenisers built for stage 1 read it. `ipa` is the aligner's
+`ph` keeps the stage-1 mnemonics (eSpeak's notation), so that tokenisers built then read it. `ipa` is the aligner's
 own symbol (wav2vec2-xlsr-53-espeak-cv-ft vocabulary). Counts are the tokens of the 15,379 fixture
 texts.
 
@@ -192,7 +198,7 @@ boundary, `…` read as `.`, `.` when there is none), on every token of the clau
 ## Segments
 
 - The letter rules of stage 1 (`speech::letters`), which follow eSpeak's allophones for the
-  aligner's sake: lax `E I U Y O` in closed and final syllables, `&` before a tautosyllabic m, n,
+  aligner's sake (`tts-v2` replaces them with the literature's): lax `E I U Y O` in closed and final syllables, `&` before a tautosyllabic m, n,
   l; palatal `J` before front vowels; clear and dark l by vowel; tap `*` between vowels.
 - Circumflex vowels are long (`hâlâ` h aː l aː), and k before a circumflex vowel is `c` (`kâr`).
 - Two equal vowels are one long vowel, next to each other or across ğ (`saat` s aː t, `ağaç`
@@ -220,14 +226,8 @@ boundary, `…` read as `.`, `.` when there is none), on every token of the clau
 
 - Rust unit tests in `speech::tts` (word stress, prominence, pauses, segments, every `ipa` in the
   aligner vocabulary, determinism and odd input) and Python tests in `tests/test_speech.py`.
-- `espeak-compat` is unchanged: its output is byte-identical to commit `7ecbf78` on the 15,328
-  corpus texts and the word list.
-- Latency: `cargo run --release -p akana-core --example espeak_compat_bench -- --profile tts-v1`.
-
-## Not covered yet (stage 3)
-
-Digits are read as plain cardinals; symbols, dates, times, money, units, abbreviations, URLs and
-e-mail are not verbalised yet, and foreign words are read with Turkish letter rules.
+- `tts_v1_golden_is_frozen` (Rust and Python) checks the frozen tokens of 60 CC0 sentences.
+- Latency: `cargo run --release -p akana-core --example phonemizer_bench -- --profile tts-v1`.
 
 ## References
 

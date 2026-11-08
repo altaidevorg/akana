@@ -50,9 +50,11 @@ Repository: [https://github.com/altaidevorg/akana](https://github.com/altaidevor
 - **Syntax & Universal Dependencies**:
   - Rule-based dependency parser with Universal Dependencies relations and CoNLL-U output. On the UD Turkish test splits it attaches 55.9 % of words to the right head (UAS) and 41.9 % with the right relation too (LAS), where attaching every word to the next word that is not punctuation gets 51.8 % UAS (`scripts/parser_ud_eval.py`): a margin of four points, and on Atis (42.8 against 51.3) none. Trained parsers do much better: use it for rough structure.
 - **Speech Front End (Phonemiser)**:
-  - `akana.phonemize(text)` turns Turkish text into phoneme and prosody tokens for a TTS model: phoneme, stress level, word start, length mark and the clause's punctuation, in microseconds and in process. Every word says where its stress and phonemes came from (`phonemize_detailed`).
-  - Profile `espeak-compat` reproduces the tokens eSpeak NG 1.52 gives EchoCraft's student TTS, so the model runs on it without retraining. It was built clean room from eSpeak's outputs only. On held-out sentences the phoneme sequence is exact for 99.7% of them, with per-token stress at 99.8% ([parity report](docs/phonemizer-espeak-compat.md)). A median sentence takes about 10 µs, some 280,000× faster than real time.
-  - Profile `tts-v1` is Akana's own front end, with no eSpeak data: word stress from the phonology literature and Akana's morphology (lexical exceptions, Sezer's rule for place names, pre-accenting and stressed suffixes), a prominence hierarchy (nucleus, phrase accents, deaccented heads, function words, post-nuclear words, clitics), pauses where a speaker pauses, and long vowels and geminates. Where it and eSpeak put a word's stress on different syllables, the teacher TTS's pitch peak is on `tts-v1`'s syllable 50% of the time and on eSpeak's 30% ([report](docs/phonemizer-tts-v1.md)). About 125 µs a sentence, 22,000× faster than real time.
+  - `akana.phonemize(text)` turns Turkish text into phoneme and prosody tokens for a TTS model: phoneme, stress level, word start, length mark and the clause's punctuation, in microseconds and in process. Every word says where its stress and phonemes came from (`phonemize_detailed`). No eSpeak NG code or data.
+  - `akana.verbalize(text)` writes out what a screen reader meets, keeping the span of each stretch it reads: numbers with their written suffixes re-harmonised (`₺850'ye` sekiz yüz elli liraya), ordinals, Roman numerals, dates, times, money, percentages, units, telephone numbers, abbreviations, initialisms, URLs, e-mail, symbols and foreign words.
+  - Profile `tts-v1` (the default) gives word stress from the phonology literature and Akana's morphology, a prominence hierarchy (nucleus, phrase accents, deaccented heads, function words, post-nuclear words, clitics), pauses where a speaker pauses, and long vowels and geminates. Where it and eSpeak put a word's stress on different syllables, the teacher TTS's pitch peak is on `tts-v1`'s syllable 50% of the time and on eSpeak's 30% ([report](docs/phonemizer-tts-v1.md)). Its output on plain text is frozen.
+  - Profile `tts-v2` adds the segments of the Turkish phonology literature (Zimmer & Orgun 1999: vowel lowering only phrase-finally, the allophones of /ɾ/, palatal k and g), more stress rules and every verbaliser rule, with IPA symbols ([report](docs/phonemizer-tts-v2.md)).
+  - About 85 µs a sentence, some 33,000× faster than real time.
 - **High-Level NLP Primitives**:
   - Turkish Syllabification & Hyphenation.
   - Number to Words Converter (Cardinals, Ordinals, Currency).
@@ -280,7 +282,7 @@ An index stores what built it, and checks it when it is opened:
 import akana
 
 info = akana.encoder_info()   # save this dict next to the index when you build it
-# {'akana_version': '0.10.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
+# {'akana_version': '0.11.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
 #  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
 #  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 

@@ -1,48 +1,75 @@
 # Changelog
 
-## Unreleased
+## 0.11.0 (unreleased)
 
-A Turkish phonemiser for TTS front ends joins the library, in Rust and Python.
+A Turkish TTS front end joins the library, in Rust and Python: a verbaliser for what a screen
+reader meets, and a phonemiser with two profiles. Both are Akana's own rules and morphology,
+with no eSpeak NG code or data.
 
 ### Added
 
-- **Turkish phonemiser, profile `espeak-compat`** (`akana_core::speech`; Python `phonemize`,
-  `phonemize_detailed`).
-  - **What it gives:** text to the token stream eSpeak NG 1.52 gives EchoCraft's student TTS: `ph`,
-    `stress` 0–7, `word`, `lengthen`, `mark`, plus `type` and `ipa`. Each word carries the provenance
-    of its stress and segments, and digits are read as Turkish numbers.
-  - **How it was built:** clean room, from eSpeak's outputs only. The data (`src/speech/espeak_compat.tsv.gz`,
-    7 KB, built by an ignored test from the fixtures) are a table of 1,508 word endings that predicts stress
-    and 269 exception words. They were derived from 33,501 CC0 Common Voice words as eSpeak read them;
-    the words themselves are not shipped.
-  - **Parity on the held-out test split (300 sentences, scored once):** phoneme sequence exact for
-    99.67% of sentences; per token `ph` 99.993%, `stress` 99.83%, `word` 99.987%, `lengthen` and
-    `mark` 99.993%. Five-fold cross-validation on train words never seen: stress 99.64% per token.
-  - **Speed:** median 7–10 µs per 60-character sentence in a release build, about 280,000× faster than
-    real time.
-  - **More:** findings, divergence catalogue and the next step (stage 2a, lexical stress) are in
-    `docs/phonemizer-espeak-compat.md`. Golden tests use 60 CC0 sentences; the fixture tests skip
-    without `AKANA_ESPEAK_FIXTURES`.
-- **Turkish phonemiser, profile `tts-v1`** (`Profile::TtsV1`; Python `phonemize(text, profile="tts-v1")`).
-  - **What it gives:** the same token schema, from Akana's own rules and morphology, with no eSpeak
-    data. Word stress follows the literature: final by default, 87 lexical exceptions, Sezer's rule
-    for place names, compounds on their first part, pre-accenting and stressed suffixes read off the
-    morphological analysis.
-  - **Prominence:** `stress` ranks prominence: 7 the clause's nucleus, 6 phrase accents, 4 deaccented
-    heads, 3 function words, 2 post-nuclear words, 1 unstressed syllables, 0 clitics. Each word
-    reports its `prominence` and the source of its stress.
-  - **Pauses:** one `_:` at a clause boundary, `_!` at quotes and brackets, before conjunctions and
-    after adverbial clauses; no apostrophe pauses, no joined words.
-  - **Segments:** long circumflex vowels, equal-vowel coalescence and `ğ` lengthening, hiatus and
-    glides at `ğ`, geminate stops and `lː`; every `ipa` is one entry of EchoCraft's aligner
-    vocabulary.
-  - **Evidence:** where `tts-v1` and eSpeak disagree on a word's stressed syllable, the teacher's F0
-    peak is on `tts-v1`'s syllable 50.2% of the time and on eSpeak's 30.5% (6,000 words; 54.9%
-    against 28.8% on a check split). Of 266 places where the teacher paused and eSpeak planned no
-    pause, `tts-v1` plans 132.
-  - **Speed:** median 126 µs per 60-character sentence, about 22,000× faster than real time.
-  - **More:** `docs/phonemizer-tts-v1.md`.
-- `phonemize_detailed` words carry `prominence`.
+- **Verbaliser** (`akana_core::speech::verbalize`, `verbalize_with`; Python `verbalize(text,
+  words=True)`). It writes out what a screen reader meets and keeps the byte span of each
+  stretch it reads.
+  - **Numbers:** cardinals, decimals, ordinals (`2. sınıf`, `5'inci`), Roman numerals
+    (`II. Dünya Savaşı`, `Mehmet II`), fractions (`2/3'ü` üçte ikisi), ranges and scores, and
+    dimensions (`3x4` üçe dört).
+  - **Quantities:** dates, times and time ranges, money (`1.299,90 TL`, `₺850'ye` sekiz yüz elli
+    liraya), percentages, units and rates (`90 km/sa` saatte doksan kilometre).
+  - **Other numbers:** telephone numbers in their groups, and long codes in threes.
+  - **Abbreviations**, by their place: titles before a name (`Dr.`, `Prof.`, `Av.`), address
+    words after one (`Cad.`, `Sok.`), the rest anywhere (`vb.`, `bkz.`).
+  - **Initialisms**, as Akana's lexicon reads them (`TBMM'de` tebememede). The written suffix
+    decides between *ka* and *ke* (`TDK'ye`).
+  - **Electronic and symbols:** URLs, e-mail addresses, symbols, and letters spelled with hyphens
+    (`Ç-A-Y`).
+  - **Foreign words and letters**, Turkish-style (`iPhone'u` ayfonu, `Wikipedia` Vikipedia).
+  - **Suffix harmony:** a suffix written after a number is re-harmonised to the word the reading
+    ends in.
+  - normalizer-tr was compared as a black box only; no code or data of it is used.
+- **Turkish phonemiser** (`akana_core::speech`; Python `phonemize`, `phonemize_detailed`).
+  - **Tokens:** one per phoneme or pause: `ph`, `stress` 0–7, `word`, `lengthen`, `mark`, `type`
+    and `ipa`. Every `ipa` is one entry of EchoCraft's CTC aligner vocabulary, and every pause
+    `ph` starts with `_`.
+  - **Provenance:** each word carries its span, its prominence, the source of its stress and of
+    its segments, and the verbaliser's kind.
+- **Profile `tts-v1`** (the default; `tts-v1.0`). Its output on text of letters and punctuation
+  is frozen; EchoCraft's shipped voice was trained on it.
+  - **Stress:** from the literature and morphology. Final by default; 87 lexical exceptions;
+    Sezer's rule for place names; compounds on their first part; pre-accenting and stressed
+    suffixes.
+  - **Prominence:** 7 the nucleus, 6 phrase accents, 4 deaccented heads, 3 function words, 2
+    post-nuclear, 1 unstressed, 0 clitics.
+  - **Pauses:** one `_:` per clause boundary; `_!` at quotes, brackets, before conjunctions and
+    after adverbial clauses.
+  - **Segments:** long vowels and geminates. The `ph` symbols are the stage-1 mnemonics.
+  - **Evidence:** where `tts-v1` and eSpeak NG disagree on a word's stressed syllable, the teacher
+    TTS's F0 peak is on `tts-v1`'s syllable 50.2% of the time and on eSpeak's 30.5% (6,000 words).
+  - The verbaliser runs first, keeping words written in letters as written: digits, symbols,
+    initialisms and addresses are read out, plain words are not.
+  - Report: `docs/phonemizer-tts-v1.md`.
+- **Profile `tts-v2`** (`tts-v2.0`, for the next model). It is `tts-v1` plus:
+  - **Vowels and consonants:** vowels are lowered only phrase-finally; no lax o; e is æ before a
+    coda m, n, l or r; /ɾ/ is a tap, fricated r̝ or devoiced r̝̊; k and g are palatal next to a
+    front vowel. Sources: Zimmer & Orgun 1999, Göksel & Kerslake 2005, Yavuz & Balcı 2011.
+  - **Circumflex:** circumflex vowels are long only in open syllables (the teacher's durations).
+  - **Stress:** *nerede*, *-ki* after a genitive, *-(y)Iver*, *-leyin*, and place names in
+    *-istan*.
+  - **Verbaliser and symbols:** every verbaliser rule, and IPA symbols as `ph`.
+  - **Evidence:** on the 66 *nerede* tokens, the teacher's F0 peak is on `tts-v2`'s syllable 76%
+    of the time and on `tts-v1`'s 3%.
+  - Report: `docs/phonemizer-tts-v2.md`.
+- **Speed:** a median sentence of 50–70 characters takes about 85 µs in either profile (p99 180
+  µs), some 33,000× faster than real time (`examples/phonemizer_bench.rs`).
+- **Tests:** frozen golden files from Akana's own output. `tts_v1_golden.jsonl` and
+  `tts_v2_golden.jsonl` hold 60 CC0 Common Voice sentences, plus 40 verbaliser sentences in
+  `tts-v2`'s. `verbalize_golden.jsonl` holds the verbaliser's readings and spans.
+
+### Removed
+
+- Profile `espeak-compat`, which reproduced eSpeak NG's tokens during development (local
+  commits `7ecbf78` and `96fe19a`), and everything derived from eSpeak's output: its 7 KB table,
+  its golden tokens and its parity tools. It never shipped in a release.
 
 ## 0.10.0 (unreleased)
 

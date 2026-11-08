@@ -1,6 +1,7 @@
-//! The `tts-v1` profile: Turkish phonemes and a prominence hierarchy for a TTS model, from the
-//! phonology literature and Akana's own analyses, checked against the teacher TTS's pitch. It
-//! uses no eSpeak-derived data.
+//! The `tts-v1` and `tts-v2` profiles: Turkish phonemes and a prominence hierarchy for a TTS
+//! model, from the phonology literature and Akana's own analyses, checked against the teacher
+//! TTS's pitch. No eSpeak-derived data. `tts-v2`'s additions are marked `v2` here and listed in
+//! `docs/phonemizer-tts-v2.md`; `tts-v1`'s output on text of letters is frozen.
 //!
 //! **Word stress** (the syllable that carries a word's stress):
 //! - the last syllable by default (Lewis 2001; Kabak & Vogel 2001);
