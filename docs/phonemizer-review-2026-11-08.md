@@ -37,3 +37,31 @@ and `tests/test_speech.py::test_review_regressions`.
   Ten probe rows with digits or symbols differ, as intended.
 - **tts-v2 contract:** every `ipa` is in the aligner vocabulary.
 - **Full gate:** passes, as recorded in the commit.
+
+## Review of the consensus update (`c058cad`)
+
+An independent reviewer agent read the delta `7b07dd5..c058cad`: `tts-v2` updated to the
+literature consensus. It was read-only and probed in Python: all 15,379 fixture texts, the
+fixtures in capitals, 6,000 fuzz texts, and a differential `tts-v1` test against the stage-2 wheel.
+Every finding was re-run by hand and reproduced. Each fix is asserted in
+`speech::tts::tests::tts_v2_follows_the_literature_consensus`.
+
+| # | finding | verdict | fix |
+|---|---|---|---|
+| 1 | The intensive detector (a (C)V, then p/m/r/s, then a known word) fired on about 287 ordinary words in the fixtures: *araba*, *arasında*, *durdurdu*, *serseri*, *ürünler*, *Amasya*. Its vowel copy also wrote [æ] into open syllables (*emellerine*) | confirmed, wrong output | a closed list of the 52 standard intensives, and words built on them (*kapkaranlık*) |
+| 2 | Common words were treated as names. *-iye* fired on *Bu Belediye*, after a colon or line break, and in text in capitals (*saniye*); *-CIlAr* and Sezer's rule too (*Başlık: Satıcılar*, *BU SATICILAR*, *TOKAT*) | confirmed, wrong output | a sentence start also follows a colon, line break, quote, bracket or dash; a word in capitals throughout is not a capitalised name; *-iye* and *-CIlAr* need a proper noun, a gazetteer place or an apostrophe |
+| 3 | r̝̊ and the phrase-final /i u/ lowering applied before the optional `_!` of a conjunction (*Kar ve yağmur*), where L13 finds /ɾ/ voiced | confirmed, wrong output | phrase-final means before `_:` or at the end of the text |
+| 4 | A bare *Doğancılar* (the brief's probe) keeps final stress, but the doc did not list this as a departure | confirmed, doc | listed under the departures from the brief, with the reason |
+| 5 | The *hem*/*elbise*/*Belçika* rule un-lowered an /e/ a suffix closes (*elbisem*) | confirmed | only where the root itself closes the syllable |
+| 6 | Lexicalised *-mAz* nouns (*tükenmez*) are not lowered | confirmed, nit | documented as an open point: the morphology has them as single roots |
+| 7 | A code comment shared with `tts-v2` cited teacher durations for ğ; the doc's ğ row cited L16 for a hiatus it does not state | confirmed, doc | the comment cites the literature; the doc row cites the consensus's "hiatus or long vowel" (row 14) |
+
+**Checked clean by the reviewer:**
+- **Brief outputs:** every expected output is reproduced, except those above.
+- **Derived forms:** correct (*bugünkü*, *başbakanlık*, *Denizli'ye*, *gelmezsen*, *kısmen de*).
+- **Unaffected words:** *hemen* and *hemşire* are unaffected.
+- **NFD input and stress mapping:** both correct.
+- **Token contract:** holds on all fixtures, the fuzz texts and adversarial input; no `r̝`.
+- **`tts-v1`:** unchanged (0 differences on the fixtures, the word list and 3,000 random letter
+  texts); every new path is gated on `tts-v2`.
+- **Doc counts:** exact.

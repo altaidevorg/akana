@@ -40,7 +40,7 @@ Its `ph` symbols are the phonemes' IPA.
   - `stress` keeps `tts-v1`'s prominence levels (7 the nucleus down to 0 a clitic), and so do
     the pauses and marks.
 - **Differences from `tts-v1` on the fixture texts:** 16.4% of tokens change their `ipa` and
-  0.64% their stress; 3 of the 15,328 corpus clips read other words (`vb.`, `online`,
+  0.32% their stress; 3 of the 15,328 corpus clips read other words (`vb.`, `online`,
   `Shakespeare'i`).
 - **Latency:** median about 85 µs per 50–70-character sentence, about 33,000× faster than real
   time.
@@ -52,17 +52,17 @@ Its `ph` symbols are the phonemes' IPA.
 
 | rule | sources (strength) | `tts-v1` → `tts-v2` on the fixtures |
 |---|---|---|
-| vowels are tense inside the word: no closed-syllable laxing, which is the older system and receding; no lax o | L7, L6 (medium) | ɪ → i 19,854; ʊ → u 8,226; ɔ → o 6,296; ɛ → e 5,903 |
-| a word-final open /e/ is [ɛ] in every word; high /i u/ are lowered only in the open final syllable of a phrase | L1 word-final (Göksel & Kerslake 2005, 2025), L6; L3 phrase-final (medium) | *dede geldi* [dedɛ ɟældɪ] |
+| vowels are tense inside the word: no closed-syllable laxing, which is the older system and receding; no lax o | L7, L6 (medium) | ɪ → i 19,971; ʊ → u 8,254; ɔ → o 6,296; ɛ → e 5,893 |
+| a word-final open /e/ is [ɛ] in every word; high /i u/ are lowered only in the open final syllable of a phrase (before a clause pause `_:` or at the end of the text, not before the optional `_!` of a conjunction) | L1 word-final (Göksel & Kerslake 2005, 2025), L6; L3 phrase-final (medium) | *dede geldi* [dedɛ ɟældɪ] |
 | ü is [y]; its lowered [ʏ] is not in the aligner's vocabulary | L3 | ø → y 4,135 |
-| /e/ is [æ] before a tautosyllabic coda m, n, l or r, syllabified within the word (*gel* [ɟæl], *gel-ir* [ɟeliɾ]); not before /j/ | L6 (9 speakers), L7, L8, L4 (strong) | ɛ → æ 3,154 |
+| /e/ is [æ] before a tautosyllabic coda m, n, l or r, syllabified within the word (*gel* [ɟæl], *gel-ir* [ɟeliɾ]); not before /j/ | L6 (9 speakers), L7, L8, L4 (strong) | ɛ → æ 3,164 |
 | the negative aorist *-mAz* and *pekmez* also take [æ] before their coda z: *gelmez* [ɟælmæz]; *merkez* varies and is left | L6 (all 9 speakers), L7 (strong) | |
-| *hem*, *elbise* and *Belçika* keep [e] in the modern standard; *kendi* and *bel* vary and follow the rule | L6, L1 (medium) | æ → e 57 |
-| /ɾ/ is a tap everywhere: word-initially, after and before consonants, and word-finally before the next word. It is devoiced and fricated [r̝̊] only before a pause | L13 (10 speakers: utterance-final devoicing 0.63–0.82, word-final before a voiced sound 0.01, before a voiceless consonant about 0.24 and optional), Nichols 2016 via L13, L3, L7 (strong) | r → ɾ 14,704; r → r̝̊ 2,739 |
+| *hem*, *elbise* and *Belçika* keep [e] in the modern standard, where the root itself closes the syllable (*elbisem* keeps [æ] in *-sem*); *kendi* and *bel* vary and follow the rule | L6, L1 (medium) | æ → e 57 |
+| /ɾ/ is a tap everywhere: word-initially, after and before consonants, and word-finally before the next word. It is devoiced and fricated [r̝̊] only phrase-finally: before a clause pause `_:` or at the end of the text, not before the optional `_!` of a conjunction | L13 (10 speakers: utterance-final devoicing 0.63–0.82, word-final before a voiced sound 0.01, before a voiceless consonant about 0.24 and optional), Nichols 2016 via L13, L3, L7 (strong) | r → ɾ 14,857; r → r̝̊ 2,586 |
 | no fricated [r̝]: no acoustic source supports it | L13; Yavuz & Balcı 2011 (via L23) is unsupported | |
 | /k g/ are palatal [c ɟ] when tautosyllabic with a front vowel: before one in the onset, after one in the coda (*ekmek* [ecmec], *teklif* [teclif], *gök* [ɟœc]); velar before a back vowel (*ekonomi*, *dekor*, *ekol*, *dekan*). Lexical palatals in loans: *kâr*, *rüzgâr* (and clear l in *hal*, *rol*, *kalp*) | Clements & Sezer 1982 via L15 (medium) | k → c 6,341; kː → cː 67; ɡ → ɟ 10 |
 | a circumflex vowel (an underlying long vowel of a loan) is long only in an open syllable: long vowels shorten in closed syllables | L15 (van der Hulst & van de Weijer 1991, after Underhill) (medium) | aː → a 49; uː → u 11 |
-| ğ lengthens the vowel before it; between equal vowels one long vowel; silent between back vowels; [j] between front vowels | L16, L1 (medium) | as `tts-v1` |
+| ğ lengthens the vowel before it; between vowels a hiatus (the first vowel short), one long vowel between equal vowels; [j] between front vowels | consensus row 14: L16, L1 (medium; the hiatus is one of the realisations the consensus allows) | as `tts-v1` |
 
 **Types:** the tap is `type` `liquid` in `tts-v2` (`tts-v1` keeps `vstop`); the devoiced r̝̊ is
 `fricative`.
@@ -105,27 +105,38 @@ in capitals.
 | *-iye* names are pre-stressing; *-istan* is final | HARbiye, süleyMAniye, TÜRkiye; hindisTAN | L17, L2 (medium) |
 | names in *-CIlAr* follow Sezer's rule; final *-lAr* is dropped | doĞANcılar, deMIRciler | L17 (Tekin), L20 (medium) |
 | closed compounds are stressed on the first element; listed final exceptions | BUgün, BAŞbakan, BAŞkent; final: bilgisaYAR, alışveRİŞ, kabakuLAK | L2; Kabak & Vogel 2001 via L23 (medium) |
-| intensive reduplication stresses the prefix, whose vowel copies the base's first vowel | KAPkara, BEMbeyaz [bem], SAPsarı, TERtemiz [teɾ], MASmavi, YApayalnız, Apaçık, PESpembe [pæs] | stress: L2, L17 (strong); vowel copy: L8, L6 (one or two sources) |
+| intensive reduplication stresses the prefix, whose vowel copies the base's first vowel; a closed list of the standard intensives (52) and the words built on them (*kapkaranlık*), since the pattern alone also matches ordinary words (*araba*, *durdurdu*, *serseri*) | KAPkara, BEMbeyaz [bem], SAPsarı, TERtemiz [teɾ], MASmavi, YApayalnız, Apaçık, PESpembe [pæs] | stress: L2, L17 (strong); vowel copy: L8, L6 (one or two sources) |
 | relativiser *-ki* stressable; clitic *ki* pre-stressing | evdeKİ; gördÜM ki | L2, L18 (medium) |
 | pronominal *-ki* after a genitive is pre-accenting | seNİNki, beNİMki | Kabak & Vogel 2001 only (single source, weak) |
 | *yeniden* is penultimate | yeNİden | Banguoğlu via L17 only (single source) |
 
-**When a word counts as a name.** It is a name when:
+**When a word counts as a name.** Only its letters before the apostrophe count.
 
-- the morphology reads it as a proper noun; or
-- it is written with a capital, not at the start of a sentence; or
-- it carries an apostrophe.
+- **Place names (Sezer's rule and *-istan*):**
+  - a gazetteer place the morphology reads as a proper noun;
+  - a place written with a capital, not at the start of a sentence, line, list item or
+    quotation;
+  - a place with an apostrophe;
+  - a province with a capital even at the start of a sentence (*Denizli*), unless the lexicon also
+    has it as a common word.
+- ***-iye* and *-CIlAr*:** only in a proper noun, a gazetteer place, or a word with an
+  apostrophe.
 
-Only its letters before the apostrophe count. A province with a capital also counts at the start
-of a sentence (*Denizli*), unless the lexicon also has it as a common word.
+These words are therefore not names:
 
-A capitalised common word at the start of a sentence is not a name. *Satıcılar indirim yaptı*
-keeps final stress, and so does a bare *Doğancılar* there. *Doğancılar'a* and a mid-sentence
-*Doğancılar* get Sezer's rule.
+- a capitalised common word at the start of a sentence, after a colon or line break, or written
+  in capitals throughout: *Satıcılar indirim yaptı*, *Başlık: Satıcılar*, *BU SATICILAR*,
+  *Bu Belediye*;
+- a bare *Doğancılar*. *Doğancılar'a* gets Sezer's rule.
 
-**Departure from the brief:** it expected *tertemiz* as [tˈæɾtemiz]. Under the vowel-copy rule it
-cites (L8), and its own *bembeyaz* [bem] and *pespembe* [pæs], the prefix copies the base's [e]:
-[tˈeɾtemiz].
+**Departures from the brief:**
+
+- ***tertemiz*:** the brief expected [tˈæɾtemiz]. Under the vowel-copy rule it cites (L8), and
+  its own *bembeyaz* [bem] and *pespembe* [pæs], the prefix copies the base's [e]: [tˈeɾtemiz].
+- **A bare *Doğancılar*:** the brief expected [doˈandʒɯɫaɾ]. The morphology reads it as the
+  common noun *doğancı-lar* ("falconers"). At the start of a text it cannot be told from
+  *Satıcılar indirim yaptı*, so it keeps final stress. With an apostrophe (*Doğancılar'a*) it
+  takes Sezer's rule.
 
 **Context, not evidence:** the teacher's F0 peaks fall on `tts-v2`'s syllable of *nerede* in 76%
 of 66 words. They lean final on *-ki* after a genitive and on *-leyin*, where the literature
@@ -194,6 +205,8 @@ Sources and checks:
 - **Acoustic checks of the segments:** EchoCraft's alignment score on `tts-v2` against `tts-v1`.
 - **Diminutive *-CA*** (*büyükçe*) should be stressed, but the morphology analyses it as the
   pre-stressing *-CA*.
+- **Lexicalised *-mAz* nouns** (*tükenmez*) are single roots in the morphology, so their /e/
+  follows the general rule rather than the *-mAz* lowering.
 - **Variable lowering:** the words the literature calls variable (*kendi*, *bel*, *merkez*)
   follow the rule. A screen reader's neutral register could keep them at [e]; that is a style
   choice.

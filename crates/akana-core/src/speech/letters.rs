@@ -115,10 +115,10 @@ pub(crate) fn key_to_phonemes(key: &str, out: &mut Vec<Seg>) {
             };
             let circ = matches!(ch, 'â' | 'î' | 'û');
             if i + 1 < n && w[i + 1] == 'ğ' {
-                // ğ (Göksel & Kerslake 2005; teacher durations): before a consonant or the end it
-                // lengthens the vowel; two equal vowels across it are one long vowel; between back
-                // vowels it is silent and the first vowel stays short (soğuk: 7 frames against 6
-                // for a short o, 10 before a consonant); between front vowels it is a glide j
+                // ğ (Göksel & Kerslake 2005; Ünal-Logacev, Żygis & Fuchs 2019): before a consonant
+                // or the end it lengthens the vowel; two equal vowels across it are one long vowel;
+                // between back vowels a hiatus, the first vowel short; between front vowels a
+                // glide j
                 let next = w.get(i + 2).map(|&c| match c {
                     'â' => 'a',
                     'î' => 'i',
