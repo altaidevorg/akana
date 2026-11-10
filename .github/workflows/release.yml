@@ -190,14 +190,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Everything rust-toolchain.toml asks for is installed before pip runs. Left to the sdist's
+      # copy of the file, rustup added rustfmt and clippy inside pip's metadata hook, and that
+      # install failed there ("detected conflict: 'bin/cargo-fmt'", v0.11.0) while the same
+      # install from a plain cargo call passes in the test job above.
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.99.0"
+          components: rustfmt, clippy
       - uses: actions/download-artifact@v4
         with:
           name: wheels-sdist
           path: dist
+      # The sdist carries the releases' toolchain file, and rustup resolves it from the unpacked
+      # source here, outside pip, so pip's build has nothing left to install (review 3 MSTAB3-06).
+      - name: The sdist pins the release toolchain
+        shell: bash
+        run: |
+          mkdir "$RUNNER_TEMP/sdist"
+          tar -xzf dist/*.tar.gz -C "$RUNNER_TEMP/sdist"
+          cd "$RUNNER_TEMP"/sdist/*/
+          cmp rust-toolchain.toml "$GITHUB_WORKSPACE/rust-toolchain.toml"
+          rustup show active-toolchain --verbose
+          rustup component list --installed
       - name: Build and install the sdist, and run the Python tests
         shell: bash
         run: |
