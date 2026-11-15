@@ -285,7 +285,7 @@ An index stores what built it, and checks it when it is opened:
 import akana
 
 info = akana.encoder_info()   # save this dict next to the index when you build it
-# {'akana_version': '0.11.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
+# {'akana_version': '0.12.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
 #  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
 #  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 

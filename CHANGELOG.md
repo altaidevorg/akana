@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 (unreleased)
+
+The speech front end builds on its own, without C code and for the browser, and the
+verbaliser reads service text (telephone numbers, codes, identifiers, initialisms) as
+Turkish readers do, in profile `tts-v2.1`. A default build has the modules and API of 0.11.0,
+and `tts-v1` reads as before.
 
 ### Added
 

@@ -3,7 +3,9 @@
 The brief (from the EchoCraft session, at the owner's request) asked for the TTS front end,
 `akana.verbalize`, to read service text as Turkish readers do: behaviours B1–B11, 65 cases (53
 `must`, 10 `guard`, 2 open decisions), precision first. EchoCraft's service voice is trained on
-`tts-v2` tokens. Branch `claude/tts-normaliser`, from `main` at `05ba965`; nothing committed.
+`tts-v2` tokens. Committed on `claude/tts-normaliser` (`85aec20`, from `main` at `05ba965`),
+then merged with the feature split (`docs/tts-runtime-2026-11-14.md`, Part A) into
+`feat/feature-split-and-service-text`, which is 0.12.0.
 
 ## What changed
 
