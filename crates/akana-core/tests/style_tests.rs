@@ -1,3 +1,4 @@
+#![cfg(feature = "style")]
 use std::collections::BTreeMap;
 
 use akana_core::style::{AiVerdict, StyleAuditReport, TurkishHumanizer, TurkishStyleAuditor};

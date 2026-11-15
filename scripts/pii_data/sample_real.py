@@ -190,7 +190,7 @@ def units_of(text: str):
 
 
 def given_names() -> set[str]:
-    path = ROOT / "crates" / "akana-core" / "src" / "pii" / "person_names.txt"
+    path = ROOT / "crates" / "akana-core" / "src" / "lexicon" / "person_names.txt"
     return {w.strip().lower() for w in open(path, encoding="utf-8") if w.strip() and not w.startswith("#")}
 
 

@@ -1,3 +1,4 @@
+#![cfg(feature = "grammar")]
 use akana_core::grammar::{ErrorCategory, GrammarRule, RuleSet, TurkishGrammarChecker};
 
 #[test]

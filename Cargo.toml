@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.11.0"
+version = "0.12.0"
 edition = "2021"
 authors = ["Akana NLP Contributors"]
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,9 @@ stringzilla = "3.11"
 regex = "1.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-ahash = "0.8"
+# Without its runtime-rng feature (the OS random source, through getrandom); akana-core turns it
+# on for every target but wasm32-unknown-unknown, so native builds are as before.
+ahash = { version = "0.8", default-features = false, features = ["std"] }
 bitflags = "2.4"
 smallvec = "1.13"
 thiserror = "1.0"

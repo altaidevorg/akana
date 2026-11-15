@@ -16,6 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PII_SRC = ROOT / "crates" / "akana-core" / "src" / "pii"
+# the person-name lexicon and the place gazetteer (moved out of pii/ in 0.12)
+LEXICON_SRC = ROOT / "crates" / "akana-core" / "src" / "lexicon"
 
 VOWELS = "aeıioöuü"
 BACK = set("aıou")
@@ -100,11 +102,11 @@ SURNAME_TAILS = ["soy", "kaya", "taş", "oğlu", "türk", "han", "can", "er", "d
 
 @lru_cache(maxsize=1)
 def name_lists() -> dict:
-    given = {tr_lower(w.strip()) for w in open(PII_SRC / "person_names.txt", encoding="utf-8")
+    given = {tr_lower(w.strip()) for w in open(LEXICON_SRC / "person_names.txt", encoding="utf-8")
              if w.strip() and not w.startswith("#")}
-    given |= set(_rust_list(PII_SRC / "names_data.rs", "COMMON_GIVEN_NAMES"))
-    common_given = _rust_list(PII_SRC / "names_data.rs", "COMMON_GIVEN_NAMES")
-    surnames = set(_rust_list(PII_SRC / "names_data.rs", "COMMON_SURNAMES"))
+    given |= set(_rust_list(LEXICON_SRC / "names_data.rs", "COMMON_GIVEN_NAMES"))
+    common_given = _rust_list(LEXICON_SRC / "names_data.rs", "COMMON_GIVEN_NAMES")
+    surnames = set(_rust_list(LEXICON_SRC / "names_data.rs", "COMMON_SURNAMES"))
     # surnames of WikiNER's training persons: the last word of a person whose first word is a
     # known given name
     wikiner = ROOT / ".cache" / "ner" / "wikiner" / "train.tsv"
@@ -129,8 +131,8 @@ def name_lists() -> dict:
                 i = j
             else:
                 i += 1
-    foreign_given = _rust_list(PII_SRC / "names_data.rs", "INTERNATIONAL_GIVEN_NAMES")
-    ambiguous = _rust_list(PII_SRC / "names_data.rs", "AMBIGUOUS_NAMES")
+    foreign_given = _rust_list(LEXICON_SRC / "names_data.rs", "INTERNATIONAL_GIVEN_NAMES")
+    ambiguous = _rust_list(LEXICON_SRC / "names_data.rs", "AMBIGUOUS_NAMES")
     foreign_surnames = ["smith", "johnson", "williams", "brown", "garcia", "miller", "müller", "schmidt",
                         "schneider", "fischer", "dubois", "martin", "bernard", "rossi", "russo", "ivanov",
                         "petrov", "tanaka", "suzuki", "kim", "lee", "park", "nguyen", "kowalski", "novak",

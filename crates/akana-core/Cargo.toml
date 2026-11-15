@@ -10,7 +10,7 @@ readme = "../../README.md"
 description = "Core Rust library for Akana Turkish NLP toolkit"
 
 [dependencies]
-stringzilla = { workspace = true }
+stringzilla = { workspace = true, optional = true }
 regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -26,11 +26,58 @@ unicode_categories = { version = "0.1.1", optional = true }
 ureq = { version = "3.5.1", default-features = false, features = ["rustls"], optional = true }
 sha2 = { version = "0.10.9", optional = true }
 
+# Hash seeds from the OS random source, as ahash does by default. wasm32-unknown-unknown has none
+# without JavaScript glue (getrandom's wasm_js backend), so the browser build keeps ahash's
+# fixed seeds and pulls no getrandom at all.
+[target.'cfg(not(all(target_family = "wasm", target_os = "unknown")))'.dependencies]
+ahash = { workspace = true, features = ["runtime-rng"] }
+
 [features]
+# Everything a build without features had before the split (0.11.0), so every existing user builds
+# and behaves as before. The PII tagger and its downloads stay opt-in, as they were.
+default = ["full"]
+full = ["speech", "parser", "ner", "embeddings", "spellcheck", "pii", "grammar", "style"]
+# Always built, whatever the features: phonology, tokenization, morphology,
+# syntactic_morphology, normalization (asciifier, deasciifier, informal, numbers), lexicon
+# (place and person-name lists), analysis and readability. Pure Rust, no C, no I/O, no threads.
+#
+# The phonemiser and verbaliser (speech). `--no-default-features --features speech` builds the
+# speech front end without C code, for wasm32-unknown-unknown too.
+speech = []
+# The dependency parser and the end-to-end AkanaEngine.
+parser = []
+# The named-entity tagger and its trained model (1 MB).
+ner = []
+# The Model2Vec dense, sparse and hybrid encoders with their model (5.3 MB), and chunking.
+embeddings = []
+# The spell checker (normalization::spellcheck); StringZilla, which is C.
+spellcheck = ["dep:stringzilla"]
+# PII detection and pseudonymisation; StringZilla.
+pii = ["dep:stringzilla", "embeddings"]
+# Grammar and orthography rules; StringZilla.
+grammar = ["dep:stringzilla", "parser"]
+# Style, cliches, the humaniser and the AI-text detector (3.4 MB model); StringZilla.
+style = ["dep:stringzilla", "embeddings"]
 # The learned PII tagger (pii::tagger): ONNX token classifiers run with RTen, a pure-Rust CPU runtime.
-pii-tagger = ["dep:rten", "dep:unicode_categories"]
+pii-tagger = ["pii", "dep:rten", "dep:unicode_categories"]
 # The tagger's published models, downloaded on first use and cached (pii::tagger::hub).
 pii-download = ["pii-tagger", "dep:ureq", "dep:sha2"]
 
 [dev-dependencies]
 criterion = "0.5"
+
+[[example]]
+name = "grammar_rule_report"
+required-features = ["grammar"]
+
+[[example]]
+name = "phonemizer_bench"
+required-features = ["speech"]
+
+[[example]]
+name = "phonemize_dump"
+required-features = ["speech"]
+
+[[example]]
+name = "sparse_idf"
+required-features = ["embeddings"]

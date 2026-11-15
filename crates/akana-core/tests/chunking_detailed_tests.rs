@@ -1,3 +1,4 @@
+#![cfg(feature = "embeddings")]
 use akana_core::chunking::{SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode};
 
 fn get_char_slice(text: &str, start: usize, end: usize) -> String {

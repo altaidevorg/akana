@@ -2,6 +2,7 @@
 //! lower-case words read as names, abbreviations of a phrase with a possessive, abbreviations of
 //! one word, a tie between two spellings of one reading, and single letters read as numerals;
 //! and the names and abbreviations the pre-release audit found apart from their word.
+#![cfg(feature = "embeddings")]
 
 use akana_core::embeddings::MorphologicalSparseEncoder;
 use akana_core::morphology::*;

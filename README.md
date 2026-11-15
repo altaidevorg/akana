@@ -285,7 +285,7 @@ An index stores what built it, and checks it when it is opened:
 import akana
 
 info = akana.encoder_info()   # save this dict next to the index when you build it
-# {'akana_version': '0.11.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
+# {'akana_version': '0.12.0', 'unicode_version': ..., 'sparse_spec': '1.0', 'hybrid_layout': 1,
 #  'dense_model': ..., 'analysis_version': '1.0', 'analysis_fingerprint': ...,
 #  'sparse_fingerprint': ..., 'dense_fingerprint': ..., 'fingerprint': ..., 'resources': {...}}
 
@@ -810,6 +810,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", strict.tag("yarın mehmetle görüşeceğim")?);
     Ok(())
 }
+```
+
+### Cargo features
+
+The default feature, `full`, builds everything the crate built before the features were split,
+so a dependency with default features gets the same library as before. A smaller selection
+builds faster and, without the StringZilla modules, has no C code:
+
+| Feature | Adds | Notes |
+|---|---|---|
+| *(always built)* | `phonology`, `tokenization`, `morphology`, `syntactic_morphology`, `normalization` (asciifier, deasciifier, informal text, numbers), `lexicon` (place and person-name lists), `analysis`, `readability` | Pure Rust |
+| `speech` | `speech`: the verbaliser and the phonemiser | Pure Rust; builds for `wasm32-unknown-unknown` |
+| `parser` | `parser` and `AkanaEngine` | |
+| `ner` | `ner` and its model (1 MB) | |
+| `embeddings` | `embeddings` (dense, sparse, hybrid; the model is 5.3 MB) and `chunking` | |
+| `spellcheck` | `normalization::spellcheck` | StringZilla (C) |
+| `pii` | `pii` | StringZilla; `embeddings` |
+| `grammar` | `grammar` | StringZilla; `parser` |
+| `style` | `style` and the AI-text detector (3.4 MB) | StringZilla; `embeddings` |
+| `pii-tagger`, `pii-download` | the learned PII tagger and its downloads | Opt-in, not in `full`; RTen |
+
+```toml
+# The speech front end alone: no C code, and it builds for the browser (wasm32-unknown-unknown)
+akana-core = { version = "0.12", default-features = false, features = ["speech"] }
 ```
 
 ---

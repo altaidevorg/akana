@@ -30,6 +30,7 @@ fn the_deasciifier_reads_lower_case_as_written() {
 }
 
 #[test]
+#[cfg(feature = "spellcheck")]
 fn test_spellchecker() {
     let checker = TurkishSpellChecker::new();
     assert!(checker.is_correct("kitap"));
@@ -53,6 +54,7 @@ fn test_spellchecker() {
 }
 
 #[test]
+#[cfg(feature = "spellcheck")]
 fn misspellings_the_lexicon_lists_are_not_correct() {
     // Review 3 LEX3-01, NORM3-01: Zemberek's non-TDK misspellings and the corpus "names" that
     // were common words without their Turkish letters made these correct.

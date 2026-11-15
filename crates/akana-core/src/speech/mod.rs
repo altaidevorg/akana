@@ -79,7 +79,7 @@ impl Profile {
     pub fn version(self) -> &'static str {
         match self {
             Profile::TtsV1 => "tts-v1.0",
-            Profile::TtsV2 => "tts-v2.0",
+            Profile::TtsV2 => "tts-v2.1",
         }
     }
 

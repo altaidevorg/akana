@@ -1,5 +1,6 @@
 //! Gateway hardening of PII / secret masking: each test is an attack or failure found by a
 //! black-box review (fake secrets in real formats, evasions, restore injection, hostile input).
+#![cfg(feature = "pii")]
 use akana_core::pii::*;
 use akana_core::tokenization::TurkishTokenizer;
 

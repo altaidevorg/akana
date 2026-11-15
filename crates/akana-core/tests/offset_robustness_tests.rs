@@ -1,6 +1,7 @@
 //! Offsets found in a lower-cased copy of the text must be mapped back to the text: Turkish
 //! lower-casing changes byte lengths (İ -> i, I -> ı), so without the mapping a span lands on
 //! the wrong bytes after every İ/I and slicing the text with it can panic.
+#![cfg(all(feature = "grammar", feature = "style"))]
 use akana_core::grammar::TurkishGrammarChecker;
 use akana_core::phonology::{origin_offset, to_turkish_lower, to_turkish_lower_with_origin};
 use akana_core::style::ClicheMatcher;

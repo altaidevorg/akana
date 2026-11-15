@@ -6,12 +6,12 @@
 //! the sentence, its neighbours, akana's name and place lists, and the analyzer.
 
 use super::{LOC_SUFFIXES, ORG_SUFFIXES, TITLE_TRIGGERS};
+use crate::lexicon::{is_demonym, is_given_name, is_person_name, is_place_name, is_surname};
 use crate::morphology::{
     readings_log_prior, standard_reading, MorphParse, PrimaryPos, SecondaryPos, TurkishMorphology,
     APOSTROPHES,
 };
 use crate::phonology::to_turkish_lower;
-use crate::pii::{is_demonym, is_given_name, is_person_name, is_place_name, is_surname};
 use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::HashMap;

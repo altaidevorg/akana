@@ -138,7 +138,7 @@ def test_verbalize_reads_what_a_screen_reader_meets():
         "%25'lik artış": "yüzde yirmi beşlik artış",
         "hız 90 km/sa": "hız saatte doksan kilometre",
         "II. Dünya Savaşı": "ikinci Dünya Savaşı",
-        "TBMM'de": "tebememede",
+        "TBMM'de": "te be me mede",
         "2/3'ü": "üçte ikisi",
         "Dr. Ahmet Bey, vb. şeyler": "doktor Ahmet Bey, ve benzeri şeyler",
     }

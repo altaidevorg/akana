@@ -1,5 +1,6 @@
 //! Crashes, text corruption and PII leaks found by the project review of 2026-10-20 (C1-C9),
 //! each with the input that showed it.
+#![cfg(all(feature = "grammar", feature = "pii"))]
 use akana_core::grammar::TurkishGrammarChecker;
 use akana_core::parser::{DependencyTree, TurkishDependencyParser};
 use akana_core::pii::*;
