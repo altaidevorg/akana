@@ -1,5 +1,5 @@
 """Writes scripts/lexicon/akana-names.dict: the Turkish given names and surnames of akana's PII
-lists (crates/akana-core/src/pii: gazetteer.rs GIVEN_NAMES and SURNAMES, names_data.rs
+lists (crates/akana-core/src/lexicon: gazetteer.rs GIVEN_NAMES and SURNAMES, names_data.rs
 COMMON_GIVEN_NAMES and COMMON_SURNAMES) that the lexicon has no proper-noun item for, but the
 given names PII itself finds more often something else (names_data.rs RARE_NAMES that are no
 surname: Kuzey, Yağmur), the names of months (Eylül, Ocak), whose capital in a date is the
@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PII = ROOT / "crates" / "akana-core" / "src" / "pii"
+NAME_LISTS = ROOT / "crates" / "akana-core" / "src" / "lexicon"
 LEXICON = ROOT / "crates" / "akana-core" / "src" / "morphology" / "zemberek_lexicon.txt"
 OUT = ROOT / "scripts" / "lexicon" / "akana-names.dict"
 UPPER = {"i": "İ", "ı": "I"}
@@ -45,8 +45,8 @@ def title(word: str) -> str:
 
 
 def main() -> None:
-    gazetteer = (PII / "gazetteer.rs").read_text(encoding="utf-8")
-    data = (PII / "names_data.rs").read_text(encoding="utf-8")
+    gazetteer = (NAME_LISTS / "gazetteer.rs").read_text(encoding="utf-8")
+    data = (NAME_LISTS / "names_data.rs").read_text(encoding="utf-8")
     given = strings(gazetteer, "static ref GIVEN_NAMES:", "};") | strings(
         data, "pub(crate) const COMMON_GIVEN_NAMES", "];"
     )

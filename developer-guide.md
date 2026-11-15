@@ -24,6 +24,22 @@ cargo test --locked -p akana-core -p akana-cli
 cargo test --release --locked -p akana-core -p akana-cli
 ```
 
+The default feature `full` builds every module (README, "Cargo features"). The speech front end
+alone has no C code and builds for the browser; CI checks it, and each feature on its own:
+```bash
+rustup target add wasm32-unknown-unknown
+cargo check -p akana-core --no-default-features --features speech --target wasm32-unknown-unknown
+cargo test -p akana-core --no-default-features --features speech
+
+# The phonemiser's whole output for a corpus, to compare two builds byte for byte
+cargo run --release -p akana-core --example phonemize_dump -- --corpus FILE --out default.tsv
+cargo run --release -p akana-core --no-default-features --features speech --example phonemize_dump -- --corpus FILE --out speech.tsv
+```
+The sources hashed into the encoders' fingerprints (`build.rs`: `src/morphology`,
+`src/phonology`, `src/tokenization`, parts of `src/embeddings`, `src/fingerprint.rs`) carry no
+feature gates; a lint allowance a reduced build needs for them sits on the `mod` line in
+`lib.rs`.
+
 ### B. Compile Python Extension in Editable Mode
 ```bash
 # Compiles the Rust PyO3 crate and installs into local virtualenv

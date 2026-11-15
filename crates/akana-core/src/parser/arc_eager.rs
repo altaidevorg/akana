@@ -412,7 +412,7 @@ impl TurkishDependencyParser {
         };
         let given = |i: usize| {
             name(i)
-                && crate::pii::is_given_name(&crate::phonology::to_turkish_lower(
+                && crate::lexicon::is_given_name(&crate::phonology::to_turkish_lower(
                     &disambiguated[i].lemma,
                 ))
         };

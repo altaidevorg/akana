@@ -16,7 +16,6 @@ pub mod gazetteer;
 mod ids;
 pub mod morphology;
 mod names;
-pub(crate) use names::{is_demonym, is_given_name, is_person_name, is_place_name, is_surname};
 #[rustfmt::skip]
 mod names_data;
 mod normalize;

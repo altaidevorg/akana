@@ -7,6 +7,7 @@
 //!
 //! After a deliberate change: `AKANA_GOLD_WRITE=downstream cargo test -p akana-core --test
 //! downstream_snapshot`, and give the diff of the snapshots in the commit message.
+#![cfg(all(feature = "parser", feature = "pii", feature = "style"))]
 
 use akana_core::parser::TurkishDependencyParser;
 use akana_core::pii::{PiiMode, TurkishPiiEngine};

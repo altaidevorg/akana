@@ -1,5 +1,6 @@
 //! Suffixes ported from Zemberek's TurkishMorphotactics that the graph lacked. Each word below
 //! had no analysis before (EchoCraft's Akana findings, 2026-10-16).
+#![cfg(feature = "parser")]
 use akana_core::morphology::*;
 use akana_core::parser::*;
 

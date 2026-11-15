@@ -1,3 +1,4 @@
+#![cfg(feature = "embeddings")]
 use akana_core::chunking::{
     calculate_quantile, calculate_threshold, moving_average_filter, savitzky_golay_filter,
     SDPMChunker, SemanticChunker, SentenceChunker, ThresholdMode,

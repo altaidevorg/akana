@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Cargo features for akana-core.** `default = ["full"]`, and `full` builds everything a build
+  without features built in 0.11.0, so existing users get the same library. The modules outside
+  the always-built core each have a feature: `speech`, `parser` (with `AkanaEngine`), `ner`,
+  `embeddings` (with `chunking`), `spellcheck`, `pii`, `grammar` and `style`. StringZilla, which
+  is C, is now optional and only the last four use it. `pii-tagger` implies `pii` and stays
+  opt-in, as does `pii-download`.
+- **`default-features = false, features = ["speech"]`** is the speech front end without C code,
+  and it builds for `wasm32-unknown-unknown`: there ahash keeps its fixed seeds, so the graph has
+  no getrandom (native builds still seed from the OS). CI checks it, each feature on its own, and
+  the speech tests in a speech-only build.
+- **`akana_core::lexicon`**, always built: the place gazetteer (provinces, districts, places
+  abroad) and the person-name lexicon (given names, surnames, demonyms), with `is_place_name`,
+  `is_given_name`, `is_person_name`, `is_surname` and `is_demonym`, now public. The phonemiser,
+  the parser and NER read it instead of `pii`.
+- `examples/phonemize_dump.rs`: the phonemiser's whole output for a corpus, to compare builds.
+
+### Changed
+
+- The name and place lists moved from `pii/gazetteer.rs`, `pii/names_data.rs` and
+  `pii/person_names.txt` to `lexicon/`. `pii::gazetteer` re-exports `GIVEN_NAMES`, `SURNAMES`,
+  `POLYSEMOUS_NAMES`, `PROVINCES` and `DISTRICTS`, so `pii`'s API is unchanged; the PII data
+  scripts read the new paths.
+
 ## 0.11.0 (unreleased)
 
 A Turkish TTS front end joins the library, in Rust and Python: a verbaliser for what a screen

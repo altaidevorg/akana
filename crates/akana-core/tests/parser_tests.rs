@@ -1,3 +1,4 @@
+#![cfg(feature = "parser")]
 use akana_core::parser::*;
 
 #[test]

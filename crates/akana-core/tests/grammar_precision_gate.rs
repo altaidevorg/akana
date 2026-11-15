@@ -6,6 +6,7 @@
 //! more is a rule damaging correct Turkish. On failure the message gives every default rule's
 //! count and the sentences it fired on. To see how a rule does on more text, run
 //! `cargo run --release -p akana-core --example grammar_rule_report`.
+#![cfg(feature = "grammar")]
 
 use akana_core::grammar::{GrammarFinding, GrammarRule, RuleSet, TurkishGrammarChecker};
 use std::collections::BTreeMap;

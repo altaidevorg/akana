@@ -1,6 +1,7 @@
 //! Review 4's downstream findings that move no vector: the de/da rule beside names
 //! (DOWN4-11), the deasciifier on words it should keep (DOWN4-12, GN-10) and readability's
 //! leftovers (DOWN4-13).
+#![cfg(feature = "grammar")]
 
 use akana_core::grammar::{GrammarRule, TurkishGrammarChecker};
 use akana_core::normalization::TurkishDeasciifier;

@@ -1,3 +1,4 @@
+#![cfg(feature = "ner")]
 use akana_core::analysis::{TurkishKeywordExtractor, TurkishSummarizer};
 use akana_core::morphology::{TurkishStemmer, TurkishStopwords};
 use akana_core::ner::TurkishNER;

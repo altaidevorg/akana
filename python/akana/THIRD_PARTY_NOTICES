@@ -30,9 +30,9 @@ Changes:    duplicate entries merged; corpus-collected proper nouns that are inf
             NotLexicalized, Rare and Nonstandard); homographs numbered; written in akana's
             one-line format.
 
-Shipped as: crates/akana-core/src/pii/person_names.txt, compiled into the library: the given
-            names of Zemberek's person-names.dict (morphology/src/main/resources/tr), which PII
-            masking reads as first names.
+Shipped as: crates/akana-core/src/lexicon/person_names.txt, compiled into the library: the
+            given names of Zemberek's person-names.dict (morphology/src/main/resources/tr),
+            which PII masking and NER read as first names.
 Changes:    lower-cased with Turkish rules; forms without circumflexes added.
 
 The morphotactics (crates/akana-core/src/morphology/turkish_morphotactics.rs, stems.rs,

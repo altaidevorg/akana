@@ -1,5 +1,6 @@
 //! The input path of the sparse and hybrid vectors as review 4 left it (MORPH4-01..06): the
 //! tokens, sentences and terms of court-style text.
+#![cfg(feature = "embeddings")]
 
 use akana_core::embeddings::MorphologicalSparseEncoder;
 use akana_core::tokenization::{SentenceSegmenter, TurkishTokenizer};

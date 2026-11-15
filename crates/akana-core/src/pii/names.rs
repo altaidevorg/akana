@@ -10,9 +10,9 @@
 //! noun (Orhan Pamuk); an inflected word (Kuvvetleri), a place, a month or an institution word
 //! ends the name.
 //!
-//! Word lists: gazetteer.rs, names_data.rs, and person_names.txt (Zemberek's person-name
-//! dictionary). Of the latter, names the morphology lexicon also has as common words (ahu,
-//! alev, beste) count as ambiguous.
+//! Word lists: `crate::lexicon` (gazetteer.rs, names_data.rs, and person_names.txt, Zemberek's
+//! person-name dictionary) and names_data.rs here. Of Zemberek's names, those the morphology
+//! lexicon also has as common words (ahu, alev, beste) count as ambiguous.
 
 use super::gazetteer::{
     DISTRICTS, GIVEN_NAMES, POLYSEMOUS_NAMES, PROVINCES, SURNAMES, TITLE_TRIGGERS,
@@ -21,6 +21,8 @@ use super::morphology::split_stem_suffix;
 use super::names_data::*;
 use super::passwords::MORPHOLOGY;
 use super::{ceil_char_boundary, floor_char_boundary, PiiEmbeddingScorer, PiiEntity, PiiType};
+use crate::lexicon::names_data::*;
+use crate::lexicon::{with_ascii, PERSON_NAMES_TXT, SURNAME_FORMS};
 use crate::morphology::{MorphParse, SecondaryPos};
 use crate::normalization::TurkishAsciifier;
 use crate::phonology::to_turkish_lower;
@@ -29,8 +31,6 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-
-const PERSON_NAMES_TXT: &str = include_str!("person_names.txt");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Kind {
@@ -59,63 +59,6 @@ struct Lexicon {
     known_name_intro: HashSet<String>,
     particles: HashSet<String>,
     collisions: HashSet<String>,
-}
-
-lazy_static! {
-    /// The curated Turkish given names, without places and the names more often something
-    /// else (RARE_NAMES): no analysis is needed to build it, as the PII lexicon's is.
-    static ref PERSON_GIVEN_NAMES: HashSet<String> = {
-        let rare: HashSet<String> = with_ascii(RARE_NAMES.iter().copied()).into_iter().collect();
-        GIVEN_NAMES
-            .iter()
-            .cloned()
-            .chain(with_ascii(COMMON_GIVEN_NAMES.iter().copied()))
-            .filter(|n| !rare.contains(n) && !PROVINCES.contains(n) && !DISTRICTS.contains(n))
-            .collect()
-    };
-}
-
-/// Whether `lower` (lower-cased) is a Turkish given name that is a person's more than a
-/// place's (Ahmet, Mustafa, Deniz; not Ankara or Güneş): the dependency parser's test for a
-/// person's name (review 4 DOWN4-07).
-pub(crate) fn is_given_name(lower: &str) -> bool {
-    PERSON_GIVEN_NAMES.contains(lower)
-}
-
-/// Whether `lower` (lower-cased, without a suffix) is a person's given name or surname in the PII
-/// lexicon, and no nationality: NER's person names (the lexicon's other proper nouns, places
-/// among them, are none).
-pub(crate) fn is_person_name(lower: &str) -> bool {
-    (LEXICON.given.contains_key(lower) || LEXICON.surnames.contains(lower))
-        && !DEMONYMS.contains(&lower)
-}
-
-/// Whether `lower` (lower-cased, without a suffix) is a surname of the PII lexicon.
-pub(crate) fn is_surname(lower: &str) -> bool {
-    LEXICON.surnames.contains(lower)
-}
-
-/// Whether `lower` (lower-cased, without a suffix) is a nationality or demonym (Türk, Alman).
-pub(crate) fn is_demonym(lower: &str) -> bool {
-    DEMONYMS.contains(&lower)
-}
-
-/// Whether `lower` (lower-cased, without a suffix) is a place: a province, a district, or a
-/// country, region or city abroad.
-pub(crate) fn is_place_name(lower: &str) -> bool {
-    PROVINCES.contains(lower) || DISTRICTS.contains(lower) || FOREIGN_PLACES.contains(&lower)
-}
-
-fn with_ascii<'a>(items: impl IntoIterator<Item = &'a str>) -> Vec<String> {
-    let mut out = Vec::new();
-    for item in items {
-        out.push(item.to_string());
-        let ascii = TurkishAsciifier::asciify(item);
-        if ascii != item {
-            out.push(ascii);
-        }
-    }
-    out
 }
 
 /// The readings of `lower` as a common word: not as a proper noun or an abbreviation (the
@@ -314,11 +257,7 @@ lazy_static! {
         Lexicon {
             given,
             curated,
-            surnames: SURNAMES
-                .iter()
-                .cloned()
-                .chain(with_ascii(COMMON_SURNAMES.iter().copied()))
-                .collect(),
+            surnames: SURNAME_FORMS.clone(),
             honorifics,
             roles,
             org_roles: set(ORG_ROLES),
@@ -1341,6 +1280,15 @@ mod tests {
         let mut out = Vec::new();
         detect_names(text, None, &mut out);
         out.into_iter().map(|e| e.text).collect()
+    }
+
+    /// The lexicon's given-name and surname forms (`crate::lexicon`, which NER and the parser
+    /// read) are exactly this detector's: the lists moved there, the evidence levels stayed.
+    #[test]
+    fn lexicon_forms_equal_the_detectors_keys() {
+        let given: HashSet<String> = LEXICON.given.keys().cloned().collect();
+        assert_eq!(given, *crate::lexicon::GIVEN_NAME_FORMS);
+        assert_eq!(LEXICON.surnames, *crate::lexicon::SURNAME_FORMS);
     }
 
     /// PII's view of the analyzer for a fixed word list, the frequent types of

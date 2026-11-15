@@ -1,5 +1,6 @@
 //! Engines share the built-in lexicon and the embedding weights, and batches run on several
 //! threads; none of that may change a result.
+#![cfg(all(feature = "parser", feature = "embeddings"))]
 
 use akana_core::morphology::*;
 use akana_core::parser::TurkishDependencyParser;

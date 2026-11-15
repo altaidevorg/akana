@@ -7,6 +7,7 @@
 //! After a deliberate change, measure it with `scripts/encoder_churn.py` (the bump class of
 //! `embeddings/spec.rs`), record the class in the commit, and rewrite the file:
 //! `UPDATE_GOLDEN=1 cargo test -p akana-core --test golden_vectors`.
+#![cfg(feature = "embeddings")]
 
 #[path = "../src/fingerprint.rs"]
 #[allow(dead_code)]

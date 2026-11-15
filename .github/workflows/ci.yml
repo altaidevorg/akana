@@ -70,6 +70,56 @@ jobs:
       - name: Dependency parser on UD Turkish
         run: python scripts/parser_ud_eval.py --min-las 41.7
 
+  # The speech front end alone (`default-features = false, features = ["speech"]`) is pure Rust
+  # and builds for the browser: no StringZilla (C, through cc) anywhere in its graph, and no
+  # getrandom on wasm32-unknown-unknown (ahash keeps fixed seeds there). Each feature also builds
+  # on its own, without warnings.
+  features:
+    name: Feature builds and the speech-only wasm32 check
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.99.0"
+          targets: wasm32-unknown-unknown
+
+      # `cargo tree -i` exits 0 with "nothing to print" when a target filters a crate out, so the
+      # printed graph is searched instead.
+      - name: No C and no getrandom in the speech-only graph
+        run: |
+          speech="-p akana-core --no-default-features --features speech"
+          every=$(cargo tree --locked $speech --target all -e normal,build --prefix none)
+          browser=$(cargo tree --locked $speech --target wasm32-unknown-unknown -e normal,build --prefix none)
+          if grep -E '^(stringzilla|cc) ' <<<"$every"; then
+            echo "::error::C code (above) in the speech-only graph"
+            exit 1
+          fi
+          if grep -E '^getrandom ' <<<"$browser"; then
+            echo "::error::getrandom in the speech-only wasm32 graph"
+            exit 1
+          fi
+
+      - name: Speech only, wasm32-unknown-unknown
+        run: cargo check --locked -p akana-core --no-default-features --features speech --target wasm32-unknown-unknown
+
+      - name: The always-built modules alone, then each feature alone
+        run: |
+          cargo check --locked -p akana-core --no-default-features
+          for f in speech parser ner embeddings spellcheck pii grammar style; do
+            echo "::group::$f"
+            cargo check --locked -p akana-core --no-default-features --features "$f"
+            echo "::endgroup::"
+          done
+
+      # The speech goldens hold in a speech-only build too.
+      - name: Tests of a speech-only build
+        run: cargo test --locked -p akana-core --no-default-features --features speech
+
   test:
     name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}

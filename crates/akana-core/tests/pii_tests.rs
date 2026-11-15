@@ -1,3 +1,4 @@
+#![cfg(feature = "pii")]
 use akana_core::pii::*;
 
 #[test]

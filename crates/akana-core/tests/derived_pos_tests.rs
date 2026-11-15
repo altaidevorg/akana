@@ -1,5 +1,6 @@
 //! `MorphParse::pos` is the POS after the last derivation (Zemberek's SingleAnalysis.getPos),
 //! and the disambiguator and parser use it instead of the root's POS.
+#![cfg(feature = "parser")]
 use akana_core::morphology::*;
 use akana_core::parser::*;
 

@@ -443,9 +443,8 @@ fn v2_word_stress(
                 )
             })
         });
-    let province =
-        capital && crate::pii::gazetteer::PROVINCES.contains(&name_str) && (named || !common);
-    let place = province || (named && crate::pii::is_place_name(&name_str));
+    let province = capital && crate::lexicon::PROVINCES.contains(&name_str) && (named || !common);
+    let place = province || (named && crate::lexicon::is_place_name(&name_str));
     if !named && !place {
         return None;
     }
@@ -749,7 +748,7 @@ fn word_stress(
     }
     if lexical.is_none()
         && p.secondary_pos == SecondaryPos::ProperNoun
-        && crate::pii::is_place_name(lemma_key)
+        && crate::lexicon::is_place_name(lemma_key)
         && !root_vowels.is_empty()
     {
         let k = sezer(&root);

@@ -6,6 +6,7 @@
 //! builds on a slow or busy machine: the input grows 4×, and the time may grow at most
 //! [`MAX_RATIO`]× (linear work gives about 4×, quadratic work 16×). Each size is timed
 //! best-of-three, interleaved with the other, and the tests in this file run one at a time.
+#![cfg(all(feature = "embeddings", feature = "ner", feature = "style"))]
 
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Instant;

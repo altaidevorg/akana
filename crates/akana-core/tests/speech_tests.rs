@@ -8,6 +8,7 @@
 //!
 //! After a deliberate change to `tts-v2` or the verbaliser, bump the profile's version and rewrite
 //! the files with `cargo test -p akana-core --test speech_tests write_goldens -- --ignored`.
+#![cfg(feature = "speech")]
 
 use akana_core::speech::{verbalize, Phonemizer, Profile, Token};
 use serde_json::Value;
