@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **The verbaliser reads service text as Turkish readers do** (`verbalize`, and profile
+  `tts-v2`, now **`tts-v2.1`**). `tts-v1` keeps every earlier reading: its verbaliser output and
+  its tokens are unchanged on 58,830 test texts.
+  - **Telephone numbers:** in their groups with a pause (a comma) between them; a mobile number
+    written whole (`5321234567`), a number from 0 in other groups (`0850 222 0 600`) and a
+    nationwide service number (`444 0 333`) too.
+  - **Identifiers:** five figures or more next to a word that names one (`kod`, `numara`,
+    `nolu`, `şifre`, `IBAN`, and `sipariş`, `takip`, `hesap`, `dosya`, `poliçe` ...), one figure
+    at a time (`Doğrulama kodunuz 482915` dört sekiz iki dokuz bir beş). Quantities stay
+    numbers: an amount, a unit, a count noun after the number (`12500 başvuru`), or a case
+    ending on `hesap` and `fatura` (`hesabınıza 15000`).
+  - **Initialisms:** a letter name each (`KDV` ka de ve, `SGK'ya` se ge kaya), K as *ka*, H as
+    *he* (`THY` te he ye, `HGS'ye` he ge seye), Q as *kû* (`QR` kû re, `PDF` pe de fe);
+    initialisms read as words stay words (`NATO`, `ODTÜ`, `SMS` esemes). A single capital
+    consonant used as a label is read by name (`G bloğu` ge bloğu).
+  - **Codes:** capitals and figures in order (`X7K9QZ` iks yedi ka dokuz kû ze, `TR78240865`),
+    plate-shaped codes (`34 ABC 123`, `30 MM 6653`), IBANs in their groups.
+  - **Numbers:** a half is *buçuk* (`9,5` dokuz buçuk); a dot and one or two figures is a
+    decimal (`%3.8` yüzde üç virgül sekiz), except after a version's or a section's name; doses
+    (`Günde 2x1 tablet` iki çarpı bir); `7/24` yedi yirmi dört; no leading zero in an amount
+    (`039,50 TL`); `16.10 tarihinde` on altı ekim; `lira'lık` liralık.
+  - **tts-v2** reads the letter names of a spelled code as letters, not as the clitic `de` or
+    the conjunction `ve` (no pause inside `KDV`).
+- `tests/data/speech/service_cases.jsonl`: 65 service sentences with their accepted readings,
+  checked by `speech_tests.rs`.
+
+### Fixed
+
+- `3×4` (the multiplication sign) no longer panics the verbaliser.
+
 ## 0.11.0 (unreleased)
 
 A Turkish TTS front end joins the library, in Rust and Python: a verbaliser for what a screen

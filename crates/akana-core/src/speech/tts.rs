@@ -967,9 +967,21 @@ pub(crate) fn phonemize_tts(
     // tts-v1 keeps words written in letters as written: its output on such text is frozen
     let spoken = super::verbalize::verbalize_with(text, profile == Profile::TtsV2);
     if spoken.segments.is_empty() {
-        return phonemize_spoken(text, out, profile);
+        return phonemize_spoken(text, out, profile, &[]);
     }
-    phonemize_spoken(&spoken.text, out, profile)?;
+    // letter names of spelled codes and initialisms (ka de ve): tts-v2 reads each as a letter,
+    // not as the clitic or the conjunction it may spell
+    let spelled: Vec<Range<usize>> = if profile == Profile::TtsV2 {
+        spoken
+            .segments
+            .iter()
+            .filter(|s| matches!(s.kind, "initialism" | "letters" | "identifier"))
+            .map(|s| s.spoken_span.clone())
+            .collect()
+    } else {
+        Vec::new()
+    };
+    phonemize_spoken(&spoken.text, out, profile, &spelled)?;
     for w in &mut out.words {
         let (span, kind) = spoken.source(w.span.clone(), text.len());
         w.span = span;
@@ -983,15 +995,24 @@ pub(crate) fn phonemize_tts(
     Ok(())
 }
 
-/// Phonemises text already verbalised.
+/// Phonemises text already verbalised. `spelled`: spans of spelled codes and initialisms, whose
+/// letter names are content words (never clitics) without an optional pause between them.
 fn phonemize_spoken(
     text: &str,
     out: &mut Utterance,
     profile: Profile,
+    spelled: &[Range<usize>],
 ) -> Result<(), PhonemizeError> {
     let v2 = profile == Profile::TtsV2;
     let mut tw: Vec<TextWord> = Vec::new();
     let final_gap = segment(text, &mut tw, v2);
+    // the spelled span a word lies in, and whether it starts it
+    let spelled_at = |r: &Range<usize>| -> Option<bool> {
+        spelled
+            .iter()
+            .find(|s| s.start <= r.start && r.end <= s.end)
+            .map(|s| s.start == r.start)
+    };
     // analyses of the sentence's words, disambiguated in context
     // tts-v2 analyses the composed form of a decomposed word (NFD), without the dot of i̇
     let composed: Vec<String> = if v2 {
@@ -1044,6 +1065,12 @@ fn phonemize_spoken(
             && parse_of(i - 1).is_some_and(|q| SUBORDINATE.iter().any(|s| q.analysis.contains(s)));
         if converb || closer {
             tw[i + 1].pauses.push(Pause::Short);
+        }
+    }
+    // no optional pause inside a spelled code (ka de _! ve)
+    for w in tw.iter_mut() {
+        if spelled_at(&w.span) == Some(false) {
+            w.pauses.retain(|p| *p != Pause::Short);
         }
     }
     let mut infos: Vec<WordInfo> = Vec::with_capacity(tw.len());
@@ -1099,8 +1126,17 @@ fn phonemize_spoken(
             || text[w.gap.clone()].contains([
                 '.', '!', '?', '…', ':', '\n', '\r', '"', '“', '«', '(', '–', '—',
             ]);
-        let (stressed_letter, class, stress_source) =
+        let (mut stressed_letter, mut class, mut stress_source) =
             word_stress(&w.key, &letters, parse, v2, capital, initial);
+        // a letter name of a spelled code is a content word, stressed on its last vowel (the d
+        // and v of KDV are not the clitic de and the conjunction ve)
+        if spelled_at(&w.span).is_some() && class != Class::Content {
+            class = Class::Content;
+            if stressed_letter.is_none() {
+                stressed_letter = letters.iter().rposition(|&c| is_vowel_letter(c));
+                stress_source = StressSource::DefaultFinal;
+            }
+        }
         // the stressed letter's vowel segment (a merged long vowel starts at its first letter)
         let vowel_segs: Vec<u32> = segs
             .iter()
