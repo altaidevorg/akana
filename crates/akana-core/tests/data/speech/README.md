@@ -11,7 +11,8 @@ readings are Akana's own output.
   clause-final pronouns. The output is frozen as of stage 2 (commit `0c9d167`): EchoCraft's
   shipped voice was trained on this profile. Never rewrite this file.
 - **`tts_v2_golden.jsonl`:** profile `tts-v2`'s tokens for the same 60 sentences and the 40 of
-  `verbalize_inputs.txt`, frozen with `tts-v2.0`.
+  `verbalize_inputs.txt`, frozen with `tts-v2.1` (2026-11-15: the service-text readings; `tts-v2.0`
+  before).
 - **`verbalize_inputs.txt`:** 40 sentences written for the verbaliser (numbers, dates, money,
   units, telephone numbers, abbreviations, initialisms, symbols, foreign words and the stress
   rules of `tts-v2`).

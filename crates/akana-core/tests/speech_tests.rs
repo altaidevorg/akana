@@ -3,7 +3,7 @@
 //! - `tts_v1_golden_is_frozen`: `tts-v1`'s tokens for 60 CC0 sentences, as frozen in stage 2
 //!   (EchoCraft's shipped voice was trained on this profile; the file is never rewritten).
 //! - `tts_v2_golden_is_frozen`: `tts-v2`'s tokens for the same sentences and the verbaliser's
-//!   inputs (`verbalize_inputs.txt`), frozen with `tts-v2.0`.
+//!   inputs (`verbalize_inputs.txt`), frozen with `tts-v2.1`.
 //! - `verbalize_golden_is_frozen`: the verbaliser's readings and spans for those inputs.
 //!
 //! After a deliberate change to `tts-v2` or the verbaliser, bump the profile's version and rewrite
@@ -100,6 +100,78 @@ fn verbalize_golden_is_frozen() {
         let text = row["text"].as_str().expect("text");
         assert_eq!(verbal_row(text), row, "{text}");
     }
+}
+
+/// A reading as the service cases compare it: Turkish small letters, without apostrophes and
+/// punctuation.
+fn case_words(s: &str) -> String {
+    let lower: String = s
+        .replace('İ', "i")
+        .replace('I', "ı")
+        .to_lowercase()
+        .chars()
+        .filter(|&c| c != '\'' && c != '’')
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' || c.is_whitespace() {
+                c
+            } else {
+                ' '
+            }
+        })
+        .collect();
+    lower.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// The service-text cases (`service_cases.jsonl`, written for the 2026-11-15 brief): every
+/// `must` and `guard` case reads as one of its expected readings, and a case marked `commas` has
+/// the pauses between its groups. `info` cases are open decisions and only printed.
+#[test]
+fn service_cases_read_as_expected() {
+    let mut failures = Vec::new();
+    for line in include_str!("data/speech/service_cases.jsonl").lines() {
+        let case: Value = serde_json::from_str(line).expect("case");
+        let text = case["text"].as_str().expect("text");
+        let out = verbalize(text).text;
+        let expect: Vec<&str> = case["expect"]
+            .as_array()
+            .expect("expect")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        if case["kind"] == "info" {
+            println!("info {}: {out}", case["id"]);
+            continue;
+        }
+        let words_ok = expect.iter().any(|e| case_words(e) == case_words(&out));
+        let commas = |s: &str| s.matches(',').count();
+        let commas_ok = case["commas"] != true
+            || commas(&out) + commas(text) >= expect.first().map_or(0, |e| commas(e));
+        if !(words_ok && commas_ok) {
+            failures.push(format!("{}: {out}", case["id"]));
+        }
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
+}
+
+/// The letter names of a spelled initialism are letters to tts-v2: `KDV` ka de ve has no pause
+/// inside it and no unstressed clitic `de` or conjunction `ve`; the words `de` and `ve` written
+/// as such stay clitics.
+#[test]
+fn tts_v2_reads_spelled_letters_as_letters() {
+    let p = Phonemizer::new(Profile::TtsV2);
+    let u = p.phonemize("Fiyata KDV dahildir.");
+    let syms: Vec<&str> = u.tokens.iter().map(|t| t.ph_symbol()).collect();
+    let start = syms.iter().position(|&s| s == "k").expect("k of ka");
+    let letters = &u.tokens[start..start + 6];
+    assert!(letters.iter().all(|t| !t.ph.is_pause()), "{syms:?}");
+    assert!(letters.iter().all(|t| t.stress > 0), "{syms:?}");
+    let plain = p.phonemize("Sen de gel ve otur.");
+    let de = plain
+        .words
+        .iter()
+        .find(|w| w.reading == "de")
+        .expect("the clitic de");
+    assert!(de.phones.iter().all(|ph| ph.stress == 0));
 }
 
 #[test]

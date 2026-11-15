@@ -29,7 +29,7 @@ Its `ph` symbols are the phonemes' IPA.
 
 - **Interface:**
   - Python: `akana.phonemize(text, profile="tts-v2")`; Rust: `Profile::TtsV2`; version string
-    `tts-v2.0`.
+    `tts-v2.1` (2026-11-15: the service-text readings below; `tts-v2.0` before).
   - The token schema is `tts-v1`'s: `ph`, `stress`, `word`, `lengthen`, `mark`, `type`, `ipa`.
   - The default profile is still `tts-v1`.
 - **Contract:**
@@ -154,16 +154,19 @@ point back at it.
 | `3'te`, `1990'larda`, `4'ü` | üçte, bin dokuz yüz doksanlarda, dördü | cardinal and the written suffix, re-harmonised (`dört` → `dörd-`) |
 | `2. sınıf`, `5'inci`, `1. Lig'de` | ikinci sınıf, beşinci, birinci Lig'de | ordinal: a dot before a small letter or at a sentence's start; the `-(I)ncI` suffix |
 | `XIV. Louis`, `Mehmet II` | on dördüncü Louis, Mehmet ikinci | Roman numeral with a dot, or after a name |
-| `3,5`, `0,05`, `2.1` | üç virgül beş, sıfır virgül sıfır beş, iki nokta bir | decimals |
-| `2/3'ü`, `24/7`, `10-15`, `3-1`, `3x4` | üçte ikisi, yirmi dört yedi, on ila on beş, üç bir, üçe dört | fraction, range, score, dimensions |
-| `12.03.2024`, `2024-03-12'de` | on iki mart iki bin yirmi dört(te) | dates |
+| `3,5`, `0,05`, `17.5`, `3.14`, `Python 3.12` | üç buçuk, sıfır virgül sıfır beş, on yedi buçuk, üç virgül on dört, Python üç nokta on iki | decimals: a half is *buçuk*; a dot and one or two figures is a decimal, after a version's or a section's name a dot |
+| `2/3'ü`, `24/7`, `7/24`, `10-15`, `3-1`, `3x4`, `Günde 2x1 tablet` | üçte ikisi, yirmi dört yedi, yedi yirmi dört, on ila on beş, üç bir, üçe dört, günde iki çarpı bir tablet | fraction, service hours, range, score, dimensions, dose |
+| `12.03.2024`, `2024-03-12'de`, `16.10 tarihinde` | on iki mart iki bin yirmi dört(te), on altı ekim tarihinde | dates (day and month before a date word) |
 | `14:30'da`, `09.45'te`, `14:00-16:00` | on dört otuzda, dokuz kırk beşte, on dört ila on altı | times |
-| `1.299,90 TL`, `₺850'ye`, `3.50 TL`, `1,5 milyon TL` | … lira doksan kuruş, sekiz yüz elli liraya, üç lira elli kuruş, bir virgül beş milyon lira | money: the suffix moves to the currency word |
+| `1.299,90 TL`, `₺850'ye`, `3.50 TL`, `1,5 milyon TL`, `039,50 TL` | … lira doksan kuruş, sekiz yüz elli liraya, üç lira elli kuruş, bir buçuk milyon lira, otuz dokuz lira elli kuruş | money: the suffix moves to the currency word; a leading zero is not read |
 | `%25'lik`, `50%`, `‰5` | yüzde yirmi beşlik, yüzde elli, binde beş | percent |
 | `12 km'den`, `5 kg'ye`, `90 km/sa`, `-5°C`, `3 m²` | on iki kilometreden, beş kilograma, saatte doksan kilometre, eksi beş derece, üç metrekare | units and rates |
-| `0532 123 45 67`, `+90 212 555 12 34` | sıfır beş yüz otuz iki yüz yirmi üç … | telephone numbers in their groups |
+| `0532 123 45 67`, `+90 212 555 12 34`, `5321234567`, `444 0 333` | sıfır beş yüz otuz iki, yüz yirmi üç, … | telephone numbers in their groups, a pause (comma) between them |
+| `Doğrulama kodunuz 482915`, `10832 numaralı`, `Hesap 982532'ye` | dört sekiz iki dokuz bir beş, bir sıfır sekiz üç iki numaralı, dokuz sekiz iki beş üç ikiye | identifiers: five figures or more next to a word that names one, one figure at a time; quantities stay numbers |
+| `X7K9QZ`, `TR78240865`, `34 ABC 123`, `TR76 0006 1005 1978 6457 8413 26` | iks yedi ka dokuz kû ze, te re yedi sekiz …, otuz dört a be ce yüz yirmi üç, te re yetmiş altı, sıfır sıfır sıfır altı, … | codes of capitals and figures, plate-shaped codes, IBANs in their groups |
 | `Dr. Ahmet`, `Atatürk Cad.`, `vb.` | doktor Ahmet, Atatürk caddesi, ve benzeri | abbreviations by place: a title before a name, an address word after one, the rest anywhere |
-| `TBMM'de`, `TDK'ye`, `CNN'e`, `NATO` | tebememede, tedekeye, sienene, NATO | initialisms as the lexicon reads them; the suffix decides *ka* or *ke*; a word in capitals is read as the word |
+| `TBMM'de`, `TDK'ye`, `KDV`, `THY`, `PDF`, `QR`, `SMS`, `CNN'e`, `NATO` | te be me mede, te de keye, ka de ve, te he ye, pe de fe, kû re, esemes, sienene, NATO | initialisms the lexicon spells: one letter name each, K as *ka*, H as *he*, Q as *kû*; the suffix decides *ka* or *ke*; read as words when the lexicon reads them so, and a word in capitals as the word |
+| `G bloğu`, `C vitamini`, `Plan B` | ge bloğu, ce vitamini, Plan be | a single capital consonant used as a label |
 | `ali@ornek.com`, `www.ornek.com.tr` | ali et ornek nokta kom, ve ve ve nokta ornek nokta kom nokta te re | electronic |
 | `&`, `+`, `=`, `#`, `@`, `°`, `½` | ve, artı, eşittir, diyez, et, derece, yarım | symbols |
 | `Ç-A-Y`, `A4`, `COVID-19`, `2x` | çe a ye, a dört, kovid on dokuz, iki iks | letters |
