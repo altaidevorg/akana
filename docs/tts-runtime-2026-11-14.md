@@ -1,11 +1,9 @@
-# The TTS runtime moves into Akana: record (2026-11-14)
+# Cargo features for the speech front end: record (2026-11-14)
 
-The owner decided on 2026-11-14 that the Turkish student TTS runtime moves from EchoCraft
-(`crates/echocraft-student`) into Akana. The plan and its analysis are in EchoCraft's
-`experiments/2026-11-14-inference-runtimes-plan.md` ("Akana analysis", "Owner proposal").
-Branch `claude/tts-features-21ed1f`, from `05ba965`. Part A (this record) ships in 0.12.0;
-Part B, the runtime itself, was built and then cancelled by the owner, and is kept unmerged on
-branch `claude/tts-runtime`.
+The owner decided on 2026-11-14 to bring a Turkish TTS runtime into Akana, in two parts.
+Part A, recorded here, splits akana-core into Cargo features so that the speech front end
+builds on its own. It was committed as `5e7f4b8`, from `05ba965`, and ships in 0.12.0. Part B,
+the runtime, was built and then cancelled by the owner; its code is kept outside Akana.
 
 ## Part A: the feature split
 
@@ -103,11 +101,9 @@ branch `claude/tts-runtime`.
 - A first draft of its graph step used `cargo tree -i`, which exits 0 with "nothing to print"
   when a target filters the crate out; the step now searches the printed graph.
 
-### Owner decisions after Part A (relayed 2026-11-14)
+### After Part A
 
-- A `tts` feature would be opt-in, not in `full` (as `pii-tagger`).
-- The worktree's debug build output was deleted before Part B (3.4 GB).
-- Part B was then built and cancelled (2026-11-15); its code, tests and record are on
-  `claude/tts-runtime`, not in 0.12.0.
+- 2026-11-15: Part B, the runtime, was built and then cancelled by the owner. Its code is kept
+  outside Akana and is not in 0.12.0.
 - 2026-11-15: Part A merges with the service-text verbaliser (`docs/tts-normaliser-2026-11-15.md`)
   and ships as 0.12.0.
